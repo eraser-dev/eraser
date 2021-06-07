@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: list_images
+  labels:
+    name: list_images
+spec:
+  containers:
+  - name: list_images
+    image: ashnam/list_images
+    ports:
+    - containerPort: 80
