@@ -33,12 +33,12 @@ func getDockerImages() {
 	ctx := context.Background()
 	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
 	if err != nil {
-		panic(err)
+		fmt.Println(err)
 	}
 
 	images, err := cli.ImageList(ctx, types.ImageListOptions{})
 	if err != nil {
-		panic(err)
+		fmt.Println(err)
 	}
 
 	for _, image := range images {
