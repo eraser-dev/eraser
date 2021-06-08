@@ -1,4 +1,4 @@
-module github.com/azure/eraser
+module github.com/Azure/eraser
 
 go 1.13
 
