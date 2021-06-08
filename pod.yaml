@@ -1,13 +1,16 @@
 apiVersion: v1
 kind: Pod
 metadata:
-  name: list_images
+  name: list-images
   labels:
-    name: list_images
+    name: list-images
 spec:
   containers:
-  - name: list_images
+  - name: list-images
     image: ashnam/list_images
     ports:
     - containerPort: 80
-    
+  volumes:
+  - name: docker-sock-volume
+    hostPath:
+      path: /var/run/docker.sock
