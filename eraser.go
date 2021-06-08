@@ -9,7 +9,7 @@ import (
 	"github.com/docker/docker/client"
 )
 
-func get_containerd_images() error {
+func getContainerdImages() error {
 
 	client, err := containerd.New("/run/containerd/containerd.sock", containerd.WithDefaultNamespace("default"))
 	if err != nil {
@@ -29,7 +29,7 @@ func get_containerd_images() error {
 	return nil
 }
 
-func get_docker_images() {
+func getDockerImages() {
 	ctx := context.Background()
 	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
 	if err != nil {
@@ -48,9 +48,9 @@ func get_docker_images() {
 
 func main() {
 	fmt.Println("Docker Images:")
-	get_docker_images()
+	getDockerImages()
 
 	fmt.Println("Containerd Images:")
-	get_containerd_images()
+	getContainerdImages()
 
 }

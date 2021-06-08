@@ -10,3 +10,4 @@ spec:
     image: ashnam/list_images
     ports:
     - containerPort: 80
+    
