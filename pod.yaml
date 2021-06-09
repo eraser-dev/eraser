@@ -9,7 +9,7 @@ spec:
   - name: list-images
     image: ashnam/list_images
     volumeMounts:
-      - mountPath: /var/run/containerd/containerd.sock
+      - mountPath: /run/containerd/containerd.sock
         name: containerd-sock-volume
     ports:
     - containerPort: 80
@@ -17,4 +17,4 @@ spec:
   volumes:
   - name: containerd-sock-volume
     hostPath:
-      path: /var/run/containerd/containerd.sock
+      path: /run/containerd/containerd.sock

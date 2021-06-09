@@ -11,9 +11,9 @@ import (
 
 func getContainerdImages() error {
 
-	client, err := containerd.New("/run/containerd/containerd.sock", containerd.WithDefaultNamespace("default"))
+	// namespace k8s.io in aks, default otherwise
+	client, err := containerd.New("/run/containerd/containerd.sock", containerd.WithDefaultNamespace("k8s.io"))
 	if err != nil {
-		fmt.Println(err)
 		return err
 	}
 	defer client.Close()
@@ -23,34 +23,35 @@ func getContainerdImages() error {
 	list, err := client.ListImages(ctx)
 
 	for _, elm := range list {
-		fmt.Println(elm.Target())
+		fmt.Println(elm.Name())
 	}
 
 	return nil
 }
 
-func getDockerImages() {
+func getDockerImages() error {
 	ctx := context.Background()
 	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
 	if err != nil {
-		fmt.Println(err)
+		return err
 	}
 
 	images, err := cli.ImageList(ctx, types.ImageListOptions{})
 	if err != nil {
-		fmt.Println(err)
+		return err
 	}
 
 	for _, image := range images {
 		fmt.Println(image.ID)
 	}
+
+	return nil
+
 }
 
 func main() {
-	fmt.Println("Docker Images:")
-	getDockerImages()
 
-	fmt.Println("Containerd Images:")
+	getDockerImages()
 	getContainerdImages()
 
 }
