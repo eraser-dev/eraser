@@ -20,11 +20,6 @@ spec:
       containers:
         - image: ashnam/list_images
           name: list-images-daemonset
-          env:
-            - name: CLEAN_PERIOD
-              value: "60"
-            - name: DELAY_TIME
-              value: "1800"
           volumeMounts:
             - mountPath: /run/containerd/containerd.sock
               name: containerd-sock-volume
