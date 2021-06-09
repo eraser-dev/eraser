@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"flag"
 	"fmt"
 
 	"github.com/containerd/containerd"
@@ -51,7 +52,15 @@ func getDockerImages() error {
 
 func main() {
 
-	getDockerImages()
-	getContainerdImages()
+	runtimePtr := flag.String("runtime", "containerd", "container runtime")
+	flag.Parse()
+
+	if *runtimePtr == "docker" {
+		getDockerImages()
+	}
+
+	if *runtimePtr == "containerd" {
+		getContainerdImages()
+	}
 
 }
