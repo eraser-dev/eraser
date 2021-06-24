@@ -2,18 +2,18 @@ package main
 
 import (
 	"context"
-	"io/ioutil"
-	"log"
+	"io"
+	"os"
 
 	"fmt"
 	"time"
 
 	cli "github.com/urfave/cli/v2"
-	"github.com/utahta/go-openuri"
 	"google.golang.org/grpc"
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 
 	"net"
+	"net/http"
 	"net/url"
 )
 
@@ -118,6 +118,19 @@ func contains(slice []string, str string) bool {
 	return false
 }
 
+func removeDuplicateValues(intSlice []string) []string {
+	keys := make(map[string]bool)
+	list := []string{}
+
+	for _, entry := range intSlice {
+		if _, value := keys[entry]; !value {
+			keys[entry] = true
+			list = append(list, entry)
+		}
+	}
+	return list
+}
+
 func main() {
 
 	ctx := cli.NewContext(nil, nil, nil)
@@ -154,6 +167,8 @@ func main() {
 		runningImages = append(runningImages, curr.GetImage())
 	}
 
+	runningImages = removeDuplicateValues(runningImages)
+
 	var nonRunningImages []string
 
 	for _, img := range allImages {
@@ -170,7 +185,7 @@ func main() {
 		fmt.Println(m[img], ", ", img)
 	}
 
-	fmt.Println("\nRunning images: ")
+	fmt.Println("\nRunning images: (Unique)")
 	fmt.Println(len(runningImages))
 	for _, img := range runningImages {
 		fmt.Println(m[img], ", ", img)
@@ -182,15 +197,34 @@ func main() {
 		fmt.Println(m[img], ", ", img)
 	}
 
-	o, err := openuri.Open("https://gist.githubusercontent.com/ashnamehrotra/1a244c8fae055bce853fd344ac4c5e02/raw/98baf0a4f0864b3dcc48523a9bddd28938fecd17/vulnerable.txt")
+	/*	o, err := openuri.Open("https://gist.githubusercontent.com/ashnamehrotra/1a244c8fae055bce853fd344ac4c5e02/raw/98baf0a4f0864b3dcc48523a9bddd28938fecd17/vulnerable.txt")
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer o.Close()
+
+		b, _ := ioutil.ReadAll(o)
+		fmt.Println("Read vulnerable: ")
+		fmt.Println(string(b)) */
+
+	/*baseUrl := "https://gist.githubusercontent.com/ashnamehrotra/1a244c8fae055bce853fd344ac4c5e02/raw/98baf0a4f0864b3dcc48523a9bddd28938fecd17/vulnerable.txt"
+
+	client := http.Client{}
+
+	resp, err := client.Get(baseUrl)
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer o.Close()
+	defer resp.Body.Close()
+	fmt.Println("resp: ")
+	fmt.Println(resp) */
 
-	b, _ := ioutil.ReadAll(o)
+	resp, _ := http.Get("https://gist.githubusercontent.com/ashnamehrotra/1a244c8fae055bce853fd344ac4c5e02/raw/98baf0a4f0864b3dcc48523a9bddd28938fecd17/vulnerable.txt")
+	fmt.Print(resp)
+	defer resp.Body.Close()
+
 	fmt.Println("Read vulnerable: ")
-	fmt.Println(string(b))
+	_, _ = io.Copy(os.Stdout, resp.Body)
 
 	var vulnerableImages []string
 
