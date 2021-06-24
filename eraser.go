@@ -2,8 +2,7 @@ package main
 
 import (
 	"context"
-	"io"
-	"os"
+	"io/ioutil"
 
 	"fmt"
 	"time"
@@ -177,7 +176,7 @@ func main() {
 		}
 	}
 
-	// testing
+	// testing correct image, running, and non-runing lists
 
 	fmt.Println("\nAll images: ")
 	fmt.Println(len(allImages))
@@ -197,53 +196,35 @@ func main() {
 		fmt.Println(m[img], ", ", img)
 	}
 
-	/*	o, err := openuri.Open("https://gist.githubusercontent.com/ashnamehrotra/1a244c8fae055bce853fd344ac4c5e02/raw/98baf0a4f0864b3dcc48523a9bddd28938fecd17/vulnerable.txt")
-		if err != nil {
-			log.Fatal(err)
-		}
-		defer o.Close()
-
-		b, _ := ioutil.ReadAll(o)
-		fmt.Println("Read vulnerable: ")
-		fmt.Println(string(b)) */
-
-	/*baseUrl := "https://gist.githubusercontent.com/ashnamehrotra/1a244c8fae055bce853fd344ac4c5e02/raw/98baf0a4f0864b3dcc48523a9bddd28938fecd17/vulnerable.txt"
-
-	client := http.Client{}
-
-	resp, err := client.Get(baseUrl)
+	// read vulnerable image from text file
+	resp, err := http.Get("https://gist.githubusercontent.com/ashnamehrotra/1a244c8fae055bce853fd344ac4c5e02/raw/98baf0a4f0864b3dcc48523a9bddd28938fecd17/vulnerable.txt")
 	if err != nil {
-		log.Fatal(err)
+		fmt.Print(err)
 	}
 	defer resp.Body.Close()
-	fmt.Println("resp: ")
-	fmt.Println(resp) */
-
-	resp, _ := http.Get("https://gist.githubusercontent.com/ashnamehrotra/1a244c8fae055bce853fd344ac4c5e02/raw/98baf0a4f0864b3dcc48523a9bddd28938fecd17/vulnerable.txt")
-	fmt.Print(resp)
-	defer resp.Body.Close()
-
-	fmt.Println("Read vulnerable: ")
-	_, _ = io.Copy(os.Stdout, resp.Body)
+	body, _ := ioutil.ReadAll(resp.Body)
 
 	var vulnerableImages []string
 
 	// add a vulnerable image to test
-	vulnerableImages = append(vulnerableImages, nonRunningImages[0])
+	// make sure URL is actually in non-running for testing purposes
+	vulnerableImages = append(vulnerableImages, (string(body)))
 
 	fmt.Println("\nVulnerable images: ")
 	fmt.Println(len(vulnerableImages))
 	for _, img := range vulnerableImages {
-		fmt.Println(img)
+		fmt.Println(m[img], ", ", img)
 	}
 
-	fmt.Println("\nRemoving vulnerable images ...")
+	// remove vulnerable image
+	fmt.Println("\nRemoving non-running, vulnerable images ...")
 	for _, img := range vulnerableImages {
 		if contains(nonRunningImages, img) {
 			RemoveImage(imageClient, img)
 		}
 	}
 
+	// ensure images is correctly removed
 	fmt.Println("All images following remove:")
 
 	r, err = ListImages(imageClient, "")
