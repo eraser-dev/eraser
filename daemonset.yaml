@@ -1,0 +1,26 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  labels:
+    name: list-images-daemonset
+  name: list-images-daemonset
+spec:
+  selector:
+    matchLabels:
+      app: list-images-daemonset
+  template:
+    metadata:
+      labels:
+        app: list-images-daemonset
+    spec:
+      volumes:
+        - name: containerd-sock-volume
+          hostPath:
+            path: /run/containerd/containerd.sock
+      containers:
+        - image: ashnam/list_images
+          name: list-images-daemonset
+          volumeMounts:
+            - mountPath: /run/containerd/containerd.sock
+              name: containerd-sock-volume
+              readOnly: false

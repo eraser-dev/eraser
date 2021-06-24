@@ -10,6 +10,8 @@ RUN chmod +x /out/example
 
 FROM scratch as bin
 
+COPY --from=build /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
+
 COPY --from=build /out/example /
 
 ENTRYPOINT ["/example"]
