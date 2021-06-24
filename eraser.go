@@ -2,15 +2,14 @@ package main
 
 import (
 	"context"
-	//	"flag"
+	"io/ioutil"
+	"log"
+
 	"fmt"
 	"time"
 
-	//	"github.com/containerd/containerd"
-	//	"github.com/docker/docker/api/types"
-	//	"github.com/docker/docker/client"
-
 	cli "github.com/urfave/cli/v2"
+	"github.com/utahta/go-openuri"
 	"google.golang.org/grpc"
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 
@@ -27,52 +26,6 @@ var (
 	// Timeout  of connecting to server (default: 10s)
 	Timeout time.Duration
 )
-
-/*
-
-func getContainerdImages() error {
-
-	client, err := containerd.New("/run/containerd/containerd.sock", containerd.WithDefaultNamespace("k8s.io"))
-	if err != nil {
-		return err
-	}
-	defer client.Close()
-
-	ctx := context.Background()
-
-	list, err := client.ListImages(ctx)
-	if err != nil {
-		return err
-	}
-
-	for _, elm := range list {
-		fmt.Println(elm.Name())
-	}
-
-	return nil
-}
-
-func getDockerImages() error {
-	ctx := context.Background()
-	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
-	if err != nil {
-		return err
-	}
-
-	images, err := cli.ImageList(ctx, types.ImageListOptions{})
-	if err != nil {
-		return err
-	}
-
-	for _, image := range images {
-		fmt.Println(image.RepoTags)
-	}
-
-	return nil
-
-}
-
-*/
 
 func GetAddressAndDialer(endpoint string) (string, func(ctx context.Context, addr string) (net.Conn, error), error) {
 	protocol, addr, err := parseEndpointWithFallbackProtocol(endpoint, unixProtocol)
@@ -94,9 +47,6 @@ func parseEndpointWithFallbackProtocol(endpoint string, fallbackProtocol string)
 	if protocol, addr, err = parseEndpoint(endpoint); err != nil && protocol == "" {
 		fallbackEndpoint := fallbackProtocol + "://" + endpoint
 		protocol, addr, err = parseEndpoint(fallbackEndpoint)
-		if err == nil {
-			//klog.InfoS("Using this endpoint is deprecated, please consider using full URL format", "endpoint", endpoint, "URL", fallbackEndpoint)
-		}
 	}
 	return
 }
@@ -142,10 +92,8 @@ func getImageClient(context *cli.Context) (pb.ImageServiceClient, *grpc.ClientCo
 
 func ListImages(client pb.ImageServiceClient, image string) (resp *pb.ListImagesResponse, err error) {
 	request := &pb.ListImagesRequest{Filter: &pb.ImageFilter{Image: &pb.ImageSpec{Image: image}}}
-	//logrus.Debugf("ListImagesRequest: %v", request)
 
 	resp, err = client.ListImages(context.Background(), request)
-	//logrus.Debugf("ListImagesResponse: %v", resp)
 
 	return
 }
@@ -155,10 +103,9 @@ func RemoveImage(client pb.ImageServiceClient, image string) (resp *pb.RemoveIma
 		return nil, fmt.Errorf("ImageID cannot be empty")
 	}
 	request := &pb.RemoveImageRequest{Image: &pb.ImageSpec{Image: image}}
-	//logrus.Debugf("RemoveImageRequest: %v", request)
 
 	resp, err = client.RemoveImage(context.Background(), request)
-	//logrus.Debugf("RemoveImageResponse: %v", resp)
+
 	return
 }
 
@@ -172,22 +119,6 @@ func contains(slice []string, str string) bool {
 }
 
 func main() {
-
-	/*
-		runtimePtr := flag.String("runtime", "containerd", "container runtime")
-
-		flag.Parse()
-
-		if *runtimePtr == "docker" {
-			getDockerImages()
-		}
-
-		if *runtimePtr == "containerd" {
-			getContainerdImages()
-		}
-	*/
-
-	// using CRICTL
 
 	ctx := cli.NewContext(nil, nil, nil)
 
@@ -203,9 +134,11 @@ func main() {
 	}
 
 	var allImages []string
+	m := make(map[string][]string)
 
 	for _, img := range r.Images {
 		allImages = append(allImages, img.Id)
+		m[img.Id] = img.RepoTags
 	}
 
 	response, err := pb.NewRuntimeServiceClient(conn).ListContainers(context.Background(), new(pb.ListContainersRequest))
@@ -217,7 +150,8 @@ func main() {
 	var runningImages []string
 
 	for _, container := range response.Containers {
-		runningImages = append(runningImages, container.ImageRef)
+		curr := container.Image
+		runningImages = append(runningImages, curr.GetImage())
 	}
 
 	var nonRunningImages []string
@@ -228,23 +162,65 @@ func main() {
 		}
 	}
 
-	// quick remove test
+	// testing
 
-	fmt.Println("All images: ")
+	fmt.Println("\nAll images: ")
 	fmt.Println(len(allImages))
+	for _, img := range allImages {
+		fmt.Println(m[img], ", ", img)
+	}
 
-	fmt.Println("Running images: ")
+	fmt.Println("\nRunning images: ")
 	fmt.Println(len(runningImages))
+	for _, img := range runningImages {
+		fmt.Println(m[img], ", ", img)
+	}
 
-	fmt.Println("non running images: ")
+	fmt.Println("\nNon-running images: ")
 	fmt.Println(len(nonRunningImages))
+	for _, img := range nonRunningImages {
+		fmt.Println(m[img], ", ", img)
+	}
 
-	fmt.Println("Removing first non-running image ...")
-	RemoveImage(imageClient, nonRunningImages[0])
+	o, err := openuri.Open("https://gist.githubusercontent.com/ashnamehrotra/1a244c8fae055bce853fd344ac4c5e02/raw/98baf0a4f0864b3dcc48523a9bddd28938fecd17/vulnerable.txt")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer o.Close()
+
+	b, _ := ioutil.ReadAll(o)
+	fmt.Println("Read vulnerable: ")
+	fmt.Println(string(b))
+
+	var vulnerableImages []string
+
+	// add a vulnerable image to test
+	vulnerableImages = append(vulnerableImages, nonRunningImages[0])
+
+	fmt.Println("\nVulnerable images: ")
+	fmt.Println(len(vulnerableImages))
+	for _, img := range vulnerableImages {
+		fmt.Println(img)
+	}
+
+	fmt.Println("\nRemoving vulnerable images ...")
+	for _, img := range vulnerableImages {
+		if contains(nonRunningImages, img) {
+			RemoveImage(imageClient, img)
+		}
+	}
+
+	fmt.Println("All images following remove:")
 
 	r, err = ListImages(imageClient, "")
 
-	fmt.Println("New All images total: ")
+	if err != nil {
+		fmt.Printf("list img err")
+	}
+
 	fmt.Println(len(r.Images))
+	for _, img := range r.Images {
+		fmt.Println(m[img.Id], ", ", img.Id)
+	}
 
 }
