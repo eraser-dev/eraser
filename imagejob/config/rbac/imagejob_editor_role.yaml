@@ -1,0 +1,24 @@
+# permissions for end users to edit imagejobs.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: imagejob-editor-role
+rules:
+- apiGroups:
+  - batch.k8s.io
+  resources:
+  - imagejobs
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - batch.k8s.io
+  resources:
+  - imagejobs/status
+  verbs:
+  - get
