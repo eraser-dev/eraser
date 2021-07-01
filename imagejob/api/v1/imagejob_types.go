@@ -17,6 +17,7 @@ limitations under the License.
 package v1
 
 import (
+	batchv1 "k8s.io/api/batch/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -26,23 +27,13 @@ import (
 // ImageJobSpec defines the desired state of ImageJob
 type ImageJobSpec struct {
 	// Specifies the job that will be created when executing an ImageJob.
-	JobTemplate batchv1beta1.JobTemplateSpec `json:"jobTemplate"`
+	JobTemplate batchv1.JobTemplateSpec `json:"jobTemplate"`
 }
 
 // ImageJobStatus defines the observed state of ImageJob
 type ImageJobStatus struct {
-	// Specifies if the image removal was a "success" or "error"
-	Status string `json:"status"`
-
-	// Message for reason for error, if applicable.
-	// +optional
-	Message string `json:"message"`
-
-	// Specifies on which node image removal took place.
-	Node string `json:"node"`
-
-	// Specifies name of vulnerable image.
-	Name string `json:"name"`
+	// Specifies if job was completed, and how many jobs succeeded and failed
+	Message string `json:"message:"`
 }
 
 //+kubebuilder:object:root=true

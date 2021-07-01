@@ -17,7 +17,6 @@ limitations under the License.
 package v1
 
 import (
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -34,7 +33,20 @@ type ImageListStatus struct {
 
 	// A list of pointers to ImageJobs jobs that were attempted to be removed.
 	// Use to obtain output name of image, name of node, and status of job
-	Images []corev1.ObjectReference `json:"images"`
+	//Images []corev1.ObjectReference `json:"images"`
+
+	// Specifies if the image removal was a "success" or "error"
+	Status string `json:"status"`
+
+	// Message for reason for error, if applicable.
+	// +optional
+	Message string `json:"message"`
+
+	// Specifies on which node image removal took place.
+	Node string `json:"node"`
+
+	// Specifies name of vulnerable image.
+	Name string `json:"name"`
 }
 
 //+kubebuilder:object:root=true
