@@ -132,6 +132,8 @@ func removeDuplicateValues(intSlice []string) []string {
 
 func main() {
 
+	// image job can pass the imagelist into each pod as a env variable maybe
+
 	ctx := cli.NewContext(nil, nil, nil)
 
 	imageClient, conn, err := getImageClient(ctx)
