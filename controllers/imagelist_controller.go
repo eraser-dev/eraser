@@ -24,7 +24,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	batchv1 "github.com/Azure/eraser/api/v1"
+	batchv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
 )
 
 // ImageListReconciler reconciles a ImageList object
@@ -51,12 +51,23 @@ func (r *ImageListReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 	// your logic here
 
+	var imageList batchv1alpha1.ImageList
+
+	err := c.Watch(
+		&source.Kind{Type: &batchv1alpha1.ImageList{}},
+		&handler.EnqueueRequestForOwner{
+			IsController: true,
+			OwnerType:    &appsv1alpha1.ReplicaSet{}})
+	if err != nil {
+		return err
+	}
+
 	return ctrl.Result{}, nil
 }
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *ImageListReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&batchv1.ImageList{}).
+		For(&batchv1alpha1.ImageList{}).
 		Complete(r)
 }
