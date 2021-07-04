@@ -2,7 +2,7 @@ apiVersion: v1alpha1
 kind: Namespace
 metadata:
   labels:
-    control-plane: controller-manager
+    eraser.sh/system: yes
   name: system
 ---
 apiVersion: apps/v1alpha1
@@ -11,16 +11,16 @@ metadata:
   name: controller-manager
   namespace: system
   labels:
-    control-plane: controller-manager
+    eraser.sh/system: yes
 spec:
   selector:
     matchLabels:
-      control-plane: controller-manager
+      eraser.sh/system: yes
   replicas: 1
   template:
     metadata:
       labels:
-        control-plane: controller-manager
+        eraser.sh/system: yes
     spec:
       securityContext:
         runAsNonRoot: true

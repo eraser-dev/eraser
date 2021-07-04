@@ -24,7 +24,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	batchv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
+	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
 )
 
 // ImageJobReconciler reconciles a ImageJob object
@@ -33,9 +33,9 @@ type ImageJobReconciler struct {
 	Scheme *runtime.Scheme
 }
 
-//+kubebuilder:rbac:groups=batch.k8s.io,resources=imagejobs,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=batch.k8s.io,resources=imagejobs/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=batch.k8s.io,resources=imagejobs/finalizers,verbs=update
+//+kubebuilder:rbac:groups=eraser.sh,resources=imagejobs,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=eraser.sh,resources=imagejobs/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=eraser.sh,resources=imagejobs/finalizers,verbs=update
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
@@ -57,6 +57,6 @@ func (r *ImageJobReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 // SetupWithManager sets up the controller with the Manager.
 func (r *ImageJobReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&batchv1alpha1.ImageJob{}).
+		For(&eraserv1alpha1.ImageJob{}).
 		Complete(r)
 }

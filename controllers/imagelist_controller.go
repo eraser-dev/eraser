@@ -24,7 +24,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	batchv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
+	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
 )
 
 // ImageListReconciler reconciles a ImageList object
@@ -33,9 +33,9 @@ type ImageListReconciler struct {
 	Scheme *runtime.Scheme
 }
 
-//+kubebuilder:rbac:groups=batch.k8s.io,resources=imagelists,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=batch.k8s.io,resources=imagelists/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=batch.k8s.io,resources=imagelists/finalizers,verbs=update
+//+kubebuilder:rbac:groups=eraser.sh,resources=imagelists,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=eraser.sh,resources=imagelists/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=eraser.sh,resources=imagelists/finalizers,verbs=update
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
@@ -51,10 +51,10 @@ func (r *ImageListReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 	// your logic here
 
-	var imageList batchv1alpha1.ImageList
+	var imageList eraserv1alpha1.ImageList
 
 	err := c.Watch(
-		&source.Kind{Type: &batchv1alpha1.ImageList{}},
+		&source.Kind{Type: &eraserv1alpha1.ImageList{}},
 		&handler.EnqueueRequestForOwner{
 			IsController: true,
 			OwnerType:    &appsv1alpha1.ReplicaSet{}})
@@ -68,6 +68,6 @@ func (r *ImageListReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 // SetupWithManager sets up the controller with the Manager.
 func (r *ImageListReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&batchv1alpha1.ImageList{}).
+		For(&eraserv1alpha1.ImageList{}).
 		Complete(r)
 }

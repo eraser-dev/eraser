@@ -5,7 +5,7 @@ metadata:
   name: imagelist-viewer-role
 rules:
 - apiGroups:
-  - batch.k8s.io
+  - eraser.sh
   resources:
   - imagelists
   verbs:
@@ -13,7 +13,7 @@ rules:
   - list
   - watch
 - apiGroups:
-  - batch.k8s.io
+  - eraser.sh
   resources:
   - imagelists/status
   verbs:
