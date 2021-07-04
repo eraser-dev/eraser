@@ -17,7 +17,6 @@ limitations under the License.
 package v1alpha1
 
 import (
-	batchv1alpha1 "k8s.io/api/batch/v1alpha1"
 	metav1alpha1 "k8s.io/apimachinery/pkg/apis/meta/v1alpha1"
 )
 
@@ -27,7 +26,7 @@ import (
 // ImageJobSpec defines the desired state of ImageJob
 type ImageJobSpec struct {
 	// Specifies the job that will be created when executing an ImageJob.
-	JobTemplate batchv1alpha1.JobTemplateSpec `json:"jobTemplate"`
+	JobTemplate JobTemplateSpec `json:"jobTemplate"`
 }
 
 // ImageJobStatus defines the observed state of ImageJob
