@@ -18,13 +18,20 @@ package controllers
 
 import (
 	"context"
+	"fmt"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/manager"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
+	"github.com/openkruise/kruise/pkg/util/ratelimiter"
 )
 
 // ImageListReconciler reconciles a ImageList object
@@ -32,6 +39,10 @@ type ImageListReconciler struct {
 	client.Client
 	Scheme *runtime.Scheme
 }
+
+var (
+	concurrentReconciles = 3
+)
 
 //+kubebuilder:rbac:groups=eraser.sh,resources=imagelists,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=eraser.sh,resources=imagelists/status,verbs=get;update;patch
@@ -50,24 +61,23 @@ func (r *ImageListReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	_ = log.FromContext(ctx)
 
 	// your logic here
+	fmt.Print("hello world")
 
-	var imageList eraserv1alpha1.ImageList
+	return nil, nil
+}
 
-	err := c.Watch(
+func add(mgr manager.Manager, r reconcile.Reconciler) error {
+
+	c, err := controller.New("imagejob-controller", mgr, controller.Options{
+		Reconciler: r, MaxConcurrentReconciles: concurrentReconciles,
+		RateLimiter: ratelimiter.DefaultControllerRateLimiter()})
+
+	err = c.Watch(
 		&source.Kind{Type: &eraserv1alpha1.ImageList{}},
-		&handler.EnqueueRequestForOwner{
-			IsController: true,
-			OwnerType:    &appsv1alpha1.ReplicaSet{}})
+		&handler.EnqueueRequestForOwner{})
 	if err != nil {
 		return err
 	}
 
-	return ctrl.Result{}, nil
-}
-
-// SetupWithManager sets up the controller with the Manager.
-func (r *ImageListReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	return ctrl.NewControllerManagedBy(mgr).
-		For(&eraserv1alpha1.ImageList{}).
-		Complete(r)
+	return nil
 }

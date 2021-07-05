@@ -3,5 +3,11 @@ kind: ImageJob
 metadata:
   name: imagejob-sample
 spec:
-  # Add fields here
-  foo: bar
+   jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: eraser
+            image: ashnam/list-images
+          restartPolicy: OnFailure

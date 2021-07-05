@@ -3,5 +3,8 @@ kind: ImageList
 metadata:
   name: imagelist-sample
 spec:
-  # Add fields here
-  foo: bar
+  images:
+    - docker.io/repo/image:tag
+    - gcr.io/repo/image:tag
+    - sha256:cd3efa20ff37801935af501d010a2767486f04301cffbecef8c0edba4298e527
+    - quay.io/repo/image:tag@sha256:cd3efa20ff37801935af501d010a2767486f04301cffbecef8c0edba4298e527
