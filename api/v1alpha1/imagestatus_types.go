@@ -14,17 +14,30 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1
+package v1alpha1
 
 import (
 	metav1alpha1 "k8s.io/apimachinery/pkg/apis/meta/v1alpha1"
 )
 
+// ImageStatusSpec defines the desired state of ImageList
+type ImageStatusSpec struct {
+}
+
 // ImageStatusStatus defines the observed state of ImageStatus
 type ImageStatusStatus struct {
 	// Specifies if the image removal was a "success" or "error"
-	StatusMessage string `json:"statusMessage"`
-	// message, status and node, name (image)
+	Status string `json:"status"`
+
+	// Message for reason for error, if applicable.
+	// +optional
+	Message string `json:"message"`
+
+	// Specifies on which node image removal took place.
+	Node string `json:"node"`
+
+	// Specifies name of vulnerable image.
+	Name string `json:"name"`
 }
 
 //+kubebuilder:object:root=true
@@ -35,7 +48,6 @@ type ImageStatus struct {
 	metav1alpha1.TypeMeta   `json:",inline"`
 	metav1alpha1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   ImageStatusSpec   `json:"spec,omitempty"`
 	Status ImageStatusStatus `json:"status,omitempty"`
 }
 
