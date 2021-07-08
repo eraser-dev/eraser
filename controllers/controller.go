@@ -1,8 +1,8 @@
 package controllers
 
 import (
-	"github.com/Azure/eraser/controller/imagejob"
-	"github.com/Azure/eraser/controller/imagelist"
+	"github.com/Azure/eraser/controllers/imagejob"
+	"github.com/Azure/eraser/controllers/imagelist"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/klog"
 	"sigs.k8s.io/controller-runtime/pkg/manager"

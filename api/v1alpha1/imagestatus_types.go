@@ -17,7 +17,7 @@ limitations under the License.
 package v1alpha1
 
 import (
-	metav1alpha1 "k8s.io/apimachinery/pkg/apis/meta/v1alpha1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // ImageStatusSpec defines the desired state of ImageList
@@ -45,8 +45,8 @@ type ImageStatusStatus struct {
 
 // ImageStatus is the Schema for the imagestatus API
 type ImageStatus struct {
-	metav1alpha1.TypeMeta   `json:",inline"`
-	metav1alpha1.ObjectMeta `json:"metadata,omitempty"`
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	Status ImageStatusStatus `json:"status,omitempty"`
 }
@@ -55,9 +55,9 @@ type ImageStatus struct {
 
 // ImageStatusList contains a list of ImageStatus
 type ImageStatusList struct {
-	metav1alpha1.TypeMeta `json:",inline"`
-	metav1alpha1.ListMeta `json:"metadata,omitempty"`
-	Items                 []ImageStatus `json:"items"`
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata,omitempty"`
+	Items           []ImageStatus `json:"items"`
 }
 
 func init() {

@@ -17,7 +17,7 @@ limitations under the License.
 package v1alpha1
 
 import (
-	metav1alpha1 "k8s.io/apimachinery/pkg/apis/meta/v1alpha1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // ImageListSpec defines the desired state of ImageList
@@ -29,7 +29,7 @@ type ImageListSpec struct {
 // ImageListStatus defines the observed state of ImageList
 type ImageListStatus struct {
 	// Information when the job was completed.
-	Timestamp *metav1alpha1.Time `json:"timestamp"`
+	Timestamp *metav1.Time `json:"timestamp"`
 
 	// Specifies if the image removal was a "success" or "error"
 	Status string `json:"status"`
@@ -50,8 +50,8 @@ type ImageListStatus struct {
 
 // ImageList is the Schema for the imagelists API
 type ImageList struct {
-	metav1alpha1.TypeMeta   `json:",inline"`
-	metav1alpha1.ObjectMeta `json:"metadata,omitempty"`
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	Spec   ImageListSpec   `json:"spec,omitempty"`
 	Status ImageListStatus `json:"status,omitempty"`
@@ -61,9 +61,9 @@ type ImageList struct {
 
 // ImageListList contains a list of ImageList
 type ImageListList struct {
-	metav1alpha1.TypeMeta `json:",inline"`
-	metav1alpha1.ListMeta `json:"metadata,omitempty"`
-	Items                 []ImageList `json:"items"`
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata,omitempty"`
+	Items           []ImageList `json:"items"`
 }
 
 func init() {
