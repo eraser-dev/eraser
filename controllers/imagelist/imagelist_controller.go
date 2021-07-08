@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package controllers
+package imagelist
 
 import (
 	"context"
@@ -31,18 +31,31 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
-	"github.com/openkruise/kruise/pkg/util/ratelimiter"
 )
+
+func Add(mgr manager.Manager) error {
+	return add(mgr, newReconciler(mgr))
+}
+
+// newReconciler returns a new reconcile.Reconciler
+func newReconciler(mgr manager.Manager) reconcile.Reconciler {
+	return &ImageListReconciler{
+		Client: mgr.GetClient(),
+		scheme: mgr.GetScheme(),
+	}
+}
+
+// ImageJobReconciler reconciles a ImageJob object
+type ImageJobReconciler struct {
+	client.Client
+	scheme *runtime.Scheme
+}
 
 // ImageListReconciler reconciles a ImageList object
 type ImageListReconciler struct {
 	client.Client
-	Scheme *runtime.Scheme
+	scheme *runtime.Scheme
 }
-
-var (
-	concurrentReconciles = 3
-)
 
 //+kubebuilder:rbac:groups=eraser.sh,resources=imagelists,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=eraser.sh,resources=imagelists/status,verbs=get;update;patch
@@ -63,14 +76,16 @@ func (r *ImageListReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	// your logic here
 	fmt.Print("hello world")
 
-	return nil, nil
+	return ctrl.Result{}, nil
 }
 
 func add(mgr manager.Manager, r reconcile.Reconciler) error {
 
-	c, err := controller.New("imagejob-controller", mgr, controller.Options{
-		Reconciler: r, MaxConcurrentReconciles: concurrentReconciles,
-		RateLimiter: ratelimiter.DefaultControllerRateLimiter()})
+	c, err := controller.New("imagelist-controller", mgr, controller.Options{
+		Reconciler: r})
+	if err != nil {
+		return err
+	}
 
 	err = c.Watch(
 		&source.Kind{Type: &eraserv1alpha1.ImageList{}},

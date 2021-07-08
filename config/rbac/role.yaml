@@ -1,0 +1,60 @@
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  creationTimestamp: null
+  name: manager-role
+rules:
+- apiGroups:
+  - eraser.sh
+  resources:
+  - imagejobs
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - eraser.sh
+  resources:
+  - imagejobs/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - eraser.sh
+  resources:
+  - imagejobs/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - eraser.sh
+  resources:
+  - imagelists
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - eraser.sh
+  resources:
+  - imagelists/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - eraser.sh
+  resources:
+  - imagelists/status
+  verbs:
+  - get
+  - patch
+  - update
