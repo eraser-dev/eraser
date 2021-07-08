@@ -17,7 +17,7 @@ limitations under the License.
 package v1alpha1
 
 import (
-	metav1alpha1 "k8s.io/apimachinery/pkg/apis/meta/v1alpha1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
@@ -26,7 +26,6 @@ import (
 // ImageJobSpec defines the desired state of ImageJob
 type ImageJobSpec struct {
 	// Specifies the job that will be created when executing an ImageJob.
-	JobTemplate JobTemplateSpec `json:"jobTemplate"`
 }
 
 // ImageJobStatus defines the observed state of ImageJob
@@ -40,8 +39,8 @@ type ImageJobStatus struct {
 
 // ImageJob is the Schema for the imagejobs API
 type ImageJob struct {
-	metav1alpha1.TypeMeta   `json:",inline"`
-	metav1alpha1.ObjectMeta `json:"metadata,omitempty"`
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	Spec   ImageJobSpec   `json:"spec,omitempty"`
 	Status ImageJobStatus `json:"status,omitempty"`
@@ -51,9 +50,9 @@ type ImageJob struct {
 
 // ImageJobList contains a list of ImageJob
 type ImageJobList struct {
-	metav1alpha1.TypeMeta `json:",inline"`
-	metav1alpha1.ListMeta `json:"metadata,omitempty"`
-	Items                 []ImageJob `json:"items"`
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata,omitempty"`
+	Items           []ImageJob `json:"items"`
 }
 
 func init() {
