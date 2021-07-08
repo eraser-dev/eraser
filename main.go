@@ -78,9 +78,9 @@ func main() {
 		os.Exit(1)
 	}
 
-	setupLog.Info("setup webhook")
+	setupLog.Info("setup controllers")
 	if err = controllers.SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to setup webhook")
+		setupLog.Error(err, "unable to setup controllers")
 		os.Exit(1)
 	}
 
