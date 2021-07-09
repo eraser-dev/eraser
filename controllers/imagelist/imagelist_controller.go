@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 
+	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -74,7 +75,18 @@ func (r *ImageListReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	_ = log.FromContext(ctx)
 
 	// your logic here
+	//log.Print("")
 	fmt.Print("hello world")
+
+	// If there is a change in ImageList, start ImageJob to triger removal
+	job := &eraserv1alpha1.ImageJob{}
+	err := r.Get(context.TODO(), req.NamespacedName, job)
+	if err != nil {
+		if errors.IsNotFound(err) {
+			return reconcile.Result{}, nil
+		}
+		return reconcile.Result{}, err
+	}
 
 	return ctrl.Result{}, nil
 }
