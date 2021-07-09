@@ -86,6 +86,13 @@ func (r *ImageJobReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 
 	// your logic here
 
+	// create eraser pod in every node like broadcast job does
+	/// get list of nodes and schdules the pods on each of the nodes using pod.spec.nodename
+	// eventually check if pod fits before doing that
+
+	//var imageJob eraserv1alpha1.ImageJob
+	//if err := r.Get
+
 	return ctrl.Result{}, nil
 }
 
