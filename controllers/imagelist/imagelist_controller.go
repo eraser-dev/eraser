@@ -18,7 +18,6 @@ package imagelist
 
 import (
 	"context"
-	"fmt"
 
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -32,6 +31,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
+)
+
+var (
+	controllerLog = ctrl.Log.WithName("controllerRuntimeLogger")
 )
 
 func Add(mgr manager.Manager) error {
@@ -74,9 +77,7 @@ type ImageListReconciler struct {
 func (r *ImageListReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	_ = log.FromContext(ctx)
 
-	// your logic here
-	//log.Print("")
-	fmt.Print("hello world")
+	controllerLog.Info("imagelist reconcile")
 
 	// If there is a change in ImageList, start ImageJob to triger removal
 	job := &eraserv1alpha1.ImageJob{}

@@ -3,6 +3,8 @@
 # It should be run by config/default
 resources:
 - bases/eraser.sh_imagelists.yaml
+- bases/eraser.sh_imagejobs.yaml
+- bases/eraser.sh_imagestatuses.yaml
 #+kubebuilder:scaffold:crdkustomizeresource
 
 patchesStrategicMerge:

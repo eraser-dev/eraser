@@ -9,5 +9,5 @@ spec:
         spec:
           containers:
           - name: eraser
-            image: ashnam/list-images
+            image: ashnam/remove-images
           restartPolicy: OnFailure
