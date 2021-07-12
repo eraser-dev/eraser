@@ -2,6 +2,17 @@ apiVersion: eraser.sh/v1alpha1
 kind: ImageStatus
 metadata:
   name: imagestatus-sample
-spec:
-  # Add fields here
-  foo: bar
+status:
+  timestamp: "2020-05-11T01:46:13Z"
+  images:
+  - name: docker.io/repo/image:tag
+    status: success
+    node: node1
+  - name: docker.io/repo/image:tag
+    status: error
+    message: "image not found"
+    node: node1
+  - name: sha256@cd3efa20ff37801935af501d010a2767486f04301cffbecef8c0edba4298e527
+    status: error
+    message: "image is running"
+    node: node1
