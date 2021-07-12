@@ -24,9 +24,6 @@ import (
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
-type JobSpec struct {
-}
-
 // ImageJobSpec defines the desired state of ImageJob
 type ImageJobSpec struct {
 	// Specifies the job that will be created when executing an ImageJob.
