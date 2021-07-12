@@ -69,6 +69,13 @@ docker-build: test ## Build docker image with the manager.
 docker-push: ## Push docker image with the manager.
 	docker push ${IMG}
 
+docker-build-eraser:
+	cd pkg/eraser
+	docker build -t ashnam/remove_images .
+docker-push-eraser:
+	cd pkg/eraser
+	docker push ashnam/remove_images
+
 ##@ Deployment
 
 install: manifests kustomize ## Install CRDs into the K8s cluster specified in ~/.kube/config.
