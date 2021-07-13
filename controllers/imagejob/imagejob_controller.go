@@ -100,7 +100,7 @@ func (r *ImageJobReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 
 		// TODO: check if coming from imagelist or imagejob to determine if remove_images or collect_images
 		image := &v1.Container{}
-		image.Image = "ashnam/remove_images"
+		image.Image = "ashnam/remove_images:latest"
 
 		pod := &v1.Pod{
 			Spec:       v1.PodSpec{NodeName: nodeName, Containers: []v1.Container{*image}},
