@@ -2,6 +2,7 @@ apiVersion: eraser.sh/v1alpha1
 kind: ImageList
 metadata:
   name: imagelist-sample
+  namespace: eraser-system
 spec:
   images:
     - docker.io/repo/image:tag
