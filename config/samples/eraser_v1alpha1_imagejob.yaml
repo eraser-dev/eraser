@@ -3,11 +3,9 @@ kind: ImageJob
 metadata:
   name: imagejob-sample
 spec:
-   jobTemplate:
+  template:
     spec:
-      template:
-        spec:
-          containers:
-          - name: eraser
-            image: ashnam/remove-images
-          restartPolicy: OnFailure
+      containers:
+      - name: eraser
+        image: ashnam/remove-images
+      restartPolicy: OnFailure
