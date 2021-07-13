@@ -95,10 +95,6 @@ func (r *ImageJobReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 
 	nodes := (&v1.NodeList{}).Items
 
-	// create list of node names and iterate and then schedule the pods
-
-	//nodes = r.List()
-
 	for _, n := range nodes {
 		nodeName := n.Name
 
