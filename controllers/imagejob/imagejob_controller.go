@@ -19,6 +19,8 @@ package imagejob
 import (
 	"context"
 
+	v1 "k8s.io/api/core/v1"
+
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -30,6 +32,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
+)
+
+var (
+	controllerLog = ctrl.Log.WithName("controllerRuntimeLogger")
 )
 
 func Add(mgr manager.Manager) error {
@@ -83,15 +89,19 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.8.3/pkg/reconcile
 func (r *ImageJobReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	_ = log.FromContext(ctx)
+	controllerLog.Info("imagejob reconcile")
 
-	// your logic here
+	nodes := (&v1.NodeList{}).Items
 
-	// create eraser pod in every node like broadcast job does
-	/// get list of nodes and schdules the pods on each of the nodes using pod.spec.nodename
-	// eventually check if pod fits before doing that
+	for _, s := range nodes {
+		nodeName := s.Name
 
-	//var imageJob eraserv1alpha1.ImageJob
-	//if err := r.Get
+		pod := &v1.Pod{}
+		pod.Namespace = "eraser-system"
+		pod.Spec.NodeName = nodeName
+
+		r.Create(context.TODO(), pod)
+	}
 
 	return ctrl.Result{}, nil
 }
