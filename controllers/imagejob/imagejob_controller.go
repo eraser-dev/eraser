@@ -20,7 +20,6 @@ import (
 	"context"
 
 	v1 "k8s.io/api/core/v1"
-	"k8s.io/klog"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -34,8 +33,7 @@ import (
 
 	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
 
-	"k8s.io/kubernetes/pkg/scheduler/algorithm/predicates"
-	schedulernodeinfo "k8s.io/kubernetes/pkg/scheduler/nodeinfo"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 var (
@@ -97,24 +95,24 @@ func (r *ImageJobReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 
 	nodes := (&v1.NodeList{}).Items
 
+	// create list of node names and iterate and then schedule the pods
+
+	//nodes = r.List()
+
 	for _, n := range nodes {
 		nodeName := n.Name
 
-		pod := &v1.Pod{}
-		pod.Namespace = "eraser-system"
-		pod.Spec.NodeName = nodeName
+		// TODO: check if coming from imagelist or imagejob to determine if remove_images or collect_images
+		image := &v1.Container{}
+		image.Image = "ashnam/remove_images"
 
-		// need?
-		removeImage := &v1.Container{}
-		removeImage.Image = "ashnam/remove_images"
-		pod.Spec.Containers = append(pod.Spec.Containers, *removeImage)
-
-		// check if pod can be scheduled on node
-		fitness, err := checkNodeFitness(pod, &n)
-		if (err == nil) && (fitness) {
-			r.Create(context.TODO(), pod)
+		pod := &v1.Pod{
+			Spec:       v1.PodSpec{NodeName: nodeName, Containers: []v1.Container{*image}},
+			ObjectMeta: metav1.ObjectMeta{Namespace: "eraser-system"},
 		}
 
+		// TODO: check if pod fits and can be scheduled on node
+		r.Create(context.TODO(), pod)
 	}
 
 	return ctrl.Result{}, nil
@@ -125,58 +123,4 @@ func (r *ImageJobReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&eraserv1alpha1.ImageJob{}).
 		Complete(r)
-}
-
-// Check if pod can be scheduled on node
-// Source: Kruise broadcastjob
-
-// checkNodeFitness runs a set of predicates that select candidate nodes for the job pod;
-// the predicates include:
-//   - PodFitsHost: checks pod's NodeName against node
-//   - PodMatchNodeSelector: checks pod's ImagePullJobNodeSelector and NodeAffinity against node
-//   - PodToleratesNodeTaints: exclude tainted node unless pod has specific toleration
-//   - CheckNodeUnschedulablePredicate: check if the pod can tolerate node unschedulable
-//   - PodFitsResources: checks if a node has sufficient resources, such as cpu, memory, gpu, opaque int resources etc to run a pod.
-func checkNodeFitness(pod *v1.Pod, node *v1.Node) (bool, error) {
-	nodeInfo := schedulernodeinfo.NewNodeInfo()
-	_ = nodeInfo.SetNode(node)
-
-	fit, reasons, err := predicates.PodFitsHost(pod, nil, nodeInfo)
-	if err != nil || !fit {
-		logPredicateFailedReason(reasons, node)
-		return false, err
-	}
-
-	fit, reasons, err = predicates.PodMatchNodeSelector(pod, nil, nodeInfo)
-	if err != nil || !fit {
-		logPredicateFailedReason(reasons, node)
-		return false, err
-	}
-
-	fit, reasons, err = predicates.PodToleratesNodeTaints(pod, nil, nodeInfo)
-	if err != nil || !fit {
-		logPredicateFailedReason(reasons, node)
-		return false, err
-	}
-
-	fit, reasons, err = predicates.CheckNodeUnschedulablePredicate(pod, nil, nodeInfo)
-	if err != nil || !fit {
-		logPredicateFailedReason(reasons, node)
-		return false, err
-	}
-	fit, reasons, err = predicates.PodFitsResources(pod, nil, nodeInfo)
-	if err != nil || !fit {
-		logPredicateFailedReason(reasons, node)
-		return false, err
-	}
-	return true, nil
-}
-
-func logPredicateFailedReason(reasons []predicates.PredicateFailureReason, node *v1.Node) {
-	if len(reasons) == 0 {
-		return
-	}
-	for _, reason := range reasons {
-		klog.Errorf("Failed predicate on node %s : %s ", node.Name, reason.GetReason())
-	}
 }
