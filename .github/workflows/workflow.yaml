@@ -19,3 +19,17 @@ jobs:
          uses: golangci/golangci-lint-action@v2
          with:
            version: v1.40.1
+
+#  test:
+#     name: "Unit Tests"
+#     runs-on: ubuntu-latest
+#     steps:
+#       - name: Set up Go 1.16
+#         uses: actions/setup-go@v2
+#         with:
+#           go-version: 1.16
+
+#       - name: Check out code into the Go module directory
+#         uses: actions/checkout@v2
+
+#       - name: Unit test
