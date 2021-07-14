@@ -76,12 +76,12 @@ func parseEndpoint(endpoint string) (string, string, error) {
 }
 
 func getImageClient(ctx context.Context) (pb.ImageServiceClient, *grpc.ClientConn, error) {
-	addr, dialer, err := GetAddressAndDialer("unix:///run/containerd/containerd.sock")
+	addr, _, err := GetAddressAndDialer("unix:///run/containerd/containerd.sock")
 	if err != nil {
 		return nil, nil, err
 	}
 
-	conn, err := grpc.DialContext(ctx, addr, grpc.WithBlock(), grpc.WithTimeout(Timeout), grpc.WithContextDialer(dialer))
+	conn, err := grpc.DialContext(ctx, addr, grpc.WithBlock())
 
 	if err != nil {
 		return nil, nil, err
