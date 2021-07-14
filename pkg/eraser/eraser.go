@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"time"
 
-	cli "github.com/urfave/cli/v2"
 	"google.golang.org/grpc"
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 
@@ -76,13 +75,14 @@ func parseEndpoint(endpoint string) (string, string, error) {
 	}
 }
 
-func getImageClient(context *cli.Context) (pb.ImageServiceClient, *grpc.ClientConn, error) {
+func getImageClient(ctx context.Context) (pb.ImageServiceClient, *grpc.ClientConn, error) {
 	addr, dialer, err := GetAddressAndDialer("unix:///run/containerd/containerd.sock")
 	if err != nil {
 		return nil, nil, err
 	}
 
-	conn, err := grpc.Dial(addr, grpc.WithInsecure(), grpc.WithBlock(), grpc.WithTimeout(Timeout), grpc.WithContextDialer(dialer))
+	conn, err := grpc.DialContext(ctx, addr, grpc.WithBlock(), grpc.WithTimeout(Timeout), grpc.WithContextDialer(dialer))
+
 	if err != nil {
 		return nil, nil, err
 	}
@@ -128,11 +128,10 @@ func contains(slice []string, str string) bool {
 }
 
 func removeVulnerableImages() (err error) {
-	ctx := cli.NewContext(nil, nil, nil)
 	backgroundContext, cancel := context.WithTimeout(context.Background(), Timeout)
 	defer cancel()
 
-	imageClient, conn, err := getImageClient(ctx)
+	imageClient, conn, err := getImageClient(backgroundContext)
 
 	if err != nil {
 		return err
