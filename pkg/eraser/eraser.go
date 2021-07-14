@@ -3,6 +3,8 @@ package eraser
 import (
 	"context"
 	"io/ioutil"
+	"log"
+	"os"
 
 	"fmt"
 	"time"
@@ -46,8 +48,11 @@ func parseEndpointWithFallbackProtocol(endpoint string, fallbackProtocol string)
 	if protocol, addr, err = parseEndpoint(endpoint); err != nil && protocol == "" {
 		fallbackEndpoint := fallbackProtocol + "://" + endpoint
 		protocol, addr, err = parseEndpoint(fallbackEndpoint)
+		if err != nil {
+			return "", "", err
+		}
 	}
-	return
+	return protocol, addr, err
 }
 
 func parseEndpoint(endpoint string) (string, string, error) {
@@ -73,13 +78,11 @@ func parseEndpoint(endpoint string) (string, string, error) {
 
 func getImageClient(context *cli.Context) (pb.ImageServiceClient, *grpc.ClientConn, error) {
 	addr, dialer, err := GetAddressAndDialer("unix:///run/containerd/containerd.sock")
-
 	if err != nil {
-		fmt.Print("get address and dialer err")
+		return nil, nil, err
 	}
 
 	conn, err := grpc.Dial(addr, grpc.WithInsecure(), grpc.WithBlock(), grpc.WithTimeout(Timeout), grpc.WithContextDialer(dialer))
-
 	if err != nil {
 		return nil, nil, err
 	}
@@ -93,20 +96,26 @@ func ListImages(client pb.ImageServiceClient, image string) (resp *pb.ListImages
 	request := &pb.ListImagesRequest{Filter: &pb.ImageFilter{Image: &pb.ImageSpec{Image: image}}}
 
 	resp, err = client.ListImages(context.Background(), request)
+	if err != nil {
+		return nil, err
+	}
 
-	return
+	return resp, nil
 }
 
 func RemoveImage(client pb.ImageServiceClient, image string) (resp *pb.RemoveImageResponse, err error) {
 	if image == "" {
-		return nil, fmt.Errorf("ImageID cannot be empty")
+		return nil, err
 	}
 
 	request := &pb.RemoveImageRequest{Image: &pb.ImageSpec{Image: image}}
 
 	resp, err = client.RemoveImage(context.Background(), request)
+	if err != nil {
+		return nil, err
+	}
 
-	return
+	return resp, nil
 }
 
 func contains(slice []string, str string) bool {
@@ -118,37 +127,22 @@ func contains(slice []string, str string) bool {
 	return false
 }
 
-func removeDuplicateValues(intSlice []string) []string {
-	keys := make(map[string]bool)
-	list := []string{}
-
-	for _, entry := range intSlice {
-		if _, value := keys[entry]; !value {
-			keys[entry] = true
-			list = append(list, entry)
-		}
-	}
-	return list
-}
-
-func main() {
-
-	// image job can pass the imagelist into each pod as a env variable maybe
-
+func removeVulnerableImages() (err error) {
 	ctx := cli.NewContext(nil, nil, nil)
 
 	imageClient, conn, err := getImageClient(ctx)
 
 	if err != nil {
-		fmt.Printf("image client err")
+		return err
 	}
 
 	r, err := ListImages(imageClient, "")
 	if err != nil {
-		fmt.Printf("list err")
+		return err
 	}
 
 	var allImages []string
+	// map with key: sha id, value: repoTag list (contains full name of image)
 	m := make(map[string][]string)
 
 	for _, img := range r.Images {
@@ -157,9 +151,8 @@ func main() {
 	}
 
 	response, err := pb.NewRuntimeServiceClient(conn).ListContainers(context.Background(), new(pb.ListContainersRequest))
-
 	if err != nil {
-		fmt.Printf("list containers err")
+		return err
 	}
 
 	var runningImages []string
@@ -169,8 +162,6 @@ func main() {
 		runningImages = append(runningImages, curr.GetImage())
 	}
 
-	runningImages = removeDuplicateValues(runningImages)
-
 	var nonRunningImages []string
 
 	for _, img := range allImages {
@@ -179,30 +170,11 @@ func main() {
 		}
 	}
 
-	// testing correct image, running, and non-runing lists
-
-	fmt.Println("\nAll images: ")
-	fmt.Println(len(allImages))
-	for _, img := range allImages {
-		fmt.Println(m[img], ", ", img)
-	}
-
-	fmt.Println("\nRunning images: (Unique)")
-	fmt.Println(len(runningImages))
-	for _, img := range runningImages {
-		fmt.Println(m[img], ", ", img)
-	}
-
-	fmt.Println("\nNon-running images: ")
-	fmt.Println(len(nonRunningImages))
-	for _, img := range nonRunningImages {
-		fmt.Println(m[img], ", ", img)
-	}
-
+	// TODO: change this to read vulnerable images from ImageList
 	// read vulnerable image from text file
 	resp, err := http.Get("https://gist.githubusercontent.com/ashnamehrotra/1a244c8fae055bce853fd344ac4c5e02/raw/98baf0a4f0864b3dcc48523a9bddd28938fecd17/vulnerable.txt")
 	if err != nil {
-		fmt.Print(err)
+		panic(err)
 	}
 	defer resp.Body.Close()
 	body, _ := ioutil.ReadAll(resp.Body)
@@ -210,39 +182,33 @@ func main() {
 	var vulnerableImages []string
 
 	// add a vulnerable image to test
-	// make sure URL is actually in non-running for testing purposes
 	vulnerableImages = append(vulnerableImages, (string(body)))
 
-	fmt.Println("\nVulnerable images: ")
-	fmt.Println(len(vulnerableImages))
+	// remove vulnerable images
 	for _, img := range vulnerableImages {
-		fmt.Println(m[img], ", ", img)
-	}
-
-	// remove first non-running image by name instead of sha id for testing
-	fmt.Println("\nRemoving a random image by name....")
-	RemoveImage(imageClient, "docker.io/ashnam/list_images:latest")
-
-	// remove vulnerable image
-	fmt.Println("\nRemoving non-running, vulnerable images by id ...")
-	for _, img := range vulnerableImages {
+		// image passed in as id
 		if contains(nonRunningImages, img) {
 			RemoveImage(imageClient, img)
 		}
+		// image passed in as name
+		if m[img] != nil {
+			if contains(nonRunningImages, m[img][0]) {
+				RemoveImage(imageClient, m[img][0])
+			}
+		}
 	}
 
-	// ensure images is correctly removed
-	fmt.Println("All images following remove:")
+	return nil
+}
 
-	r, err = ListImages(imageClient, "")
+func main() {
+
+	// TODO: image job should pass the imagelist into each pod as a env variable, and pass that into removeVulnerableImages()
+	err := removeVulnerableImages()
 
 	if err != nil {
-		fmt.Printf("list img err")
-	}
-
-	fmt.Println(len(r.Images))
-	for _, img := range r.Images {
-		fmt.Println(m[img.Id], ", ", img.Id)
+		log.Println(err)
+		os.Exit(1)
 	}
 
 }
