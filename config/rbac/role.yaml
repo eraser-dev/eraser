@@ -13,8 +13,8 @@ rules:
   verbs:
   - get
   - list
-  - watch
   - update
+  - watch
 - apiGroups:
   - ""
   resources:
