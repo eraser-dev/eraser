@@ -176,7 +176,7 @@ func removeVulnerableImages() (err error) {
 	// read vulnerable image from text file
 	resp, err := http.Get("https://gist.githubusercontent.com/ashnamehrotra/1a244c8fae055bce853fd344ac4c5e02/raw/98baf0a4f0864b3dcc48523a9bddd28938fecd17/vulnerable.txt")
 	if err != nil {
-		panic(err)
+		return err
 	}
 	defer resp.Body.Close()
 	body, _ := ioutil.ReadAll(resp.Body)
@@ -190,12 +190,18 @@ func removeVulnerableImages() (err error) {
 	for _, img := range vulnerableImages {
 		// image passed in as id
 		if contains(nonRunningImages, img) {
-			RemoveImage(imageClient, img, backgroundContext)
+			_, err = RemoveImage(imageClient, img, backgroundContext)
+			if err != nil {
+				return err
+			}
 		}
 		// image passed in as name
 		if m[img] != nil {
 			if contains(nonRunningImages, m[img][0]) {
-				RemoveImage(imageClient, m[img][0], backgroundContext)
+				_, err = RemoveImage(imageClient, m[img][0], backgroundContext)
+				if err != nil {
+					return err
+				}
 			}
 		}
 	}
