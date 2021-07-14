@@ -101,19 +101,25 @@ func (r *ImageJobReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 	}
 
 	for _, n := range nodes.Items {
+		controllerLog.Info("inside nodes.Items for loop")
 		nodeName := n.Name
 
 		// TODO: check if coming from imagelist or imagejob to determine if remove_images or collect_images
-		image := &v1.Container{}
-		image.Image = "ashnam/remove_images:latest"
+		image := &v1.Container{Name: "remove-images", Image: "ashnam/remove_images:latest"}
 
 		pod := &v1.Pod{
+			TypeMeta:   metav1.TypeMeta{},
 			Spec:       v1.PodSpec{NodeName: nodeName, Containers: []v1.Container{*image}},
-			ObjectMeta: metav1.ObjectMeta{Namespace: "eraser-system"},
+			ObjectMeta: metav1.ObjectMeta{Namespace: "eraser-system", Name: "remove-images"},
 		}
 
 		// TODO: check if pod fits and can be scheduled on node
-		r.Create(context.TODO(), pod)
+		err = r.Create(context.TODO(), pod)
+		if err != nil {
+			controllerLog.Info("err")
+			panic(err)
+		}
+		controllerLog.Info("created pod")
 	}
 
 	return ctrl.Result{}, nil
