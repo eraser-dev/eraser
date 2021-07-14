@@ -93,6 +93,10 @@ func (r *ImageJobReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 	controllerLog.Info("imagejob reconcile")
 
 	nodes := &v1.NodeList{}
+	err := r.List(context.TODO(), nodes)
+	if err != nil {
+		panic(err)
+	}
 
 	for _, n := range nodes.Items {
 		nodeName := n.Name
