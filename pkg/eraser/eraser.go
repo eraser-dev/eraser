@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"io/ioutil"
 	"log"
 	"os"
 
@@ -13,7 +12,6 @@ import (
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 
 	"net"
-	"net/http"
 	"net/url"
 )
 
@@ -162,19 +160,23 @@ func removeVulnerableImages() (err error) {
 		}
 	}
 
-	// TODO: change this to read vulnerable images from ImageList
-	// read vulnerable image from text file
-	resp, err := http.Get("https://gist.githubusercontent.com/ashnamehrotra/1a244c8fae055bce853fd344ac4c5e02/raw/98baf0a4f0864b3dcc48523a9bddd28938fecd17/vulnerable.txt")
-	if err != nil {
-		return err
+	// TESTING :
+	fmt.Println("\nAll images: ")
+	fmt.Println(len(allImages))
+	for _, img := range allImages {
+		fmt.Println(idMap[img], ", ", img)
 	}
-	defer resp.Body.Close()
-	body, _ := ioutil.ReadAll(resp.Body)
+	fmt.Println("\nNon-running images: ")
+	fmt.Println(len(nonRunningImages))
+	for key, _ := range nonRunningImages {
+		fmt.Println(idMap[key], ", ", key)
+	}
 
 	var vulnerableImages []string
 
-	// add a vulnerable image to test
-	vulnerableImages = append(vulnerableImages, (string(body)))
+	// TODO: change this to read vulnerable images from ImageList
+	// adding random image for testing purposes
+	vulnerableImages = append(vulnerableImages, "docker.io/ashnam/list_images")
 
 	// remove vulnerable images
 	for _, img := range vulnerableImages {
@@ -194,6 +196,13 @@ func removeVulnerableImages() (err error) {
 				}
 			}
 		}
+	}
+
+	// TESTING :
+	fmt.Println("\nAll images following remove: ")
+	fmt.Println(len(allImages))
+	for _, img := range allImages {
+		fmt.Println(idMap[img], ", ", img)
 	}
 
 	return nil
