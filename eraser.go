@@ -92,7 +92,7 @@ func getImageClient(ctx context.Context) (pb.ImageServiceClient, *grpc.ClientCon
 	return imageClient, conn, nil
 }
 
-func ListImages(client pb.ImageServiceClient, image string, ctx context.Context) (resp *pb.ListImagesResponse, err error) {
+func ListImages(ctx context.Context, client pb.ImageServiceClient, image string) (resp *pb.ListImagesResponse, err error) {
 	request := &pb.ListImagesRequest{Filter: &pb.ImageFilter{Image: &pb.ImageSpec{Image: image}}}
 
 	resp, err = client.ListImages(ctx, request)
@@ -103,7 +103,7 @@ func ListImages(client pb.ImageServiceClient, image string, ctx context.Context)
 	return resp, nil
 }
 
-func RemoveImage(client pb.ImageServiceClient, image string, ctx context.Context) (resp *pb.RemoveImageResponse, err error) {
+func RemoveImage(ctx context.Context, client pb.ImageServiceClient, image string) (resp *pb.RemoveImageResponse, err error) {
 	if image == "" {
 		return nil, err
 	}
@@ -137,7 +137,7 @@ func removeVulnerableImages() (err error) {
 		return err
 	}
 
-	r, err := ListImages(imageClient, "", backgroundContext)
+	r, err := ListImages(backgroundContext, imageClient, "")
 	if err != nil {
 		return err
 	}
@@ -189,7 +189,7 @@ func removeVulnerableImages() (err error) {
 	for _, img := range vulnerableImages {
 		// image passed in as id
 		if contains(nonRunningImages, img) {
-			_, err = RemoveImage(imageClient, img, backgroundContext)
+			_, err = RemoveImage(backgroundContext, imageClient, img)
 			if err != nil {
 				return err
 			}
@@ -197,7 +197,7 @@ func removeVulnerableImages() (err error) {
 		// image passed in as name
 		if m[img] != nil {
 			if contains(nonRunningImages, m[img][0]) {
-				_, err = RemoveImage(imageClient, m[img][0], backgroundContext)
+				_, err = RemoveImage(backgroundContext, imageClient, m[img][0])
 				if err != nil {
 					return err
 				}
