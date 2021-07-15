@@ -118,15 +118,6 @@ func RemoveImage(client pb.ImageServiceClient, image string, ctx context.Context
 	return resp, nil
 }
 
-func contains(slice []string, str string) bool {
-	for _, s := range slice {
-		if s == str {
-			return true
-		}
-	}
-	return false
-}
-
 func removeVulnerableImages() (err error) {
 	backgroundContext, cancel := context.WithTimeout(context.Background(), Timeout)
 	defer cancel()
@@ -144,11 +135,11 @@ func removeVulnerableImages() (err error) {
 
 	var allImages []string
 	// map with key: sha id, value: repoTag list (contains full name of image)
-	m := make(map[string][]string)
+	idMap := make(map[string][]string)
 
 	for _, img := range r.Images {
 		allImages = append(allImages, img.Id)
-		m[img.Id] = img.RepoTags
+		idMap[img.Id] = img.RepoTags
 	}
 
 	response, err := pb.NewRuntimeServiceClient(conn).ListContainers(backgroundContext, new(pb.ListContainersRequest))
@@ -156,18 +147,18 @@ func removeVulnerableImages() (err error) {
 		return err
 	}
 
-	var runningImages []string
+	var runningImages map[string]struct{}
 
 	for _, container := range response.Containers {
 		curr := container.Image
-		runningImages = append(runningImages, curr.GetImage())
+		runningImages[curr.GetImage()] = struct{}{}
 	}
 
-	var nonRunningImages []string
+	var nonRunningImages map[string]struct{}
 
 	for _, img := range allImages {
-		if !contains(runningImages, img) {
-			nonRunningImages = append(nonRunningImages, img)
+		if _, isRunning := runningImages[img]; !isRunning {
+			nonRunningImages[img] = struct{}{}
 		}
 	}
 
@@ -188,16 +179,16 @@ func removeVulnerableImages() (err error) {
 	// remove vulnerable images
 	for _, img := range vulnerableImages {
 		// image passed in as id
-		if contains(nonRunningImages, img) {
+		if _, isNonRunning := nonRunningImages[img]; isNonRunning {
 			_, err = RemoveImage(imageClient, img, backgroundContext)
 			if err != nil {
 				return err
 			}
 		}
 		// image passed in as name
-		if m[img] != nil {
-			if contains(nonRunningImages, m[img][0]) {
-				_, err = RemoveImage(imageClient, m[img][0], backgroundContext)
+		if idMap[img] != nil {
+			if _, isNonRunning := nonRunningImages[idMap[img][0]]; isNonRunning {
+				_, err = RemoveImage(imageClient, idMap[img][0], backgroundContext)
 				if err != nil {
 					return err
 				}

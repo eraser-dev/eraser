@@ -7,7 +7,7 @@
 bin
 testbin/*
 .eraser
-
+./pkg/eraser/eraser
 # Test binary, build with `go test -c`
 *.test
 
