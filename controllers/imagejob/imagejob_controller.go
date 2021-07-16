@@ -109,7 +109,7 @@ func (r *ImageJobReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 
 		pod := &v1.Pod{
 			TypeMeta:   metav1.TypeMeta{},
-			Spec:       v1.PodSpec{NodeName: nodeName, Containers: []v1.Container{*image}},
+			Spec:       v1.PodSpec{NodeName: nodeName, Containers: []v1.Container{*image}, RestartPolicy: v1.RestartPolicyNever},
 			ObjectMeta: metav1.ObjectMeta{Namespace: "eraser-system", Name: "remove-images"},
 		}
 
