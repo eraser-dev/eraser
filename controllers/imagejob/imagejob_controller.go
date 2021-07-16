@@ -110,13 +110,15 @@ func (r *ImageJobReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 
 		podName := "remove-images" + strconv.Itoa(count)
 
+		controllerLog.Info(podName)
+
 		// TODO: check if coming from imagelist or imagejob to determine if remove_images or collect_images
-		image := &v1.Container{Name: podName, Image: "ashnam/remove_images:latest"}
+		image := &v1.Container{Name: "remove-images", Image: "ashnam/remove_images:latest"}
 
 		pod := &v1.Pod{
 			TypeMeta:   metav1.TypeMeta{},
 			Spec:       v1.PodSpec{NodeName: nodeName, Containers: []v1.Container{*image}, RestartPolicy: v1.RestartPolicyNever},
-			ObjectMeta: metav1.ObjectMeta{Namespace: "eraser-system", Name: "remove-images"},
+			ObjectMeta: metav1.ObjectMeta{Namespace: "eraser-system", Name: podName},
 		}
 
 		// TODO: check if pod fits and can be scheduled on node
