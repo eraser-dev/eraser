@@ -52,7 +52,6 @@ func newReconciler(mgr manager.Manager) reconcile.Reconciler {
 // ImageJobReconciler reconciles a ImageJob object
 type ImageJobReconciler struct {
 	client.Client
-	scheme *runtime.Scheme
 }
 
 // ImageListReconciler reconciles a ImageList object
