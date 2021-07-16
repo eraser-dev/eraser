@@ -170,7 +170,7 @@ func removeVulnerableImages() (err error) {
 
 	// TODO: change this to read vulnerable images from ImageList
 	// adding random image for testing purposes
-	vulnerableImages = append(vulnerableImages, "docker.io/ashnam/controller:latest")
+	vulnerableImages = append(vulnerableImages, "mcr.microsoft.com/oss/kubernetes/pause:3.5")
 
 	// remove vulnerable images
 	for _, img := range vulnerableImages {
