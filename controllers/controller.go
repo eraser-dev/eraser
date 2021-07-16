@@ -22,7 +22,7 @@ func SetupWithManager(m manager.Manager) error {
 	for _, f := range controllerAddFuncs {
 		if err := f(m); err != nil {
 			if kindMatchErr, ok := err.(*meta.NoKindMatchError); ok {
-				controllerLog.Info("CRD %v is not installed, its controller will perform noops!", kindMatchErr.GroupKind)
+				controllerLog.Info("CRD %v is not installed", kindMatchErr.GroupKind)
 				continue
 			}
 			return err
