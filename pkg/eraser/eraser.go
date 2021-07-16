@@ -170,7 +170,7 @@ func removeVulnerableImages() (err error) {
 
 	// TODO: change this to read vulnerable images from ImageList
 	// adding random image for testing purposes
-	vulnerableImages = append(vulnerableImages, "docker.io/ashnam/remove_images:latest")
+	vulnerableImages = append(vulnerableImages, "docker.io/ashnam/controller:latest")
 
 	// remove vulnerable images
 	for _, img := range vulnerableImages {
