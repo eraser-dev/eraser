@@ -18,6 +18,7 @@ package imagejob
 
 import (
 	"context"
+	"strconv"
 
 	v1 "k8s.io/api/core/v1"
 
@@ -100,12 +101,17 @@ func (r *ImageJobReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		panic(err)
 	}
 
+	count := 0
+
 	for _, n := range nodes.Items {
+		count += 1
 		controllerLog.Info("inside nodes.Items for loop")
 		nodeName := n.Name
 
+		podName := "remove-images" + strconv.Itoa(count)
+
 		// TODO: check if coming from imagelist or imagejob to determine if remove_images or collect_images
-		image := &v1.Container{Name: "remove-images", Image: "ashnam/remove_images:latest"}
+		image := &v1.Container{Name: podName, Image: "ashnam/remove_images:latest"}
 
 		pod := &v1.Pod{
 			TypeMeta:   metav1.TypeMeta{},
