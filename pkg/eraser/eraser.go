@@ -21,7 +21,7 @@ const (
 
 var (
 	// Timeout  of connecting to server (default: 10s)
-	Timeout time.Duration
+	timeout time.Duration = 10 * time.Second
 )
 
 func GetAddressAndDialer(endpoint string) (string, func(ctx context.Context, addr string) (net.Conn, error), error) {
@@ -115,9 +115,8 @@ func removeImage(ctx context.Context, client pb.ImageServiceClient, image string
 }
 
 func removeVulnerableImages() (err error) {
-	//backgroundContext, cancel := context.WithTimeout(context.Background(), Timeout)
-	//defer cancel()
-	backgroundContext := context.Background()
+	backgroundContext, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
 
 	imageClient, conn, err := getImageClient(backgroundContext)
 
@@ -225,5 +224,7 @@ func main() {
 		fmt.Println(err)
 		os.Exit(1)
 	}
+
+	os.Exit(0)
 
 }
