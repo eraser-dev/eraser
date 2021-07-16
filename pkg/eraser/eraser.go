@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"log"
 	"os"
 
 	"fmt"
@@ -74,13 +73,12 @@ func parseEndpoint(endpoint string) (string, string, error) {
 }
 
 func getImageClient(ctx context.Context) (pb.ImageServiceClient, *grpc.ClientConn, error) {
-	addr, _, err := GetAddressAndDialer("unix:///run/containerd/containerd.sock")
+	addr, dialer, err := GetAddressAndDialer("unix:///run/containerd/containerd.sock")
 	if err != nil {
 		return nil, nil, err
 	}
 
-	conn, err := grpc.DialContext(ctx, addr, grpc.WithBlock())
-
+	conn, err := grpc.DialContext(ctx, addr, grpc.WithBlock(), grpc.WithInsecure(), grpc.WithContextDialer(dialer))
 	if err != nil {
 		return nil, nil, err
 	}
@@ -117,8 +115,9 @@ func removeImage(ctx context.Context, client pb.ImageServiceClient, image string
 }
 
 func removeVulnerableImages() (err error) {
-	backgroundContext, cancel := context.WithTimeout(context.Background(), Timeout)
-	defer cancel()
+	//backgroundContext, cancel := context.WithTimeout(context.Background(), Timeout)
+	//defer cancel()
+	backgroundContext := context.Background()
 
 	imageClient, conn, err := getImageClient(backgroundContext)
 
@@ -145,14 +144,14 @@ func removeVulnerableImages() (err error) {
 		return err
 	}
 
-	var runningImages map[string]struct{}
+	runningImages := make(map[string]struct{})
 
 	for _, container := range response.Containers {
 		curr := container.Image
 		runningImages[curr.GetImage()] = struct{}{}
 	}
 
-	var nonRunningImages map[string]struct{}
+	nonRunningImages := make(map[string]struct{})
 
 	for _, img := range allImages {
 		if _, isRunning := runningImages[img]; !isRunning {
@@ -166,20 +165,19 @@ func removeVulnerableImages() (err error) {
 	for _, img := range allImages {
 		fmt.Println(idMap[img], ", ", img)
 	}
-	fmt.Println("\nNon-running images: ")
-	fmt.Println(len(nonRunningImages))
-	for key, _ := range nonRunningImages {
-		fmt.Println(idMap[key], ", ", key)
-	}
 
 	var vulnerableImages []string
 
 	// TODO: change this to read vulnerable images from ImageList
 	// adding random image for testing purposes
-	vulnerableImages = append(vulnerableImages, "docker.io/ashnam/list_images")
+	vulnerableImages = append(vulnerableImages, "docker.io/ashnam/remove_images:latest")
 
 	// remove vulnerable images
 	for _, img := range vulnerableImages {
+
+		// for test since running
+		removeImage(backgroundContext, imageClient, img)
+
 		// image passed in as id
 		if _, isNonRunning := nonRunningImages[img]; isNonRunning {
 			_, err = removeImage(backgroundContext, imageClient, img)
@@ -199,9 +197,20 @@ func removeVulnerableImages() (err error) {
 	}
 
 	// TESTING :
+	r, err = listImages(backgroundContext, imageClient, "")
+	if err != nil {
+		return err
+	}
+
+	var allImages2 []string
+
+	for _, img := range r.Images {
+		allImages2 = append(allImages2, img.Id)
+	}
+
 	fmt.Println("\nAll images following remove: ")
-	fmt.Println(len(allImages))
-	for _, img := range allImages {
+	fmt.Println(len(allImages2))
+	for _, img := range allImages2 {
 		fmt.Println(idMap[img], ", ", img)
 	}
 
@@ -209,12 +218,11 @@ func removeVulnerableImages() (err error) {
 }
 
 func main() {
-
 	// TODO: image job should pass the imagelist into each pod as a env variable, and pass that into removeVulnerableImages()
 	err := removeVulnerableImages()
 
 	if err != nil {
-		log.Println(err)
+		fmt.Println(err)
 		os.Exit(1)
 	}
 
