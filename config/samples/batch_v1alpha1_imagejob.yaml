@@ -1,7 +1,0 @@
-apiVersion: batch.k8s.io/v1alpha1
-kind: ImageJob
-metadata:
-  name: imagejob-sample
-spec:
-  # Add fields here
-  foo: bar
