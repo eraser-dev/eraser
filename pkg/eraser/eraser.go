@@ -126,6 +126,7 @@ func removeVulnerableImages() (err error) {
 	}
 
 	r, err := listImages(backgroundContext, imageClient, "")
+	fmt.Println("received imagelist")
 	if err != nil {
 		return err
 	}
@@ -150,6 +151,7 @@ func removeVulnerableImages() (err error) {
 		curr := container.Image
 		runningImages[curr.GetImage()] = struct{}{}
 	}
+	fmt.Println("received running")
 
 	nonRunningImages := make(map[string]struct{})
 
