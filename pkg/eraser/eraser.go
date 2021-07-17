@@ -119,6 +119,7 @@ func removeVulnerableImages() (err error) {
 	defer cancel()
 
 	imageClient, conn, err := getImageClient(backgroundContext)
+	fmt.Println("received imageClient")
 
 	if err != nil {
 		return err
@@ -217,6 +218,7 @@ func removeVulnerableImages() (err error) {
 }
 
 func main() {
+	fmt.Println("starting")
 	// TODO: image job should pass the imagelist into each pod as a env variable, and pass that into removeVulnerableImages()
 	err := removeVulnerableImages()
 
