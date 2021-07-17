@@ -78,7 +78,13 @@ func getImageClient(ctx context.Context) (pb.ImageServiceClient, *grpc.ClientCon
 		return nil, nil, err
 	}
 
+	fmt.Println("started")
+	fmt.Println(time.Now().Format(time.RFC3339))
+
 	conn, err := grpc.DialContext(ctx, addr, grpc.WithBlock(), grpc.WithInsecure(), grpc.WithContextDialer(dialer))
+	fmt.Println("finished")
+	fmt.Println(time.Now().Format(time.RFC3339))
+
 	if err != nil {
 		return nil, nil, err
 	}
