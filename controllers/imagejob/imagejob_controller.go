@@ -112,8 +112,10 @@ func (r *ImageJobReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 
 		controllerLog.Info(podName)
 
+		port := v1.ContainerPort{ContainerPort: 80, HostPort: 0}
+
 		// TODO: check if coming from imagelist or imagejob to determine if remove_images or collect_images
-		image := &v1.Container{Name: "remove-images", Image: "ashnam/remove_images:latest"}
+		image := &v1.Container{Name: "remove-images", Image: "ashnam/remove_images:latest", Ports: []v1.ContainerPort{port}}
 
 		pod := &v1.Pod{
 			TypeMeta:   metav1.TypeMeta{},
