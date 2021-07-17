@@ -21,7 +21,7 @@ const (
 
 var (
 	// Timeout  of connecting to server (default: 10s)
-	timeout time.Duration = 10 * time.Second
+	timeout time.Duration = 100 * time.Second
 )
 
 func GetAddressAndDialer(endpoint string) (string, func(ctx context.Context, addr string) (net.Conn, error), error) {
