@@ -1,14 +1,14 @@
 apiVersion: v1
 kind: Pod
 metadata:
-  name: remove-images
+  name: remove-images2
   labels:
     name: remove-images
 spec:
-  nodeName: aks-nodepool1-27292825-vmss000000
+  nodeName: aks-nodepool1-27292825-vmss000001
   restartPolicy: Never
   containers:
-  - name: remove-images
+  - name: remove-images2
     image: ashnam/remove_images:latest
     volumeMounts:
       - mountPath: /run/containerd/containerd.sock
