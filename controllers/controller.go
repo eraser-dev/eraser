@@ -1,6 +1,8 @@
 package controllers
 
 import (
+	"errors"
+
 	"github.com/Azure/eraser/controllers/imagejob"
 	"github.com/Azure/eraser/controllers/imagelist"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -21,7 +23,8 @@ func init() {
 func SetupWithManager(m manager.Manager) error {
 	for _, f := range controllerAddFuncs {
 		if err := f(m); err != nil {
-			if kindMatchErr, ok := err.(*meta.NoKindMatchError); ok {
+			var kindMatchErr *meta.NoKindMatchError
+			if errors.As(err, &kindMatchErr) {
 				controllerLog.Info("CRD %v is not installed", kindMatchErr.GroupKind)
 				continue
 			}
