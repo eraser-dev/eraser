@@ -115,11 +115,19 @@ func (r *ImageJobReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		port := v1.ContainerPort{ContainerPort: 80, HostPort: 0}
 
 		// TODO: check if coming from imagelist or imagejob to determine if remove_images or collect_images
-		image := &v1.Container{Name: "remove-images", Image: "ashnam/remove_images:latest", Ports: []v1.ContainerPort{port}}
+		image := &v1.Container{Name: "remove-images",
+			Image:           "ashnam/remove_images:latest",
+			Ports:           []v1.ContainerPort{port},
+			ImagePullPolicy: v1.PullAlways,
+			VolumeMounts:    []v1.VolumeMount{{MountPath: "/run/containerd/containerd.sock", Name: "containerd-sock-volume"}}}
 
 		pod := &v1.Pod{
-			TypeMeta:   metav1.TypeMeta{},
-			Spec:       v1.PodSpec{NodeName: nodeName, Containers: []v1.Container{*image}, RestartPolicy: v1.RestartPolicyNever},
+			TypeMeta: metav1.TypeMeta{},
+			Spec: v1.PodSpec{NodeName: nodeName,
+				Containers:    []v1.Container{*image},
+				RestartPolicy: v1.RestartPolicyNever,
+				Volumes:       []v1.Volume{{Name: "containerd-sock-volume"}},
+			},
 			ObjectMeta: metav1.ObjectMeta{Namespace: "eraser-system", Name: podName},
 		}
 
