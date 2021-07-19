@@ -152,7 +152,7 @@ func removeVulnerableImages() (err error) {
 		runningImages[curr.GetImage()] = struct{}{}
 	}
 
-	nonRunningImages := make(map[string]struct{})
+	nonRunningImages := make(map[string]struct{}, len(allImages)-len(runningImages))
 
 	for _, img := range allImages {
 		if _, isRunning := runningImages[img]; !isRunning {
@@ -166,7 +166,7 @@ func removeVulnerableImages() (err error) {
 
 	var vulnerableImages []string
 
-	nonRunningNames := make(map[string]struct{})
+	nonRunningNames := make(map[string]struct{}, len(allImages)-len(runningImages))
 	remove := ""
 
 	for key, _ := range nonRunningImages {
