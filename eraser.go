@@ -142,7 +142,7 @@ func removeVulnerableImages() (err error) {
 		return err
 	}
 
-	var allImages []string
+	allImages := make([]string, 0, len(r.Images))
 	// map with key: sha id, value: repoTag list (contains full name of image)
 	m := make(map[string][]string)
 
@@ -156,7 +156,7 @@ func removeVulnerableImages() (err error) {
 		return err
 	}
 
-	var runningImages []string
+	runningImages := make([]string, 0, len(response.Containers))
 
 	for _, container := range response.Containers {
 		curr := container.Image
