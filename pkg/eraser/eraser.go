@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"log"
 	"os"
 
 	"fmt"
@@ -78,12 +79,7 @@ func getImageClient(ctx context.Context) (pb.ImageServiceClient, *grpc.ClientCon
 		return nil, nil, err
 	}
 
-	fmt.Println("started")
-	fmt.Println(time.Now().Format(time.RFC3339))
-
 	conn, err := grpc.DialContext(ctx, addr, grpc.WithBlock(), grpc.WithInsecure(), grpc.WithContextDialer(dialer))
-	fmt.Println("finished")
-	fmt.Println(time.Now().Format(time.RFC3339))
 
 	if err != nil {
 		return nil, nil, err
@@ -125,14 +121,12 @@ func removeVulnerableImages() (err error) {
 	defer cancel()
 
 	imageClient, conn, err := getImageClient(backgroundContext)
-	fmt.Println("received imageClient")
 
 	if err != nil {
 		return err
 	}
 
 	r, err := listImages(backgroundContext, imageClient, "")
-	fmt.Println("received imagelist")
 	if err != nil {
 		return err
 	}
@@ -157,7 +151,6 @@ func removeVulnerableImages() (err error) {
 		curr := container.Image
 		runningImages[curr.GetImage()] = struct{}{}
 	}
-	fmt.Println("received running")
 
 	nonRunningImages := make(map[string]struct{})
 
@@ -168,11 +161,8 @@ func removeVulnerableImages() (err error) {
 	}
 
 	// TESTING :
-	fmt.Println("\nAll images: ")
-	fmt.Println(len(allImages))
-	/*for _, img := range allImages {
-		fmt.Println(idMap[img], ", ", img)
-	}*/
+	log.Println("\nAll images: ")
+	log.Println(len(allImages))
 
 	var vulnerableImages []string
 
@@ -226,22 +216,18 @@ func removeVulnerableImages() (err error) {
 		allImages2 = append(allImages2, img.Id)
 	}
 
-	fmt.Println("\nAll images following remove: ")
-	fmt.Println(len(allImages2))
-	/*for _, img := range allImages2 {
-		fmt.Println(idMap[img], ", ", img)
-	}*/
+	log.Println("\nAll images following remove: ")
+	log.Println(len(allImages2))
 
 	return nil
 }
 
 func main() {
-	fmt.Println("starting")
 	// TODO: image job should pass the imagelist into each pod as a env variable, and pass that into removeVulnerableImages()
 	err := removeVulnerableImages()
 
 	if err != nil {
-		fmt.Println(err)
+		log.Println(err)
 		os.Exit(1)
 	}
 
