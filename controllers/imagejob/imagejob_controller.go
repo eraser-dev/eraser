@@ -126,9 +126,9 @@ func (r *ImageJobReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 			Spec: v1.PodSpec{NodeName: nodeName,
 				Containers:    []v1.Container{*image},
 				RestartPolicy: v1.RestartPolicyNever,
-				Volumes:       []v1.Volume{{Name: "containerd-sock-volume"}},
+				Volumes:       []v1.Volume{{Name: "containerd-sock-volume", VolumeSource: v1.VolumeSource{HostPath: &v1.HostPathVolumeSource{Path: "/run/containerd/containerd.sock"}}}},
 			},
-			ObjectMeta: metav1.ObjectMeta{Namespace: "eraser-system", Name: podName},
+			ObjectMeta: metav1.ObjectMeta{Namespace: "eraser-system", Name: podName, Labels: map[string]string{"name": "remove-images"}},
 		}
 
 		// TODO: check if pod fits and can be scheduled on node
