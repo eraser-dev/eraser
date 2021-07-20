@@ -1,0 +1,13 @@
+apiVersion: eraser.sh/v1alpha1
+kind: ImageJob
+metadata:
+  name: imagejob-sample
+spec:
+   jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: eraser
+            image: ashnam/remove-images:latest
+          restartPolicy: OnFailure
