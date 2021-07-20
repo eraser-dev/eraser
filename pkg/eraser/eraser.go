@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"log"
 	"os"
 
 	"fmt"
@@ -129,7 +130,7 @@ func removeVulnerableImages() (err error) {
 		return err
 	}
 
-	var allImages []string
+	allImages := make([]string, 0, len(r.Images))
 	// map with key: sha id, value: repoTag list (contains full name of image)
 	idMap := make(map[string][]string)
 
@@ -150,7 +151,7 @@ func removeVulnerableImages() (err error) {
 		runningImages[curr.GetImage()] = struct{}{}
 	}
 
-	nonRunningImages := make(map[string]struct{})
+	nonRunningImages := make(map[string]struct{}, len(allImages)-len(runningImages))
 
 	for _, img := range allImages {
 		if _, isRunning := runningImages[img]; !isRunning {
@@ -159,23 +160,30 @@ func removeVulnerableImages() (err error) {
 	}
 
 	// TESTING :
-	fmt.Println("\nAll images: ")
-	fmt.Println(len(allImages))
-	for _, img := range allImages {
-		fmt.Println(idMap[img], ", ", img)
-	}
+	log.Println("\nAll images: ")
+	log.Println(len(allImages))
 
 	var vulnerableImages []string
 
+	nonRunningNames := make(map[string]struct{}, len(allImages)-len(runningImages))
+	remove := ""
+
+	for key, _ := range nonRunningImages {
+		if idMap[key] != nil && len(idMap[key]) > 0 {
+			nonRunningNames[idMap[key][0]] = struct{}{}
+			remove = idMap[key][0]
+		}
+	}
+
 	// TODO: change this to read vulnerable images from ImageList
 	// adding random image for testing purposes
-	vulnerableImages = append(vulnerableImages, "docker.io/ashnam/controller:latest")
+	vulnerableImages = append(vulnerableImages, remove)
 
 	// remove vulnerable images
 	for _, img := range vulnerableImages {
 
 		// for test since running
-		removeImage(backgroundContext, imageClient, img)
+		//removeImage(backgroundContext, imageClient, img)
 
 		// image passed in as id
 		if _, isNonRunning := nonRunningImages[img]; isNonRunning {
@@ -184,15 +192,15 @@ func removeVulnerableImages() (err error) {
 				return err
 			}
 		}
+
 		// image passed in as name
-		if idMap[img] != nil {
-			if _, isNonRunning := nonRunningImages[idMap[img][0]]; isNonRunning {
-				_, err = removeImage(backgroundContext, imageClient, idMap[img][0])
-				if err != nil {
-					return err
-				}
+		if _, isNonRunning := nonRunningNames[img]; isNonRunning {
+			_, err = removeImage(backgroundContext, imageClient, img)
+			if err != nil {
+				return err
 			}
 		}
+
 	}
 
 	// TESTING :
@@ -207,11 +215,8 @@ func removeVulnerableImages() (err error) {
 		allImages2 = append(allImages2, img.Id)
 	}
 
-	fmt.Println("\nAll images following remove: ")
-	fmt.Println(len(allImages2))
-	for _, img := range allImages2 {
-		fmt.Println(idMap[img], ", ", img)
-	}
+	log.Println("\nAll images following remove: ")
+	log.Println(len(allImages2))
 
 	return nil
 }
@@ -221,7 +226,7 @@ func main() {
 	err := removeVulnerableImages()
 
 	if err != nil {
-		fmt.Println(err)
+		log.Println(err)
 		os.Exit(1)
 	}
 

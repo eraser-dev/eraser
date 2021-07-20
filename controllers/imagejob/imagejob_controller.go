@@ -18,26 +18,36 @@ package imagejob
 
 import (
 	"context"
+<<<<<<< HEAD
 	"strconv"
 
 	v1 "k8s.io/api/core/v1"
+=======
+>>>>>>> upstream/main
 
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
+<<<<<<< HEAD
+=======
+	"sigs.k8s.io/controller-runtime/pkg/log"
+>>>>>>> upstream/main
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
+<<<<<<< HEAD
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 var (
 	controllerLog = ctrl.Log.WithName("controllerRuntimeLogger")
+=======
+>>>>>>> upstream/main
 )
 
 func Add(mgr manager.Manager) error {
@@ -46,14 +56,22 @@ func Add(mgr manager.Manager) error {
 
 // newReconciler returns a new reconcile.Reconciler
 func newReconciler(mgr manager.Manager) reconcile.Reconciler {
+<<<<<<< HEAD
 	return &ImageJobReconciler{
+=======
+	return &Reconciler{
+>>>>>>> upstream/main
 		Client: mgr.GetClient(),
 		scheme: mgr.GetScheme(),
 	}
 }
 
 // ImageJobReconciler reconciles a ImageJob object
+<<<<<<< HEAD
 type ImageJobReconciler struct {
+=======
+type Reconciler struct {
+>>>>>>> upstream/main
 	client.Client
 	scheme *runtime.Scheme
 }
@@ -144,7 +162,7 @@ func (r *ImageJobReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 }
 
 // SetupWithManager sets up the controller with the Manager.
-func (r *ImageJobReconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&eraserv1alpha1.ImageJob{}).
 		Complete(r)
