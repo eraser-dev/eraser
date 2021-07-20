@@ -33,5 +33,6 @@ jobs:
         uses: actions/checkout@v2
 
       - name: Unit test
-        run: go test ./...
+        run: make test
+
 
