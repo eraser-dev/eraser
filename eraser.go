@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"io/ioutil"
 	"log"
 	"os"
@@ -26,6 +27,10 @@ var (
 	// Timeout  of connecting to server (default: 10s)
 	Timeout time.Duration
 )
+
+var ErrProtocolNotSupported = errors.New("protocol not supported")
+
+var ErrEndpointDeprecated = errors.New("endpoint is deprecated, please consider using full url format")
 
 func GetAddressAndDialer(endpoint string) (string, func(ctx context.Context, addr string) (net.Conn, error), error) {
 	protocol, addr, err := parseEndpointWithFallbackProtocol(endpoint, unixProtocol)
@@ -61,17 +66,14 @@ func parseEndpoint(endpoint string) (string, string, error) {
 	}
 
 	switch u.Scheme {
-	case "tcp":
-		return "tcp", u.Host, nil
-
 	case "unix":
 		return "unix", u.Path, nil
 
 	case "":
-		return "", "", fmt.Errorf("using %q as endpoint is deprecated, please consider using full url format", endpoint)
+		return "", "", fmt.Errorf("using %q as %w", endpoint, ErrEndpointDeprecated)
 
 	default:
-		return u.Scheme, "", fmt.Errorf("protocol %q not supported", u.Scheme)
+		return u.Scheme, "", fmt.Errorf("%q: %w", u.Scheme, ErrProtocolNotSupported)
 	}
 }
 
