@@ -104,7 +104,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	count := 0
 
 	for _, n := range nodes.Items {
-		count += 1
+		count++
 		controllerLog.Info("inside nodes.Items for loop")
 		nodeName := n.Name
 
