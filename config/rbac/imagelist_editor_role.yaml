@@ -1,0 +1,24 @@
+# permissions for end users to edit imagelists.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: imagelist-editor-role
+rules:
+- apiGroups:
+  - eraser.sh
+  resources:
+  - imagelists
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - eraser.sh
+  resources:
+  - imagelists/status
+  verbs:
+  - get

@@ -1,0 +1,20 @@
+# permissions for end users to view imagelists.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: imagelist-viewer-role
+rules:
+- apiGroups:
+  - eraser.sh
+  resources:
+  - imagelists
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - eraser.sh
+  resources:
+  - imagelists/status
+  verbs:
+  - get
