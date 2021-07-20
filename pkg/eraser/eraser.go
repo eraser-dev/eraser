@@ -10,10 +10,14 @@ import (
 	"time"
 
 	"google.golang.org/grpc"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 
 	"net"
 	"net/url"
+
+	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
 )
 
 const (
@@ -176,15 +180,36 @@ func removeVulnerableImages(socketPath string, imagelistName string) (err error)
 		}
 	}
 
+	// get vulnerable images from ImageList
+	config, err := rest.InClusterConfig()
+	if err != nil {
+		return err
+	}
+
+	clientset, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		return err
+	}
+
+	result := eraserv1alpha1.ImageList{}
+
+	// ? v1alpha1.AddToScheme(scheme.Scheme)
+
+	imagelist := clientset.RESTClient().Get().
+		AbsPath("../api/v1alpha1").
+		Namespace("eraser-system").
+		Resource("imagelist").
+		Name(imagelistName).
+		Do(backgroundContext).Into(&result)
+
+	log.Print("imagelist: ", imagelist)
+
 	// TODO: change this to read vulnerable images from ImageList
 	// adding random image for testing purposes
 	vulnerableImages = append(vulnerableImages, remove)
 
 	// remove vulnerable images
 	for _, img := range vulnerableImages {
-
-		// for test since running
-		//removeImage(backgroundContext, imageClient, img)
 
 		// image passed in as id
 		if _, isNonRunning := nonRunningImages[img]; isNonRunning {
@@ -242,7 +267,6 @@ func main() {
 		os.Exit(1)
 	}
 
-	// TODO: image job should pass the imagelist into each pod as a env variable, and pass that into removeVulnerableImages()
 	err := removeVulnerableImages(socketPath, *imageListPtr)
 
 	if err != nil {
