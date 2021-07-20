@@ -5,7 +5,9 @@ metadata:
 spec:
   template:
     spec:
-      containers:
-      - name: eraser
-        image: ashnam/remove-images
-      restartPolicy: OnFailure
+      template:
+        spec:
+          containers:
+          - name: eraser
+            image: ashnam/remove-images:latest
+          restartPolicy: OnFailure

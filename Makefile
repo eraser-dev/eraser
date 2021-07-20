@@ -70,11 +70,9 @@ docker-push: ## Push docker image with the manager.
 	docker push ${IMG}
 
 docker-build-eraser:
-	cd pkg/eraser
-	docker build -t ashnam/remove_images .
+	docker build -t ashnam/remove_images:latest . -f pkg/eraser/Dockerfile.eraser
 docker-push-eraser:
-	cd pkg/eraser
-	docker push ashnam/remove_images
+	docker push ashnam/remove_images:latest
 
 ##@ Deployment
 
