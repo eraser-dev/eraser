@@ -82,6 +82,8 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 
 	controllerLog.Info("imagelist reconcile")
 
+	port := corev1.ContainerPort{ContainerPort: 80, HostPort: 0}
+
 	// If there is a change in ImageList, start ImageJob to triger removal
 	job := &eraserv1alpha1.ImageJob{
 		ObjectMeta: metav1.ObjectMeta{
@@ -96,7 +98,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 						{
 							Name:            "remove-images",
 							Image:           "ashnam/remove_images:latest",
-							Ports:           []corev1.ContainerPort{corev1.ContainerPort{ContainerPort: 80, HostPort: 0}},
+							Ports:           []corev1.ContainerPort{port},
 							ImagePullPolicy: corev1.PullAlways,
 							Args:            []string{"--imagelist=" + req.Name},
 						},
