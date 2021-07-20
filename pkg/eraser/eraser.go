@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"flag"
 	"log"
 	"os"
 
@@ -73,8 +74,8 @@ func parseEndpoint(endpoint string) (string, string, error) {
 	}
 }
 
-func getImageClient(ctx context.Context) (pb.ImageServiceClient, *grpc.ClientConn, error) {
-	addr, dialer, err := GetAddressAndDialer("unix:///run/containerd/containerd.sock")
+func getImageClient(ctx context.Context, socketPath string) (pb.ImageServiceClient, *grpc.ClientConn, error) {
+	addr, dialer, err := GetAddressAndDialer(socketPath)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -115,11 +116,11 @@ func removeImage(ctx context.Context, client pb.ImageServiceClient, image string
 	return resp, nil
 }
 
-func removeVulnerableImages() (err error) {
+func removeVulnerableImages(socketPath string, imagelistName string) (err error) {
 	backgroundContext, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
-	imageClient, conn, err := getImageClient(backgroundContext)
+	imageClient, conn, err := getImageClient(backgroundContext, socketPath)
 
 	if err != nil {
 		return err
@@ -168,7 +169,7 @@ func removeVulnerableImages() (err error) {
 	nonRunningNames := make(map[string]struct{}, len(allImages)-len(runningImages))
 	remove := ""
 
-	for key, _ := range nonRunningImages {
+	for key := range nonRunningImages {
 		if idMap[key] != nil && len(idMap[key]) > 0 {
 			nonRunningNames[idMap[key][0]] = struct{}{}
 			remove = idMap[key][0]
@@ -222,14 +223,30 @@ func removeVulnerableImages() (err error) {
 }
 
 func main() {
+
+	runtimePtr := flag.String("runtime", "containerd", "container runtime")
+	imageListPtr := flag.String("imagelist", "", "name of ImageList")
+
+	flag.Parse()
+
+	var socketPath string
+
+	if *runtimePtr == "dockershim" {
+		socketPath = "unix:///var/run/dockershim.sock"
+	} else if *runtimePtr == "containerd" {
+		socketPath = "unix:///run/containerd/containerd.sock"
+	} else if *runtimePtr == "crio" {
+		socketPath = "unix:///var/run/crio/crio.sock "
+	} else {
+		log.Println("incorrect runtime")
+		os.Exit(1)
+	}
+
 	// TODO: image job should pass the imagelist into each pod as a env variable, and pass that into removeVulnerableImages()
-	err := removeVulnerableImages()
+	err := removeVulnerableImages(socketPath, *imageListPtr)
 
 	if err != nil {
 		log.Println(err)
 		os.Exit(1)
 	}
-
-	os.Exit(0)
-
 }

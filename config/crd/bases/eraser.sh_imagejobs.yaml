@@ -36,6 +36,8 @@ spec:
           spec:
             description: ImageJobSpec defines the desired state of ImageJob
             properties:
+              imageListName:
+                type: string
               template:
                 description: Specifies the job that will be created when executing
                   an ImageJob.
@@ -6692,29 +6694,18 @@ spec:
                     type: object
                 type: object
             required:
-<<<<<<< HEAD
+            - imageListName
             - template
-=======
-            - 'template:'
->>>>>>> upstream/main
             type: object
           status:
             description: ImageJobStatus defines the observed state of ImageJob
             properties:
-<<<<<<< HEAD
               message:
-=======
-              'message:':
->>>>>>> upstream/main
                 description: Specifies if job was completed, and how many jobs succeeded
                   and failed
                 type: string
             required:
-<<<<<<< HEAD
             - message
-=======
-            - 'message:'
->>>>>>> upstream/main
             type: object
         type: object
     served: true

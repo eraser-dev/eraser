@@ -18,7 +18,10 @@ package imagejob
 
 import (
 	"context"
+	"log"
+	"os"
 	"strconv"
+	"strings"
 
 	v1 "k8s.io/api/core/v1"
 
@@ -92,7 +95,6 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.8.3/pkg/reconcile
 func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	//_ = log.FromContext(ctx)
 	controllerLog.Info("imagejob reconcile")
 
 	nodes := &v1.NodeList{}
@@ -103,32 +105,49 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 
 	count := 0
 
+	// only get names from for loop
 	for _, n := range nodes.Items {
 		count++
 		controllerLog.Info("inside nodes.Items for loop")
 		nodeName := n.Name
 
-		podName := "remove-images" + strconv.Itoa(count)
+		runTime := n.Status.NodeInfo.ContainerRuntimeVersion
+		runTimeName := strings.Split(runTime, ":")[0]
 
-		controllerLog.Info(podName)
+		var socketPath string
 
-		port := v1.ContainerPort{ContainerPort: 80, HostPort: 0}
+		if runTimeName == "dockershim" {
+			socketPath = "/var/run/dockershim.sock"
+		} else if runTimeName == "containerd" {
+			socketPath = "/run/containerd/containerd.sock"
+		} else if runTimeName == "crio" {
+			socketPath = "/var/run/crio/crio.sock "
+		} else {
+			log.Println("runtime not compatible")
+			os.Exit(1)
+		}
 
-		// TODO: check if coming from imagelist or imagejob to determine if remove_images or collect_images
-		image := &v1.Container{Name: "remove-images",
-			Image:           "ashnam/remove_images:latest",
-			Ports:           []v1.ContainerPort{port},
-			ImagePullPolicy: v1.PullAlways,
-			VolumeMounts:    []v1.VolumeMount{{MountPath: "/run/containerd/containerd.sock", Name: "containerd-sock-volume"}}}
+		imageJob := &eraserv1alpha1.ImageJob{}
+
+		err := r.Get(ctx, req.NamespacedName, imageJob)
+		if err != nil {
+			controllerLog.Info("err")
+			panic(err)
+		}
+		image := imageJob.Spec.JobTemplate.Spec.Containers[0]
+		image.Args = append(image.Args, "--runtime="+runTimeName)
+		image.VolumeMounts = []v1.VolumeMount{{MountPath: socketPath, Name: runTimeName + "-sock-volume"}}
+
+		podSpec := imageJob.Spec.JobTemplate.Spec
+		podSpec.Volumes = []v1.Volume{{Name: runTimeName + "-sock-volume", VolumeSource: v1.VolumeSource{HostPath: &v1.HostPathVolumeSource{Path: socketPath}}}}
+		podName := image.Name + strconv.Itoa(count)
+		podSpec.NodeName = nodeName
+		podSpec.Containers = []v1.Container{image}
 
 		pod := &v1.Pod{
-			TypeMeta: metav1.TypeMeta{},
-			Spec: v1.PodSpec{NodeName: nodeName,
-				Containers:    []v1.Container{*image},
-				RestartPolicy: v1.RestartPolicyNever,
-				Volumes:       []v1.Volume{{Name: "containerd-sock-volume", VolumeSource: v1.VolumeSource{HostPath: &v1.HostPathVolumeSource{Path: "/run/containerd/containerd.sock"}}}},
-			},
-			ObjectMeta: metav1.ObjectMeta{Namespace: "eraser-system", Name: podName, Labels: map[string]string{"name": "remove-images"}},
+			TypeMeta:   metav1.TypeMeta{},
+			Spec:       podSpec,
+			ObjectMeta: metav1.ObjectMeta{Namespace: "eraser-system", Name: podName, Labels: map[string]string{"name": image.Name}},
 		}
 
 		// TODO: check if pod fits and can be scheduled on node
@@ -139,7 +158,6 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		}
 		controllerLog.Info("created pod")
 	}
-
 	return ctrl.Result{}, nil
 }
 

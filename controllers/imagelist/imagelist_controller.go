@@ -19,7 +19,9 @@ package imagelist
 import (
 	"context"
 
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -81,8 +83,29 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	controllerLog.Info("imagelist reconcile")
 
 	// If there is a change in ImageList, start ImageJob to triger removal
-	job := &eraserv1alpha1.ImageJob{}
-	err := r.Get(context.TODO(), req.NamespacedName, job)
+	job := &eraserv1alpha1.ImageJob{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "imagejob-test",
+			Namespace: "eraser-system",
+		},
+		Spec: eraserv1alpha1.ImageJobSpec{
+			JobTemplate: corev1.PodTemplateSpec{
+				Spec: corev1.PodSpec{
+					RestartPolicy: "Never",
+					Containers: []corev1.Container{
+						{
+							Name:            "remove-images",
+							Image:           "ashnam/remove_images:latest",
+							Ports:           []corev1.ContainerPort{corev1.ContainerPort{ContainerPort: 80, HostPort: 0}},
+							ImagePullPolicy: corev1.PullAlways,
+							Args:            []string{"--imagelist=" + req.Name},
+						},
+					},
+				},
+			},
+		},
+	}
+	err := r.Create(context.TODO(), job)
 	if err != nil {
 		if errors.IsNotFound(err) {
 			return reconcile.Result{}, nil
