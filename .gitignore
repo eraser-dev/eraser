@@ -1,9 +1,3 @@
-<<<<<<< HEAD
-eraser
-bin/eraser
-
-=======
->>>>>>> main/main
 # Binaries for programs and plugins
 *.exe
 *.exe~
@@ -12,12 +6,8 @@ bin/eraser
 *.dylib
 bin
 testbin/*
-<<<<<<< HEAD
-
-=======
 .eraser
 ./pkg/eraser/eraser
->>>>>>> main/main
 # Test binary, build with `go test -c`
 *.test
 
