@@ -196,7 +196,7 @@ func removeVulnerableImages(socketPath string, imagelistName string) (err error)
 	// ? v1alpha1.AddToScheme(scheme.Scheme)
 
 	err = clientset.RESTClient().Get().
-		AbsPath("../api/v1alpha1").
+		AbsPath("apis/eraser.sh/v1alpha1").
 		Namespace("eraser-system").
 		Resource("imagelist").
 		Name(imagelistName).

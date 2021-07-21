@@ -103,6 +103,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 							Args:            []string{"--imagelist=" + req.Name},
 						},
 					},
+					ServiceAccountName: "eraser-controller-manager",
 				},
 			},
 		},
