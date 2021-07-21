@@ -195,14 +195,24 @@ func removeVulnerableImages(socketPath string, imagelistName string) (err error)
 
 	// ? v1alpha1.AddToScheme(scheme.Scheme)
 
-	imagelist := clientset.RESTClient().Get().
+	err = clientset.RESTClient().Get().
 		AbsPath("../api/v1alpha1").
 		Namespace("eraser-system").
 		Resource("imagelist").
 		Name(imagelistName).
 		Do(backgroundContext).Into(&result)
 
-	log.Print("imagelist: ", imagelist)
+	if err != nil {
+		return err
+	}
+
+	imagelist := result.Spec.Images
+
+	log.Println("imagelist: ")
+
+	for _, img := range imagelist {
+		log.Println(img)
+	}
 
 	// TODO: change this to read vulnerable images from ImageList
 	// adding random image for testing purposes
