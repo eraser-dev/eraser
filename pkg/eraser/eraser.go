@@ -10,14 +10,11 @@ import (
 	"time"
 
 	"google.golang.org/grpc"
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/rest"
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 
 	"net"
 	"net/url"
-
-	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
+	//eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
 )
 
 const (
@@ -29,6 +26,15 @@ var (
 	// Timeout  of connecting to server (default: 10s)
 	timeout time.Duration = 10 * time.Second
 )
+
+type client struct {
+	images  *pb.ImageServiceClient
+	runtime *pb.RuntimeServiceClient
+}
+
+func (c *client) ListContainers(context.Context) err {
+	c.runtime.ListContainers(context.Context)
+}
 
 func GetAddressAndDialer(endpoint string) (string, func(ctx context.Context, addr string) (net.Conn, error), error) {
 	protocol, addr, err := parseEndpointWithFallbackProtocol(endpoint, unixProtocol)
@@ -120,7 +126,7 @@ func removeImage(ctx context.Context, client pb.ImageServiceClient, image string
 	return resp, nil
 }
 
-func removeVulnerableImages(socketPath string, imagelistName string) (err error) {
+func removeVulnerableImages(c *client, socketPath string, imagelistName string) (err error) {
 	backgroundContext, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
@@ -179,30 +185,6 @@ func removeVulnerableImages(socketPath string, imagelistName string) (err error)
 			remove = idMap[key][0]
 		}
 	}
-
-	// get vulnerable images from ImageList
-	config, err := rest.InClusterConfig()
-	if err != nil {
-		return err
-	}
-
-	clientset, err := kubernetes.NewForConfig(config)
-	if err != nil {
-		return err
-	}
-
-	result := eraserv1alpha1.ImageList{}
-
-	// ? v1alpha1.AddToScheme(scheme.Scheme)
-
-	imagelist := clientset.RESTClient().Get().
-		AbsPath("../api/v1alpha1").
-		Namespace("eraser-system").
-		Resource("imagelist").
-		Name(imagelistName).
-		Do(backgroundContext).Into(&result)
-
-	log.Print("imagelist: ", imagelist)
 
 	// TODO: change this to read vulnerable images from ImageList
 	// adding random image for testing purposes
@@ -267,7 +249,9 @@ func main() {
 		os.Exit(1)
 	}
 
-	err := removeVulnerableImages(socketPath, *imageListPtr)
+	imageclient, conn, _ := getImageClient(context.Background(), socketPath)
+
+	err := removeVulnerableImages(&client{imageclient, conn}, socketPath, *imageListPtr)
 
 	if err != nil {
 		log.Println(err)
