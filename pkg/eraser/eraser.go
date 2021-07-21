@@ -167,6 +167,9 @@ func removeVulnerableImages(socketPath string, imagelistName string) (err error)
 	// TESTING :
 	log.Println("\nAll images: ")
 	log.Println(len(allImages))
+	for _, img := range allImages {
+		log.Println(img, "\t ", idMap[img])
+	}
 
 	var vulnerableImages []string
 
@@ -198,7 +201,7 @@ func removeVulnerableImages(socketPath string, imagelistName string) (err error)
 	err = clientset.RESTClient().Get().
 		AbsPath("apis/eraser.sh/v1alpha1").
 		Namespace("eraser-system").
-		Resource("imagelist").
+		Resource("imagelists").
 		Name(imagelistName).
 		Do(backgroundContext).Into(&result)
 
@@ -206,17 +209,14 @@ func removeVulnerableImages(socketPath string, imagelistName string) (err error)
 		return err
 	}
 
-	imagelist := result.Spec.Images
+	// set vulnerable images to imagelist values
+	vulnerableImages = result.Spec.Images
+	vulnerableImages = append(vulnerableImages, remove)
 
-	log.Println("imagelist: ")
-
-	for _, img := range imagelist {
+	log.Println("\n\nVulnerable images:")
+	for _, img := range vulnerableImages {
 		log.Println(img)
 	}
-
-	// TODO: change this to read vulnerable images from ImageList
-	// adding random image for testing purposes
-	vulnerableImages = append(vulnerableImages, remove)
 
 	// remove vulnerable images
 	for _, img := range vulnerableImages {
@@ -251,8 +251,11 @@ func removeVulnerableImages(socketPath string, imagelistName string) (err error)
 		allImages2 = append(allImages2, img.Id)
 	}
 
-	log.Println("\nAll images following remove: ")
+	log.Println("\n\nAll images following remove: ")
 	log.Println(len(allImages2))
+	for _, img := range allImages2 {
+		log.Println(img, "\t ", idMap[img])
+	}
 
 	return nil
 }
