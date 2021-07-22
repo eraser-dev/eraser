@@ -269,11 +269,11 @@ func main() {
 
 	var socketPath string
 
-	if *runtimePtr == "dockershim" {
+	if *runtimePtr == "docker" {
 		socketPath = "unix:///var/run/dockershim.sock"
 	} else if *runtimePtr == "containerd" {
 		socketPath = "unix:///run/containerd/containerd.sock"
-	} else if *runtimePtr == "crio" {
+	} else if *runtimePtr == "cri-o" {
 		socketPath = "unix:///var/run/crio/crio.sock "
 	} else {
 		log.Println("incorrect runtime")
