@@ -5,6 +5,7 @@ import (
 	"flag"
 	"log"
 	"os"
+	"runtime"
 
 	"fmt"
 	"time"
@@ -269,13 +270,25 @@ func main() {
 
 	var socketPath string
 
-	if *runtimePtr == "docker" {
+	switch os := runtime.GOOS; os {
+	case "darwin":
+		fmt.Println("OS X.")
+	case "linux":
+		fmt.Println("Linux.")
+	default:
+		// freebsd, openbsd,
+		// plan9, windows...
+		fmt.Printf("%s.\n", os)
+	}
+
+	switch runtime := *runtimePtr; runtime {
+	case "docker":
 		socketPath = "unix:///var/run/dockershim.sock"
-	} else if *runtimePtr == "containerd" {
+	case "containerd":
 		socketPath = "unix:///run/containerd/containerd.sock"
-	} else if *runtimePtr == "cri-o" {
+	case "cri-o":
 		socketPath = "unix:///var/run/crio/crio.sock "
-	} else {
+	default:
 		log.Println("incorrect runtime")
 		os.Exit(1)
 	}
