@@ -1,8 +1,11 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"testing"
+
+	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 )
 
 func TestParseEndpointWithFallBackProtocol(t *testing.T) {
@@ -71,4 +74,14 @@ func TestParseEndpoint(t *testing.T) {
 			t.Errorf("Test fails")
 		}
 	}
+}
+
+type testClient struct {
+	containers []*pb.Container
+	images     []*pb.Image
+}
+
+func (client *testClient) ListImages(ctx context.Context) ([]*pb.Image, error) {
+	images := make([]*pb.Image, len(client.images))
+	return copy(images, client.images), nil
 }
