@@ -85,3 +85,8 @@ func (client *testClient) ListImages(ctx context.Context) ([]*pb.Image, error) {
 	images := make([]*pb.Image, len(client.images))
 	return copy(images, client.images), nil
 }
+
+func (client *testClient) ListContainers(ctx context.Context) ([]*pb.Container, error) {
+	containers := make([]*pb.Container, len(client.containers))
+	return copy(containers, client.containers), nil
+}
