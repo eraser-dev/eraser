@@ -5,6 +5,7 @@ import (
 
 	"github.com/Azure/eraser/controllers/imagejob"
 	"github.com/Azure/eraser/controllers/imagelist"
+	"github.com/Azure/eraser/controllers/imagestatus"
 	"k8s.io/apimachinery/pkg/api/meta"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
@@ -18,6 +19,7 @@ var (
 func init() {
 	controllerAddFuncs = append(controllerAddFuncs, imagelist.Add)
 	controllerAddFuncs = append(controllerAddFuncs, imagejob.Add)
+	controllerAddFuncs = append(controllerAddFuncs, imagestatus.Add)
 }
 
 func SetupWithManager(m manager.Manager) error {
