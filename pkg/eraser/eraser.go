@@ -45,10 +45,10 @@ func (c *client) listContainers(context.Context) (list []*pb.Container, err erro
 	return resp.Containers, nil
 }
 
-func (client *client) listImages(ctx context.Context, image string) (list []*pb.Image, err error) {
+func (c *client) listImages(ctx context.Context, image string) (list []*pb.Image, err error) {
 	request := &pb.ListImagesRequest{Filter: &pb.ImageFilter{Image: &pb.ImageSpec{Image: image}}}
 
-	resp, err := client.images.ListImages(ctx, request)
+	resp, err := c.images.ListImages(ctx, request)
 	if err != nil {
 		return nil, err
 	}
@@ -56,14 +56,14 @@ func (client *client) listImages(ctx context.Context, image string) (list []*pb.
 	return resp.Images, nil
 }
 
-func (client *client) removeImage(ctx context.Context, image string) (err error) {
+func (c *client) removeImage(ctx context.Context, image string) (err error) {
 	if image == "" {
 		return err
 	}
 
 	request := &pb.RemoveImageRequest{Image: &pb.ImageSpec{Image: image}}
 
-	_, err = client.images.RemoveImage(ctx, request)
+	_, err = c.images.RemoveImage(ctx, request)
 	if err != nil {
 		return err
 	}
