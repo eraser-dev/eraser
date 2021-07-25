@@ -218,14 +218,14 @@ func removeVulnerableImages(c *client, socketPath string, imagelistName string) 
 	}
 
 	// TESTING :
-	images, err = c.listImages(backgroundContext, "")
+	imageTest, err := c.listImages(backgroundContext, "")
 	if err != nil {
 		return err
 	}
 
-	var allImages2 []string
+	allImages2 := make([]string, len(allImages))
 
-	for _, img := range images {
+	for _, img := range imageTest {
 		allImages2 = append(allImages2, img.Id)
 	}
 
