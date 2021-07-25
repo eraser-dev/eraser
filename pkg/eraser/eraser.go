@@ -257,8 +257,7 @@ func main() {
 
 	imageclient, conn, err := getImageClient(context.Background(), socketPath)
 	if err != nil {
-		log.Println(err)
-		os.Exit(1)
+		log.Fatal(err)
 	}
 
 	runTimeClient := pb.NewRuntimeServiceClient(conn)
@@ -268,7 +267,6 @@ func main() {
 	err = removeVulnerableImages(client, socketPath, *imageListPtr)
 
 	if err != nil {
-		log.Println(err)
-		os.Exit(1)
+		log.Fatal(err)
 	}
 }
