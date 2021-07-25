@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"flag"
 	"log"
 	"os"
 
@@ -22,7 +23,7 @@ const (
 
 var (
 	// Timeout  of connecting to server (default: 10s)
-	timeout time.Duration = 100 * time.Second
+	timeout time.Duration = 10 * time.Second
 )
 
 func GetAddressAndDialer(endpoint string) (string, func(ctx context.Context, addr string) (net.Conn, error), error) {
@@ -73,8 +74,8 @@ func parseEndpoint(endpoint string) (string, string, error) {
 	}
 }
 
-func getImageClient(ctx context.Context) (pb.ImageServiceClient, *grpc.ClientConn, error) {
-	addr, dialer, err := GetAddressAndDialer("unix:///run/containerd/containerd.sock")
+func getImageClient(ctx context.Context, socketPath string) (pb.ImageServiceClient, *grpc.ClientConn, error) {
+	addr, dialer, err := GetAddressAndDialer(socketPath)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -116,11 +117,11 @@ func removeImage(ctx context.Context, client pb.ImageServiceClient, image string
 	return resp, nil
 }
 
-func removeVulnerableImages() (err error) {
+func removeVulnerableImages(socketPath string, imagelistName string) (err error) {
 	backgroundContext, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
-	imageClient, conn, err := getImageClient(backgroundContext)
+	imageClient, conn, err := getImageClient(backgroundContext, socketPath)
 
 	if err != nil {
 		return err
@@ -223,14 +224,29 @@ func removeVulnerableImages() (err error) {
 }
 
 func main() {
-	// TODO: image job should pass the imagelist into each pod as a env variable, and pass that into removeVulnerableImages()
-	err := removeVulnerableImages()
+	runtimePtr := flag.String("runtime", "containerd", "container runtime")
+	imageListPtr := flag.String("imagelist", "", "name of ImageList")
+
+	flag.Parse()
+
+	var socketPath string
+
+	if *runtimePtr == "docker" {
+		socketPath = "unix:///var/run/dockershim.sock"
+	} else if *runtimePtr == "containerd" {
+		socketPath = "unix:///run/containerd/containerd.sock"
+	} else if *runtimePtr == "cri-o" {
+		socketPath = "unix:///var/run/crio/crio.sock "
+	} else {
+		log.Println("incorrect runtime")
+		os.Exit(1)
+	}
+
+	err := removeVulnerableImages(socketPath, *imageListPtr)
 
 	if err != nil {
 		log.Println(err)
 		os.Exit(1)
 	}
-
-	os.Exit(0)
 
 }
