@@ -22,7 +22,7 @@ const (
 
 var (
 	// Timeout  of connecting to server (default: 10s)
-	timeout time.Duration = 10 * time.Second
+	timeout = 10 * time.Second
 )
 
 type Client interface {
