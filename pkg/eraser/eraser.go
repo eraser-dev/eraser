@@ -25,12 +25,6 @@ var (
 	timeout = 10 * time.Second
 )
 
-type Client interface {
-	listImages(context.Context) ([]*pb.Image, error)
-	listContainers(context.Context) ([]*pb.Container, error)
-	removeImage(context.Context) error
-}
-
 type client struct {
 	images  pb.ImageServiceClient
 	runtime pb.RuntimeServiceClient
