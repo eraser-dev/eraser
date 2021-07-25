@@ -4,7 +4,6 @@ import (
 	"context"
 	"flag"
 	"log"
-	"os"
 
 	"fmt"
 	"time"
@@ -244,15 +243,15 @@ func main() {
 
 	var socketPath string
 
-	if *runtimePtr == "docker" {
+	switch runtime := *runtimePtr; runtime {
+	case "docker":
 		socketPath = "unix:///var/run/dockershim.sock"
-	} else if *runtimePtr == "containerd" {
+	case "containerd":
 		socketPath = "unix:///run/containerd/containerd.sock"
-	} else if *runtimePtr == "cri-o" {
-		socketPath = "unix:///var/run/crio/crio.sock "
-	} else {
-		log.Println("incorrect runtime")
-		os.Exit(1)
+	case "cri-io":
+		socketPath = "unix:///var/run/crio/crio.sock"
+	default:
+		log.Fatal("incorrect runtime")
 	}
 
 	imageclient, conn, err := getImageClient(context.Background(), socketPath)
