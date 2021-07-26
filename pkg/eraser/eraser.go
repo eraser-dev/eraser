@@ -30,6 +30,12 @@ type client struct {
 	runtime pb.RuntimeServiceClient
 }
 
+type Client interface {
+	listImages(context.Context) ([]*pb.Image, error)
+	listContainers(context.Context) ([]*pb.Container, error)
+	removeImage(context.Context, string) error
+}
+
 func (c *client) listContainers(context.Context) (list []*pb.Container, err error) {
 	resp, err := c.runtime.ListContainers(context.Background(), new(pb.ListContainersRequest))
 	if err != nil {
@@ -38,8 +44,8 @@ func (c *client) listContainers(context.Context) (list []*pb.Container, err erro
 	return resp.Containers, nil
 }
 
-func (c *client) listImages(ctx context.Context, image string) (list []*pb.Image, err error) {
-	request := &pb.ListImagesRequest{Filter: &pb.ImageFilter{Image: &pb.ImageSpec{Image: image}}}
+func (c *client) listImages(ctx context.Context) (list []*pb.Image, err error) {
+	request := &pb.ListImagesRequest{Filter: nil}
 
 	resp, err := c.images.ListImages(ctx, request)
 	if err != nil {
@@ -129,11 +135,11 @@ func getImageClient(ctx context.Context, socketPath string) (pb.ImageServiceClie
 	return imageClient, conn, nil
 }
 
-func removeVulnerableImages(c *client, socketPath string, imagelistName string) (err error) {
+func removeVulnerableImages(c Client, socketPath string, imagelistName string) (err error) {
 	backgroundContext, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
-	images, err := c.listImages(backgroundContext, "")
+	images, err := c.listImages(backgroundContext)
 	if err != nil {
 		return err
 	}
@@ -152,7 +158,7 @@ func removeVulnerableImages(c *client, socketPath string, imagelistName string) 
 		return err
 	}
 
-	runningImages := make(map[string]struct{})
+	runningImages := make(map[string]struct{}, len(containers))
 
 	for _, container := range containers {
 		curr := container.Image
@@ -212,12 +218,12 @@ func removeVulnerableImages(c *client, socketPath string, imagelistName string) 
 	}
 
 	// TESTING :
-	imageTest, err := c.listImages(backgroundContext, "")
+	imageTest, err := c.listImages(backgroundContext)
 	if err != nil {
 		return err
 	}
 
-	allImages2 := make([]string, len(allImages))
+	allImages2 := make([]string, 0, len(allImages))
 
 	for _, img := range imageTest {
 		allImages2 = append(allImages2, img.Id)
@@ -242,7 +248,7 @@ func main() {
 		socketPath = "unix:///var/run/dockershim.sock"
 	case "containerd":
 		socketPath = "unix:///run/containerd/containerd.sock"
-	case "cri-io":
+	case "cri-o":
 		socketPath = "unix:///var/run/crio/crio.sock"
 	default:
 		log.Fatal("incorrect runtime")
