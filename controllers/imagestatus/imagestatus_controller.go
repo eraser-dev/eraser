@@ -19,6 +19,8 @@ package imagestatus
 import (
 	"context"
 
+	v1 "k8s.io/api/core/v1"
+
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -29,6 +31,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 var (
@@ -63,7 +66,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	}
 
 	// Watch for changes to EraserPods
-	err = c.Watch(&source.Kind{Type: &eraserv1alpha1.ImageJob{}}, &handler.EnqueueRequestForObject{})
+	err = c.Watch(&source.Kind{Type: &v1.Pod{ObjectMeta: metav1.ObjectMeta{Namespace: "eraser-system"}}}, &handler.EnqueueRequestForObject{})
 	if err != nil {
 		return err
 	}
@@ -86,6 +89,23 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.8.3/pkg/reconcile
 func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	controllerLog.Info("imagestatus reconcile")
+
+	// if number of eraserpods = number of nodes
+	// update status
+
+	podName := req.Name
+
+	pod := &v1.Pod{ObjectMeta: metav1.ObjectMeta{Name: podName}}
+	err := r.Get(ctx, req.NamespacedName, pod)
+
+	if err != nil {
+		controllerLog.Info("err")
+		panic(err)
+	}
+
+	status := pod.Status
+
+	controllerLog.Info(status.Message, status.Reason, status)
 
 	return ctrl.Result{}, nil
 }

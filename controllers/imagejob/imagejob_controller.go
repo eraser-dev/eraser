@@ -76,6 +76,9 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		return err
 	}
 
+	// event handler to watch pods
+	err = c.Watch(&source.Kind{Type: &v1.Pod{}}, event)
+
 	return nil
 }
 
@@ -96,6 +99,10 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.8.3/pkg/reconcile
 func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	controllerLog.Info("imagejob reconcile")
+
+	// check if pods finished
+
+	// else:
 
 	nodes := &v1.NodeList{}
 	err := r.List(context.TODO(), nodes)
