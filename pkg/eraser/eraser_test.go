@@ -67,7 +67,6 @@ func TestParseEndpoint(t *testing.T) {
 			err:      ErrProtocolNotSupported,
 		},
 	}
-
 	for _, tc := range testCases {
 		p, a, e := parseEndpoint(tc.endpoint)
 		if p != tc.protocol || a != tc.addr || !errors.Is(e, tc.err) {
@@ -76,62 +75,76 @@ func TestParseEndpoint(t *testing.T) {
 	}
 }
 
+var ErrImageNotRemoved = errors.New("image not removed")
+var ErrImageEmpty = errors.New("unable to remove empty image")
+
 type testClient struct {
 	containers []*pb.Container
 	images     []*pb.Image
 }
 
-func (client *testClient) ListImages(ctx context.Context) ([]*pb.Image, error) {
+func (client *testClient) listImages(ctx context.Context) (list []*pb.Image, err error) {
 	images := make([]*pb.Image, len(client.images))
-	return copy(images, client.images), nil
+	copy(images, client.images)
+	return images, nil
 }
 
-func (client *testClient) ListContainers(ctx context.Context) ([]*pb.Container, error) {
+func (client *testClient) listContainers(ctx context.Context) (list []*pb.Container, err error) {
 	containers := make([]*pb.Container, len(client.containers))
-	return copy(containers, client.containers), nil
+	copy(containers, client.containers)
+	return containers, nil
 }
 
-func (client *testClient) RemoveImage(ctx context.Context, image string) error {
+func (client *testClient) removeImgFromSlice(index int) {
+	s := client.images
+	s = append(s[:index], s[index+1:]...)
+	client.images = s
+}
 
+func (client *testClient) removeImage(ctx context.Context, image string) (err error) {
+	if image == "" {
+		return ErrImageEmpty
+	}
+
+	for index, value := range client.images {
+		for _, repotag := range value.RepoTags {
+			if value.Id == image || repotag == image {
+				client.removeImgFromSlice(index)
+				return nil
+			}
+		}
+
+		for _, repodigest := range value.RepoDigests {
+			if repodigest == image {
+				client.removeImgFromSlice(index)
+				return nil
+			}
+		}
+	}
+	return ErrImageNotRemoved
 }
 
 func TestRemoveVulnerableImages(t *testing.T) {
-	// images
 	image1 := pb.Image{
 		Id:       "sha256:ccd78eb0f420877b5513f61bf470dd379d8e8672671115d65c6f69d1c4261f87",
 		RepoTags: []string{"mcr.microsoft.com/aks/acc/sgx-webhook:0.6"},
-		Size_:    25551671,
-		Uid:      nil,
-		Spec:     nil,
 	}
 	image2 := pb.Image{
 		Id:       "sha256:d153e49438bdcf34564a4e6b4f186658ca1168043be299106f8d6048e8617574",
 		RepoTags: []string{"mcr.microsoft.com/containernetworking/azure-npm:v1.2.1"},
-		Size_:    64123775,
-		Uid:      nil,
-		Spec:     nil,
 	}
 	image3 := pb.Image{
 		Id:       "sha256:8adbfa37c6320849612a5ade36bbb94ff03229a0587f026dd1e0561f196824ce",
 		RepoTags: []string{"mcr.microsoft.com/oss/kubernetes/ip-masq-agent:v2.5.0.4"},
-		Size_:    23776532,
-		Uid:      nil,
-		Spec:     nil,
 	}
 	image4 := pb.Image{
 		Id:          "sha256:b4034db328056e7f4c27ab76a5b9811b0f5eaa99565194cf7c6446781e772043",
 		RepoTags:    []string{"mcr.microsoft.com/oss/kubernetes/kube-proxy:v1.19.11-hotfix.20210526"},
 		RepoDigests: []string{"mcr.microsoft.com/oss/kubernetes/kube-proxy@sha256:a64d3538b72905b07356881314755b02db3675ff47ee2bcc49dd7be856e285d5"},
-		Size_:       49322942,
-		Uid:         nil,
-		Spec:        nil,
 	}
 	image5 := pb.Image{
 		Id:          "sha256:fd46ec1af6de89db1714a243efa1e35c4408f5a5b9df9c653dd70db1ee95522b",
 		RepoDigests: []string{"docker.io/ashnam/remove_images@sha256:d93d3d3073797258ef06c39e2dce9782c5c8a2315359337448e140c14423928e"},
-		Size_:       9563517,
-		Uid:         nil,
-		Spec:        nil,
 	}
 
 	// containers
@@ -164,6 +177,5 @@ func TestRemoveVulnerableImages(t *testing.T) {
 		images:     []*pb.Image{&image1, &image2, &image3, &image4, &image5},
 	}
 
-	removeVulnerableImage(client)
-
+	removeVulnerableImages(&client, "", "")
 }
