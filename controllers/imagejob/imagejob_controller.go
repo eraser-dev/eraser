@@ -37,6 +37,7 @@ import (
 	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	//kubecontroller "k8s.io/kubernetes/pkg/controller"
 )
 
 var (
@@ -76,8 +77,8 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		return err
 	}
 
-	// event handler to watch pods
-	err = c.Watch(&source.Kind{Type: &v1.Pod{}}, event)
+	// Watch for changes to Pod
+	err = c.Watch(&source.Kind{Type: &v1.Pod{}}, &handler.EnqueueRequestForObject{})
 
 	return nil
 }
@@ -99,6 +100,8 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.8.3/pkg/reconcile
 func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	controllerLog.Info("imagejob reconcile")
+
+	//kubecontroller.IsPodActive(r)
 
 	// check if pods finished
 
@@ -173,4 +176,10 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&eraserv1alpha1.ImageJob{}).
 		Complete(r)
+}
+
+func IsPodActive(p *v1.Pod) bool {
+	return v1.PodSucceeded != p.Status.Phase &&
+		v1.PodFailed != p.Status.Phase &&
+		p.DeletionTimestamp == nil
 }
