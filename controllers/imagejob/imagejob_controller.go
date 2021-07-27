@@ -104,7 +104,6 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 
 	count := 0
 
-	// only get names from for loop
 	for _, n := range nodes.Items {
 		count++
 		controllerLog.Info("inside nodes.Items for loop")
