@@ -40,7 +40,7 @@ import (
 )
 
 var (
-	controllerLog = ctrl.Log.WithName("controllerRuntimeLogger")
+	controllerLog = ctrl.Log.WithName("imagejob")
 )
 
 func Add(mgr manager.Manager) error {
@@ -95,7 +95,6 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.8.3/pkg/reconcile
 func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	controllerLog.Info("imagejob reconcile")
 
 	nodes := &v1.NodeList{}
 	err := r.List(context.TODO(), nodes)
