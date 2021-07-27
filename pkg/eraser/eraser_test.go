@@ -30,6 +30,13 @@ func TestParseEndpointWithFallBackProtocol(t *testing.T) {
 			addr:             "",
 			err:              nil,
 		},
+		{
+			endpoint:         "tcp://localhost:8080",
+			fallbackProtocol: "unix",
+			protocol:         "tcp",
+			addr:             "localhost:8080",
+			err:              nil,
+		},
 	}
 
 	for _, tc := range testCases {
@@ -75,6 +82,37 @@ func TestParseEndpoint(t *testing.T) {
 	}
 }
 
+func TestGetAddressAndDialer(t *testing.T) {
+	var testCases = []struct {
+		endpoint string
+		addr     string
+		err      error
+	}{
+		{
+			endpoint: "unix:///var/run/dockershim.sock",
+			addr:     "/var/run/dockershim.sock",
+			err:      nil,
+		},
+		{
+			endpoint: "localhost:8080",
+			addr:     "",
+			err:      ErrProtocolNotSupported,
+		},
+		{
+			endpoint: "tcp://localhost:8080",
+			addr:     "",
+			err:      ErrOnlySupportUnixSocket,
+		},
+	}
+
+	for _, tc := range testCases {
+		a, _, e := GetAddressAndDialer(tc.endpoint)
+		if a != tc.addr || !errors.Is(e, tc.err) {
+			t.Errorf("Test fails")
+		}
+	}
+}
+
 var ErrImageNotRemoved = errors.New("image not removed")
 var ErrImageEmpty = errors.New("unable to remove empty image")
 
@@ -95,7 +133,7 @@ func (client *testClient) listContainers(ctx context.Context) (list []*pb.Contai
 	return containers, nil
 }
 
-func (client *testClient) removeImgFromSlice(index int) {
+func (client *testClient) removeImageFromSlice(index int) {
 	s := client.images
 	s = append(s[:index], s[index+1:]...)
 	client.images = s
@@ -109,14 +147,14 @@ func (client *testClient) removeImage(ctx context.Context, image string) (err er
 	for index, value := range client.images {
 		for _, repotag := range value.RepoTags {
 			if value.Id == image || repotag == image {
-				client.removeImgFromSlice(index)
+				client.removeImageFromSlice(index)
 				return nil
 			}
 		}
 
 		for _, repodigest := range value.RepoDigests {
 			if repodigest == image {
-				client.removeImgFromSlice(index)
+				client.removeImageFromSlice(index)
 				return nil
 			}
 		}

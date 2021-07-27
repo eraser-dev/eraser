@@ -30,6 +30,8 @@ var ErrProtocolNotSupported = errors.New("protocol not supported")
 
 var ErrEndpointDeprecated = errors.New("endpoint is deprecated, please consider using full url format")
 
+var ErrOnlySupportUnixSocket = errors.New("only support unix socket endpoint")
+
 type client struct {
 	images  pb.ImageServiceClient
 	runtime pb.RuntimeServiceClient
@@ -81,7 +83,7 @@ func GetAddressAndDialer(endpoint string) (string, func(ctx context.Context, add
 		return "", nil, err
 	}
 	if protocol != unixProtocol {
-		return "", nil, fmt.Errorf("only support unix socket endpoint")
+		return "", nil, fmt.Errorf("%w", ErrOnlySupportUnixSocket)
 	}
 
 	return addr, dial, nil
@@ -109,6 +111,8 @@ func parseEndpoint(endpoint string) (string, string, error) {
 	}
 
 	switch u.Scheme {
+	case "tcp":
+		return "tcp", u.Host, nil
 	case "unix":
 		return "unix", u.Path, nil
 
