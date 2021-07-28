@@ -113,8 +113,10 @@ func TestGetAddressAndDialer(t *testing.T) {
 	}
 }
 
-var ErrImageNotRemoved = errors.New("image not removed")
-var ErrImageEmpty = errors.New("unable to remove empty image")
+var (
+	ErrImageNotRemoved = errors.New("image not removed")
+	ErrImageEmpty      = errors.New("unable to remove empty image")
+)
 
 type testClient struct {
 	containers []*pb.Container

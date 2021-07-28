@@ -23,14 +23,11 @@ const (
 
 var (
 	// Timeout  of connecting to server (default: 10s)
-	timeout = 10 * time.Second
+	timeout                  = 10 * time.Second
+	ErrProtocolNotSupported  = errors.New("protocol not supported")
+	ErrEndpointDeprecated    = errors.New("endpoint is deprecated, please consider using full url format")
+	ErrOnlySupportUnixSocket = errors.New("only support unix socket endpoint")
 )
-
-var ErrProtocolNotSupported = errors.New("protocol not supported")
-
-var ErrEndpointDeprecated = errors.New("endpoint is deprecated, please consider using full url format")
-
-var ErrOnlySupportUnixSocket = errors.New("only support unix socket endpoint")
 
 type client struct {
 	images  pb.ImageServiceClient
