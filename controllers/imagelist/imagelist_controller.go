@@ -93,7 +93,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 			},
 		},
 	}
-	err := r.Create(context.TODO(), job)
+	err := r.Create(ctx, job)
 	if err != nil {
 		if errors.IsNotFound(err) {
 			return reconcile.Result{}, nil

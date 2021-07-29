@@ -15,7 +15,7 @@ package imagejob
 
 import (
 	"context"
-	"errors"
+	"log"
 	"strconv"
 	"strings"
 
@@ -97,13 +97,13 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		return ctrl.Result{}, err
 	}
 
+	// map of node names and runtime
+	nodeMap := processNodes(nodes.Items)
+
 	count := 0
 
-	for _, n := range nodes.Items {
+	for nodeName, runTime := range nodeMap {
 		count++
-		nodeName := n.Name
-
-		runTime := n.Status.NodeInfo.ContainerRuntimeVersion
 		runTimeName := strings.Split(runTime, ":")[0]
 
 		var socketPath string
@@ -116,7 +116,8 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		case "cri-o":
 			socketPath = "unix:///var/run/crio/crio.sock"
 		default:
-			return ctrl.Result{}, errors.New("runtime not compatible")
+			log.Println("Incompatible runtime on node ", nodeName)
+			continue
 		}
 
 		imageJob := &eraserv1alpha1.ImageJob{}
@@ -152,11 +153,12 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		}
 
 		// TODO: check if pod fits and can be scheduled on node
-		err = r.Create(context.TODO(), pod)
+		err = r.Create(ctx, pod)
 		if err != nil {
 			return ctrl.Result{}, err
 		}
-		controllerLog.Info("created pod\n ", " name: ", podName, ", node: ", nodeName, ", podType: ", image.Name)
+		controllerLog.Info("created pod", "name", podName, "node", nodeName, "podType", image.Name)
+
 	}
 	return ctrl.Result{}, nil
 }
@@ -166,4 +168,12 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&eraserv1alpha1.ImageJob{}).
 		Complete(r)
+}
+
+func processNodes(nodes []v1.Node) map[string]string {
+	m := make(map[string]string)
+	for _, n := range nodes {
+		m[n.Name] = n.Status.NodeInfo.ContainerRuntimeVersion
+	}
+	return m
 }
