@@ -1,12 +1,9 @@
 /*
 Copyright 2021.
-
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
-
     http://www.apache.org/licenses/LICENSE-2.0
-
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -128,19 +125,22 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 			return ctrl.Result{}, err
 		}
 
-		image := imageJob.Spec.JobTemplate.Spec.Containers[0]
-		image = v1.Container{
-			Args:         append(image.Args, "--runtime="+runTimeName),
-			VolumeMounts: []v1.VolumeMount{{MountPath: socketPath, Name: runTimeName + "-sock-volume"}},
+		givenImage := imageJob.Spec.JobTemplate.Spec.Containers[0]
+		image := v1.Container{
+			Args:            append(givenImage.Args, "--runtime="+runTimeName),
+			VolumeMounts:    []v1.VolumeMount{{MountPath: socketPath, Name: runTimeName + "-sock-volume"}},
+			Image:           givenImage.Image,
+			Name:            givenImage.Name,
+			ImagePullPolicy: givenImage.ImagePullPolicy,
 		}
 
-		podSpec := imageJob.Spec.JobTemplate.Spec
-		podSpec = v1.PodSpec{
-			RestartPolicy:      podSpec.RestartPolicy,
-			ServiceAccountName: podSpec.ServiceAccountName,
-			Volumes:            []v1.Volume{{Name: runTimeName + "-sock-volume", VolumeSource: v1.VolumeSource{HostPath: &v1.HostPathVolumeSource{Path: socketPath}}}},
-			NodeName:           nodeName,
+		givenPodSpec := imageJob.Spec.JobTemplate.Spec
+		podSpec := v1.PodSpec{
+			RestartPolicy:      givenPodSpec.RestartPolicy,
+			ServiceAccountName: givenPodSpec.ServiceAccountName,
 			Containers:         []v1.Container{image},
+			NodeName:           nodeName,
+			Volumes:            []v1.Volume{{Name: runTimeName + "-sock-volume", VolumeSource: v1.VolumeSource{HostPath: &v1.HostPathVolumeSource{Path: socketPath}}}},
 		}
 
 		podName := image.Name + strconv.Itoa(count)
@@ -153,10 +153,9 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		// TODO: check if pod fits and can be scheduled on node
 		err = r.Create(context.TODO(), pod)
 		if err != nil {
-			controllerLog.Info("err")
 			return ctrl.Result{}, err
 		}
-		controllerLog.Info("created pod\n name: ", podName, " node: ", nodeName, " pod type: ", image.Name)
+		controllerLog.Info("created pod\n ", " name: ", podName, ", node: ", nodeName, ", podType: ", image.Name)
 	}
 	return ctrl.Result{}, nil
 }
