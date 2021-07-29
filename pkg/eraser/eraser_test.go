@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"errors"
-	"fmt"
 	"testing"
 	"time"
 
@@ -123,7 +122,7 @@ type testClient struct {
 var (
 	ErrImageNotRemoved = errors.New("image not removed")
 	ErrImageEmpty      = errors.New("unable to remove empty image")
-	timeout1           = 10 * time.Second
+	timeoutTest        = 10 * time.Second
 
 	// images
 	image1 = pb.Image{
@@ -258,12 +257,38 @@ func TestRemoveImage(t *testing.T) {
 		},
 	}
 
-	backgroundContext, _ := context.WithTimeout(context.Background(), timeout1)
+	backgroundContext, _ := context.WithTimeout(context.Background(), timeoutTest)
 
 	for _, tc := range testCases {
 		e := tc.imagesInput.removeImage(backgroundContext, tc.imageToDelete)
-		fmt.Println(e)
 		if testEq(tc.imagesInput.images, tc.imagesOutput) == false || !errors.Is(e, tc.err) {
+			t.Errorf("Test fails")
+		}
+	}
+
+}
+
+func TestListImages(t *testing.T) {
+	var testCases = []struct {
+		imagesInput  testClient
+		imagesOutput []*pb.Image
+		err          error
+	}{
+		{
+			imagesInput: testClient{
+				containers: []*pb.Container{},
+				images:     []*pb.Image{&image1, &image2, &image3, &image4, &image5},
+			},
+			imagesOutput: []*pb.Image{&image1, &image2, &image3, &image4, &image5},
+			err:          nil,
+		},
+	}
+
+	backgroundContext, _ := context.WithTimeout(context.Background(), timeoutTest)
+
+	for _, tc := range testCases {
+		l, e := tc.imagesInput.listImages(backgroundContext)
+		if testEq(l, tc.imagesOutput) == false || !errors.Is(e, tc.err) {
 			t.Errorf("Test fails")
 		}
 	}
