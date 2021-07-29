@@ -207,7 +207,6 @@ func removeVulnerableImages(c Client, socketPath string, imagelistName string) (
 	}
 
 	result := eraserv1alpha1.ImageList{}
-
 	err = clientset.RESTClient().Get().
 		AbsPath("apis/eraser.sh/v1alpha1").
 		Namespace("eraser-system").
@@ -216,6 +215,7 @@ func removeVulnerableImages(c Client, socketPath string, imagelistName string) (
 		Do(backgroundContext).Into(&result)
 
 	if err != nil {
+		log.Println("unable to find imagelist")
 		return err
 	}
 
