@@ -149,27 +149,15 @@ var (
 
 	// containers
 	container1 = pb.Container{
-		Id:           "7eb07fbb43e86a6114fb3b382339176117bc377cff89d5466210cbf2b101d4cb",
-		PodSandboxId: "07adb7d1a87e7f79490f29846658f90456709c2b754dcffacad843d87033b2ef",
-		Metadata:     &pb.ContainerMetadata{Name: "azure-ip-masq-agent", Attempt: 0},
-		Image:        &pb.ImageSpec{Image: "sha256:8adbfa37c6320849612a5ade36bbb94ff03229a0587f026dd1e0561f196824ce", Annotations: map[string]string{}},
-		ImageRef:     "sha256:8adbfa37c6320849612a5ade36bbb94ff03229a0587f026dd1e0561f196824ce",
-		State:        pb.ContainerState_CONTAINER_RUNNING,
-		CreatedAt:    1626446035006572211,
-		Labels:       map[string]string{"io.kubernetes.container.name": "azure-ip-masq-agent", "io.kubernetes.pod.name": "azure-ip-masq-agent-wt85g", "io.kubernetes.pod.namespace": "kube-system", "io.kubernetes.pod.uid": "d668fc57-3c20-4680-93cd-af4af112b98c"},
-		Annotations:  map[string]string{"io.kubernetes.container.hash": "a77771", "io.kubernetes.container.restartCount": "0", "io.kubernetes.container.terminationMessagePath": "/dev/termination-log", "io.kubernetes.container.terminationMessagePolicy": "File", "io.kubernetes.pod.terminationGracePeriod": "30"},
+		Id:       "7eb07fbb43e86a6114fb3b382339176117bc377cff89d5466210cbf2b101d4cb",
+		Image:    &pb.ImageSpec{Image: "sha256:8adbfa37c6320849612a5ade36bbb94ff03229a0587f026dd1e0561f196824ce", Annotations: map[string]string{}},
+		ImageRef: "sha256:8adbfa37c6320849612a5ade36bbb94ff03229a0587f026dd1e0561f196824ce",
 	}
 
 	container2 = pb.Container{
-		Id:           "36080589120ee72504484c0f407568c49531021c751bc55b3ccd5af03b8af2cb",
-		PodSandboxId: "1ee4a30267a9fadd11aeb11377efc500a831fe4082e372e3191d6d31cf5e3ea1",
-		Metadata:     &pb.ContainerMetadata{Name: "kube-proxy", Attempt: 0},
-		Image:        &pb.ImageSpec{Image: "sha256:b4034db328056e7f4c27ab76a5b9811b0f5eaa99565194cf7c6446781e772043", Annotations: map[string]string{}},
-		ImageRef:     "sha256:b4034db328056e7f4c27ab76a5b9811b0f5eaa99565194cf7c6446781e772043",
-		State:        pb.ContainerState_CONTAINER_RUNNING,
-		CreatedAt:    1626446037402720790,
-		Labels:       map[string]string{"io.kubernetes.container.name": "kube-proxy", "io.kubernetes.pod.name": "kube-proxy-s5c67", "io.kubernetes.pod.namespace": "kube-system", "io.kubernetes.pod.uid": "f6dddad9-b772-4735-a8df-db910fdca461"},
-		Annotations:  map[string]string{"io.kubernetes.container.hash": "a11f949b", "io.kubernetes.container.restartCount": "0", "io.kubernetes.container.terminationMessagePath": "/dev/termination-log", "io.kubernetes.container.terminationMessagePolicy": "File", "io.kubernetes.pod.terminationGracePeriod": "302"},
+		Id:       "36080589120ee72504484c0f407568c49531021c751bc55b3ccd5af03b8af2cb",
+		Image:    &pb.ImageSpec{Image: "sha256:b4034db328056e7f4c27ab76a5b9811b0f5eaa99565194cf7c6446781e772043", Annotations: map[string]string{}},
+		ImageRef: "sha256:b4034db328056e7f4c27ab76a5b9811b0f5eaa99565194cf7c6446781e772043",
 	}
 )
 
