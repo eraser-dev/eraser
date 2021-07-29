@@ -311,6 +311,24 @@ func TestRemoveImage(t *testing.T) {
 				containers: []*pb.Container{},
 				images:     []*pb.Image{&image1, &image2, &image3, &image4, &image5},
 			},
+			imageToDelete: "mcr.microsoft.com/containernetworking/azure-npm:v1.2.1",
+			imagesOutput:  []*pb.Image{&image1, &image3, &image4, &image5},
+			err:           nil,
+		},
+		{
+			imagesInput: testClient{
+				containers: []*pb.Container{},
+				images:     []*pb.Image{&image1, &image2, &image3, &image4, &image5},
+			},
+			imageToDelete: "docker.io/ashnam/remove_images@sha256:d93d3d3073797258ef06c39e2dce9782c5c8a2315359337448e140c14423928e",
+			imagesOutput:  []*pb.Image{&image1, &image2, &image3, &image4},
+			err:           nil,
+		},
+		{
+			imagesInput: testClient{
+				containers: []*pb.Container{},
+				images:     []*pb.Image{&image1, &image2, &image3, &image4, &image5},
+			},
 			imageToDelete: "",
 			imagesOutput:  []*pb.Image{&image1, &image2, &image3, &image4, &image5},
 			err:           ErrImageEmpty,
