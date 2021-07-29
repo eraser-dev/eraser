@@ -217,7 +217,7 @@ func removeVulnerableImages(c Client, socketPath string, imagelistName string) (
 		Do(backgroundContext).Into(&result)
 
 	if err != nil {
-		log.Println("unable to find imagelist")
+		log.Println("Unable to find imagelist", " Name: "+imagelistName, " AbsPath: ", apiPath)
 		return err
 	}
 
