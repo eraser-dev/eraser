@@ -24,7 +24,9 @@ import (
 	"strings"
 
 	v1 "k8s.io/api/core/v1"
+	"k8s.io/klog"
 
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -104,6 +106,17 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	err := r.Get(context.TODO(), req.NamespacedName, job)
 	if err != nil {
 		panic(err)
+	}
+
+	podList := &v1.PodList{}
+	listOptions := &client.ListOptions{
+		Namespace:     req.Namespace,
+		LabelSelector: labels.SelectorFromSet(map[string]string{"Name": "remove-images"}),
+	}
+
+	err = r.List(ctx, podList, listOptions)
+	if err != nil {
+		return ctrl.Result{}, err
 	}
 
 	if isJobComplete(job) {
@@ -199,4 +212,21 @@ func IsPodActive(p *v1.Pod) bool {
 		p.DeletionTimestamp == nil
 }
 
-func isJobComplete(job *eraserv1alpha1.ImageJob)
+func isJobComplete(job *eraserv1alpha1.ImageJob, desiredNodes map[string]*v1.Pod) bool {
+	if job.Spec.CompletionPolicy.Type == appsv1alpha1.Never {
+		// the job will not terminate, if the the completion policy is never
+		return false
+	}
+	// if no desiredNodes, job pending
+	if len(desiredNodes) == 0 {
+		klog.Info("Num desiredNodes is 0")
+		return false
+	}
+	for _, pod := range desiredNodes {
+		if pod == nil || kubecontroller.IsPodActive(pod) {
+			// the job is incomplete if there exits any pod not yet created OR  still active
+			return false
+		}
+	}
+	return true
+}
