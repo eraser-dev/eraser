@@ -31,10 +31,6 @@ import (
 	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
 )
 
-var (
-	controllerLog = ctrl.Log.WithName("controllerRuntimeLogger")
-)
-
 func Add(mgr manager.Manager) error {
 	return add(mgr, newReconciler(mgr))
 }
