@@ -342,6 +342,15 @@ func TestRemoveImage(t *testing.T) {
 			imagesOutput:  []*pb.Image{},
 			err:           ErrImageEmpty,
 		},
+		{
+			imagesInput: testClient{
+				containers: []*pb.Container{},
+				images:     []*pb.Image{&image1},
+			},
+			imageToDelete: "sha256:ccd78eb0f420877b5513f61bf470dd379d8e8672671115d65c6f69d1c4261f87",
+			imagesOutput:  []*pb.Image{},
+			err:           nil,
+		},
 	}
 
 	backgroundContext, cancel := context.WithTimeout(context.Background(), timeoutTest)
