@@ -37,7 +37,6 @@ import (
 	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	//kubecontroller "k8s.io/kubernetes/pkg/controller"
 )
 
 var (
@@ -77,8 +76,8 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		return err
 	}
 
-	// Watch for changes to Pod
-	err = c.Watch(&source.Kind{Type: &v1.Pod{}}, &handler.EnqueueRequestForObject{})
+	// Watch for changes to pods created by ImageJob (eraser pods)
+	err = c.Watch(&source.Kind{Type: &v1.Pod{}}, &handler.EnqueueRequestForOwner{OwnerType: &eraserv1alpha1.ImageJob{}})
 
 	return nil
 }
@@ -101,72 +100,78 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	controllerLog.Info("imagejob reconcile")
 
-	//kubecontroller.IsPodActive(r)
-
-	// check if pods finished
-
-	// else:
-
-	nodes := &v1.NodeList{}
-	err := r.List(context.TODO(), nodes)
+	job := &eraserv1alpha1.ImageJob{}
+	err := r.Get(context.TODO(), req.NamespacedName, job)
 	if err != nil {
 		panic(err)
 	}
 
-	count := 0
+	if isJobComplete(job) {
+		// update imagejobstatus, phase completed, update message
+		// update imagestatus's and update imagelist
 
-	// only get names from for loop
-	for _, n := range nodes.Items {
-		count++
-		controllerLog.Info("inside nodes.Items for loop")
-		nodeName := n.Name
-
-		runTime := n.Status.NodeInfo.ContainerRuntimeVersion
-		runTimeName := strings.Split(runTime, ":")[0]
-
-		var socketPath string
-
-		if runTimeName == "dockershim" {
-			socketPath = "/var/run/dockershim.sock"
-		} else if runTimeName == "containerd" {
-			socketPath = "/run/containerd/containerd.sock"
-		} else if runTimeName == "crio" {
-			socketPath = "/var/run/crio/crio.sock "
-		} else {
-			log.Println("runtime not compatible")
-			os.Exit(1)
-		}
-
-		imageJob := &eraserv1alpha1.ImageJob{}
-
-		err := r.Get(ctx, req.NamespacedName, imageJob)
+	} else {
+		nodes := &v1.NodeList{}
+		err = r.List(context.TODO(), nodes)
 		if err != nil {
-			controllerLog.Info("err")
 			panic(err)
 		}
-		image := imageJob.Spec.JobTemplate.Spec.Containers[0]
-		image.Args = append(image.Args, "--runtime="+runTimeName)
-		image.VolumeMounts = []v1.VolumeMount{{MountPath: socketPath, Name: runTimeName + "-sock-volume"}}
 
-		podSpec := imageJob.Spec.JobTemplate.Spec
-		podSpec.Volumes = []v1.Volume{{Name: runTimeName + "-sock-volume", VolumeSource: v1.VolumeSource{HostPath: &v1.HostPathVolumeSource{Path: socketPath}}}}
-		podName := image.Name + strconv.Itoa(count)
-		podSpec.NodeName = nodeName
-		podSpec.Containers = []v1.Container{image}
+		count := 0
 
-		pod := &v1.Pod{
-			TypeMeta:   metav1.TypeMeta{},
-			Spec:       podSpec,
-			ObjectMeta: metav1.ObjectMeta{Namespace: "eraser-system", Name: podName, Labels: map[string]string{"name": image.Name}},
+		// only get names from for loop
+		for _, n := range nodes.Items {
+			count++
+			controllerLog.Info("inside nodes.Items for loop")
+			nodeName := n.Name
+
+			runTime := n.Status.NodeInfo.ContainerRuntimeVersion
+			runTimeName := strings.Split(runTime, ":")[0]
+
+			var socketPath string
+
+			if runTimeName == "dockershim" {
+				socketPath = "/var/run/dockershim.sock"
+			} else if runTimeName == "containerd" {
+				socketPath = "/run/containerd/containerd.sock"
+			} else if runTimeName == "crio" {
+				socketPath = "/var/run/crio/crio.sock "
+			} else {
+				log.Println("runtime not compatible")
+				os.Exit(1)
+			}
+
+			imageJob := &eraserv1alpha1.ImageJob{}
+
+			err := r.Get(ctx, req.NamespacedName, imageJob)
+			if err != nil {
+				controllerLog.Info("err")
+				panic(err)
+			}
+			image := imageJob.Spec.JobTemplate.Spec.Containers[0]
+			image.Args = append(image.Args, "--runtime="+runTimeName)
+			image.VolumeMounts = []v1.VolumeMount{{MountPath: socketPath, Name: runTimeName + "-sock-volume"}}
+
+			podSpec := imageJob.Spec.JobTemplate.Spec
+			podSpec.Volumes = []v1.Volume{{Name: runTimeName + "-sock-volume", VolumeSource: v1.VolumeSource{HostPath: &v1.HostPathVolumeSource{Path: socketPath}}}}
+			podName := image.Name + strconv.Itoa(count)
+			podSpec.NodeName = nodeName
+			podSpec.Containers = []v1.Container{image}
+
+			pod := &v1.Pod{
+				TypeMeta:   metav1.TypeMeta{},
+				Spec:       podSpec,
+				ObjectMeta: metav1.ObjectMeta{Namespace: "eraser-system", Name: podName, Labels: map[string]string{"name": image.Name}},
+			}
+
+			// TODO: check if pod fits and can be scheduled on node
+			err = r.Create(context.TODO(), pod)
+			if err != nil {
+				controllerLog.Info("err")
+				panic(err)
+			}
+			controllerLog.Info("created pod")
 		}
-
-		// TODO: check if pod fits and can be scheduled on node
-		err = r.Create(context.TODO(), pod)
-		if err != nil {
-			controllerLog.Info("err")
-			panic(err)
-		}
-		controllerLog.Info("created pod")
 	}
 	return ctrl.Result{}, nil
 }
@@ -178,8 +183,20 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Complete(r)
 }
 
+func podsFinished(pods v1.PodList) bool {
+	for _, p := range pods.Items {
+		if IsPodActive(&p) {
+			return false
+		}
+	}
+	return true
+}
+
+// couldnt import kubecontroller "k8s.io/kubernetes/pkg/controller"
 func IsPodActive(p *v1.Pod) bool {
 	return v1.PodSucceeded != p.Status.Phase &&
 		v1.PodFailed != p.Status.Phase &&
 		p.DeletionTimestamp == nil
 }
+
+func isJobComplete(job *eraserv1alpha1.ImageJob)
