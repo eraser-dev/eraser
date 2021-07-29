@@ -3,7 +3,9 @@ package main
 import (
 	"context"
 	"errors"
+	"fmt"
 	"testing"
+	"time"
 
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 )
@@ -113,82 +115,41 @@ func TestGetAddressAndDialer(t *testing.T) {
 	}
 }
 
-var (
-	ErrImageNotRemoved = errors.New("image not removed")
-	ErrImageEmpty      = errors.New("unable to remove empty image")
-)
-
 type testClient struct {
 	containers []*pb.Container
 	images     []*pb.Image
 }
 
-func (client *testClient) listImages(ctx context.Context) (list []*pb.Image, err error) {
-	images := make([]*pb.Image, len(client.images))
-	copy(images, client.images)
-	return images, nil
-}
+var (
+	ErrImageNotRemoved = errors.New("image not removed")
+	ErrImageEmpty      = errors.New("unable to remove empty image")
+	timeout1           = 10 * time.Second
 
-func (client *testClient) listContainers(ctx context.Context) (list []*pb.Container, err error) {
-	containers := make([]*pb.Container, len(client.containers))
-	copy(containers, client.containers)
-	return containers, nil
-}
-
-func (client *testClient) removeImageFromSlice(index int) {
-	s := client.images
-	s = append(s[:index], s[index+1:]...)
-	client.images = s
-}
-
-func (client *testClient) removeImage(ctx context.Context, image string) (err error) {
-	if image == "" {
-		return ErrImageEmpty
-	}
-
-	for index, value := range client.images {
-		for _, repotag := range value.RepoTags {
-			if value.Id == image || repotag == image {
-				client.removeImageFromSlice(index)
-				return nil
-			}
-		}
-
-		for _, repodigest := range value.RepoDigests {
-			if repodigest == image {
-				client.removeImageFromSlice(index)
-				return nil
-			}
-		}
-	}
-	return ErrImageNotRemoved
-}
-
-func TestRemoveVulnerableImages(t *testing.T) {
-	image1 := pb.Image{
+	// images
+	image1 = pb.Image{
 		Id:       "sha256:ccd78eb0f420877b5513f61bf470dd379d8e8672671115d65c6f69d1c4261f87",
 		RepoTags: []string{"mcr.microsoft.com/aks/acc/sgx-webhook:0.6"},
 	}
-	image2 := pb.Image{
+	image2 = pb.Image{
 		Id:       "sha256:d153e49438bdcf34564a4e6b4f186658ca1168043be299106f8d6048e8617574",
 		RepoTags: []string{"mcr.microsoft.com/containernetworking/azure-npm:v1.2.1"},
 	}
-	image3 := pb.Image{
+	image3 = pb.Image{
 		Id:       "sha256:8adbfa37c6320849612a5ade36bbb94ff03229a0587f026dd1e0561f196824ce",
 		RepoTags: []string{"mcr.microsoft.com/oss/kubernetes/ip-masq-agent:v2.5.0.4"},
 	}
-	image4 := pb.Image{
+	image4 = pb.Image{
 		Id:          "sha256:b4034db328056e7f4c27ab76a5b9811b0f5eaa99565194cf7c6446781e772043",
 		RepoTags:    []string{"mcr.microsoft.com/oss/kubernetes/kube-proxy:v1.19.11-hotfix.20210526"},
 		RepoDigests: []string{"mcr.microsoft.com/oss/kubernetes/kube-proxy@sha256:a64d3538b72905b07356881314755b02db3675ff47ee2bcc49dd7be856e285d5"},
 	}
-	image5 := pb.Image{
+	image5 = pb.Image{
 		Id:          "sha256:fd46ec1af6de89db1714a243efa1e35c4408f5a5b9df9c653dd70db1ee95522b",
 		RepoDigests: []string{"docker.io/ashnam/remove_images@sha256:d93d3d3073797258ef06c39e2dce9782c5c8a2315359337448e140c14423928e"},
 	}
 
 	// containers
-	container1 := pb.Container{
+	container1 = pb.Container{
 		Id:           "7eb07fbb43e86a6114fb3b382339176117bc377cff89d5466210cbf2b101d4cb",
 		PodSandboxId: "07adb7d1a87e7f79490f29846658f90456709c2b754dcffacad843d87033b2ef",
 		Metadata:     &pb.ContainerMetadata{Name: "azure-ip-masq-agent", Attempt: 0},
@@ -200,7 +161,7 @@ func TestRemoveVulnerableImages(t *testing.T) {
 		Annotations:  map[string]string{"io.kubernetes.container.hash": "a77771", "io.kubernetes.container.restartCount": "0", "io.kubernetes.container.terminationMessagePath": "/dev/termination-log", "io.kubernetes.container.terminationMessagePolicy": "File", "io.kubernetes.pod.terminationGracePeriod": "30"},
 	}
 
-	container2 := pb.Container{
+	container2 = pb.Container{
 		Id:           "36080589120ee72504484c0f407568c49531021c751bc55b3ccd5af03b8af2cb",
 		PodSandboxId: "1ee4a30267a9fadd11aeb11377efc500a831fe4082e372e3191d6d31cf5e3ea1",
 		Metadata:     &pb.ContainerMetadata{Name: "kube-proxy", Attempt: 0},
@@ -211,11 +172,100 @@ func TestRemoveVulnerableImages(t *testing.T) {
 		Labels:       map[string]string{"io.kubernetes.container.name": "kube-proxy", "io.kubernetes.pod.name": "kube-proxy-s5c67", "io.kubernetes.pod.namespace": "kube-system", "io.kubernetes.pod.uid": "f6dddad9-b772-4735-a8df-db910fdca461"},
 		Annotations:  map[string]string{"io.kubernetes.container.hash": "a11f949b", "io.kubernetes.container.restartCount": "0", "io.kubernetes.container.terminationMessagePath": "/dev/termination-log", "io.kubernetes.container.terminationMessagePolicy": "File", "io.kubernetes.pod.terminationGracePeriod": "302"},
 	}
+)
 
-	client := testClient{
-		containers: []*pb.Container{&container1, &container2},
-		images:     []*pb.Image{&image1, &image2, &image3, &image4, &image5},
+func (c *testClient) listImages(ctx context.Context) (list []*pb.Image, err error) {
+	images := make([]*pb.Image, len(c.images))
+	copy(images, c.images)
+	return images, nil
+}
+
+func (c *testClient) listContainers(ctx context.Context) (list []*pb.Container, err error) {
+	containers := make([]*pb.Container, len(c.containers))
+	copy(containers, c.containers)
+	return containers, nil
+}
+
+func (c *testClient) removeImageFromSlice(index int) {
+	s := c.images
+	s = append(s[:index], s[index+1:]...)
+	c.images = s
+}
+
+func (c *testClient) removeImage(ctx context.Context, image string) (err error) {
+	if image == "" {
+		return ErrImageEmpty
 	}
 
-	removeVulnerableImages(&client, "", "")
+	for index, value := range c.images {
+		for _, repotag := range value.RepoTags {
+			if value.Id == image || repotag == image {
+				c.removeImageFromSlice(index)
+				return nil
+			}
+		}
+
+		for _, repodigest := range value.RepoDigests {
+			if repodigest == image {
+				c.removeImageFromSlice(index)
+				return nil
+			}
+		}
+	}
+	return ErrImageNotRemoved
+}
+
+func testEq(a, b []*pb.Image) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	m1 := make(map[string]bool, len(a))
+	for _, i := range a {
+		m1[i.Id] = true
+	}
+	for _, j := range b {
+		if m1[j.Id] == false {
+			return false
+		}
+	}
+	return true
+}
+
+func TestRemoveImage(t *testing.T) {
+	var testCases = []struct {
+		imagesInput   testClient
+		imageToDelete string
+		imagesOutput  []*pb.Image
+		err           error
+	}{
+		{
+			imagesInput: testClient{
+				containers: []*pb.Container{},
+				images:     []*pb.Image{&image1, &image2, &image3, &image4, &image5},
+			},
+			imageToDelete: "sha256:d153e49438bdcf34564a4e6b4f186658ca1168043be299106f8d6048e8617574",
+			imagesOutput:  []*pb.Image{&image1, &image3, &image4, &image5},
+			err:           nil,
+		},
+		{
+			imagesInput: testClient{
+				containers: []*pb.Container{},
+				images:     []*pb.Image{&image1, &image2, &image3, &image4, &image5},
+			},
+			imageToDelete: "",
+			imagesOutput:  []*pb.Image{&image1, &image2, &image3, &image4, &image5},
+			err:           ErrImageEmpty,
+		},
+	}
+
+	backgroundContext, _ := context.WithTimeout(context.Background(), timeout1)
+
+	for _, tc := range testCases {
+		e := tc.imagesInput.removeImage(backgroundContext, tc.imageToDelete)
+		fmt.Println(e)
+		if testEq(tc.imagesInput.images, tc.imagesOutput) == false || !errors.Is(e, tc.err) {
+			t.Errorf("Test fails")
+		}
+	}
+
 }
