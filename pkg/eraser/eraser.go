@@ -10,10 +10,14 @@ import (
 	"time"
 
 	"google.golang.org/grpc"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 
 	"net"
 	"net/url"
+
+	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
 )
 
 const (
@@ -80,7 +84,7 @@ func GetAddressAndDialer(endpoint string) (string, func(ctx context.Context, add
 		return "", nil, err
 	}
 	if protocol != unixProtocol {
-		return "", nil, fmt.Errorf("%w", ErrOnlySupportUnixSocket)
+		return "", nil, fmt.Errorf("only support unix socket endpoint")
 	}
 
 	return addr, dial, nil
@@ -110,14 +114,15 @@ func parseEndpoint(endpoint string) (string, string, error) {
 	switch u.Scheme {
 	case "tcp":
 		return "tcp", u.Host, nil
+
 	case "unix":
 		return "unix", u.Path, nil
 
 	case "":
-		return "", "", fmt.Errorf("using %q as %w", endpoint, ErrEndpointDeprecated)
+		return "", "", fmt.Errorf("using %q as endpoint is deprecated, please consider using full url format", endpoint)
 
 	default:
-		return u.Scheme, "", fmt.Errorf("%q: %w", u.Scheme, ErrProtocolNotSupported)
+		return u.Scheme, "", fmt.Errorf("protocol %q not supported", u.Scheme)
 	}
 }
 
@@ -128,7 +133,6 @@ func getImageClient(ctx context.Context, socketPath string) (pb.ImageServiceClie
 	}
 
 	conn, err := grpc.DialContext(ctx, addr, grpc.WithBlock(), grpc.WithInsecure(), grpc.WithContextDialer(dialer))
-
 	if err != nil {
 		return nil, nil, err
 	}
@@ -179,6 +183,9 @@ func removeVulnerableImages(c Client, socketPath string, imagelistName string) (
 	// TESTING :
 	log.Println("\nAll images: ")
 	log.Println(len(allImages))
+	for _, img := range allImages {
+		log.Println(img, "\t ", idMap[img])
+	}
 
 	var vulnerableImages []string
 
@@ -192,15 +199,41 @@ func removeVulnerableImages(c Client, socketPath string, imagelistName string) (
 		}
 	}
 
-	// TODO: change this to read vulnerable images from ImageList
-	// adding random image for testing purposes
+	// get vulnerable images from ImageList
+	config, err := rest.InClusterConfig()
+	if err != nil {
+		return err
+	}
+
+	clientset, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		return err
+	}
+
+	result := eraserv1alpha1.ImageList{}
+	err = clientset.RESTClient().Get().
+		AbsPath("apis/eraser.sh/v1alpha1").
+		Namespace("eraser-system").
+		Resource("imagelists").
+		Name(imagelistName).
+		Do(backgroundContext).Into(&result)
+
+	if err != nil {
+		log.Println("unable to find imagelist")
+		return err
+	}
+
+	// set vulnerable images to imagelist values
+	vulnerableImages = result.Spec.Images
 	vulnerableImages = append(vulnerableImages, remove)
+
+	log.Println("\n\nVulnerable images:")
+	for _, img := range vulnerableImages {
+		log.Println(img)
+	}
 
 	// remove vulnerable images
 	for _, img := range vulnerableImages {
-
-		// for test since running
-		//removeImage(backgroundContext, imageClient, img)
 
 		// image passed in as id
 		if _, isNonRunning := nonRunningImages[img]; isNonRunning {
@@ -232,8 +265,11 @@ func removeVulnerableImages(c Client, socketPath string, imagelistName string) (
 		allImages2 = append(allImages2, img.Id)
 	}
 
-	log.Println("\nAll images following remove: ")
+	log.Println("\n\nAll images following remove: ")
 	log.Println(len(allImages2))
+	for _, img := range allImages2 {
+		log.Println(img, "\t ", idMap[img])
+	}
 
 	return nil
 }
