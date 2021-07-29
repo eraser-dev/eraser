@@ -111,11 +111,11 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 
 	count := 0
 
-	for nodeName, runTime := range nodeMap {
+	for nodeName, runtime := range nodeMap {
 		count++
 
-		runTimeName := strings.Split(runTime, ":")[0]
-		socketPath := getSocketPath(runTimeName)
+		runtimeName := strings.Split(runtime, ":")[0]
+		socketPath := getSocketPath(runtimeName)
 		if socketPath == "" {
 			log.Println("Incompatible runtime on node ", nodeName)
 			continue
@@ -130,8 +130,8 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 
 		givenImage := imageJob.Spec.JobTemplate.Spec.Containers[0]
 		image := v1.Container{
-			Args:            append(givenImage.Args, "--runtime="+runTimeName),
-			VolumeMounts:    []v1.VolumeMount{{MountPath: socketPath, Name: runTimeName + "-sock-volume"}},
+			Args:            append(givenImage.Args, "--runtime="+runtimeName),
+			VolumeMounts:    []v1.VolumeMount{{MountPath: socketPath, Name: runtimeName + "-sock-volume"}},
 			Image:           givenImage.Image,
 			Name:            givenImage.Name,
 			ImagePullPolicy: givenImage.ImagePullPolicy,
@@ -143,7 +143,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 			ServiceAccountName: givenPodSpec.ServiceAccountName,
 			Containers:         []v1.Container{image},
 			NodeName:           nodeName,
-			Volumes:            []v1.Volume{{Name: runTimeName + "-sock-volume", VolumeSource: v1.VolumeSource{HostPath: &v1.HostPathVolumeSource{Path: socketPath}}}},
+			Volumes:            []v1.Volume{{Name: runtimeName + "-sock-volume", VolumeSource: v1.VolumeSource{HostPath: &v1.HostPathVolumeSource{Path: socketPath}}}},
 		}
 
 		podName := image.Name + strconv.Itoa(count)
@@ -179,8 +179,8 @@ func processNodes(nodes []v1.Node) map[string]string {
 	return m
 }
 
-func getSocketPath(runTimeName string) string {
-	switch runTimeName {
+func getSocketPath(runtimeName string) string {
+	switch runtimeName {
 	case docker:
 		return dockerPath
 	case containerd:
