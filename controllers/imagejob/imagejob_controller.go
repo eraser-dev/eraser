@@ -16,7 +16,6 @@ package imagejob
 import (
 	"context"
 	"log"
-	"strconv"
 	"strings"
 
 	v1 "k8s.io/api/core/v1"
@@ -109,11 +108,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	// map of node names and runtime
 	nodeMap := processNodes(nodes.Items)
 
-	count := 0
-
 	for nodeName, runtime := range nodeMap {
-		count++
-
 		runtimeName := strings.Split(runtime, ":")[0]
 		mountPath := getMountPath(runtimeName)
 		if mountPath == "" {
@@ -146,7 +141,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 			Volumes:            []v1.Volume{{Name: runtimeName + "-sock-volume", VolumeSource: v1.VolumeSource{HostPath: &v1.HostPathVolumeSource{Path: mountPath}}}},
 		}
 
-		podName := image.Name + strconv.Itoa(count)
+		podName := image.Name + nodeName
 		pod := &v1.Pod{
 			TypeMeta:   metav1.TypeMeta{},
 			Spec:       podSpec,
