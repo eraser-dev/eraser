@@ -108,13 +108,14 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 
 		var socketPath string
 
-		if runTimeName == "dockershim" {
-			socketPath = "/var/run/dockershim.sock"
-		} else if runTimeName == "containerd" {
-			socketPath = "/run/containerd/containerd.sock"
-		} else if runTimeName == "crio" {
-			socketPath = "/var/run/crio/crio.sock "
-		} else {
+		switch runTimeName {
+		case "docker":
+			socketPath = "unix:///var/run/dockershim.sock"
+		case "containerd":
+			socketPath = "unix:///run/containerd/containerd.sock"
+		case "cri-o":
+			socketPath = "unix:///var/run/crio/crio.sock"
+		default:
 			return ctrl.Result{}, errors.New("runtime not compatible")
 		}
 
