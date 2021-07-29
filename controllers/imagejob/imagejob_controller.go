@@ -36,9 +36,9 @@ import (
 )
 
 const (
-	dockerPath     = "unix:///var/run/dockershim.sock"
-	containerdPath = "unix:///run/containerd/containerd.sock"
-	crioPath       = "unix:///var/run/crio/crio.sock"
+	dockerPath     = "/var/run/dockershim.sock"
+	containerdPath = "/run/containerd/containerd.sock"
+	crioPath       = "/var/run/crio/crio.sock"
 	docker         = "docker"
 	containerd     = "containerd"
 	crio           = "cri-o"
@@ -115,8 +115,8 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		count++
 
 		runtimeName := strings.Split(runtime, ":")[0]
-		socketPath := getSocketPath(runtimeName)
-		if socketPath == "" {
+		mountPath := getMountPath(runtimeName)
+		if mountPath == "" {
 			log.Println("Incompatible runtime on node ", nodeName)
 			continue
 		}
@@ -131,7 +131,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		givenImage := imageJob.Spec.JobTemplate.Spec.Containers[0]
 		image := v1.Container{
 			Args:            append(givenImage.Args, "--runtime="+runtimeName),
-			VolumeMounts:    []v1.VolumeMount{{MountPath: socketPath, Name: runtimeName + "-sock-volume"}},
+			VolumeMounts:    []v1.VolumeMount{{MountPath: mountPath, Name: runtimeName + "-sock-volume"}},
 			Image:           givenImage.Image,
 			Name:            givenImage.Name,
 			ImagePullPolicy: givenImage.ImagePullPolicy,
@@ -143,7 +143,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 			ServiceAccountName: givenPodSpec.ServiceAccountName,
 			Containers:         []v1.Container{image},
 			NodeName:           nodeName,
-			Volumes:            []v1.Volume{{Name: runtimeName + "-sock-volume", VolumeSource: v1.VolumeSource{HostPath: &v1.HostPathVolumeSource{Path: socketPath}}}},
+			Volumes:            []v1.Volume{{Name: runtimeName + "-sock-volume", VolumeSource: v1.VolumeSource{HostPath: &v1.HostPathVolumeSource{Path: mountPath}}}},
 		}
 
 		podName := image.Name + strconv.Itoa(count)
@@ -179,7 +179,7 @@ func processNodes(nodes []v1.Node) map[string]string {
 	return m
 }
 
-func getSocketPath(runtimeName string) string {
+func getMountPath(runtimeName string) string {
 	switch runtimeName {
 	case docker:
 		return dockerPath
