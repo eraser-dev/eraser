@@ -4,8 +4,6 @@ import (
 	"context"
 	"flag"
 	"log"
-	"os"
-	"runtime"
 
 	"fmt"
 	"time"
@@ -28,8 +26,53 @@ const (
 
 var (
 	// Timeout  of connecting to server (default: 10s)
-	timeout time.Duration = 10 * time.Second
+	timeout = 10 * time.Second
 )
+
+type client struct {
+	images  pb.ImageServiceClient
+	runtime pb.RuntimeServiceClient
+}
+
+type Client interface {
+	listImages(context.Context) ([]*pb.Image, error)
+	listContainers(context.Context) ([]*pb.Container, error)
+	removeImage(context.Context, string) error
+}
+
+func (c *client) listContainers(context.Context) (list []*pb.Container, err error) {
+	resp, err := c.runtime.ListContainers(context.Background(), new(pb.ListContainersRequest))
+	if err != nil {
+		return nil, err
+	}
+	return resp.Containers, nil
+}
+
+func (c *client) listImages(ctx context.Context) (list []*pb.Image, err error) {
+	request := &pb.ListImagesRequest{Filter: nil}
+
+	resp, err := c.images.ListImages(ctx, request)
+	if err != nil {
+		return nil, err
+	}
+
+	return resp.Images, nil
+}
+
+func (c *client) removeImage(ctx context.Context, image string) (err error) {
+	if image == "" {
+		return err
+	}
+
+	request := &pb.RemoveImageRequest{Image: &pb.ImageSpec{Image: image}}
+
+	_, err = c.images.RemoveImage(ctx, request)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
 
 func GetAddressAndDialer(endpoint string) (string, func(ctx context.Context, addr string) (net.Conn, error), error) {
 	protocol, addr, err := parseEndpointWithFallbackProtocol(endpoint, unixProtocol)
@@ -95,64 +138,32 @@ func getImageClient(ctx context.Context, socketPath string) (pb.ImageServiceClie
 	return imageClient, conn, nil
 }
 
-func listImages(ctx context.Context, client pb.ImageServiceClient, image string) (resp *pb.ListImagesResponse, err error) {
-	request := &pb.ListImagesRequest{Filter: &pb.ImageFilter{Image: &pb.ImageSpec{Image: image}}}
-
-	resp, err = client.ListImages(ctx, request)
-	if err != nil {
-		return nil, err
-	}
-
-	return resp, nil
-}
-
-func removeImage(ctx context.Context, client pb.ImageServiceClient, image string) (resp *pb.RemoveImageResponse, err error) {
-	if image == "" {
-		return nil, err
-	}
-
-	request := &pb.RemoveImageRequest{Image: &pb.ImageSpec{Image: image}}
-
-	resp, err = client.RemoveImage(ctx, request)
-	if err != nil {
-		return nil, err
-	}
-
-	return resp, nil
-}
-
-func removeVulnerableImages(socketPath string, imagelistName string) (err error) {
+func removeVulnerableImages(c Client, socketPath string, imagelistName string) (err error) {
 	backgroundContext, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
-	imageClient, conn, err := getImageClient(backgroundContext, socketPath)
-
+	images, err := c.listImages(backgroundContext)
 	if err != nil {
 		return err
 	}
 
-	r, err := listImages(backgroundContext, imageClient, "")
-	if err != nil {
-		return err
-	}
-
-	allImages := make([]string, 0, len(r.Images))
+	allImages := make([]string, 0, len(images))
 	// map with key: sha id, value: repoTag list (contains full name of image)
 	idMap := make(map[string][]string)
 
-	for _, img := range r.Images {
+	for _, img := range images {
 		allImages = append(allImages, img.Id)
 		idMap[img.Id] = img.RepoTags
 	}
 
-	response, err := pb.NewRuntimeServiceClient(conn).ListContainers(backgroundContext, new(pb.ListContainersRequest))
+	containers, err := c.listContainers(backgroundContext)
 	if err != nil {
 		return err
 	}
 
-	runningImages := make(map[string]struct{})
+	runningImages := make(map[string]struct{}, len(containers))
 
-	for _, container := range response.Containers {
+	for _, container := range containers {
 		curr := container.Image
 		runningImages[curr.GetImage()] = struct{}{}
 	}
@@ -222,7 +233,7 @@ func removeVulnerableImages(socketPath string, imagelistName string) (err error)
 
 		// image passed in as id
 		if _, isNonRunning := nonRunningImages[img]; isNonRunning {
-			_, err = removeImage(backgroundContext, imageClient, img)
+			err = c.removeImage(backgroundContext, img)
 			if err != nil {
 				return err
 			}
@@ -230,7 +241,7 @@ func removeVulnerableImages(socketPath string, imagelistName string) (err error)
 
 		// image passed in as name
 		if _, isNonRunning := nonRunningNames[img]; isNonRunning {
-			_, err = removeImage(backgroundContext, imageClient, img)
+			err = c.removeImage(backgroundContext, img)
 			if err != nil {
 				return err
 			}
@@ -239,14 +250,14 @@ func removeVulnerableImages(socketPath string, imagelistName string) (err error)
 	}
 
 	// TESTING :
-	r, err = listImages(backgroundContext, imageClient, "")
+	imageTest, err := c.listImages(backgroundContext)
 	if err != nil {
 		return err
 	}
 
-	var allImages2 []string
+	allImages2 := make([]string, 0, len(allImages))
 
-	for _, img := range r.Images {
+	for _, img := range imageTest {
 		allImages2 = append(allImages2, img.Id)
 	}
 
@@ -260,7 +271,6 @@ func removeVulnerableImages(socketPath string, imagelistName string) (err error)
 }
 
 func main() {
-
 	runtimePtr := flag.String("runtime", "containerd", "container runtime")
 	imageListPtr := flag.String("imagelist", "", "name of ImageList")
 
@@ -268,33 +278,29 @@ func main() {
 
 	var socketPath string
 
-	switch os := runtime.GOOS; os {
-	case "darwin":
-		fmt.Println("OS X.")
-	case "linux":
-		fmt.Println("Linux.")
-	default:
-		// freebsd, openbsd,
-		// plan9, windows...
-		fmt.Printf("%s.\n", os)
-	}
-
 	switch runtime := *runtimePtr; runtime {
 	case "docker":
 		socketPath = "unix:///var/run/dockershim.sock"
 	case "containerd":
 		socketPath = "unix:///run/containerd/containerd.sock"
 	case "cri-o":
-		socketPath = "unix:///var/run/crio/crio.sock "
+		socketPath = "unix:///var/run/crio/crio.sock"
 	default:
-		log.Println("incorrect runtime")
-		os.Exit(1)
+		log.Fatal("incorrect runtime")
 	}
 
-	err := removeVulnerableImages(socketPath, *imageListPtr)
+	imageclient, conn, err := getImageClient(context.Background(), socketPath)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	runTimeClient := pb.NewRuntimeServiceClient(conn)
+
+	client := &client{imageclient, runTimeClient}
+
+	err = removeVulnerableImages(client, socketPath, *imageListPtr)
 
 	if err != nil {
-		log.Println(err)
-		os.Exit(1)
+		log.Fatal(err)
 	}
 }
