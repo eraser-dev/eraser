@@ -301,7 +301,7 @@ func main() {
 
 	client := &client{imageclient, runTimeClient}
 
-	err = removeVulnerableImages(client, socketPath, *imageListPtr)
+  err = removeVulnerableImages(client, socketPath, *imageListPtr)
 
 	if err != nil {
 		log.Fatal(err)
