@@ -18,8 +18,7 @@ package imagejob
 
 import (
 	"context"
-	"log"
-	"os"
+	"errors"
 	"strconv"
 	"strings"
 
@@ -97,9 +96,9 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 
 	nodes := &v1.NodeList{}
-	err := r.List(context.TODO(), nodes)
+	err := r.List(ctx, nodes)
 	if err != nil {
-		panic(err)
+		return ctrl.Result{}, err
 	}
 
 	count := 0
@@ -121,27 +120,32 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		} else if runTimeName == "crio" {
 			socketPath = "/var/run/crio/crio.sock "
 		} else {
-			log.Println("runtime not compatible")
-			os.Exit(1)
+			return ctrl.Result{}, errors.New("runtime not compatible")
 		}
 
 		imageJob := &eraserv1alpha1.ImageJob{}
-
 		err := r.Get(ctx, req.NamespacedName, imageJob)
 		if err != nil {
 			controllerLog.Info("err")
-			panic(err)
+			return ctrl.Result{}, err
 		}
+
 		image := imageJob.Spec.JobTemplate.Spec.Containers[0]
-		image.Args = append(image.Args, "--runtime="+runTimeName)
-		image.VolumeMounts = []v1.VolumeMount{{MountPath: socketPath, Name: runTimeName + "-sock-volume"}}
+		image = v1.Container{
+			Args:         append(image.Args, "--runtime="+runTimeName),
+			VolumeMounts: []v1.VolumeMount{{MountPath: socketPath, Name: runTimeName + "-sock-volume"}},
+		}
 
 		podSpec := imageJob.Spec.JobTemplate.Spec
-		podSpec.Volumes = []v1.Volume{{Name: runTimeName + "-sock-volume", VolumeSource: v1.VolumeSource{HostPath: &v1.HostPathVolumeSource{Path: socketPath}}}}
-		podName := image.Name + strconv.Itoa(count)
-		podSpec.NodeName = nodeName
-		podSpec.Containers = []v1.Container{image}
+		podSpec = v1.PodSpec{
+			RestartPolicy:      podSpec.RestartPolicy,
+			ServiceAccountName: podSpec.ServiceAccountName,
+			Volumes:            []v1.Volume{{Name: runTimeName + "-sock-volume", VolumeSource: v1.VolumeSource{HostPath: &v1.HostPathVolumeSource{Path: socketPath}}}},
+			NodeName:           nodeName,
+			Containers:         []v1.Container{image},
+		}
 
+		podName := image.Name + strconv.Itoa(count)
 		pod := &v1.Pod{
 			TypeMeta:   metav1.TypeMeta{},
 			Spec:       podSpec,
@@ -152,7 +156,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		err = r.Create(context.TODO(), pod)
 		if err != nil {
 			controllerLog.Info("err")
-			panic(err)
+			return ctrl.Result{}, err
 		}
 		controllerLog.Info("created pod")
 	}
