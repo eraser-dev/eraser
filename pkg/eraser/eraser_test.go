@@ -284,6 +284,14 @@ func TestListContainers(t *testing.T) {
 			containerOutput: []*pb.Container{&container1, &container2},
 			err:             nil,
 		},
+		{
+			containersInput: testClient{
+				containers: []*pb.Container{},
+				images:     []*pb.Image{},
+			},
+			containerOutput: []*pb.Container{},
+			err:             nil,
+		},
 	}
 
 	backgroundContext, cancel := context.WithTimeout(context.Background(), timeoutTest)
