@@ -22,6 +22,8 @@ import (
 const (
 	// unixProtocol is the network protocol of unix socket.
 	unixProtocol = "unix"
+	apiPath      = "apis/eraser.sh/v1alpha1"
+	namespace    = "eraser-system"
 )
 
 var (
@@ -208,8 +210,8 @@ func removeVulnerableImages(c Client, socketPath string, imagelistName string) (
 
 	result := eraserv1alpha1.ImageList{}
 	err = clientset.RESTClient().Get().
-		AbsPath("apis/eraser.sh/v1alpha1").
-		Namespace("eraser-system").
+		AbsPath(apiPath).
+		Namespace(namespace).
 		Resource("imagelists").
 		Name(imagelistName).
 		Do(backgroundContext).Into(&result)

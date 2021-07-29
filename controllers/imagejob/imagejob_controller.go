@@ -35,6 +35,15 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+const (
+	dockerPath     = "unix:///var/run/dockershim.sock"
+	containerdPath = "unix:///run/containerd/containerd.sock"
+	crioPath       = "unix:///var/run/crio/crio.sock"
+	docker         = "docker"
+	containerd     = "containerd"
+	crio           = "cri-o"
+)
+
 var (
 	controllerLog = ctrl.Log.WithName("imagejob")
 )
@@ -172,12 +181,12 @@ func processNodes(nodes []v1.Node) map[string]string {
 
 func getSocketPath(runTimeName string) string {
 	switch runTimeName {
-	case "docker":
-		return "unix:///var/run/dockershim.sock"
-	case "containerd":
-		return "unix:///run/containerd/containerd.sock"
-	case "cri-o":
-		return "unix:///var/run/crio/crio.sock"
+	case docker:
+		return dockerPath
+	case containerd:
+		return containerdPath
+	case crio:
+		return crioPath
 	default:
 		return ""
 	}
