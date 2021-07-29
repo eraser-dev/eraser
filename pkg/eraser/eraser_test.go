@@ -206,12 +206,12 @@ func testEqImages(a, b []*pb.Image) bool {
 	if len(a) != len(b) {
 		return false
 	}
-	m1 := make(map[string]bool, len(a))
+	auxMap := make(map[string]bool, len(a))
 	for _, i := range a {
-		m1[i.Id] = true
+		auxMap[i.Id] = true
 	}
 	for _, j := range b {
-		if m1[j.Id] == false {
+		if auxMap[j.Id] == false {
 			return false
 		}
 	}
@@ -222,12 +222,12 @@ func testEqContainers(a, b []*pb.Container) bool {
 	if len(a) != len(b) {
 		return false
 	}
-	m1 := make(map[string]bool, len(a))
+	auxMap := make(map[string]bool, len(a))
 	for _, i := range a {
-		m1[i.Id] = true
+		auxMap[i.Id] = true
 	}
 	for _, j := range b {
-		if m1[j.Id] == false {
+		if auxMap[j.Id] == false {
 			return false
 		}
 	}
@@ -250,7 +250,8 @@ func TestListImages(t *testing.T) {
 		},
 	}
 
-	backgroundContext, _ := context.WithTimeout(context.Background(), timeoutTest)
+	backgroundContext, cancel := context.WithTimeout(context.Background(), timeoutTest)
+	defer cancel()
 
 	for _, tc := range testCases {
 		l, e := tc.imagesInput.listImages(backgroundContext)
@@ -277,7 +278,8 @@ func TestListContainers(t *testing.T) {
 		},
 	}
 
-	backgroundContext, _ := context.WithTimeout(context.Background(), timeoutTest)
+	backgroundContext, cancel := context.WithTimeout(context.Background(), timeoutTest)
+	defer cancel()
 
 	for _, tc := range testCases {
 		l, e := tc.containersInput.listContainers(backgroundContext)
@@ -315,7 +317,8 @@ func TestRemoveImage(t *testing.T) {
 		},
 	}
 
-	backgroundContext, _ := context.WithTimeout(context.Background(), timeoutTest)
+	backgroundContext, cancel := context.WithTimeout(context.Background(), timeoutTest)
+	cancel()
 
 	for _, tc := range testCases {
 		e := tc.imagesInput.removeImage(backgroundContext, tc.imageToDelete)
