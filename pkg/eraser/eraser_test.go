@@ -1,4 +1,4 @@
-package main
+package eraser
 
 import (
 	"context"
