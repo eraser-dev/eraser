@@ -214,7 +214,7 @@ func (c *testClient) removeImage(ctx context.Context, image string) (err error) 
 	return ErrImageNotRemoved
 }
 
-func testEq(a, b []*pb.Image) bool {
+func testEqImages(a, b []*pb.Image) bool {
 	if len(a) != len(b) {
 		return false
 	}
@@ -228,6 +228,76 @@ func testEq(a, b []*pb.Image) bool {
 		}
 	}
 	return true
+}
+
+func testEqContainers(a, b []*pb.Container) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	m1 := make(map[string]bool, len(a))
+	for _, i := range a {
+		m1[i.Id] = true
+	}
+	for _, j := range b {
+		if m1[j.Id] == false {
+			return false
+		}
+	}
+	return true
+}
+
+func TestListImages(t *testing.T) {
+	var testCases = []struct {
+		imagesInput  testClient
+		imagesOutput []*pb.Image
+		err          error
+	}{
+		{
+			imagesInput: testClient{
+				containers: []*pb.Container{},
+				images:     []*pb.Image{&image1, &image2, &image3, &image4, &image5},
+			},
+			imagesOutput: []*pb.Image{&image1, &image2, &image3, &image4, &image5},
+			err:          nil,
+		},
+	}
+
+	backgroundContext, _ := context.WithTimeout(context.Background(), timeoutTest)
+
+	for _, tc := range testCases {
+		l, e := tc.imagesInput.listImages(backgroundContext)
+		if testEqImages(l, tc.imagesOutput) == false || !errors.Is(e, tc.err) {
+			t.Errorf("Test fails")
+		}
+	}
+
+}
+
+func TestListContainers(t *testing.T) {
+	var testCases = []struct {
+		containersInput testClient
+		containerOutput []*pb.Container
+		err             error
+	}{
+		{
+			containersInput: testClient{
+				containers: []*pb.Container{&container1, &container2},
+				images:     []*pb.Image{},
+			},
+			containerOutput: []*pb.Container{&container1, &container2},
+			err:             nil,
+		},
+	}
+
+	backgroundContext, _ := context.WithTimeout(context.Background(), timeoutTest)
+
+	for _, tc := range testCases {
+		l, e := tc.containersInput.listContainers(backgroundContext)
+		if testEqContainers(l, tc.containerOutput) == false || !errors.Is(e, tc.err) {
+			t.Errorf("Test fails")
+		}
+	}
+
 }
 
 func TestRemoveImage(t *testing.T) {
@@ -261,34 +331,7 @@ func TestRemoveImage(t *testing.T) {
 
 	for _, tc := range testCases {
 		e := tc.imagesInput.removeImage(backgroundContext, tc.imageToDelete)
-		if testEq(tc.imagesInput.images, tc.imagesOutput) == false || !errors.Is(e, tc.err) {
-			t.Errorf("Test fails")
-		}
-	}
-
-}
-
-func TestListImages(t *testing.T) {
-	var testCases = []struct {
-		imagesInput  testClient
-		imagesOutput []*pb.Image
-		err          error
-	}{
-		{
-			imagesInput: testClient{
-				containers: []*pb.Container{},
-				images:     []*pb.Image{&image1, &image2, &image3, &image4, &image5},
-			},
-			imagesOutput: []*pb.Image{&image1, &image2, &image3, &image4, &image5},
-			err:          nil,
-		},
-	}
-
-	backgroundContext, _ := context.WithTimeout(context.Background(), timeoutTest)
-
-	for _, tc := range testCases {
-		l, e := tc.imagesInput.listImages(backgroundContext)
-		if testEq(l, tc.imagesOutput) == false || !errors.Is(e, tc.err) {
+		if testEqImages(tc.imagesInput.images, tc.imagesOutput) == false || !errors.Is(e, tc.err) {
 			t.Errorf("Test fails")
 		}
 	}
