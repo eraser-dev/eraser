@@ -94,7 +94,6 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.8.3/pkg/reconcile
 func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-
 	nodes := &v1.NodeList{}
 	err := r.List(ctx, nodes)
 	if err != nil {
@@ -105,7 +104,6 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 
 	for _, n := range nodes.Items {
 		count++
-		controllerLog.Info("inside nodes.Items for loop")
 		nodeName := n.Name
 
 		runTime := n.Status.NodeInfo.ContainerRuntimeVersion
@@ -158,7 +156,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 			controllerLog.Info("err")
 			return ctrl.Result{}, err
 		}
-		controllerLog.Info("created pod")
+		controllerLog.Info("created pod\n name: ", podName, " node: ", nodeName, " pod type: ", image.Name)
 	}
 	return ctrl.Result{}, nil
 }
