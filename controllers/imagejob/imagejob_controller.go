@@ -104,18 +104,10 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 
 	for nodeName, runTime := range nodeMap {
 		count++
+
 		runTimeName := strings.Split(runTime, ":")[0]
-
-		var socketPath string
-
-		switch runTimeName {
-		case "docker":
-			socketPath = "unix:///var/run/dockershim.sock"
-		case "containerd":
-			socketPath = "unix:///run/containerd/containerd.sock"
-		case "cri-o":
-			socketPath = "unix:///var/run/crio/crio.sock"
-		default:
+		socketPath := getSocketPath(runTimeName)
+		if socketPath == "" {
 			log.Println("Incompatible runtime on node ", nodeName)
 			continue
 		}
@@ -176,4 +168,17 @@ func processNodes(nodes []v1.Node) map[string]string {
 		m[n.Name] = n.Status.NodeInfo.ContainerRuntimeVersion
 	}
 	return m
+}
+
+func getSocketPath(runTimeName string) string {
+	switch runTimeName {
+	case "docker":
+		return "unix:///var/run/dockershim.sock"
+	case "containerd":
+		return "unix:///run/containerd/containerd.sock"
+	case "cri-o":
+		return "unix:///var/run/crio/crio.sock"
+	default:
+		return ""
+	}
 }
