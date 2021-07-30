@@ -10,14 +10,10 @@ import (
 	"time"
 
 	"google.golang.org/grpc"
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/rest"
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 
 	"net"
 	"net/url"
-
-	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
 )
 
 const (
@@ -182,9 +178,6 @@ func removeVulnerableImages(c Client, socketPath string, imagelistName string) (
 	// TESTING :
 	log.Println("\nAll images: ")
 	log.Println(len(allImages))
-	for _, img := range allImages {
-		log.Println(img, "\t ", idMap[img])
-	}
 
 	var vulnerableImages []string
 
@@ -198,41 +191,15 @@ func removeVulnerableImages(c Client, socketPath string, imagelistName string) (
 		}
 	}
 
-	// get vulnerable images from ImageList
-	config, err := rest.InClusterConfig()
-	if err != nil {
-		return err
-	}
-
-	clientset, err := kubernetes.NewForConfig(config)
-	if err != nil {
-		return err
-	}
-
-	result := eraserv1alpha1.ImageList{}
-	err = clientset.RESTClient().Get().
-		AbsPath("apis/eraser.sh/v1alpha1").
-		Namespace("eraser-system").
-		Resource("imagelists").
-		Name(imagelistName).
-		Do(backgroundContext).Into(&result)
-
-	if err != nil {
-		log.Println("unable to find imagelist")
-		return err
-	}
-
-	// set vulnerable images to imagelist values
-	vulnerableImages = result.Spec.Images
+	// TODO: change this to read vulnerable images from ImageList
+	// adding random image for testing purposes
 	vulnerableImages = append(vulnerableImages, remove)
-
-	log.Println("\n\nVulnerable images:")
-	for _, img := range vulnerableImages {
-		log.Println(img)
-	}
 
 	// remove vulnerable images
 	for _, img := range vulnerableImages {
+
+		// for test since running
+		//removeImage(backgroundContext, imageClient, img)
 
 		// image passed in as id
 		if _, isNonRunning := nonRunningImages[img]; isNonRunning {
@@ -264,11 +231,8 @@ func removeVulnerableImages(c Client, socketPath string, imagelistName string) (
 		allImages2 = append(allImages2, img.Id)
 	}
 
-	log.Println("\n\nAll images following remove: ")
+	log.Println("\nAll images following remove: ")
 	log.Println(len(allImages2))
-	for _, img := range allImages2 {
-		log.Println(img, "\t ", idMap[img])
-	}
 
 	return nil
 }
