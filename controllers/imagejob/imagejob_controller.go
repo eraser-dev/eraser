@@ -38,14 +38,22 @@ func Add(mgr manager.Manager) error {
 
 // newReconciler returns a new reconcile.Reconciler
 func newReconciler(mgr manager.Manager) reconcile.Reconciler {
+<<<<<<< HEAD
 	return &ImageJobReconciler{
+=======
+	return &Reconciler{
+>>>>>>> upstream/main
 		Client: mgr.GetClient(),
 		scheme: mgr.GetScheme(),
 	}
 }
 
 // ImageJobReconciler reconciles a ImageJob object
+<<<<<<< HEAD
 type ImageJobReconciler struct {
+=======
+type Reconciler struct {
+>>>>>>> upstream/main
 	client.Client
 	scheme *runtime.Scheme
 }
@@ -81,7 +89,11 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 //
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.8.3/pkg/reconcile
+<<<<<<< HEAD
 func (r *ImageJobReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+=======
+func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+>>>>>>> upstream/main
 	_ = log.FromContext(ctx)
 
 	// your logic here
@@ -97,7 +109,11 @@ func (r *ImageJobReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 }
 
 // SetupWithManager sets up the controller with the Manager.
+<<<<<<< HEAD
 func (r *ImageJobReconciler) SetupWithManager(mgr ctrl.Manager) error {
+=======
+func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
+>>>>>>> upstream/main
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&eraserv1alpha1.ImageJob{}).
 		Complete(r)

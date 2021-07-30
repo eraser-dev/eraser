@@ -5,6 +5,8 @@ metadata:
   labels:
     name: remove-images
 spec:
+  nodeName: aks-nodepool1-27292825-vmss000000
+  restartPolicy: Never
   containers:
   - name: remove-images
     image: ashnam/remove_images:latest
