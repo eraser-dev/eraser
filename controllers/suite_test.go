@@ -23,10 +23,6 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"k8s.io/client-go/kubernetes/scheme"
-<<<<<<< HEAD
-	"k8s.io/client-go/rest"
-=======
->>>>>>> upstream/main
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	"sigs.k8s.io/controller-runtime/pkg/envtest/printer"
@@ -40,10 +36,6 @@ import (
 // These tests use Ginkgo (BDD-style Go testing framework). Refer to
 // http://onsi.github.io/ginkgo/ to learn more about Ginkgo.
 
-<<<<<<< HEAD
-var cfg *rest.Config
-=======
->>>>>>> upstream/main
 var k8sClient client.Client
 var testEnv *envtest.Environment
 
