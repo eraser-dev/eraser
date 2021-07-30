@@ -4,6 +4,7 @@ import (
 	"context"
 	"flag"
 	"log"
+	"os"
 
 	"fmt"
 	"time"
@@ -208,8 +209,6 @@ func removeVulnerableImages(c Client, socketPath string, imagelistName string) (
 
 	result := eraserv1alpha1.ImageList{}
 
-	// ? v1alpha1.AddToScheme(scheme.Scheme)
-
 	err = clientset.RESTClient().Get().
 		AbsPath("apis/eraser.sh/v1alpha1").
 		Namespace("eraser-system").
@@ -238,6 +237,26 @@ func removeVulnerableImages(c Client, socketPath string, imagelistName string) (
 			err = c.removeImage(backgroundContext, img)
 			if err != nil {
 				return err
+			}
+
+			status := eraserv1alpha1.ImageStatus{}
+
+			err = clientset.RESTClient().Post().
+				AbsPath("apis/eraser.sh/v1alpha1").
+				Namespace("eraser-system").
+				Resource("imagestatuss").
+				Name("imagestatus").
+				Do(backgroundContext).Into(&status)
+
+			status.Status = eraserv1alpha1.ImageStatusStatus{
+				//Message: "",
+				Status: "success",
+				Node:   os.Getenv("NODE_NAME"),
+				Name:   img,
+			}
+
+			if err != nil {
+				log.Println("Could not create imagestatus for  image: ", img)
 			}
 		}
 

@@ -24,7 +24,6 @@ import (
 	"strings"
 
 	v1 "k8s.io/api/core/v1"
-	"k8s.io/klog"
 
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -114,12 +113,17 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		LabelSelector: labels.SelectorFromSet(map[string]string{"Name": "remove-images"}),
 	}
 
+	log.Println("pod list: ")
+	for _, p := range podList.Items {
+		log.Println(p.Name)
+	}
+
 	err = r.List(ctx, podList, listOptions)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
 
-	if isJobComplete(job) {
+	if isJobComplete(*job) {
 		// update imagejobstatus, phase completed, update message
 		// update imagestatus's and update imagelist
 
@@ -164,6 +168,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 			image := imageJob.Spec.JobTemplate.Spec.Containers[0]
 			image.Args = append(image.Args, "--runtime="+runTimeName)
 			image.VolumeMounts = []v1.VolumeMount{{MountPath: socketPath, Name: runTimeName + "-sock-volume"}}
+			image.Env = []v1.EnvVar{{Name: "NODE_NAME", ValueFrom: &v1.EnvVarSource{FieldRef: &v1.ObjectFieldSelector{FieldPath: nodeName}}}}
 
 			podSpec := imageJob.Spec.JobTemplate.Spec
 			podSpec.Volumes = []v1.Volume{{Name: runTimeName + "-sock-volume", VolumeSource: v1.VolumeSource{HostPath: &v1.HostPathVolumeSource{Path: socketPath}}}}
@@ -212,21 +217,6 @@ func IsPodActive(p *v1.Pod) bool {
 		p.DeletionTimestamp == nil
 }
 
-func isJobComplete(job *eraserv1alpha1.ImageJob, desiredNodes map[string]*v1.Pod) bool {
-	if job.Spec.CompletionPolicy.Type == appsv1alpha1.Never {
-		// the job will not terminate, if the the completion policy is never
-		return false
-	}
-	// if no desiredNodes, job pending
-	if len(desiredNodes) == 0 {
-		klog.Info("Num desiredNodes is 0")
-		return false
-	}
-	for _, pod := range desiredNodes {
-		if pod == nil || kubecontroller.IsPodActive(pod) {
-			// the job is incomplete if there exits any pod not yet created OR  still active
-			return false
-		}
-	}
+func isJobComplete(job eraserv1alpha1.ImageJob) bool {
 	return true
 }
