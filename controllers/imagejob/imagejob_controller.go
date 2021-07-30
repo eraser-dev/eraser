@@ -119,7 +119,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		imageJob := &eraserv1alpha1.ImageJob{}
 		err := r.Get(ctx, req.NamespacedName, imageJob)
 		if err != nil {
-			controllerLog.Info("err")
+			controllerLog.Info("No ImageJob: ", req.NamespacedName)
 			return ctrl.Result{}, err
 		}
 
