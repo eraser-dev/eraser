@@ -35,9 +35,9 @@ import (
 )
 
 const (
-	dockerPath     = "/var/run/dockershim.sock"
+	dockerPath     = "/run/dockershim.sock"
 	containerdPath = "/run/containerd/containerd.sock"
-	crioPath       = "/var/run/crio/crio.sock"
+	crioPath       = "/run/crio/crio.sock"
 	docker         = "docker"
 	containerd     = "containerd"
 	crio           = "cri-o"
