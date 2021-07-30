@@ -144,6 +144,7 @@ var (
 	}
 	image5 = pb.Image{
 		Id:          "sha256:fd46ec1af6de89db1714a243efa1e35c4408f5a5b9df9c653dd70db1ee95522b",
+		RepoTags:    []string{},
 		RepoDigests: []string{"docker.io/ashnam/remove_images@sha256:d93d3d3073797258ef06c39e2dce9782c5c8a2315359337448e140c14423928e"},
 	}
 
@@ -183,17 +184,20 @@ func (c *testClient) removeImage(ctx context.Context, image string) (err error) 
 	if image == "" {
 		return ErrImageEmpty
 	}
-
+	containersImageNames := make(map[string]bool, len(c.containers))
+	for _, container := range c.containers {
+		containersImageNames[container.ImageRef] = true
+	}
 	for index, value := range c.images {
 		for _, repotag := range value.RepoTags {
-			if value.Id == image || repotag == image {
+			if (value.Id == image || repotag == image) && containersImageNames[value.Id] == false {
 				c.removeImageFromSlice(index)
 				return nil
 			}
 		}
 
 		for _, repodigest := range value.RepoDigests {
-			if repodigest == image {
+			if repodigest == image && containersImageNames[value.Id] == false {
 				c.removeImageFromSlice(index)
 				return nil
 			}
@@ -315,16 +319,16 @@ func TestRemoveImage(t *testing.T) {
 	}{
 		{
 			imagesInput: testClient{
-				containers: []*pb.Container{},
+				containers: []*pb.Container{&container1, &container2},
 				images:     []*pb.Image{&image1, &image2, &image3, &image4, &image5},
 			},
-			imageToDelete: "sha256:d153e49438bdcf34564a4e6b4f186658ca1168043be299106f8d6048e8617574",
-			imagesOutput:  []*pb.Image{&image1, &image3, &image4, &image5},
+			imageToDelete: "sha256:ccd78eb0f420877b5513f61bf470dd379d8e8672671115d65c6f69d1c4261f87",
+			imagesOutput:  []*pb.Image{&image2, &image3, &image4, &image5},
 			err:           nil,
 		},
 		{
 			imagesInput: testClient{
-				containers: []*pb.Container{},
+				containers: []*pb.Container{&container1, &container2},
 				images:     []*pb.Image{&image1, &image2, &image3, &image4, &image5},
 			},
 			imageToDelete: "mcr.microsoft.com/containernetworking/azure-npm:v1.2.1",
@@ -333,7 +337,7 @@ func TestRemoveImage(t *testing.T) {
 		},
 		{
 			imagesInput: testClient{
-				containers: []*pb.Container{},
+				containers: []*pb.Container{&container1, &container2},
 				images:     []*pb.Image{&image1, &image2, &image3, &image4, &image5},
 			},
 			imageToDelete: "docker.io/ashnam/remove_images@sha256:d93d3d3073797258ef06c39e2dce9782c5c8a2315359337448e140c14423928e",
@@ -342,7 +346,7 @@ func TestRemoveImage(t *testing.T) {
 		},
 		{
 			imagesInput: testClient{
-				containers: []*pb.Container{},
+				containers: []*pb.Container{&container1, &container2},
 				images:     []*pb.Image{&image1, &image2, &image3, &image4, &image5},
 			},
 			imageToDelete: "",
@@ -351,7 +355,7 @@ func TestRemoveImage(t *testing.T) {
 		},
 		{
 			imagesInput: testClient{
-				containers: []*pb.Container{},
+				containers: []*pb.Container{&container1, &container2},
 				images:     []*pb.Image{},
 			},
 			imageToDelete: "",
@@ -360,19 +364,28 @@ func TestRemoveImage(t *testing.T) {
 		},
 		{
 			imagesInput: testClient{
-				containers: []*pb.Container{},
-				images:     []*pb.Image{&image1},
+				containers: []*pb.Container{&container1, &container2},
+				images:     []*pb.Image{&image2},
 			},
-			imageToDelete: "sha256:ccd78eb0f420877b5513f61bf470dd379d8e8672671115d65c6f69d1c4261f87",
+			imageToDelete: "sha256:d153e49438bdcf34564a4e6b4f186658ca1168043be299106f8d6048e8617574",
 			imagesOutput:  []*pb.Image{},
 			err:           nil,
 		},
 		{
 			imagesInput: testClient{
-				containers: []*pb.Container{},
+				containers: []*pb.Container{&container1, &container2},
 				images:     []*pb.Image{&image1, &image2, &image3, &image4, &image5},
 			},
 			imageToDelete: "hellothere",
+			imagesOutput:  []*pb.Image{&image1, &image2, &image3, &image4, &image5},
+			err:           ErrImageNotRemoved,
+		},
+		{
+			imagesInput: testClient{
+				containers: []*pb.Container{&container1, &container2},
+				images:     []*pb.Image{&image1, &image2, &image3, &image4, &image5},
+			},
+			imageToDelete: "sha256:8adbfa37c6320849612a5ade36bbb94ff03229a0587f026dd1e0561f196824ce",
 			imagesOutput:  []*pb.Image{&image1, &image2, &image3, &image4, &image5},
 			err:           ErrImageNotRemoved,
 		},
