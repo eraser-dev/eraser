@@ -33,7 +33,7 @@ type client struct {
 type Client interface {
 	listImages(context.Context) ([]*pb.Image, error)
 	listContainers(context.Context) ([]*pb.Container, error)
-	removeImage(context.Context, string) error
+	deleteImage(context.Context, string) error
 }
 
 func (c *client) listContainers(context.Context) (list []*pb.Container, err error) {
@@ -55,7 +55,7 @@ func (c *client) listImages(ctx context.Context) (list []*pb.Image, err error) {
 	return resp.Images, nil
 }
 
-func (c *client) removeImage(ctx context.Context, image string) (err error) {
+func (c *client) deleteImage(ctx context.Context, image string) (err error) {
 	if image == "" {
 		return err
 	}
@@ -135,7 +135,7 @@ func getImageClient(ctx context.Context, socketPath string) (pb.ImageServiceClie
 	return imageClient, conn, nil
 }
 
-func removeVulnerableImages(c Client, socketPath string, imagelistName string) (err error) {
+func removeImages(c Client, socketPath string, imagelistName string) (err error) {
 	backgroundContext, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
@@ -177,7 +177,7 @@ func removeVulnerableImages(c Client, socketPath string, imagelistName string) (
 	log.Println("\nAll images: ")
 	log.Println(len(allImages))
 
-	var vulnerableImages []string
+	var targetImages []string
 
 	nonRunningNames := make(map[string]struct{}, len(allImages)-len(runningImages))
 	remove := ""
@@ -189,19 +189,15 @@ func removeVulnerableImages(c Client, socketPath string, imagelistName string) (
 		}
 	}
 
-	// TODO: change this to read vulnerable images from ImageList
+	// TODO: change this to read target images from ImageList
 	// adding random image for testing purposes
-	vulnerableImages = append(vulnerableImages, remove)
+	targetImages = append(targetImages, remove)
 
-	// remove vulnerable images
-	for _, img := range vulnerableImages {
-
-		// for test since running
-		//removeImage(backgroundContext, imageClient, img)
-
+	// remove target images
+	for _, img := range targetImages {
 		// image passed in as id
 		if _, isNonRunning := nonRunningImages[img]; isNonRunning {
-			err = c.removeImage(backgroundContext, img)
+			err = c.deleteImage(backgroundContext, img)
 			if err != nil {
 				return err
 			}
@@ -209,7 +205,7 @@ func removeVulnerableImages(c Client, socketPath string, imagelistName string) (
 
 		// image passed in as name
 		if _, isNonRunning := nonRunningNames[img]; isNonRunning {
-			err = c.removeImage(backgroundContext, img)
+			err = c.deleteImage(backgroundContext, img)
 			if err != nil {
 				return err
 			}
@@ -263,7 +259,7 @@ func main() {
 
 	client := &client{imageclient, runTimeClient}
 
-	err = removeVulnerableImages(client, socketPath, *imageListPtr)
+	err = removeImages(client, socketPath, *imageListPtr)
 
 	if err != nil {
 		log.Fatal(err)
