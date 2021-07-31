@@ -275,11 +275,11 @@ func TestListImages(t *testing.T) {
 		},
 	}
 
-	backgroundContext, cancel := context.WithTimeout(context.Background(), timeoutTest)
+	ctx, cancel := context.WithTimeout(context.Background(), timeoutTest)
 	defer cancel()
 
 	for _, tc := range testCases {
-		l, e := tc.imagesInput.listImages(backgroundContext)
+		l, e := tc.imagesInput.listImages(ctx)
 		if testEqImages(l, tc.imagesOutput) == false || !errors.Is(e, tc.err) {
 			t.Errorf("Test fails")
 		}
@@ -319,11 +319,11 @@ func TestListContainers(t *testing.T) {
 		},
 	}
 
-	backgroundContext, cancel := context.WithTimeout(context.Background(), timeoutTest)
+	ctx, cancel := context.WithTimeout(context.Background(), timeoutTest)
 	defer cancel()
 
 	for _, tc := range testCases {
-		l, e := tc.containersInput.listContainers(backgroundContext)
+		l, e := tc.containersInput.listContainers(ctx)
 		if testEqContainers(l, tc.containerOutput) == false || !errors.Is(e, tc.err) {
 			t.Errorf("Test fails")
 		}
@@ -412,11 +412,11 @@ func TestRemoveImage(t *testing.T) {
 		},
 	}
 
-	backgroundContext, cancel := context.WithTimeout(context.Background(), timeoutTest)
+	ctx, cancel := context.WithTimeout(context.Background(), timeoutTest)
 	cancel()
 
 	for _, tc := range testCases {
-		e := tc.imagesInput.removeImage(backgroundContext, tc.imageToDelete)
+		e := tc.imagesInput.removeImage(ctx, tc.imageToDelete)
 		if testEqImages(tc.imagesInput.images, tc.imagesOutput) == false || !errors.Is(e, tc.err) {
 			t.Errorf("Test fails")
 		}
