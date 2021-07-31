@@ -38,6 +38,13 @@ func TestParseEndpointWithFallBackProtocol(t *testing.T) {
 			addr:             "localhost:8080",
 			err:              nil,
 		},
+		{
+			endpoint:         "  ",
+			fallbackProtocol: "unix",
+			protocol:         "",
+			addr:             "",
+			err:              ErrParsing,
+		},
 	}
 
 	for _, tc := range testCases {
@@ -73,6 +80,12 @@ func TestParseEndpoint(t *testing.T) {
 			protocol: "https",
 			addr:     "",
 			err:      ErrProtocolNotSupported,
+		},
+		{
+			endpoint: "unix://  ",
+			protocol: "",
+			addr:     "",
+			err:      ErrParsing,
 		},
 	}
 	for _, tc := range testCases {

@@ -27,6 +27,7 @@ var (
 	ErrProtocolNotSupported  = errors.New("protocol not supported")
 	ErrEndpointDeprecated    = errors.New("endpoint is deprecated, please consider using full url format")
 	ErrOnlySupportUnixSocket = errors.New("only support unix socket endpoint")
+	ErrParsing               = errors.New("an error occurred while parsing")
 )
 
 type client struct {
@@ -104,7 +105,7 @@ func parseEndpointWithFallbackProtocol(endpoint string, fallbackProtocol string)
 func parseEndpoint(endpoint string) (string, string, error) {
 	u, err := url.Parse(endpoint)
 	if err != nil {
-		return "", "", err
+		return "", "", ErrParsing
 	}
 
 	switch u.Scheme {
