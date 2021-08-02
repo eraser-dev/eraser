@@ -16,6 +16,7 @@ spec:
     ports:
     - containerPort: 80
     imagePullPolicy: Always
+    args:  ["--runtime=containerd", "--imagelist=imagelist-sample"]
   volumes:
   - name: containerd-sock-volume
     hostPath:

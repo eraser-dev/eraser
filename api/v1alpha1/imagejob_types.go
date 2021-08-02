@@ -27,13 +27,14 @@ import (
 // ImageJobSpec defines the desired state of ImageJob
 type ImageJobSpec struct {
 	// Specifies the job that will be created when executing an ImageJob.
-	JobTemplate v1.PodTemplateSpec `json:"template:"`
+	JobTemplate   v1.PodTemplateSpec `json:"template"`
+	ImageListName string             `json:"imageListName"`
 }
 
 // ImageJobStatus defines the observed state of ImageJob
 type ImageJobStatus struct {
 	// Specifies if job was completed, and how many jobs succeeded and failed
-	Message string `json:"message:"`
+	Message string `json:"message"`
 }
 
 //+kubebuilder:object:root=true
