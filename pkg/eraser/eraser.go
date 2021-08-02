@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"flag"
 	"log"
 	"os"
@@ -10,6 +11,7 @@ import (
 	"time"
 
 	"google.golang.org/grpc"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
@@ -139,6 +141,50 @@ func getImageClient(ctx context.Context, socketPath string) (pb.ImageServiceClie
 	return imageClient, conn, nil
 }
 
+func updateStatus(img string, status string, message string) (err error) {
+	config, err := rest.InClusterConfig()
+	if err != nil {
+		return err
+	}
+
+	clientset, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		return err
+	}
+
+	imageStatus := eraserv1alpha1.ImageStatus{
+		TypeMeta: v1.TypeMeta{
+			APIVersion: "eraser.sh/v1alpha1",
+			Kind:       "ImageStatus",
+		},
+		ObjectMeta: v1.ObjectMeta{
+			Name:      "imagestatus-" + os.Getenv("NODE_NAME"),
+			Namespace: "eraser-system",
+		},
+		Status: eraserv1alpha1.ImageStatusStatus{
+			Status:  status,
+			Message: message,
+			Node:    os.Getenv("NODE_NAME"),
+			Name:    img,
+		},
+	}
+
+	body, err := json.Marshal(imageStatus)
+	if err != nil {
+		return err
+	}
+
+	_, err = clientset.RESTClient().Post().
+		AbsPath("apis/eraser.sh/v1alpha1").
+		Namespace("eraser-system").
+		Resource("imagestatuses").
+		Body(body).DoRaw(context.TODO())
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func removeVulnerableImages(c Client, socketPath string, imagelistName string) (err error) {
 	backgroundContext, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
@@ -231,43 +277,35 @@ func removeVulnerableImages(c Client, socketPath string, imagelistName string) (
 
 	// remove vulnerable images
 	for _, img := range vulnerableImages {
+		_, isNonRunningID := nonRunningImages[img]
+		_, isNonRunningName := nonRunningNames[img]
 
-		// image passed in as id
-		if _, isNonRunning := nonRunningImages[img]; isNonRunning {
+		if isNonRunningID || isNonRunningName {
+			status := "success"
+			var message string
+
 			err = c.removeImage(backgroundContext, img)
 			if err != nil {
-				return err
+				status = "error"
+				message = err.Error()
 			}
 
-			status := eraserv1alpha1.ImageStatus{}
-
-			err = clientset.RESTClient().Post().
-				AbsPath("apis/eraser.sh/v1alpha1").
-				Namespace("eraser-system").
-				Resource("imagestatuss").
-				Name("imagestatus").
-				Do(backgroundContext).Into(&status)
-
-			status.Status = eraserv1alpha1.ImageStatusStatus{
-				//Message: "",
-				Status: "success",
-				Node:   os.Getenv("NODE_NAME"),
-				Name:   img,
-			}
-
+			err = updateStatus(img, status, message)
 			if err != nil {
-				log.Println("Could not create imagestatus for  image: ", img)
+				log.Println(err)
+				log.Println("Could not create imagestatus for image: ", img)
+			}
+		} else {
+			message := "image not found"
+			if _, isRunning := runningImages[img]; isRunning {
+				message = "image is running"
+			}
+			err = updateStatus(img, "error", message)
+			if err != nil {
+				log.Println(err)
+				log.Println("Could not create imagestatus for image: ", img)
 			}
 		}
-
-		// image passed in as name
-		if _, isNonRunning := nonRunningNames[img]; isNonRunning {
-			err = c.removeImage(backgroundContext, img)
-			if err != nil {
-				return err
-			}
-		}
-
 	}
 
 	// TESTING :
