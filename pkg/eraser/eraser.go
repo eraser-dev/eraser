@@ -39,7 +39,7 @@ type client struct {
 type Client interface {
 	listImages(context.Context) ([]*pb.Image, error)
 	listContainers(context.Context) ([]*pb.Container, error)
-	removeImage(context.Context, string) error
+	deleteImage(context.Context, string) error
 }
 
 func (c *client) listContainers(context.Context) (list []*pb.Container, err error) {
@@ -61,7 +61,7 @@ func (c *client) listImages(ctx context.Context) (list []*pb.Image, err error) {
 	return resp.Images, nil
 }
 
-func (c *client) removeImage(ctx context.Context, image string) (err error) {
+func (c *client) deleteImage(ctx context.Context, image string) (err error) {
 	if image == "" {
 		return err
 	}
@@ -140,7 +140,7 @@ func getImageClient(ctx context.Context, socketPath string) (pb.ImageServiceClie
 	return imageClient, conn, nil
 }
 
-func removeVulnerableImages(c Client, socketPath string, imagelistName string) (err error) {
+func removeImages(c Client, socketPath string, targetImages []string) (err error) {
 	backgroundContext, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
@@ -185,8 +185,6 @@ func removeVulnerableImages(c Client, socketPath string, imagelistName string) (
 		log.Println(img, "\t ", idMap[img])
 	}
 
-	var vulnerableImages []string
-
 	nonRunningNames := make(map[string]struct{}, len(allImages)-len(runningImages))
 	remove := ""
 
@@ -197,45 +195,20 @@ func removeVulnerableImages(c Client, socketPath string, imagelistName string) (
 		}
 	}
 
-	// get vulnerable images from ImageList
-	config, err := rest.InClusterConfig()
-	if err != nil {
-		return err
-	}
+	// passing in a nonrunning image just for testing
+	targetImages = append(targetImages, remove)
 
-	clientset, err := kubernetes.NewForConfig(config)
-	if err != nil {
-		return err
-	}
-
-	result := eraserv1alpha1.ImageList{}
-	err = clientset.RESTClient().Get().
-		AbsPath(apiPath).
-		Namespace(namespace).
-		Resource("imagelists").
-		Name(imagelistName).
-		Do(backgroundContext).Into(&result)
-
-	if err != nil {
-		log.Println("Unable to find imagelist", " Name: "+imagelistName, " AbsPath: ", apiPath)
-		return err
-	}
-
-	// set vulnerable images to imagelist values
-	vulnerableImages = result.Spec.Images
-	vulnerableImages = append(vulnerableImages, remove)
-
-	log.Println("\n\nVulnerable images:")
-	for _, img := range vulnerableImages {
+	log.Println("\n\nTarget images:")
+	for _, img := range targetImages {
 		log.Println(img)
 	}
 
-	// remove vulnerable images
-	for _, img := range vulnerableImages {
+	// remove target images
+	for _, img := range targetImages {
 
 		// image passed in as id
 		if _, isNonRunning := nonRunningImages[img]; isNonRunning {
-			err = c.removeImage(backgroundContext, img)
+			err = c.deleteImage(backgroundContext, img)
 			if err != nil {
 				return err
 			}
@@ -243,7 +216,7 @@ func removeVulnerableImages(c Client, socketPath string, imagelistName string) (
 
 		// image passed in as name
 		if _, isNonRunning := nonRunningNames[img]; isNonRunning {
-			err = c.removeImage(backgroundContext, img)
+			err = c.deleteImage(backgroundContext, img)
 			if err != nil {
 				return err
 			}
@@ -300,7 +273,35 @@ func main() {
 
 	client := &client{imageclient, runTimeClient}
 
-	err = removeVulnerableImages(client, socketPath, *imageListPtr)
+	// get list of images to remove from ImageList
+	var targetImages []string
+	config, err := rest.InClusterConfig()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	clientset, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	result := eraserv1alpha1.ImageList{}
+	err = clientset.RESTClient().Get().
+		AbsPath(apiPath).
+		Namespace(namespace).
+		Resource("imagelists").
+		Name(*imageListPtr).
+		Do(context.Background()).Into(&result)
+
+	if err != nil {
+		log.Println("Unable to find imagelist", " Name: "+*imageListPtr, " AbsPath: ", apiPath)
+		log.Fatal(err)
+	}
+
+	// set vulnerable images to imagelist values
+	targetImages = result.Spec.Images
+
+	err = removeImages(client, socketPath, targetImages)
 
 	if err != nil {
 		log.Fatal(err)
