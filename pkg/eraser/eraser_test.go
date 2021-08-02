@@ -3,6 +3,7 @@ package eraser
 import (
 	"context"
 	"errors"
+	"net/url"
 	"testing"
 	"time"
 
@@ -43,13 +44,22 @@ func TestParseEndpointWithFallBackProtocol(t *testing.T) {
 			fallbackProtocol: "unix",
 			protocol:         "",
 			addr:             "",
-			err:              ErrParsing,
+			err:              &url.Error{},
 		},
 	}
 
 	for _, tc := range testCases {
 		p, a, e := parseEndpointWithFallbackProtocol(tc.endpoint, tc.fallbackProtocol)
-		if p != tc.protocol || a != tc.addr || !errors.Is(e, tc.err) {
+		as := tc.err
+
+		var errAux bool
+		if as == nil {
+			errAux = !errors.Is(e, as)
+		} else {
+			errAux = !errors.As(e, &as)
+		}
+
+		if p != tc.protocol || a != tc.addr || errAux {
 			t.Errorf("Test fails")
 		}
 	}
@@ -85,12 +95,21 @@ func TestParseEndpoint(t *testing.T) {
 			endpoint: "unix://  ",
 			protocol: "",
 			addr:     "",
-			err:      ErrParsing,
+			err:      &url.Error{},
 		},
 	}
 	for _, tc := range testCases {
 		p, a, e := parseEndpoint(tc.endpoint)
-		if p != tc.protocol || a != tc.addr || !errors.Is(e, tc.err) {
+
+		as := tc.err
+		var errAux bool
+		if as == nil {
+			errAux = !errors.Is(e, as)
+		} else {
+			errAux = !errors.As(e, &as)
+		}
+
+		if p != tc.protocol || a != tc.addr || errAux {
 			t.Errorf("Test fails")
 		}
 	}

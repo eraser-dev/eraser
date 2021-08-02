@@ -27,7 +27,6 @@ var (
 	ErrProtocolNotSupported  = errors.New("protocol not supported")
 	ErrEndpointDeprecated    = errors.New("endpoint is deprecated, please consider using full url format")
 	ErrOnlySupportUnixSocket = errors.New("only support unix socket endpoint")
-	ErrParsing               = errors.New("an error occurred while parsing")
 )
 
 type client struct {
@@ -81,7 +80,7 @@ func GetAddressAndDialer(endpoint string) (string, func(ctx context.Context, add
 		return "", nil, err
 	}
 	if protocol != unixProtocol {
-		return "", nil, fmt.Errorf("%w", ErrOnlySupportUnixSocket)
+		return "", nil, ErrOnlySupportUnixSocket
 	}
 
 	return addr, dial, nil
@@ -105,7 +104,7 @@ func parseEndpointWithFallbackProtocol(endpoint string, fallbackProtocol string)
 func parseEndpoint(endpoint string) (string, string, error) {
 	u, err := url.Parse(endpoint)
 	if err != nil {
-		return "", "", ErrParsing
+		return "", "", fmt.Errorf("error while parsing: %w", err)
 	}
 
 	switch u.Scheme {
