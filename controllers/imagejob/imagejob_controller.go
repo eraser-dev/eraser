@@ -167,7 +167,7 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 }
 
 func processNodes(nodes []v1.Node) map[string]string {
-	m := make(map[string]string)
+	m := make(map[string]string, len(nodes))
 	for _, n := range nodes {
 		m[n.Name] = n.Status.NodeInfo.ContainerRuntimeVersion
 	}
