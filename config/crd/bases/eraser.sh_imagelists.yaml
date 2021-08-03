@@ -47,26 +47,36 @@ spec:
           status:
             description: ImageListStatus defines the observed state of ImageList
             properties:
-              message:
-                description: Message for reason for error, if applicable.
-                type: string
-              name:
-                description: Specifies name of vulnerable image.
-                type: string
               node:
-                description: Specifies on which node image removal took place.
-                type: string
-              status:
-                description: Specifies if the image removal was a "success" or "error"
-                type: string
+                description: list of node names and their images with respective results
+                items:
+                  properties:
+                    images:
+                      properties:
+                        message:
+                          type: string
+                        name:
+                          type: string
+                        status:
+                          type: string
+                      required:
+                      - message
+                      - name
+                      - status
+                      type: object
+                    name:
+                      type: string
+                  required:
+                  - images
+                  - name
+                  type: object
+                type: array
               timestamp:
                 description: Information when the job was completed.
                 format: date-time
                 type: string
             required:
-            - name
             - node
-            - status
             - timestamp
             type: object
         type: object

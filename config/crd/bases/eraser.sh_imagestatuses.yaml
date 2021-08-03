@@ -36,22 +36,29 @@ spec:
           status:
             description: ImageStatusStatus defines the observed state of ImageStatus
             properties:
-              message:
-                description: Message for reason for error, if applicable.
-                type: string
-              name:
-                description: Specifies name of vulnerable image.
-                type: string
+              images:
+                description: List of ImageStatusResults that specify image name, status
+                  of removal, and message
+                items:
+                  properties:
+                    message:
+                      type: string
+                    name:
+                      type: string
+                    status:
+                      type: string
+                  required:
+                  - message
+                  - name
+                  - status
+                  type: object
+                type: array
               node:
                 description: Specifies on which node image removal took place.
                 type: string
-              status:
-                description: Specifies if the image removal was a "success" or "error"
-                type: string
             required:
-            - name
+            - images
             - node
-            - status
             type: object
         type: object
     served: true
