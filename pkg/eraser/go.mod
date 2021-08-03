@@ -9,3 +9,7 @@ require (
 	k8s.io/client-go v0.21.3
 	k8s.io/cri-api v0.21.3
 )
+
+replace(
+ github.com/Azure/eraser => github.com/ashnamehrotra/eraser@fd8cf6972e7c82e9e14e18947c694f1abff895d3
+)
