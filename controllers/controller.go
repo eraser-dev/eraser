@@ -1,7 +1,6 @@
 package controllers
 
 import (
-<<<<<<< HEAD
 	"errors"
 
 	"github.com/Azure/eraser/controllers/imagejob"
@@ -15,16 +14,6 @@ var (
 	controllerLog      = ctrl.Log.WithName("controllerRuntimeLogger")
 	controllerAddFuncs []func(manager.Manager) error
 )
-=======
-	"github.com/Azure/eraser/controllers/imagejob"
-	"github.com/Azure/eraser/controllers/imagelist"
-	"k8s.io/apimachinery/pkg/api/meta"
-	"k8s.io/klog"
-	"sigs.k8s.io/controller-runtime/pkg/manager"
-)
-
-var controllerAddFuncs []func(manager.Manager) error
->>>>>>> 6bd9875f650ff349c33bd2b85d8eb5e786ce4a58
 
 func init() {
 	controllerAddFuncs = append(controllerAddFuncs, imagelist.Add)

@@ -3,7 +3,7 @@ kind: ImageJob
 metadata:
   name: imagejob-sample
 spec:
-   jobTemplate:
+  template:
     spec:
       template:
         spec:
