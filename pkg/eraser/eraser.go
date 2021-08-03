@@ -2,8 +2,12 @@ package main
 
 import (
 	"context"
+<<<<<<< HEAD
 	"flag"
 	"log"
+=======
+	"os"
+>>>>>>> 6bd9875f650ff349c33bd2b85d8eb5e786ce4a58
 
 	"fmt"
 	"time"
@@ -125,7 +129,6 @@ func getImageClient(ctx context.Context, socketPath string) (pb.ImageServiceClie
 	}
 
 	conn, err := grpc.DialContext(ctx, addr, grpc.WithBlock(), grpc.WithInsecure(), grpc.WithContextDialer(dialer))
-
 	if err != nil {
 		return nil, nil, err
 	}
