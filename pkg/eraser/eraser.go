@@ -141,7 +141,7 @@ func getImageClient(ctx context.Context, socketPath string) (pb.ImageServiceClie
 	return imageClient, conn, nil
 }
 
-func updateStatus(clientset kubernetes.Clientset, img string, status string, message string) {
+func updateStatus(clientset *kubernetes.Clientset, results []eraserv1alpha1.ImageStatusResults) {
 	imageStatus := eraserv1alpha1.ImageStatus{
 		TypeMeta: v1.TypeMeta{
 			APIVersion: "eraser.sh/v1alpha1",
@@ -153,7 +153,7 @@ func updateStatus(clientset kubernetes.Clientset, img string, status string, mes
 		},
 		Status: eraserv1alpha1.ImageStatusStatus{
 			Node:    os.Getenv("NODE_NAME"),
-			Results: []eraserv1alpha1.ImageStatusResults{},
+			Results: results,
 		},
 	}
 
@@ -162,6 +162,7 @@ func updateStatus(clientset kubernetes.Clientset, img string, status string, mes
 		log.Println(err)
 	}
 
+	// create imageStatus object
 	clientset.RESTClient().Post().
 		AbsPath("apis/eraser.sh/v1alpha1").
 		Namespace("eraser-system").
@@ -170,7 +171,7 @@ func updateStatus(clientset kubernetes.Clientset, img string, status string, mes
 
 	if err != nil {
 		log.Println(err)
-		log.Println("Could not create imagestatus for  image: ", img)
+		log.Println("Could not create imagestatus for  node: ", os.Getenv("NODE_NAME"))
 	}
 }
 
@@ -264,6 +265,8 @@ func removeVulnerableImages(c Client, socketPath string, imagelistName string) (
 		log.Println(img)
 	}
 
+	var results []eraserv1alpha1.ImageStatusResults
+
 	// remove vulnerable images
 	for _, img := range vulnerableImages {
 		_, isNonRunningNames := nonRunningNames[img]
@@ -272,18 +275,36 @@ func removeVulnerableImages(c Client, socketPath string, imagelistName string) (
 		if isNonRunningImages || isNonRunningNames {
 			err = c.removeImage(backgroundContext, img)
 			if err != nil {
-				updateStatus(*clientset, img, "error", err.Error())
+				results = append(results, eraserv1alpha1.ImageStatusResults{
+					ImageName: img,
+					Status:    "error",
+					Message:   err.Error(),
+				})
 			} else {
-				updateStatus(*clientset, img, "success", "successfuly removed image")
+				results = append(results, eraserv1alpha1.ImageStatusResults{
+					ImageName: img,
+					Status:    "success",
+					Message:   "successfully removed image",
+				})
 			}
 		} else {
 			if _, isRunning := runningImages[img]; isRunning {
-				updateStatus(*clientset, img, "error", "image is running")
+				results = append(results, eraserv1alpha1.ImageStatusResults{
+					ImageName: img,
+					Status:    "error",
+					Message:   "image is running",
+				})
 			} else {
-				updateStatus(*clientset, img, "error", "image not found")
+				results = append(results, eraserv1alpha1.ImageStatusResults{
+					ImageName: img,
+					Status:    "error",
+					Message:   "image not found",
+				})
 			}
 		}
 	}
+
+	updateStatus(clientset, results)
 
 	// TESTING :
 	imageTest, err := c.listImages(backgroundContext)
