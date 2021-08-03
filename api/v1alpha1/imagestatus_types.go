@@ -20,24 +20,19 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// ImageStatusSpec defines the desired state of ImageStatus
-type ImageStatusSpec struct {
+type ImageStatusResults struct {
+	ImageName string `json:"name"`
+	Status    string `json:"status"`
+	Message   string `json:"message"`
 }
 
 // ImageStatusStatus defines the observed state of ImageStatus
 type ImageStatusStatus struct {
-	// Specifies if the image removal was a "success" or "error"
-	Status string `json:"status"`
-
-	// Message for reason for error, if applicable.
-	// +optional
-	Message string `json:"message"`
-
 	// Specifies on which node image removal took place.
 	Node string `json:"node"`
 
-	// Specifies name of vulnerable image.
-	Name string `json:"name"`
+	// List of ImageStatusResults that specify image name, status of removal, and message
+	Results []ImageStatusResults `json:"images"`
 }
 
 //+kubebuilder:object:root=true

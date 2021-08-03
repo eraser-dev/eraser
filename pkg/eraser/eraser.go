@@ -152,10 +152,8 @@ func updateStatus(clientset kubernetes.Clientset, img string, status string, mes
 			Namespace: "eraser-system",
 		},
 		Status: eraserv1alpha1.ImageStatusStatus{
-			Status:  status,
-			Message: message,
 			Node:    os.Getenv("NODE_NAME"),
-			Name:    img,
+			Results: []eraserv1alpha1.ImageStatusResults{},
 		},
 	}
 
@@ -164,13 +162,11 @@ func updateStatus(clientset kubernetes.Clientset, img string, status string, mes
 		log.Println(err)
 	}
 
-	result := clientset.RESTClient().Post().
+	clientset.RESTClient().Post().
 		AbsPath("apis/eraser.sh/v1alpha1").
 		Namespace("eraser-system").
 		Resource("imagestatuses").
 		Body(body).Do(context.TODO())
-
-	log.Println(result)
 
 	if err != nil {
 		log.Println(err)

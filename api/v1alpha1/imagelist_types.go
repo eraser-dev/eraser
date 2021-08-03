@@ -26,23 +26,18 @@ type ImageListSpec struct {
 	Images []string `json:"images"`
 }
 
+type NodeResult struct {
+	Name   string             `json:"name"`
+	Images ImageStatusResults `json:"images"`
+}
+
 // ImageListStatus defines the observed state of ImageList
 type ImageListStatus struct {
 	// Information when the job was completed.
 	Timestamp *metav1.Time `json:"timestamp"`
 
-	// Specifies if the image removal was a "success" or "error"
-	Status string `json:"status"`
-
-	// Message for reason for error, if applicable.
-	// +optional
-	Message string `json:"message"`
-
-	// Specifies on which node image removal took place.
-	Node string `json:"node"`
-
-	// Specifies name of vulnerable image.
-	Name string `json:"name"`
+	// list of node names and their images with respective results
+	Node []NodeResult `json:"node"`
 }
 
 //+kubebuilder:object:root=true
