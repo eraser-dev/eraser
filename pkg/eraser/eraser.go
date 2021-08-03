@@ -2,7 +2,8 @@ package main
 
 import (
 	"context"
-	"os"
+	"flag"
+	"log"
 
 	"fmt"
 	"time"
@@ -27,7 +28,7 @@ const (
 
 var (
 	// Timeout  of connecting to server (default: 10s)
-	timeout time.Duration = 10 * time.Second
+	timeout = 10 * time.Second
 )
 
 type client struct {
@@ -123,8 +124,8 @@ func parseEndpoint(endpoint string) (string, string, error) {
 	}
 }
 
-func getImageClient(ctx context.Context) (pb.ImageServiceClient, *grpc.ClientConn, error) {
-	addr, dialer, err := GetAddressAndDialer("unix:///run/containerd/containerd.sock")
+func getImageClient(ctx context.Context, socketPath string) (pb.ImageServiceClient, *grpc.ClientConn, error) {
+	addr, dialer, err := GetAddressAndDialer(socketPath)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -143,39 +144,33 @@ func removeImages(c Client, socketPath string, targetImages []string) (err error
 	backgroundContext, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
-	imageClient, conn, err := getImageClient(backgroundContext)
-
+	images, err := c.listImages(backgroundContext)
 	if err != nil {
 		return err
 	}
 
-	r, err := listImages(backgroundContext, imageClient, "")
-	if err != nil {
-		return err
-	}
-
-	var allImages []string
+	allImages := make([]string, 0, len(images))
 	// map with key: sha id, value: repoTag list (contains full name of image)
 	idMap := make(map[string][]string)
 
-	for _, img := range r.Images {
+	for _, img := range images {
 		allImages = append(allImages, img.Id)
 		idMap[img.Id] = img.RepoTags
 	}
 
-	response, err := pb.NewRuntimeServiceClient(conn).ListContainers(backgroundContext, new(pb.ListContainersRequest))
+	containers, err := c.listContainers(backgroundContext)
 	if err != nil {
 		return err
 	}
 
-	runningImages := make(map[string]struct{})
+	runningImages := make(map[string]struct{}, len(containers))
 
-	for _, container := range response.Containers {
+	for _, container := range containers {
 		curr := container.Image
 		runningImages[curr.GetImage()] = struct{}{}
 	}
 
-	nonRunningImages := make(map[string]struct{})
+	nonRunningImages := make(map[string]struct{}, len(allImages)-len(runningImages))
 
 	for _, img := range allImages {
 		if _, isRunning := runningImages[img]; !isRunning {
@@ -218,6 +213,7 @@ func removeImages(c Client, socketPath string, targetImages []string) (err error
 				return err
 			}
 		}
+
 		// image passed in as name
 		if _, isNonRunning := nonRunningNames[img]; isNonRunning {
 			err = c.deleteImage(backgroundContext, img)
@@ -225,17 +221,18 @@ func removeImages(c Client, socketPath string, targetImages []string) (err error
 				return err
 			}
 		}
+
 	}
 
 	// TESTING :
-	r, err = listImages(backgroundContext, imageClient, "")
+	imageTest, err := c.listImages(backgroundContext)
 	if err != nil {
 		return err
 	}
 
-	var allImages2 []string
+	allImages2 := make([]string, 0, len(allImages))
 
-	for _, img := range r.Images {
+	for _, img := range imageTest {
 		allImages2 = append(allImages2, img.Id)
 	}
 
@@ -249,18 +246,31 @@ func removeImages(c Client, socketPath string, targetImages []string) (err error
 }
 
 func main() {
-	// TODO: image job should pass the imagelist into each pod as a env variable, and pass that into removeVulnerableImages()
-	err := removeVulnerableImages()
+	runtimePtr := flag.String("runtime", "containerd", "container runtime")
+	imageListPtr := flag.String("imagelist", "", "name of ImageList")
 
-	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
+	flag.Parse()
+
+	var socketPath string
+
+	switch runtime := *runtimePtr; runtime {
+	case "docker":
+		socketPath = "unix:///var/run/dockershim.sock"
+	case "containerd":
+		socketPath = "unix:///run/containerd/containerd.sock"
+	case "cri-o":
+		socketPath = "unix:///var/run/crio/crio.sock"
+	default:
+		log.Fatal("incorrect runtime")
 	}
 
-	os.Exit(0)
+	imageclient, conn, err := getImageClient(context.Background(), socketPath)
+	if err != nil {
+		log.Fatal(err)
+	}
 
-<<<<<<< HEAD
-=======
+	runTimeClient := pb.NewRuntimeServiceClient(conn)
+
 	client := &client{imageclient, runTimeClient}
 
 	// get list of images to remove from ImageList
@@ -296,5 +306,4 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
->>>>>>> upstream/main
 }
