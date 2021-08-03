@@ -141,17 +141,7 @@ func getImageClient(ctx context.Context, socketPath string) (pb.ImageServiceClie
 	return imageClient, conn, nil
 }
 
-func updateStatus(img string, status string, message string) (err error) {
-	config, err := rest.InClusterConfig()
-	if err != nil {
-		return err
-	}
-
-	clientset, err := kubernetes.NewForConfig(config)
-	if err != nil {
-		return err
-	}
-
+func updateStatus(clientset kubernetes.Clientset, img string, status string, message string) {
 	imageStatus := eraserv1alpha1.ImageStatus{
 		TypeMeta: v1.TypeMeta{
 			APIVersion: "eraser.sh/v1alpha1",
@@ -171,18 +161,21 @@ func updateStatus(img string, status string, message string) (err error) {
 
 	body, err := json.Marshal(imageStatus)
 	if err != nil {
-		return err
+		log.Println(err)
 	}
 
-	_, err = clientset.RESTClient().Post().
+	result := clientset.RESTClient().Post().
 		AbsPath("apis/eraser.sh/v1alpha1").
 		Namespace("eraser-system").
 		Resource("imagestatuses").
-		Body(body).DoRaw(context.TODO())
+		Body(body).Do(context.TODO())
+
+	log.Println(result)
+
 	if err != nil {
-		return err
+		log.Println(err)
+		log.Println("Could not create imagestatus for  image: ", img)
 	}
-	return nil
 }
 
 func removeVulnerableImages(c Client, socketPath string, imagelistName string) (err error) {
@@ -277,33 +270,21 @@ func removeVulnerableImages(c Client, socketPath string, imagelistName string) (
 
 	// remove vulnerable images
 	for _, img := range vulnerableImages {
-		_, isNonRunningID := nonRunningImages[img]
-		_, isNonRunningName := nonRunningNames[img]
+		_, isNonRunningNames := nonRunningNames[img]
+		_, isNonRunningImages := nonRunningImages[img]
 
-		if isNonRunningID || isNonRunningName {
-			status := "success"
-			var message string
-
+		if isNonRunningImages || isNonRunningNames {
 			err = c.removeImage(backgroundContext, img)
 			if err != nil {
-				status = "error"
-				message = err.Error()
-			}
-
-			err = updateStatus(img, status, message)
-			if err != nil {
-				log.Println(err)
-				log.Println("Could not create imagestatus for image: ", img)
+				updateStatus(*clientset, img, "error", err.Error())
+			} else {
+				updateStatus(*clientset, img, "success", "successfuly removed image")
 			}
 		} else {
-			message := "image not found"
 			if _, isRunning := runningImages[img]; isRunning {
-				message = "image is running"
-			}
-			err = updateStatus(img, "error", message)
-			if err != nil {
-				log.Println(err)
-				log.Println("Could not create imagestatus for image: ", img)
+				updateStatus(*clientset, img, "error", "image is running")
+			} else {
+				updateStatus(*clientset, img, "error", "image not found")
 			}
 		}
 	}
