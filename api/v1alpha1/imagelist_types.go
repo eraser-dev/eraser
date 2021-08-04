@@ -24,8 +24,8 @@ type ImageListSpec struct {
 }
 
 type NodeResult struct {
-	Name   string             `json:"name"`
-	Images ImageStatusResults `json:"images"`
+	Name   string              `json:"name"`
+	Images []NodeCleanUpResult `json:"images"`
 }
 
 // ImageListStatus defines the observed state of ImageList
