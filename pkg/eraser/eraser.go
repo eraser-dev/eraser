@@ -10,15 +10,21 @@ import (
 	"time"
 
 	"google.golang.org/grpc"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 
 	"net"
 	"net/url"
+
+	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
 )
 
 const (
 	// unixProtocol is the network protocol of unix socket.
 	unixProtocol = "unix"
+	apiPath      = "apis/eraser.sh/v1alpha1"
+	namespace    = "eraser-system"
 )
 
 var (
@@ -37,7 +43,7 @@ type client struct {
 type Client interface {
 	listImages(context.Context) ([]*pb.Image, error)
 	listContainers(context.Context) ([]*pb.Container, error)
-	removeImage(context.Context, string) error
+	deleteImage(context.Context, string) error
 }
 
 func (c *client) listContainers(context.Context) (list []*pb.Container, err error) {
@@ -59,7 +65,7 @@ func (c *client) listImages(ctx context.Context) (list []*pb.Image, err error) {
 	return resp.Images, nil
 }
 
-func (c *client) removeImage(ctx context.Context, image string) (err error) {
+func (c *client) deleteImage(ctx context.Context, image string) (err error) {
 	if image == "" {
 		return err
 	}
@@ -137,7 +143,7 @@ func getImageClient(ctx context.Context, socketPath string) (pb.ImageServiceClie
 	return imageClient, conn, nil
 }
 
-func removeVulnerableImages(c Client, socketPath string, imagelistName string) (err error) {
+func removeImages(c Client, socketPath string, targetImages []string) (err error) {
 	backgroundContext, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
@@ -178,8 +184,9 @@ func removeVulnerableImages(c Client, socketPath string, imagelistName string) (
 	// TESTING :
 	log.Println("\nAll images: ")
 	log.Println(len(allImages))
-
-	var vulnerableImages []string
+	for _, img := range allImages {
+		log.Println(img, "\t ", idMap[img])
+	}
 
 	nonRunningNames := make(map[string]struct{}, len(allImages)-len(runningImages))
 	remove := ""
@@ -191,19 +198,20 @@ func removeVulnerableImages(c Client, socketPath string, imagelistName string) (
 		}
 	}
 
-	// TODO: change this to read vulnerable images from ImageList
-	// adding random image for testing purposes
-	vulnerableImages = append(vulnerableImages, remove)
+	// passing in a nonrunning image just for testing
+	targetImages = append(targetImages, remove)
 
-	// remove vulnerable images
-	for _, img := range vulnerableImages {
+	log.Println("\n\nTarget images:")
+	for _, img := range targetImages {
+		log.Println(img)
+	}
 
-		// for test since running
-		//removeImage(backgroundContext, imageClient, img)
+	// remove target images
+	for _, img := range targetImages {
 
 		// image passed in as id
 		if _, isNonRunning := nonRunningImages[img]; isNonRunning {
-			err = c.removeImage(backgroundContext, img)
+			err = c.deleteImage(backgroundContext, img)
 			if err != nil {
 				return err
 			}
@@ -211,7 +219,7 @@ func removeVulnerableImages(c Client, socketPath string, imagelistName string) (
 
 		// image passed in as name
 		if _, isNonRunning := nonRunningNames[img]; isNonRunning {
-			err = c.removeImage(backgroundContext, img)
+			err = c.deleteImage(backgroundContext, img)
 			if err != nil {
 				return err
 			}
@@ -231,8 +239,11 @@ func removeVulnerableImages(c Client, socketPath string, imagelistName string) (
 		allImages2 = append(allImages2, img.Id)
 	}
 
-	log.Println("\nAll images following remove: ")
+	log.Println("\n\nAll images following remove: ")
 	log.Println(len(allImages2))
+	for _, img := range allImages2 {
+		log.Println(img, "\t ", idMap[img])
+	}
 
 	return nil
 }
@@ -265,7 +276,35 @@ func main() {
 
 	client := &client{imageclient, runTimeClient}
 
-	err = removeVulnerableImages(client, socketPath, *imageListPtr)
+	// get list of images to remove from ImageList
+	var targetImages []string
+	config, err := rest.InClusterConfig()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	clientset, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	result := eraserv1alpha1.ImageList{}
+	err = clientset.RESTClient().Get().
+		AbsPath(apiPath).
+		Namespace(namespace).
+		Resource("imagelists").
+		Name(*imageListPtr).
+		Do(context.Background()).Into(&result)
+
+	if err != nil {
+		log.Println("Unable to find imagelist", " Name: "+*imageListPtr, " AbsPath: ", apiPath)
+		log.Fatal(err)
+	}
+
+	// set vulnerable images to imagelist values
+	targetImages = result.Spec.Images
+
+	err = removeImages(client, socketPath, targetImages)
 
 	if err != nil {
 		log.Fatal(err)
