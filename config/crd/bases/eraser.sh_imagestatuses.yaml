@@ -33,7 +33,7 @@ spec:
             type: string
           metadata:
             type: object
-          status:
+          result:
             description: ImageStatusStatus defines the observed state of ImageStatus
             properties:
               images:

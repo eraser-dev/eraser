@@ -52,18 +52,36 @@ spec:
                 items:
                   properties:
                     images:
-                      properties:
-                        message:
-                          type: string
-                        name:
-                          type: string
-                        status:
-                          type: string
-                      required:
-                      - message
-                      - name
-                      - status
-                      type: object
+                      items:
+                        description: ImageStatusStatus defines the observed state
+                          of ImageStatus
+                        properties:
+                          images:
+                            description: List of ImageStatusResults that specify image
+                              name, status of removal, and message
+                            items:
+                              properties:
+                                message:
+                                  type: string
+                                name:
+                                  type: string
+                                status:
+                                  type: string
+                              required:
+                              - message
+                              - name
+                              - status
+                              type: object
+                            type: array
+                          node:
+                            description: Specifies on which node image removal took
+                              place.
+                            type: string
+                        required:
+                        - images
+                        - node
+                        type: object
+                      type: array
                     name:
                       type: string
                   required:
