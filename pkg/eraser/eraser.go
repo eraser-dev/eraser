@@ -141,7 +141,7 @@ func getImageClient(ctx context.Context, socketPath string) (pb.ImageServiceClie
 	return imageClient, conn, nil
 }
 
-func updateStatus(clientset *kubernetes.Clientset, results []eraserv1alpha1.ImageStatusResults) {
+func updateStatus(clientset *kubernetes.Clientset, results []eraserv1alpha1.NodeCleanUpDetail) {
 	imageStatus := eraserv1alpha1.ImageStatus{
 		TypeMeta: v1.TypeMeta{
 			APIVersion: "eraser.sh/v1alpha1",
@@ -151,7 +151,7 @@ func updateStatus(clientset *kubernetes.Clientset, results []eraserv1alpha1.Imag
 			Name:      "imagestatus-" + os.Getenv("NODE_NAME"),
 			Namespace: "eraser-system",
 		},
-		Status: eraserv1alpha1.ImageStatusStatus{
+		Result: eraserv1alpha1.NodeCleanUpResult{
 			Node:    os.Getenv("NODE_NAME"),
 			Results: results,
 		},
@@ -265,7 +265,7 @@ func removeVulnerableImages(c Client, socketPath string, imagelistName string) (
 		log.Println(img)
 	}
 
-	var results []eraserv1alpha1.ImageStatusResults
+	var results []eraserv1alpha1.NodeCleanUpDetail
 
 	// remove vulnerable images
 	for _, img := range vulnerableImages {
@@ -275,13 +275,13 @@ func removeVulnerableImages(c Client, socketPath string, imagelistName string) (
 		if isNonRunningImages || isNonRunningNames {
 			err = c.removeImage(backgroundContext, img)
 			if err != nil {
-				results = append(results, eraserv1alpha1.ImageStatusResults{
+				results = append(results, eraserv1alpha1.NodeCleanUpDetail{
 					ImageName: img,
 					Status:    "error",
 					Message:   err.Error(),
 				})
 			} else {
-				results = append(results, eraserv1alpha1.ImageStatusResults{
+				results = append(results, eraserv1alpha1.NodeCleanUpDetail{
 					ImageName: img,
 					Status:    "success",
 					Message:   "successfully removed image",
@@ -289,13 +289,13 @@ func removeVulnerableImages(c Client, socketPath string, imagelistName string) (
 			}
 		} else {
 			if _, isRunning := runningImages[img]; isRunning {
-				results = append(results, eraserv1alpha1.ImageStatusResults{
+				results = append(results, eraserv1alpha1.NodeCleanUpDetail{
 					ImageName: img,
 					Status:    "error",
 					Message:   "image is running",
 				})
 			} else {
-				results = append(results, eraserv1alpha1.ImageStatusResults{
+				results = append(results, eraserv1alpha1.NodeCleanUpDetail{
 					ImageName: img,
 					Status:    "error",
 					Message:   "image not found",

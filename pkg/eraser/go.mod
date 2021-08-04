@@ -5,11 +5,9 @@ go 1.16
 require (
 	github.com/Azure/eraser v0.0.0-20210720005525-9aab3f098186
 	google.golang.org/grpc v1.39.0
-	k8s.io/apimachinery v0.21.3 // indirect
+	k8s.io/apimachinery v0.21.3
 	k8s.io/client-go v0.21.3
 	k8s.io/cri-api v0.21.3
 )
 
-replace(
- github.com/Azure/eraser => github.com/ashnamehrotra/eraser@fd8cf6972e7c82e9e14e18947c694f1abff895d3
-)
+replace github.com/Azure/eraser => github.com/ashnamehrotra/eraser v0.0.0-20210804185924-6fc9a9334c39
