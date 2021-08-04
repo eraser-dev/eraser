@@ -18,7 +18,7 @@ import (
 )
 
 type NodeCleanUpDetail struct {
-	ImageName string `json:"name"`
+	ImageName string `json:"imageName"`
 	Status    string `json:"status"`
 	Message   string `json:"message"`
 }
@@ -29,7 +29,7 @@ type NodeCleanUpResult struct {
 	Node string `json:"node"`
 
 	// List of NodeCleanUpDetail that specify image name, status of removal, and message
-	Results []NodeCleanUpDetail `json:"images"`
+	Results []NodeCleanUpDetail `json:"results"`
 }
 
 //+kubebuilder:object:root=true
