@@ -24,7 +24,9 @@ type ImageListSpec struct {
 }
 
 type NodeResult struct {
-	Name   string              `json:"name"`
+	// node name of image results
+	Name string `json:"name"`
+	// list of images searched and their results
 	Images []NodeCleanUpResult `json:"images"`
 }
 

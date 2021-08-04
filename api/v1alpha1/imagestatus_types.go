@@ -25,10 +25,10 @@ type NodeCleanUpDetail struct {
 
 // ImageStatusStatus defines the observed state of ImageStatus
 type NodeCleanUpResult struct {
-	// Specifies on which node image removal took place.
+	// Specifies on which node image removal took place
 	Node string `json:"node"`
 
-	// List of ImageStatusResults that specify image name, status of removal, and message
+	// List of NodeCleanUpDetail that specify image name, status of removal, and message
 	Results []NodeCleanUpDetail `json:"images"`
 }
 
@@ -45,7 +45,7 @@ type ImageStatus struct {
 
 //+kubebuilder:object:root=true
 
-// ImageStatusList contains a list of ImageStatus
+// ImageStatusList contains a list of NodeCleanUpResults
 type ImageStatusList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
