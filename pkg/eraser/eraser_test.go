@@ -16,52 +16,79 @@ func TestParseEndpointWithFallBackProtocol(t *testing.T) {
 		fallbackProtocol string
 		protocol         string
 		addr             string
-		err              error
+		errCheck         func(t *testing.T, err error)
 	}{
 		{
 			endpoint:         "unix:///run/containerd/containerd.sock",
 			fallbackProtocol: "unix",
 			protocol:         "unix",
 			addr:             "/run/containerd/containerd.sock",
-			err:              nil,
+			errCheck: func(t *testing.T, err error) {
+				if err != nil {
+					t.Error(err)
+				}
+			},
 		},
 		{
 			endpoint:         "192.168.123.132",
 			fallbackProtocol: "unix",
 			protocol:         "unix",
 			addr:             "",
-			err:              nil,
+			errCheck: func(t *testing.T, err error) {
+				if err != nil {
+					t.Error(err)
+				}
+			},
 		},
 		{
 			endpoint:         "tcp://localhost:8080",
 			fallbackProtocol: "unix",
 			protocol:         "tcp",
 			addr:             "localhost:8080",
-			err:              nil,
+			errCheck: func(t *testing.T, err error) {
+				if err != nil {
+					t.Error(err)
+				}
+			},
 		},
 		{
 			endpoint:         "  ",
 			fallbackProtocol: "unix",
 			protocol:         "",
 			addr:             "",
-			err:              &url.Error{},
+			errCheck: func(t *testing.T, err error) {
+				as := &url.Error{}
+				if !errors.As(err, &as) {
+					t.Error(err)
+				}
+			},
 		},
 	}
 
+	// for _, tc := range testCases {
+	// 	p, a, e := parseEndpointWithFallbackProtocol(tc.endpoint, tc.fallbackProtocol)
+	// 	as := tc.err
+
+	// 	var errAux bool
+	// 	if as == nil {
+	// 		errAux = !errors.Is(e, as)
+	// 	} else {
+	// 		errAux = !errors.As(e, &as)
+	// 	}
+
+	// 	if p != tc.protocol || a != tc.addr || errAux {
+	// 		t.Errorf("Test fails")
+	// 	}
+	// }
+
 	for _, tc := range testCases {
 		p, a, e := parseEndpointWithFallbackProtocol(tc.endpoint, tc.fallbackProtocol)
-		as := tc.err
 
-		var errAux bool
-		if as == nil {
-			errAux = !errors.Is(e, as)
-		} else {
-			errAux = !errors.As(e, &as)
-		}
-
-		if p != tc.protocol || a != tc.addr || errAux {
+		if p != tc.protocol || a != tc.addr {
 			t.Errorf("Test fails")
 		}
+
+		tc.errCheck(t, e)
 	}
 
 }
@@ -71,47 +98,58 @@ func TestParseEndpoint(t *testing.T) {
 		endpoint string
 		protocol string
 		addr     string
-		err      error
+		errCheck func(t *testing.T, err error)
 	}{
 		{
 			endpoint: "unix:///run/containerd/containerd.sock",
 			protocol: "unix",
 			addr:     "/run/containerd/containerd.sock",
-			err:      nil,
+			errCheck: func(t *testing.T, err error) {
+				if err != nil {
+					t.Error(err)
+				}
+			},
 		},
 		{
 			endpoint: "192.168.123.132",
 			protocol: "",
 			addr:     "",
-			err:      ErrEndpointDeprecated,
+			errCheck: func(t *testing.T, err error) {
+				if !errors.Is(err, ErrEndpointDeprecated) {
+					t.Error(err)
+				}
+			},
 		},
 		{
 			endpoint: "https://myaccount.blob.core.windows.net/mycontainer/myblob",
 			protocol: "https",
 			addr:     "",
-			err:      ErrProtocolNotSupported,
+			errCheck: func(t *testing.T, err error) {
+				if !errors.Is(err, ErrProtocolNotSupported) {
+					t.Error(err)
+				}
+			},
 		},
 		{
 			endpoint: "unix://  ",
 			protocol: "",
 			addr:     "",
-			err:      &url.Error{},
+			errCheck: func(t *testing.T, err error) {
+				as := &url.Error{}
+				if !errors.As(err, &as) {
+					t.Error(err)
+				}
+			},
 		},
 	}
 	for _, tc := range testCases {
 		p, a, e := parseEndpoint(tc.endpoint)
 
-		as := tc.err
-		var errAux bool
-		if as == nil {
-			errAux = !errors.Is(e, as)
-		} else {
-			errAux = !errors.As(e, &as)
-		}
-
-		if p != tc.protocol || a != tc.addr || errAux {
+		if p != tc.protocol || a != tc.addr {
 			t.Errorf("Test fails")
 		}
+
+		tc.errCheck(t, e)
 	}
 }
 
