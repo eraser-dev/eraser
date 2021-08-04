@@ -32,6 +32,10 @@ type NodeCleanUpResult struct {
 	Results []NodeCleanUpDetail `json:"results"`
 }
 
+type ImageStatusSpec struct {
+	Name string `json:"name"`
+}
+
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
 
@@ -39,6 +43,8 @@ type NodeCleanUpResult struct {
 type ImageStatus struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
+
+	Spec ImageStatusSpec `json:"spec,omitempty"`
 
 	Result NodeCleanUpResult `json:"result,omitempty"`
 }
