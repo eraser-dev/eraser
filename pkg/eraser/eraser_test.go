@@ -65,22 +65,6 @@ func TestParseEndpointWithFallBackProtocol(t *testing.T) {
 		},
 	}
 
-	// for _, tc := range testCases {
-	// 	p, a, e := parseEndpointWithFallbackProtocol(tc.endpoint, tc.fallbackProtocol)
-	// 	as := tc.err
-
-	// 	var errAux bool
-	// 	if as == nil {
-	// 		errAux = !errors.Is(e, as)
-	// 	} else {
-	// 		errAux = !errors.As(e, &as)
-	// 	}
-
-	// 	if p != tc.protocol || a != tc.addr || errAux {
-	// 		t.Errorf("Test fails")
-	// 	}
-	// }
-
 	for _, tc := range testCases {
 		p, a, e := parseEndpointWithFallbackProtocol(tc.endpoint, tc.fallbackProtocol)
 
