@@ -2,7 +2,9 @@ name: Create and publish Eraser Image
 
 on:
   push:
-    branches: ['release']
+    paths-ignore:
+      - "**.md"
+      - "hack/**"
 
 env:
   REGISTRY: ghcr.io
