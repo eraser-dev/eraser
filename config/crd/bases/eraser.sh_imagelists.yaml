@@ -47,26 +47,56 @@ spec:
           status:
             description: ImageListStatus defines the observed state of ImageList
             properties:
-              message:
-                description: Message for reason for error, if applicable.
-                type: string
-              name:
-                description: Specifies name of vulnerable image.
-                type: string
               node:
-                description: Specifies on which node image removal took place.
-                type: string
-              status:
-                description: Specifies if the image removal was a "success" or "error"
-                type: string
+                description: list of node names and their images with respective results
+                items:
+                  properties:
+                    images:
+                      description: list of images searched and their results
+                      items:
+                        description: ImageStatusStatus defines the observed state
+                          of ImageStatus
+                        properties:
+                          node:
+                            description: Specifies on which node image removal took
+                              place
+                            type: string
+                          results:
+                            description: List of NodeCleanUpDetail that specify image
+                              name, status of removal, and message
+                            items:
+                              properties:
+                                imageName:
+                                  type: string
+                                message:
+                                  type: string
+                                status:
+                                  type: string
+                              required:
+                              - imageName
+                              - message
+                              - status
+                              type: object
+                            type: array
+                        required:
+                        - node
+                        - results
+                        type: object
+                      type: array
+                    name:
+                      description: node name of image results
+                      type: string
+                  required:
+                  - images
+                  - name
+                  type: object
+                type: array
               timestamp:
                 description: Information when the job was completed.
                 format: date-time
                 type: string
             required:
-            - name
             - node
-            - status
             - timestamp
             type: object
         type: object
