@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"flag"
 	"log"
 	"os"
@@ -147,8 +148,8 @@ func updateStatus(clientset *kubernetes.Clientset, results []eraserv1alpha1.Node
 			Kind:       "ImageStatus",
 		},
 		ObjectMeta: v1.ObjectMeta{
-			Name:      "imagestatus-" + os.Getenv("NODE_NAME"),
-			Namespace: "default",
+			Name:      "result2",
+			Namespace: "eraser-system",
 		},
 		Spec: eraserv1alpha1.ImageStatusSpec{
 			Name: "hello world",
@@ -159,20 +160,43 @@ func updateStatus(clientset *kubernetes.Clientset, results []eraserv1alpha1.Node
 		},
 	}
 
-	result2 := eraserv1alpha1.ImageStatus{}
+	result2 := eraserv1alpha1.ImageStatus{
+		TypeMeta: v1.TypeMeta{
+			APIVersion: "eraser.sh/v1alpha1",
+			Kind:       "ImageStatus",
+		},
+		ObjectMeta: v1.ObjectMeta{
+			Name:      "result2",
+			Namespace: "eraser-system",
+		},
+		Spec: eraserv1alpha1.ImageStatusSpec{
+			Name: "hello world",
+		},
+	}
 
-	/*body, err := json.Marshal(imageStatus)
+	body, err := json.Marshal(imageStatus)
 	if err != nil {
 		log.Println(err)
-	}*/
+	}
+
+	err = clientset.RESTClient().Post().
+		AbsPath("apis/eraser.sh/v1alpha1").
+		Namespace("eraser-system").
+		Name("result2").
+		Resource("imagestatuses").Do(context.TODO()).Into(&result2)
+
+	if err != nil {
+		log.Println(err)
+		log.Println("could not post result2")
+	}
 
 	// create imageStatus object
-	err := clientset.RESTClient().Post().
+	err = clientset.RESTClient().Put().
 		AbsPath("apis/eraser.sh/v1alpha1").
-		Namespace("default").
-		Name(imageStatus.Name).
+		Namespace("eraser-system").
+		Name(result2.Name).
 		Resource("imagestatuses").
-		Body(&imageStatus).Do(context.TODO()).Into(&result2)
+		Body(body).Do(context.TODO()).Into(&result2)
 
 	if err != nil {
 		log.Println(err)
