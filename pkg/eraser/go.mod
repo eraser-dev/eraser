@@ -10,4 +10,4 @@ require (
 	k8s.io/cri-api v0.21.3
 )
 
-replace github.com/Azure/eraser => github.com/ashnamehrotra/eraser v0.0.0-20210804201624-59f2ac994ad9
+replace github.com/Azure/eraser => github.com/ashnamehrotra/eraser v0.0.0-20210805181859-0bce5b1cd2f5
