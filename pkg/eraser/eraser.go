@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"flag"
 	"log"
 	"os"
@@ -149,7 +148,7 @@ func updateStatus(clientset *kubernetes.Clientset, results []eraserv1alpha1.Node
 		},
 		ObjectMeta: v1.ObjectMeta{
 			Name:      "imagestatus-" + os.Getenv("NODE_NAME"),
-			Namespace: "eraser-system",
+			Namespace: "default",
 		},
 		Spec: eraserv1alpha1.ImageStatusSpec{
 			Name: "hello world",
@@ -160,17 +159,20 @@ func updateStatus(clientset *kubernetes.Clientset, results []eraserv1alpha1.Node
 		},
 	}
 
-	body, err := json.Marshal(imageStatus)
+	result2 := eraserv1alpha1.ImageStatus{}
+
+	/*body, err := json.Marshal(imageStatus)
 	if err != nil {
 		log.Println(err)
-	}
+	}*/
 
 	// create imageStatus object
-	clientset.RESTClient().Post().
+	err := clientset.RESTClient().Post().
 		AbsPath("apis/eraser.sh/v1alpha1").
-		Namespace("eraser-system").
+		Namespace("default").
+		Name(imageStatus.Name).
 		Resource("imagestatuses").
-		Body(body).Do(context.TODO())
+		Body(&imageStatus).Do(context.TODO()).Into(&result2)
 
 	if err != nil {
 		log.Println(err)
