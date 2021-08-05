@@ -1,10 +1,10 @@
-name: Create and publish Eraser Image
+name: Build and Push Eraser Image
 
 on:
   push:
-    paths-ignore:
-      - "**.md"
-      - "hack/**"
+    # Sequence of patterns matched against refs/tags
+    tags:
+      - 'v*' # Push events to matching v*, i.e. v1.0, v20.15.10
 
 env:
   REGISTRY: ghcr.io
