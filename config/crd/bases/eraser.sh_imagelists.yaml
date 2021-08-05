@@ -52,37 +52,39 @@ spec:
                 items:
                   properties:
                     images:
+                      description: list of images searched and their results
                       items:
                         description: ImageStatusStatus defines the observed state
                           of ImageStatus
                         properties:
-                          images:
-                            description: List of ImageStatusResults that specify image
+                          node:
+                            description: Specifies on which node image removal took
+                              place
+                            type: string
+                          results:
+                            description: List of NodeCleanUpDetail that specify image
                               name, status of removal, and message
                             items:
                               properties:
-                                message:
+                                imageName:
                                   type: string
-                                name:
+                                message:
                                   type: string
                                 status:
                                   type: string
                               required:
+                              - imageName
                               - message
-                              - name
                               - status
                               type: object
                             type: array
-                          node:
-                            description: Specifies on which node image removal took
-                              place.
-                            type: string
                         required:
-                        - images
                         - node
+                        - results
                         type: object
                       type: array
                     name:
+                      description: node name of image results
                       type: string
                   required:
                   - images
