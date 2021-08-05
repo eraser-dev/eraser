@@ -60,13 +60,6 @@ spec:
             - node
             - results
             type: object
-          spec:
-            properties:
-              name:
-                type: string
-            required:
-            - name
-            type: object
         type: object
     served: true
     storage: true
