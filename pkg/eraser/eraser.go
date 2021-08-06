@@ -1,7 +1,8 @@
-package main
+package eraser
 
 import (
 	"context"
+	"errors"
 	"flag"
 	"log"
 
@@ -28,7 +29,10 @@ const (
 
 var (
 	// Timeout  of connecting to server (default: 10s)
-	timeout = 10 * time.Second
+	timeout                  = 10 * time.Second
+	ErrProtocolNotSupported  = errors.New("protocol not supported")
+	ErrEndpointDeprecated    = errors.New("endpoint is deprecated, please consider using full url format")
+	ErrOnlySupportUnixSocket = errors.New("only support unix socket endpoint")
 )
 
 type client struct {
@@ -82,7 +86,7 @@ func GetAddressAndDialer(endpoint string) (string, func(ctx context.Context, add
 		return "", nil, err
 	}
 	if protocol != unixProtocol {
-		return "", nil, fmt.Errorf("only support unix socket endpoint")
+		return "", nil, ErrOnlySupportUnixSocket
 	}
 
 	return addr, dial, nil
@@ -106,21 +110,20 @@ func parseEndpointWithFallbackProtocol(endpoint string, fallbackProtocol string)
 func parseEndpoint(endpoint string) (string, string, error) {
 	u, err := url.Parse(endpoint)
 	if err != nil {
-		return "", "", err
+		return "", "", fmt.Errorf("error while parsing: %w", err)
 	}
 
 	switch u.Scheme {
 	case "tcp":
 		return "tcp", u.Host, nil
-
 	case "unix":
 		return "unix", u.Path, nil
 
 	case "":
-		return "", "", fmt.Errorf("using %q as endpoint is deprecated, please consider using full url format", endpoint)
+		return "", "", fmt.Errorf("using %q as %w", endpoint, ErrEndpointDeprecated)
 
 	default:
-		return u.Scheme, "", fmt.Errorf("protocol %q not supported", u.Scheme)
+		return u.Scheme, "", fmt.Errorf("%q: %w", u.Scheme, ErrProtocolNotSupported)
 	}
 }
 
