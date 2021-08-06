@@ -151,9 +151,6 @@ func updateStatus(clientset *kubernetes.Clientset, results []eraserv1alpha1.Node
 			Name:      "imagestatus-" + os.Getenv("NODE_NAME"),
 			Namespace: "eraser-system",
 		},
-		Spec: eraserv1alpha1.ImageStatusSpec{
-			Name: "hello world",
-		},
 		Result: eraserv1alpha1.NodeCleanUpResult{
 			Node:    os.Getenv("NODE_NAME"),
 			Results: results,

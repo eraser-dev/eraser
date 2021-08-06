@@ -77,7 +77,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	}
 
 	// Watch for changes to pods created by ImageJob (eraser pods)
-	//err = c.Watch(&source.Kind{Type: &v1.Pod{}}, &handler.EnqueueRequestForOwner{OwnerType: &eraserv1alpha1.ImageJob{}})
+	err = c.Watch(&source.Kind{Type: &v1.Pod{}}, &handler.EnqueueRequestForOwner{OwnerType: &eraserv1alpha1.ImageJob{}})
 
 	return nil
 }
@@ -130,6 +130,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 			// update imagestatus's and update imagelist
 
 		} else { */
+
 	nodes := &v1.NodeList{}
 	err := r.List(context.TODO(), nodes)
 	if err != nil {
