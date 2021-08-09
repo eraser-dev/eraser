@@ -52,19 +52,39 @@ spec:
                 items:
                   properties:
                     images:
-                      properties:
-                        message:
-                          type: string
-                        name:
-                          type: string
-                        status:
-                          type: string
-                      required:
-                      - message
-                      - name
-                      - status
-                      type: object
+                      description: list of images searched and their results
+                      items:
+                        description: ImageStatusStatus defines the observed state
+                          of ImageStatus
+                        properties:
+                          node:
+                            description: Specifies on which node image removal took
+                              place
+                            type: string
+                          results:
+                            description: List of NodeCleanUpDetail that specify image
+                              name, status of removal, and message
+                            items:
+                              properties:
+                                imageName:
+                                  type: string
+                                message:
+                                  type: string
+                                status:
+                                  type: string
+                              required:
+                              - imageName
+                              - message
+                              - status
+                              type: object
+                            type: array
+                        required:
+                        - node
+                        - results
+                        type: object
+                      type: array
                     name:
+                      description: node name of image results
                       type: string
                   required:
                   - images

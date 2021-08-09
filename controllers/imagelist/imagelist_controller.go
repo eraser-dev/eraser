@@ -1,12 +1,9 @@
 /*
 Copyright 2021.
-
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
-
     http://www.apache.org/licenses/LICENSE-2.0
-
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -27,16 +24,11 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
-	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
-)
-
-var (
-	controllerLog = ctrl.Log.WithName("controllerRuntimeLogger")
 )
 
 func Add(mgr manager.Manager) error {
@@ -78,17 +70,11 @@ type Reconciler struct {
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.8.3/pkg/reconcile
 func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	_ = log.FromContext(ctx)
-
-	controllerLog.Info("imagelist reconcile")
-
-	port := corev1.ContainerPort{ContainerPort: 80, HostPort: 0}
-
 	// If there is a change in ImageList, start ImageJob to triger removal
 	job := &eraserv1alpha1.ImageJob{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "imagejob-test",
-			Namespace: "eraser-system",
+			GenerateName: "imagejob-",
+			Namespace:    "eraser-system",
 		},
 		Spec: eraserv1alpha1.ImageJobSpec{
 			JobTemplate: corev1.PodTemplateSpec{
@@ -98,7 +84,6 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 						{
 							Name:            "remove-images",
 							Image:           "ashnam/remove_images:latest",
-							Ports:           []corev1.ContainerPort{port},
 							ImagePullPolicy: corev1.PullAlways,
 							Args:            []string{"--imagelist=" + req.Name},
 						},
@@ -108,7 +93,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 			},
 		},
 	}
-	err := r.Create(context.TODO(), job)
+	err := r.Create(ctx, job)
 	if err != nil {
 		if errors.IsNotFound(err) {
 			return reconcile.Result{}, nil

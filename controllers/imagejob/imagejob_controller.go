@@ -1,12 +1,9 @@
 /*
 Copyright 2021.
-
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
-
     http://www.apache.org/licenses/LICENSE-2.0
-
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -19,8 +16,6 @@ package imagejob
 import (
 	"context"
 	"log"
-	"os"
-	"strconv"
 	"strings"
 
 	v1 "k8s.io/api/core/v1"
@@ -39,8 +34,17 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+const (
+	dockerPath     = "/run/dockershim.sock"
+	containerdPath = "/run/containerd/containerd.sock"
+	crioPath       = "/run/crio/crio.sock"
+	docker         = "docker"
+	containerd     = "containerd"
+	crio           = "cri-o"
+)
+
 var (
-	controllerLog = ctrl.Log.WithName("controllerRuntimeLogger")
+	controllerLog = ctrl.Log.WithName("imagejob")
 )
 
 func Add(mgr manager.Manager) error {
@@ -105,106 +109,63 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.8.3/pkg/reconcile
 func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	controllerLog.Info("imagejob reconcile start")
-
-	job := &eraserv1alpha1.ImageJob{}
-	err := r.Get(ctx, req.NamespacedName, job)
+	nodes := &v1.NodeList{}
+	err := r.List(ctx, nodes)
 	if err != nil {
-		log.Println(err)
+		return ctrl.Result{}, err
 	}
 
-	// check if request is coming from creation of imagejob
-	if strings.Contains(req.Name, "imagejob") {
-		nodes := &v1.NodeList{}
-		err = r.List(ctx, nodes)
+	// map of node names and runtime
+	nodeMap := processNodes(nodes.Items)
+
+	for nodeName, runtime := range nodeMap {
+		runtimeName := strings.Split(runtime, ":")[0]
+		mountPath := getMountPath(runtimeName)
+		if mountPath == "" {
+			log.Println("Incompatible runtime on node ", nodeName)
+			continue
+		}
+
+		imageJob := &eraserv1alpha1.ImageJob{}
+		err := r.Get(ctx, req.NamespacedName, imageJob)
 		if err != nil {
-			panic(err)
+			controllerLog.Info("No ImageJob: ", req.NamespacedName)
+			return ctrl.Result{}, err
 		}
 
-		job.Status.Phase = eraserv1alpha1.PhaseRunning
-		job.Status.Failed = 0
-		job.Status.Succeeded = 0
-		job.Status = eraserv1alpha1.ImageJobStatus{
-			Phase:     eraserv1alpha1.PhaseRunning,
-			Failed:    0,
-			Succeeded: 0,
-			Desired:   len(nodes.Items),
+		givenImage := imageJob.Spec.JobTemplate.Spec.Containers[0]
+		image := v1.Container{
+			Args:            append(givenImage.Args, "--runtime="+runtimeName),
+			VolumeMounts:    []v1.VolumeMount{{MountPath: mountPath, Name: runtimeName + "-sock-volume"}},
+			Image:           givenImage.Image,
+			Name:            givenImage.Name,
+			ImagePullPolicy: givenImage.ImagePullPolicy,
 		}
 
-		count := 0
-
-		// schedule pods on each node
-		for _, n := range nodes.Items {
-			count++
-			controllerLog.Info("inside nodes.Items for loop")
-			nodeName := n.Name
-
-			runTime := n.Status.NodeInfo.ContainerRuntimeVersion
-			runTimeName := strings.Split(runTime, ":")[0]
-
-			var socketPath string
-
-			if runTimeName == "dockershim" {
-				socketPath = "/var/run/dockershim.sock"
-			} else if runTimeName == "containerd" {
-				socketPath = "/run/containerd/containerd.sock"
-			} else if runTimeName == "crio" {
-				socketPath = "/var/run/crio/crio.sock "
-			} else {
-				log.Println("runtime not compatible")
-				os.Exit(1)
-			}
-
-			imageJob := &eraserv1alpha1.ImageJob{}
-
-			err := r.Get(ctx, req.NamespacedName, imageJob)
-			if err != nil {
-				controllerLog.Info("err")
-				panic(err)
-			}
-			image := imageJob.Spec.JobTemplate.Spec.Containers[0]
-			image.Args = append(image.Args, "--runtime="+runTimeName)
-			image.VolumeMounts = []v1.VolumeMount{{MountPath: socketPath, Name: runTimeName + "-sock-volume"}}
-			image.Env = []v1.EnvVar{{Name: "NODE_NAME", ValueFrom: &v1.EnvVarSource{FieldRef: &v1.ObjectFieldSelector{FieldPath: "spec.nodeName"}}}}
-
-			podSpec := imageJob.Spec.JobTemplate.Spec
-			podSpec.Volumes = []v1.Volume{{Name: runTimeName + "-sock-volume", VolumeSource: v1.VolumeSource{HostPath: &v1.HostPathVolumeSource{Path: socketPath}}}}
-			podName := image.Name + strconv.Itoa(count)
-			podSpec.NodeName = nodeName
-			podSpec.Containers = []v1.Container{image}
-
-			pod := &v1.Pod{
-				TypeMeta:   metav1.TypeMeta{},
-				Spec:       podSpec,
-				ObjectMeta: metav1.ObjectMeta{Namespace: "eraser-system", Name: podName, Labels: map[string]string{"name": image.Name}},
-			}
-
-			// TODO: check if pod fits and can be scheduled on node
-			err = r.Create(ctx, pod)
-			if err != nil {
-				controllerLog.Info("err")
-				panic(err)
-			}
-			controllerLog.Info("created pod")
-		}
-	} else { // request is coming from pods
-
-		podList := &v1.PodList{}
-		listOptions := &client.ListOptions{
-			Namespace: req.Namespace,
-		}
-		err = r.List(ctx, podList, listOptions)
-		for _, p := range podList.Items {
-			if p.Status.Phase == v1.PodSucceeded {
-
-			}
+		givenPodSpec := imageJob.Spec.JobTemplate.Spec
+		podSpec := v1.PodSpec{
+			RestartPolicy:      givenPodSpec.RestartPolicy,
+			ServiceAccountName: givenPodSpec.ServiceAccountName,
+			Containers:         []v1.Container{image},
+			NodeName:           nodeName,
+			Volumes:            []v1.Volume{{Name: runtimeName + "-sock-volume", VolumeSource: v1.VolumeSource{HostPath: &v1.HostPathVolumeSource{Path: mountPath}}}},
 		}
 
-		if isJobFinished(r, job) {
-			// update all fields
+		podName := image.Name + nodeName
+		pod := &v1.Pod{
+			TypeMeta:   metav1.TypeMeta{},
+			Spec:       podSpec,
+			ObjectMeta: metav1.ObjectMeta{Namespace: "eraser-system", Name: podName, Labels: map[string]string{"name": image.Name}},
 		}
+
+		// TODO: check if pod fits and can be scheduled on node
+		err = r.Create(ctx, pod)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+		controllerLog.Info("created pod", "name", podName, "node", nodeName, "podType", image.Name)
+
 	}
-
 	return ctrl.Result{}, nil
 }
 
@@ -221,4 +182,25 @@ func isJobFinished(r *Reconciler, job *eraserv1alpha1.ImageJob) bool {
 	}
 
 	return true
+}
+
+func processNodes(nodes []v1.Node) map[string]string {
+	m := make(map[string]string, len(nodes))
+	for _, n := range nodes {
+		m[n.Name] = n.Status.NodeInfo.ContainerRuntimeVersion
+	}
+	return m
+}
+
+func getMountPath(runtimeName string) string {
+	switch runtimeName {
+	case docker:
+		return dockerPath
+	case containerd:
+		return containerdPath
+	case crio:
+		return crioPath
+	default:
+		return ""
+	}
 }
