@@ -33,9 +33,30 @@ type ImageJobSpec struct {
 
 // ImageJobStatus defines the observed state of ImageJob
 type ImageJobStatus struct {
-	// Specifies if job was completed, and how many jobs succeeded and failed
-	Message string `json:"message"`
+	// The number of pods which succeeded
+	// +optional
+	Succeeded int `json:"succeeded"`
+
+	// The number of pods which failed
+	// +optional
+	Failed int `json:"failed"`
+
+	// The number of pods desired (number of nodes in cluster)
+	// +optional
+	Desired int `json:"desired"`
+
+	// The phase of the job
+	// +optional
+	Phase JobPhase `json:"phase"`
 }
+
+type JobPhase string
+
+const (
+	PhaseCompleted JobPhase = "completed"
+	PhaseRunning   JobPhase = "running"
+	PhaseFailed    JobPhase = "failed"
+)
 
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status

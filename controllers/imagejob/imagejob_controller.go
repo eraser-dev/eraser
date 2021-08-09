@@ -77,7 +77,11 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	}
 
 	// Watch for changes to pods created by ImageJob (eraser pods)
-	err = c.Watch(&source.Kind{Type: &v1.Pod{}}, &handler.EnqueueRequestForOwner{OwnerType: &eraserv1alpha1.ImageJob{}})
+	err = c.Watch(&source.Kind{Type: &v1.Pod{}}, &handler.EnqueueRequestForOwner{
+		IsController: true, OwnerType: &eraserv1alpha1.ImageJob{}})
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -102,98 +106,105 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.8.3/pkg/reconcile
 func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	controllerLog.Info("imagejob reconcile start")
-	/*
-		job := &eraserv1alpha1.ImageJob{}
-		err := r.Get(context.TODO(), req.NamespacedName, job)
+
+	job := &eraserv1alpha1.ImageJob{}
+	err := r.Get(ctx, req.NamespacedName, job)
+	if err != nil {
+		log.Println(err)
+	}
+
+	// check if request is coming from creation of imagejob
+	if strings.Contains(req.Name, "imagejob") {
+		nodes := &v1.NodeList{}
+		err = r.List(ctx, nodes)
 		if err != nil {
 			panic(err)
 		}
+
+		job.Status.Phase = eraserv1alpha1.PhaseRunning
+		job.Status.Failed = 0
+		job.Status.Succeeded = 0
+		job.Status = eraserv1alpha1.ImageJobStatus{
+			Phase:     eraserv1alpha1.PhaseRunning,
+			Failed:    0,
+			Succeeded: 0,
+			Desired:   len(nodes.Items),
+		}
+
+		count := 0
+
+		// schedule pods on each node
+		for _, n := range nodes.Items {
+			count++
+			controllerLog.Info("inside nodes.Items for loop")
+			nodeName := n.Name
+
+			runTime := n.Status.NodeInfo.ContainerRuntimeVersion
+			runTimeName := strings.Split(runTime, ":")[0]
+
+			var socketPath string
+
+			if runTimeName == "dockershim" {
+				socketPath = "/var/run/dockershim.sock"
+			} else if runTimeName == "containerd" {
+				socketPath = "/run/containerd/containerd.sock"
+			} else if runTimeName == "crio" {
+				socketPath = "/var/run/crio/crio.sock "
+			} else {
+				log.Println("runtime not compatible")
+				os.Exit(1)
+			}
+
+			imageJob := &eraserv1alpha1.ImageJob{}
+
+			err := r.Get(ctx, req.NamespacedName, imageJob)
+			if err != nil {
+				controllerLog.Info("err")
+				panic(err)
+			}
+			image := imageJob.Spec.JobTemplate.Spec.Containers[0]
+			image.Args = append(image.Args, "--runtime="+runTimeName)
+			image.VolumeMounts = []v1.VolumeMount{{MountPath: socketPath, Name: runTimeName + "-sock-volume"}}
+			image.Env = []v1.EnvVar{{Name: "NODE_NAME", ValueFrom: &v1.EnvVarSource{FieldRef: &v1.ObjectFieldSelector{FieldPath: "spec.nodeName"}}}}
+
+			podSpec := imageJob.Spec.JobTemplate.Spec
+			podSpec.Volumes = []v1.Volume{{Name: runTimeName + "-sock-volume", VolumeSource: v1.VolumeSource{HostPath: &v1.HostPathVolumeSource{Path: socketPath}}}}
+			podName := image.Name + strconv.Itoa(count)
+			podSpec.NodeName = nodeName
+			podSpec.Containers = []v1.Container{image}
+
+			pod := &v1.Pod{
+				TypeMeta:   metav1.TypeMeta{},
+				Spec:       podSpec,
+				ObjectMeta: metav1.ObjectMeta{Namespace: "eraser-system", Name: podName, Labels: map[string]string{"name": image.Name}},
+			}
+
+			// TODO: check if pod fits and can be scheduled on node
+			err = r.Create(ctx, pod)
+			if err != nil {
+				controllerLog.Info("err")
+				panic(err)
+			}
+			controllerLog.Info("created pod")
+		}
+	} else { // request is coming from pods
 
 		podList := &v1.PodList{}
 		listOptions := &client.ListOptions{
-			Namespace:     req.Namespace,
-			LabelSelector: labels.SelectorFromSet(map[string]string{"Name": "remove-images"}),
+			Namespace: req.Namespace,
 		}
-
-		log.Println("pod list: ")
-		for _, p := range podList.Items {
-			log.Println(p.Name)
-		}
-
 		err = r.List(ctx, podList, listOptions)
-		if err != nil {
-			return ctrl.Result{}, err
+		for _, p := range podList.Items {
+			if p.Status.Phase == v1.PodSucceeded {
+
+			}
 		}
 
-		if isJobComplete(*job) {
-			// update imagejobstatus, phase completed, update message
-			// update imagestatus's and update imagelist
-
-		} else { */
-
-	nodes := &v1.NodeList{}
-	err := r.List(context.TODO(), nodes)
-	if err != nil {
-		panic(err)
+		if isJobFinished(r, job) {
+			// update all fields
+		}
 	}
 
-	count := 0
-
-	// only get names from for loop
-	for _, n := range nodes.Items {
-		count++
-		controllerLog.Info("inside nodes.Items for loop")
-		nodeName := n.Name
-
-		runTime := n.Status.NodeInfo.ContainerRuntimeVersion
-		runTimeName := strings.Split(runTime, ":")[0]
-
-		var socketPath string
-
-		if runTimeName == "dockershim" {
-			socketPath = "/var/run/dockershim.sock"
-		} else if runTimeName == "containerd" {
-			socketPath = "/run/containerd/containerd.sock"
-		} else if runTimeName == "crio" {
-			socketPath = "/var/run/crio/crio.sock "
-		} else {
-			log.Println("runtime not compatible")
-			os.Exit(1)
-		}
-
-		imageJob := &eraserv1alpha1.ImageJob{}
-
-		err := r.Get(ctx, req.NamespacedName, imageJob)
-		if err != nil {
-			controllerLog.Info("err")
-			panic(err)
-		}
-		image := imageJob.Spec.JobTemplate.Spec.Containers[0]
-		image.Args = append(image.Args, "--runtime="+runTimeName)
-		image.VolumeMounts = []v1.VolumeMount{{MountPath: socketPath, Name: runTimeName + "-sock-volume"}}
-		image.Env = []v1.EnvVar{{Name: "NODE_NAME", ValueFrom: &v1.EnvVarSource{FieldRef: &v1.ObjectFieldSelector{FieldPath: "spec.nodeName"}}}}
-
-		podSpec := imageJob.Spec.JobTemplate.Spec
-		podSpec.Volumes = []v1.Volume{{Name: runTimeName + "-sock-volume", VolumeSource: v1.VolumeSource{HostPath: &v1.HostPathVolumeSource{Path: socketPath}}}}
-		podName := image.Name + strconv.Itoa(count)
-		podSpec.NodeName = nodeName
-		podSpec.Containers = []v1.Container{image}
-
-		pod := &v1.Pod{
-			TypeMeta:   metav1.TypeMeta{},
-			Spec:       podSpec,
-			ObjectMeta: metav1.ObjectMeta{Namespace: "eraser-system", Name: podName, Labels: map[string]string{"name": image.Name}},
-		}
-
-		// TODO: check if pod fits and can be scheduled on node
-		err = r.Create(context.TODO(), pod)
-		if err != nil {
-			controllerLog.Info("err")
-			panic(err)
-		}
-		controllerLog.Info("created pod")
-	}
-	//}
 	return ctrl.Result{}, nil
 }
 
@@ -204,22 +215,10 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Complete(r)
 }
 
-func podsFinished(pods v1.PodList) bool {
-	for _, p := range pods.Items {
-		if IsPodActive(&p) {
-			return false
-		}
+func isJobFinished(r *Reconciler, job *eraserv1alpha1.ImageJob) bool {
+	if job.Status.Phase == eraserv1alpha1.PhaseRunning {
+		return false
 	}
-	return true
-}
 
-// couldnt import kubecontroller "k8s.io/kubernetes/pkg/controller"
-func IsPodActive(p *v1.Pod) bool {
-	return v1.PodSucceeded != p.Status.Phase &&
-		v1.PodFailed != p.Status.Phase &&
-		p.DeletionTimestamp == nil
-}
-
-func isJobComplete(job eraserv1alpha1.ImageJob) bool {
 	return true
 }
