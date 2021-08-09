@@ -1,4 +1,4 @@
-package eraser
+package main
 
 import (
 	"context"
@@ -371,7 +371,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	// set vulnerable images to imagelist values
+	// set target images to imagelist values
 	targetImages = result.Spec.Images
 
 	err = removeImages(client, socketPath, targetImages)
