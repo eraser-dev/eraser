@@ -15,11 +15,16 @@ package imagejob
 
 import (
 	"context"
+	"encoding/json"
 	"log"
 	"strings"
+	"time"
 
 	v1 "k8s.io/api/core/v1"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -81,8 +86,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	}
 
 	// Watch for changes to pods created by ImageJob (eraser pods)
-	err = c.Watch(&source.Kind{Type: &v1.Pod{}}, &handler.EnqueueRequestForOwner{
-		IsController: true, OwnerType: &eraserv1alpha1.ImageJob{}})
+	err = c.Watch(&source.Kind{Type: &v1.Pod{}}, &handler.EnqueueRequestForOwner{OwnerType: &eraserv1alpha1.ImageJob{}, IsController: true})
 	if err != nil {
 		return err
 	}
@@ -112,10 +116,12 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	imageJob := &eraserv1alpha1.ImageJob{}
 	err := r.Get(ctx, req.NamespacedName, imageJob)
 	if err != nil {
+		imageJob.Status.Phase = eraserv1alpha1.PhaseFailed
+		updateJobStatus(*imageJob)
 		log.Println(err)
 	}
 
-	if strings.Contains(req.Name, "imagejob") {
+	if imageJob.Status.Phase == "" {
 		nodes := &v1.NodeList{}
 		err := r.List(ctx, nodes)
 		if err != nil {
@@ -126,8 +132,10 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 			Desired:   len(nodes.Items),
 			Succeeded: 0,
 			Failed:    0,
-			Message:   "Job running",
+			Phase:     eraserv1alpha1.PhaseRunning,
 		}
+
+		updateJobStatus(*imageJob)
 
 		// map of node names and runtime
 		nodeMap := processNodes(nodes.Items)
@@ -161,9 +169,12 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 
 			podName := image.Name + "-" + nodeName
 			pod := &v1.Pod{
-				TypeMeta:   metav1.TypeMeta{},
-				Spec:       podSpec,
-				ObjectMeta: metav1.ObjectMeta{Namespace: "eraser-system", Name: podName, Labels: map[string]string{"name": image.Name}},
+				TypeMeta: metav1.TypeMeta{},
+				Spec:     podSpec,
+				ObjectMeta: metav1.ObjectMeta{Namespace: "eraser-system",
+					Name:            podName,
+					Labels:          map[string]string{"name": image.Name},
+					OwnerReferences: []metav1.OwnerReference{*metav1.NewControllerRef(imageJob, imageJob.GroupVersionKind())}},
 			}
 
 			// TODO: check if pod fits and can be scheduled on node
@@ -174,27 +185,67 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 			controllerLog.Info("created pod", "name", podName, "node", nodeName, "podType", image.Name)
 		}
 
-	} else {
+	} else if imageJob.Status.Phase == eraserv1alpha1.PhaseRunning {
 		log.Println("reconcile from pod")
-		pod := &v1.Pod{}
-		err := r.Get(ctx, req.NamespacedName, pod)
+
+		// get eraser pods
+		podList := &v1.PodList{}
+		err := r.List(ctx, podList, &client.ListOptions{
+			Namespace:     "eraser-system",
+			LabelSelector: labels.SelectorFromSet(map[string]string{"name": imageJob.Spec.JobTemplate.Spec.Containers[0].Name})})
 		if err != nil {
 			log.Println(err)
 		}
 
-		// pending?
-		if pod.Status.Phase == v1.PodFailed || pod.Status.Phase == v1.PodUnknown || pod.Status.Phase == v1.PodPending {
-			imageJob.Status.Failed++
-			log.Println("pod failed")
-		} else if pod.Status.Phase == v1.PodSucceeded {
-			imageJob.Status.Succeeded++
-			log.Println("pod succeeded")
-		}
+		failed := 0
+		success := 0
 
-		if imageJob.Status.Succeeded+imageJob.Status.Failed == imageJob.Status.Desired {
-			imageJob.Status.Message = "Job finished"
-			log.Println("job finished")
-			// read imageStatus
+		// if all pods are complete, job is complete
+		if podsComplete(podList.Items) {
+			// get status of pods
+			for _, p := range podList.Items {
+				if p.Status.Phase == v1.PodSucceeded {
+					success++
+				} else {
+					failed++
+				}
+			}
+
+			imageJob.Status = eraserv1alpha1.ImageJobStatus{
+				Desired:   imageJob.Status.Desired,
+				Succeeded: success,
+				Failed:    failed,
+				Phase:     eraserv1alpha1.PhaseCompleted,
+			}
+
+			updateJobStatus(*imageJob)
+
+			// transfer results from imageStatus objects to imageList
+			statusList := &eraserv1alpha1.ImageStatusList{}
+			err = r.List(ctx, statusList)
+
+			var nodeResult []eraserv1alpha1.NodeResult
+
+			for _, s := range statusList.Items {
+				nodeResult = append(nodeResult, eraserv1alpha1.NodeResult{
+					Name:   s.Node,
+					Images: s.Results,
+				})
+			}
+
+			imageList := &eraserv1alpha1.ImageListList{}
+			err = r.List(ctx, imageList)
+
+			for _, l := range imageList.Items {
+				log.Println("update ImageList")
+				updateImageListStatus(nodeResult, l)
+			}
+
+			//imageListName := strings.Split(imageJob.Spec.JobTemplate.Spec.Containers[0].Args[0], "\\-\\-")[1]
+			//log.Println("IMAGELIST NAME ", imageListName)
+
+			//updateImageListStatus(nodeResult, imageListName)
+
 		}
 	}
 	return ctrl.Result{}, nil
@@ -225,5 +276,83 @@ func getMountPath(runtimeName string) string {
 		return crioPath
 	default:
 		return ""
+	}
+}
+
+func podsComplete(lst []v1.Pod) bool {
+	for _, pod := range lst {
+		if pod.Status.Phase == v1.PodRunning || pod.Status.Phase == v1.PodPending {
+			return false
+		}
+	}
+	return true
+}
+
+func updateImageListStatus(nodeResult []eraserv1alpha1.NodeResult, imageList eraserv1alpha1.ImageList) {
+	config, err := rest.InClusterConfig()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	clientset, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	imageList.Status = eraserv1alpha1.ImageListStatus{
+		Timestamp: &metav1.Time{Time: time.Now()},
+		Node:      nodeResult,
+	}
+
+	body, err := json.Marshal(imageList)
+	if err != nil {
+		log.Println(err)
+	}
+
+	// update imagelist object
+	res, err := clientset.RESTClient().Put().
+		AbsPath("apis/eraser.sh/v1alpha1").
+		Namespace("eraser-system").
+		Name(imageList.Name).
+		Resource("imagelists").
+		SubResource("status").
+		Body(body).DoRaw(context.TODO())
+
+	if err != nil {
+		log.Println("could not update imagelist status")
+		log.Println(err)
+	}
+
+	log.Println("RES: ", string(res))
+}
+
+func updateJobStatus(imageJob eraserv1alpha1.ImageJob) {
+	config, err := rest.InClusterConfig()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	clientset, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	body, err := json.Marshal(imageJob)
+	if err != nil {
+		log.Println(err)
+	}
+
+	// update imageJob object
+	_, err = clientset.RESTClient().Put().
+		AbsPath("apis/eraser.sh/v1alpha1").
+		Namespace("eraser-system").
+		Name(imageJob.Name).
+		Resource("imagejobs").
+		SubResource("status").
+		Body(body).DoRaw(context.TODO())
+
+	if err != nil {
+		log.Println("could not update imagejob status")
+		log.Println(err)
 	}
 }

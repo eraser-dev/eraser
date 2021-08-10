@@ -317,10 +317,8 @@ func (in *NodeResult) DeepCopyInto(out *NodeResult) {
 	*out = *in
 	if in.Images != nil {
 		in, out := &in.Images, &out.Images
-		*out = make([]NodeCleanUpResult, len(*in))
-		for i := range *in {
-			(*in)[i].DeepCopyInto(&(*out)[i])
-		}
+		*out = make([]NodeCleanUpDetail, len(*in))
+		copy(*out, *in)
 	}
 }
 

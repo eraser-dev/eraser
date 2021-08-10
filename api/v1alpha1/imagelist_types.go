@@ -27,7 +27,7 @@ type NodeResult struct {
 	// node name of image results
 	Name string `json:"name"`
 	// list of images searched and their results
-	Images []NodeCleanUpResult `json:"images"`
+	Images []NodeCleanUpDetail `json:"images"`
 }
 
 // ImageListStatus defines the observed state of ImageList

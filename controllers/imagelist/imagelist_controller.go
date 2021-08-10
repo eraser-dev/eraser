@@ -73,8 +73,9 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	// If there is a change in ImageList, start ImageJob to triger removal
 	job := &eraserv1alpha1.ImageJob{
 		ObjectMeta: metav1.ObjectMeta{
-			GenerateName: "imagejob-",
-			Namespace:    "eraser-system",
+			//GenerateName: "imagejob-",
+			Name:      "imagejob-test",
+			Namespace: "eraser-system",
 		},
 		Spec: eraserv1alpha1.ImageJobSpec{
 			JobTemplate: corev1.PodTemplateSpec{
