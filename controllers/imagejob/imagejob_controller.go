@@ -222,7 +222,8 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 
 			// transfer results from imageStatus objects to imageList
 			statusList := &eraserv1alpha1.ImageStatusList{}
-			err = r.List(ctx, statusList)
+			err = r.List(ctx, statusList, &client.ListOptions{
+				Namespace: "eraser-system"})
 			if err != nil {
 				log.Println(err)
 			}
@@ -231,8 +232,8 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 
 			for _, s := range statusList.Items {
 				nodeResult = append(nodeResult, eraserv1alpha1.NodeResult{
-					Name:   s.Node,
-					Images: s.Results,
+					Name:   s.Result.Node,
+					Images: s.Result.Results,
 				})
 			}
 
@@ -304,6 +305,8 @@ func updateImageListStatus(nodeResult []eraserv1alpha1.NodeResult, imageList era
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	log.Println(nodeResult)
 
 	imageList.Status = eraserv1alpha1.ImageListStatus{
 		Timestamp: &metav1.Time{Time: time.Now()},

@@ -252,7 +252,7 @@ func (in *ImageStatusList) DeepCopyInto(out *ImageStatusList) {
 	in.ListMeta.DeepCopyInto(&out.ListMeta)
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
-		*out = make([]NodeCleanUpResult, len(*in))
+		*out = make([]ImageStatus, len(*in))
 		for i := range *in {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}

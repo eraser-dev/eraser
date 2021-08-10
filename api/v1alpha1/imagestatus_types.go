@@ -45,13 +45,13 @@ type ImageStatus struct {
 
 //+kubebuilder:object:root=true
 
-// ImageStatusList contains a list of NodeCleanUpResults
+// ImageStatusList contains a list of ImageStatuses
 type ImageStatusList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []NodeCleanUpResult `json:"items"`
+	Items           []ImageStatus `json:"items"`
 }
 
 func init() {
-	SchemeBuilder.Register(&ImageStatus{}, &ImageStatus{})
+	SchemeBuilder.Register(&ImageStatus{}, &ImageStatusList{})
 }

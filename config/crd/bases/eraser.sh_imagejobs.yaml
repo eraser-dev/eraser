@@ -6707,10 +6707,10 @@ spec:
                 description: number of pods that failed
                 type: integer
               phase:
-                description: job running, succesfully completed, or failed
+                description: job running, successfully completed, or failed
                 type: string
               succeeded:
-                description: number of pods that completed successfuly
+                description: number of pods that completed successfully
                 type: integer
             required:
             - desired
