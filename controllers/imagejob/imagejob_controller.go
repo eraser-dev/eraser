@@ -182,12 +182,9 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 			if err != nil {
 				return ctrl.Result{}, err
 			}
-			controllerLog.Info("created pod", "name", podName, "node", nodeName, "podType", image.Name)
 		}
 
 	} else if imageJob.Status.Phase == eraserv1alpha1.PhaseRunning {
-		log.Println("reconcile from pod")
-
 		// get eraser pods
 		podList := &v1.PodList{}
 		err := r.List(ctx, podList, &client.ListOptions{
@@ -247,12 +244,6 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 				log.Println("update ImageList")
 				updateImageListStatus(nodeResult, l)
 			}
-
-			//imageListName := strings.Split(imageJob.Spec.JobTemplate.Spec.Containers[0].Args[0], "\\-\\-")[1]
-			//log.Println("IMAGELIST NAME ", imageListName)
-
-			//updateImageListStatus(nodeResult, imageListName)
-
 		}
 	}
 	return ctrl.Result{}, nil
@@ -319,7 +310,7 @@ func updateImageListStatus(nodeResult []eraserv1alpha1.NodeResult, imageList era
 	}
 
 	// update imagelist object
-	res, err := clientset.RESTClient().Put().
+	_, err = clientset.RESTClient().Put().
 		AbsPath("apis/eraser.sh/v1alpha1").
 		Namespace("eraser-system").
 		Name(imageList.Name).
@@ -328,11 +319,8 @@ func updateImageListStatus(nodeResult []eraserv1alpha1.NodeResult, imageList era
 		Body(body).DoRaw(context.TODO())
 
 	if err != nil {
-		log.Println("could not update imagelist status")
 		log.Println(err)
 	}
-
-	log.Println("RES: ", string(res))
 }
 
 func updateJobStatus(imageJob eraserv1alpha1.ImageJob) {
@@ -361,7 +349,6 @@ func updateJobStatus(imageJob eraserv1alpha1.ImageJob) {
 		Body(body).DoRaw(context.TODO())
 
 	if err != nil {
-		log.Println("could not update imagejob status")
 		log.Println(err)
 	}
 }

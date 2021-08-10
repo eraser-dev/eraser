@@ -234,9 +234,6 @@ func removeImages(c Client, socketPath string, targetImages []string) (err error
 	// TESTING :
 	log.Println("\nAll images: ")
 	log.Println(len(allImages))
-	for _, img := range allImages {
-		log.Println(img, "\t ", idMap[img])
-	}
 
 	nonRunningNames := make(map[string]struct{}, len(allImages)-len(runningImages))
 	remove := ""
@@ -244,6 +241,7 @@ func removeImages(c Client, socketPath string, targetImages []string) (err error
 	for key := range nonRunningImages {
 		if idMap[key] != nil && len(idMap[key]) > 0 {
 			nonRunningNames[idMap[key][0]] = struct{}{}
+			// delete later, for testing
 			remove = idMap[key][0]
 		}
 	}
@@ -251,7 +249,7 @@ func removeImages(c Client, socketPath string, targetImages []string) (err error
 	// add an image to remove for testing
 	targetImages = append(targetImages, remove)
 
-	log.Println("\n\nVulnerable images:")
+	log.Println("\n\nTarget images: (1 additional added to ImageList to test remove)")
 	for _, img := range targetImages {
 		log.Println(img)
 	}
@@ -310,10 +308,6 @@ func removeImages(c Client, socketPath string, targetImages []string) (err error
 	}
 
 	log.Println("\n\nAll images following remove: ")
-	log.Println(len(allImages2))
-	for _, img := range allImages2 {
-		log.Println(img, "\t ", idMap[img])
-	}
 
 	return nil
 }
