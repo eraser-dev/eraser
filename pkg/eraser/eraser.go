@@ -308,6 +308,7 @@ func removeImages(c Client, socketPath string, targetImages []string) (err error
 	}
 
 	log.Println("\n\nAll images following remove: ")
+	log.Println(len(allImages2))
 
 	return nil
 }
