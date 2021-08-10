@@ -223,6 +223,9 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 			// transfer results from imageStatus objects to imageList
 			statusList := &eraserv1alpha1.ImageStatusList{}
 			err = r.List(ctx, statusList)
+			if err != nil {
+				log.Println(err)
+			}
 
 			var nodeResult []eraserv1alpha1.NodeResult
 
@@ -235,6 +238,9 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 
 			imageList := &eraserv1alpha1.ImageListList{}
 			err = r.List(ctx, imageList)
+			if err != nil {
+				log.Println(err)
+			}
 
 			for _, l := range imageList.Items {
 				log.Println("update ImageList")

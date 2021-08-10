@@ -46,13 +46,13 @@ type ImageJobStatus struct {
 	// number of pods that failed
 	Failed int `json:"failed"`
 
-	// number of pods that completed successfuly
+	// number of pods that completed successfully
 	Succeeded int `json:"succeeded"`
 
 	// desired number of pods
 	Desired int `json:"desired"`
 
-	// job running, succesfully completed, or failed
+	// job running, successfully completed, or failed
 	Phase JobPhase `json:"phase"`
 }
 
