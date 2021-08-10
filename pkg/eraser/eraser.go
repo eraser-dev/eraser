@@ -177,15 +177,12 @@ func updateStatus(results []eraserv1alpha1.NodeCleanUpDetail) {
 	}
 
 	// create imageStatus object
-	res, err := clientset.RESTClient().Post().
+	_, err = clientset.RESTClient().Post().
 		AbsPath("apis/eraser.sh/v1alpha1").
 		Namespace("eraser-system").
 		Name(imageStatus.Name).
 		Resource("imagestatuses").
 		Body(body).DoRaw(context.TODO())
-
-	// verify object output
-	log.Print(string(res))
 
 	if err != nil {
 		log.Println(err)
