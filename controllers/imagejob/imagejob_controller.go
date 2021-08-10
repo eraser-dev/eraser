@@ -48,10 +48,6 @@ const (
 	crio           = "cri-o"
 )
 
-var (
-	controllerLog = ctrl.Log.WithName("imagejob")
-)
-
 func Add(mgr manager.Manager) error {
 	return add(mgr, newReconciler(mgr))
 }
