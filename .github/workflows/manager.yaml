@@ -1,4 +1,4 @@
-name: Build and Push Eraser Image
+name: Manager
 
 on:
   push:
