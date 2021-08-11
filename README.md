@@ -2,6 +2,8 @@
 
 Eraser helps you remove a set of images from all Kubernetes nodes in a cluster and checks if they are non-running. Eraser is intended to be used with a scanner that will generate an [ImageList](api/v1alpha1/imagelist_types.go) holding the list of specific images to remove (ex: vulnerable, over 1 week old, non-MCR etc.)
 
+<img src="demo/demo.gif" width="80%" height="80%"/>
+
 ## How to Use
 
 To get started, build and push the eraser image:
