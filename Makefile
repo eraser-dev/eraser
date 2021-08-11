@@ -1,6 +1,6 @@
 
 # Image URL to use all building/pushing image targets
-IMG ?= ashnam/controller:latest
+IMG ?= aldaircoronel/controller:latest
 # Produce CRDs that work back to Kubernetes 1.11 (no version conversion)
 CRD_OPTIONS ?= "crd:trivialVersions=true,preserveUnknownFields=false"
 
@@ -70,9 +70,9 @@ docker-push: ## Push docker image with the manager.
 	docker push ${IMG}
 
 docker-build-eraser:
-	docker build -t ashnam/remove_images:latest . -f pkg/eraser/Dockerfile
+	sudo docker build -t aldaircoronel/remove_images:latest pkg/eraser -f pkg/eraser/Dockerfile
 docker-push-eraser:
-	docker push ashnam/remove_images:latest
+	sudo docker push aldaircoronel/remove_images:latest
 
 ##@ Deployment
 
