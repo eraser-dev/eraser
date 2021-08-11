@@ -33,11 +33,13 @@ To view the result of the ImageJob eraser pods:
 
 ## Developer Setup
 
+Developing this project requires access to a Kubernetes cluster and Go version 1.16 or later.
+
 ### Design 
 * [Design Documentation](https://docs.google.com/document/d/1Rz1bkZKZSLVMjC_w8WLASPDUjfU80tjV-XWUXZ8vq3I/edit?usp=sharing) 
 
 ### Testing
-* [Unit tests](.github/workflows/workflow.yaml) 
+* [Unit and lint tests](.github/workflows/workflow.yaml) 
 * E2E test in progress
 
 
