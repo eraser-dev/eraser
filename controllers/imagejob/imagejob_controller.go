@@ -15,10 +15,13 @@ package imagejob
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"strings"
 
 	v1 "k8s.io/api/core/v1"
+	"k8s.io/kubernetes/pkg/scheduler/framework"
+	"k8s.io/kubernetes/pkg/scheduler/framework/plugins/noderesources"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -83,6 +86,21 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	return nil
 }
 
+func checkNodeFitness(pod *v1.Pod, node *v1.Node) bool {
+	nodeInfo := framework.NewNodeInfo()
+	_ = nodeInfo.SetNode(node)
+
+	insufficientResource := noderesources.Fits(pod, nodeInfo)
+
+	if len(insufficientResource) != 0 {
+		fmt.Print(insufficientResource)
+		return false
+	}
+	// debug log
+	log.Println("\nPod fits!")
+	return true
+}
+
 //+kubebuilder:rbac:groups=eraser.sh,resources=imagejobs,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=eraser.sh,resources=imagejobs/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=eraser.sh,resources=imagejobs/finalizers,verbs=update
@@ -108,10 +126,9 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		return ctrl.Result{}, err
 	}
 
-	// map of node names and runtime
-	nodeMap := processNodes(nodes.Items)
-
-	for nodeName, runtime := range nodeMap {
+	for _, n := range nodes.Items {
+		nodeName := n.Name
+		runtime := n.Status.NodeInfo.ContainerRuntimeVersion
 		runtimeName := strings.Split(runtime, ":")[0]
 		mountPath := getMountPath(runtimeName)
 		if mountPath == "" {
@@ -151,12 +168,16 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 			ObjectMeta: metav1.ObjectMeta{Namespace: "eraser-system", Name: podName, Labels: map[string]string{"name": image.Name}},
 		}
 
-		// TODO: check if pod fits and can be scheduled on node
-		err = r.Create(ctx, pod)
-		if err != nil {
-			return ctrl.Result{}, err
+		// Check if pod fits and can be scheduled on node
+		fitness := checkNodeFitness(pod, &n)
+
+		if fitness {
+			err = r.Create(ctx, pod)
+			if err != nil {
+				return ctrl.Result{}, err
+			}
+			controllerLog.Info("created pod", "name", podName, "node", nodeName, "podType", image.Name)
 		}
-		controllerLog.Info("created pod", "name", podName, "node", nodeName, "podType", image.Name)
 
 	}
 	return ctrl.Result{}, nil
@@ -167,14 +188,6 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&eraserv1alpha1.ImageJob{}).
 		Complete(r)
-}
-
-func processNodes(nodes []v1.Node) map[string]string {
-	m := make(map[string]string, len(nodes))
-	for _, n := range nodes {
-		m[n.Name] = n.Status.NodeInfo.ContainerRuntimeVersion
-	}
-	return m
 }
 
 func getMountPath(runtimeName string) string {
