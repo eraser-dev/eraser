@@ -11,8 +11,3 @@ spec:
           - name: eraser
             image: ashnam/remove-images:latest
           restartPolicy: OnFailure
-status:
-  desired:    3
-  failed:     0
-  phase:      Completed
-  succeeded:  3
