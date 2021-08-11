@@ -127,6 +127,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	}
 
 	for _, n := range nodes.Items {
+		n := n
 		nodeName := n.Name
 		runtime := n.Status.NodeInfo.ContainerRuntimeVersion
 		runtimeName := strings.Split(runtime, ":")[0]
