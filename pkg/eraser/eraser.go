@@ -146,16 +146,7 @@ func getImageClient(ctx context.Context, socketPath string) (pb.ImageServiceClie
 	return imageClient, conn, nil
 }
 
-func updateStatus(results []eraserv1alpha1.NodeCleanUpDetail) {
-	config, err := rest.InClusterConfig()
-	if err != nil {
-		log.Fatal(err)
-	}
-	clientset, err := kubernetes.NewForConfig(config)
-	if err != nil {
-		log.Fatal(err)
-	}
-
+func updateStatus(clientset *kubernetes.Clientset, results []eraserv1alpha1.NodeCleanUpDetail) error {
 	imageStatus := eraserv1alpha1.ImageStatus{
 		TypeMeta: v1.TypeMeta{
 			APIVersion: "eraser.sh/v1alpha1",
@@ -173,24 +164,26 @@ func updateStatus(results []eraserv1alpha1.NodeCleanUpDetail) {
 
 	body, err := json.Marshal(imageStatus)
 	if err != nil {
-		log.Println(err)
+		return err
 	}
 
 	// create imageStatus object
 	_, err = clientset.RESTClient().Post().
-		AbsPath("apis/eraser.sh/v1alpha1").
-		Namespace("eraser-system").
+		AbsPath(apiPath).
+		Namespace(namespace).
 		Name(imageStatus.Name).
 		Resource("imagestatuses").
 		Body(body).DoRaw(context.TODO())
 
 	if err != nil {
-		log.Println(err)
 		log.Println("Could not create imagestatus for  node: ", os.Getenv("NODE_NAME"))
+		return err
 	}
+
+	return nil
 }
 
-func removeImages(c Client, socketPath string, targetImages []string) (err error) {
+func removeImages(clientset *kubernetes.Clientset, c Client, socketPath string, targetImages []string) (err error) {
 	backgroundContext, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
@@ -214,41 +207,25 @@ func removeImages(c Client, socketPath string, targetImages []string) (err error
 	}
 
 	runningImages := make(map[string]struct{}, len(containers))
-
 	for _, container := range containers {
 		curr := container.Image
 		runningImages[curr.GetImage()] = struct{}{}
 	}
 
+	// non-running image ids
 	nonRunningImages := make(map[string]struct{}, len(allImages)-len(runningImages))
-
 	for _, img := range allImages {
 		if _, isRunning := runningImages[img]; !isRunning {
 			nonRunningImages[img] = struct{}{}
 		}
 	}
 
-	// TESTING :
-	log.Println("\nAll images: ")
-	log.Println(len(allImages))
-
+	// non-running image names
 	nonRunningNames := make(map[string]struct{}, len(allImages)-len(runningImages))
-	remove := ""
-
 	for key := range nonRunningImages {
 		if idMap[key] != nil && len(idMap[key]) > 0 {
 			nonRunningNames[idMap[key][0]] = struct{}{}
-			// delete later, for testing
-			remove = idMap[key][0]
 		}
-	}
-
-	// add an image to remove for testing
-	targetImages = append(targetImages, remove)
-
-	log.Println("\n\nTarget images: (1 additional added to ImageList to test remove)")
-	for _, img := range targetImages {
-		log.Println(img)
 	}
 
 	var results []eraserv1alpha1.NodeCleanUpDetail
@@ -260,16 +237,17 @@ func removeImages(c Client, socketPath string, targetImages []string) (err error
 
 		if isNonRunningImages || isNonRunningNames {
 			err = c.deleteImage(backgroundContext, img)
+			log.Println("Deleting img: ", img)
 			if err != nil {
 				results = append(results, eraserv1alpha1.NodeCleanUpDetail{
 					ImageName: img,
-					Status:    "error",
+					Status:    eraserv1alpha1.Error,
 					Message:   err.Error(),
 				})
 			} else {
 				results = append(results, eraserv1alpha1.NodeCleanUpDetail{
 					ImageName: img,
-					Status:    "success",
+					Status:    eraserv1alpha1.Success,
 					Message:   "successfully removed image",
 				})
 			}
@@ -277,35 +255,20 @@ func removeImages(c Client, socketPath string, targetImages []string) (err error
 			if _, isRunning := runningImages[img]; isRunning {
 				results = append(results, eraserv1alpha1.NodeCleanUpDetail{
 					ImageName: img,
-					Status:    "error",
+					Status:    eraserv1alpha1.Error,
 					Message:   "image is running",
 				})
 			} else {
 				results = append(results, eraserv1alpha1.NodeCleanUpDetail{
 					ImageName: img,
-					Status:    "error",
+					Status:    eraserv1alpha1.Error,
 					Message:   "image not found",
 				})
 			}
 		}
 	}
 
-	updateStatus(results)
-
-	// TESTING :
-	imageTest, err := c.listImages(backgroundContext)
-	if err != nil {
-		return err
-	}
-
-	allImages2 := make([]string, 0, len(allImages))
-
-	for _, img := range imageTest {
-		allImages2 = append(allImages2, img.Id)
-	}
-
-	log.Println("\n\nAll images following remove: ")
-	log.Println(len(allImages2))
+	updateStatus(clientset, results)
 
 	return nil
 }
@@ -366,7 +329,7 @@ func main() {
 	// set target images to imagelist values
 	targetImages = result.Spec.Images
 
-	err = removeImages(client, socketPath, targetImages)
+	err = removeImages(clientset, client, socketPath, targetImages)
 
 	if err != nil {
 		log.Fatal(err)

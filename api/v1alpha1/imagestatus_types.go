@@ -17,10 +17,17 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+type RemovalStatus string
+
+const (
+	Success RemovalStatus = "Success"
+	Error   RemovalStatus = "Error"
+)
+
 type NodeCleanUpDetail struct {
-	ImageName string `json:"imageName"`
-	Status    string `json:"status"`
-	Message   string `json:"message"`
+	ImageName string        `json:"imageName"`
+	Status    RemovalStatus `json:"status"`
+	Message   string        `json:"message"`
 }
 
 // ImageStatusStatus defines the observed state of ImageStatus
