@@ -26,6 +26,7 @@ import (
 
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -242,15 +243,12 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 				})
 			}
 
-			imageList := &eraserv1alpha1.ImageListList{}
-			err = r.List(ctx, imageList)
+			imageList := &eraserv1alpha1.ImageList{}
+			err = r.Get(ctx, types.NamespacedName{Name: imageJob.Spec.ImageListName, Namespace: "eraser-system"}, imageList)
 			if err != nil {
 				return ctrl.Result{}, err
 			}
-
-			for _, l := range imageList.Items {
-				updateImageListStatus(ctx, clientset, nodeResult, l)
-			}
+			updateImageListStatus(ctx, clientset, nodeResult, *imageList)
 		}
 	}
 	return ctrl.Result{}, nil
