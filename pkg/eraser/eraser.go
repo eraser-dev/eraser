@@ -1,4 +1,4 @@
-package eraser
+package main
 
 import (
 	"context"
@@ -153,6 +153,7 @@ func removeImages(c Client, socketPath string, targetImages []string) (err error
 	}
 
 	allImages := make([]string, 0, len(images))
+
 	// map with key: sha id, value: repoTag list (contains full name of image)
 	idMap := make(map[string][]string)
 
@@ -167,43 +168,25 @@ func removeImages(c Client, socketPath string, targetImages []string) (err error
 	}
 
 	runningImages := make(map[string]struct{}, len(containers))
-
 	for _, container := range containers {
 		curr := container.Image
 		runningImages[curr.GetImage()] = struct{}{}
 	}
 
+	// map for non-runing images by id
 	nonRunningImages := make(map[string]struct{}, len(allImages)-len(runningImages))
-
 	for _, img := range allImages {
 		if _, isRunning := runningImages[img]; !isRunning {
 			nonRunningImages[img] = struct{}{}
 		}
 	}
 
-	// TESTING :
-	log.Println("\nAll images: ")
-	log.Println(len(allImages))
-	for _, img := range allImages {
-		log.Println(img, "\t ", idMap[img])
-	}
-
+	// map for non-running imags by name
 	nonRunningNames := make(map[string]struct{}, len(allImages)-len(runningImages))
-	remove := ""
-
 	for key := range nonRunningImages {
 		if idMap[key] != nil && len(idMap[key]) > 0 {
 			nonRunningNames[idMap[key][0]] = struct{}{}
-			remove = idMap[key][0]
 		}
-	}
-
-	// passing in a nonrunning image just for testing
-	targetImages = append(targetImages, remove)
-
-	log.Println("\n\nTarget images:")
-	for _, img := range targetImages {
-		log.Println(img)
 	}
 
 	// remove target images
@@ -211,6 +194,7 @@ func removeImages(c Client, socketPath string, targetImages []string) (err error
 
 		// image passed in as id
 		if _, isNonRunning := nonRunningImages[img]; isNonRunning {
+			log.Println("Deleting img: ", img)
 			err = c.deleteImage(backgroundContext, img)
 			if err != nil {
 				return err
@@ -220,29 +204,12 @@ func removeImages(c Client, socketPath string, targetImages []string) (err error
 		// image passed in as name
 		if _, isNonRunning := nonRunningNames[img]; isNonRunning {
 			err = c.deleteImage(backgroundContext, img)
+			log.Println("Deleting img: ", img)
 			if err != nil {
 				return err
 			}
 		}
 
-	}
-
-	// TESTING :
-	imageTest, err := c.listImages(backgroundContext)
-	if err != nil {
-		return err
-	}
-
-	allImages2 := make([]string, 0, len(allImages))
-
-	for _, img := range imageTest {
-		allImages2 = append(allImages2, img.Id)
-	}
-
-	log.Println("\n\nAll images following remove: ")
-	log.Println(len(allImages2))
-	for _, img := range allImages2 {
-		log.Println(img, "\t ", idMap[img])
 	}
 
 	return nil
@@ -301,7 +268,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	// set vulnerable images to imagelist values
+	// set target images to imagelist values
 	targetImages = result.Spec.Images
 
 	err = removeImages(client, socketPath, targetImages)
