@@ -46,6 +46,8 @@ const (
 	docker         = "docker"
 	containerd     = "containerd"
 	crio           = "cri-o"
+	apiPath        = "apis/eraser.sh/v1alpha1"
+	namespace      = "eraser-system"
 )
 
 func Add(mgr manager.Manager) error {
@@ -109,12 +111,22 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.8.3/pkg/reconcile
 func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+	config, err := rest.InClusterConfig()
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
+	clientset, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
 	imageJob := &eraserv1alpha1.ImageJob{}
-	err := r.Get(ctx, req.NamespacedName, imageJob)
+	err = r.Get(ctx, req.NamespacedName, imageJob)
 	if err != nil {
 		imageJob.Status.Phase = eraserv1alpha1.PhaseFailed
-		updateJobStatus(*imageJob)
-		log.Println(err)
+		updateJobStatus(clientset, *imageJob, ctx)
+		return ctrl.Result{}, err
 	}
 
 	if imageJob.Status.Phase == "" {
@@ -131,7 +143,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 			Phase:     eraserv1alpha1.PhaseRunning,
 		}
 
-		updateJobStatus(*imageJob)
+		updateJobStatus(clientset, *imageJob, ctx)
 
 		// map of node names and runtime
 		nodeMap := processNodes(nodes.Items)
@@ -187,7 +199,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 			Namespace:     "eraser-system",
 			LabelSelector: labels.SelectorFromSet(map[string]string{"name": imageJob.Spec.JobTemplate.Spec.Containers[0].Name})})
 		if err != nil {
-			log.Println(err)
+			return ctrl.Result{}, err
 		}
 
 		failed := 0
@@ -211,14 +223,14 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 				Phase:     eraserv1alpha1.PhaseCompleted,
 			}
 
-			updateJobStatus(*imageJob)
+			updateJobStatus(clientset, *imageJob, ctx)
 
 			// transfer results from imageStatus objects to imageList
 			statusList := &eraserv1alpha1.ImageStatusList{}
 			err = r.List(ctx, statusList, &client.ListOptions{
 				Namespace: "eraser-system"})
 			if err != nil {
-				log.Println(err)
+				return ctrl.Result{}, err
 			}
 
 			var nodeResult []eraserv1alpha1.NodeResult
@@ -233,12 +245,11 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 			imageList := &eraserv1alpha1.ImageListList{}
 			err = r.List(ctx, imageList)
 			if err != nil {
-				log.Println(err)
+				return ctrl.Result{}, err
 			}
 
 			for _, l := range imageList.Items {
-				log.Println("update ImageList")
-				updateImageListStatus(nodeResult, l)
+				updateImageListStatus(clientset, nodeResult, l, ctx)
 			}
 		}
 	}
@@ -282,19 +293,7 @@ func podsComplete(lst []v1.Pod) bool {
 	return true
 }
 
-func updateImageListStatus(nodeResult []eraserv1alpha1.NodeResult, imageList eraserv1alpha1.ImageList) {
-	config, err := rest.InClusterConfig()
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	clientset, err := kubernetes.NewForConfig(config)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	log.Println(nodeResult)
-
+func updateImageListStatus(clientset *kubernetes.Clientset, nodeResult []eraserv1alpha1.NodeResult, imageList eraserv1alpha1.ImageList, ctx context.Context) error {
 	imageList.Status = eraserv1alpha1.ImageListStatus{
 		Timestamp: &metav1.Time{Time: time.Now()},
 		Node:      nodeResult,
@@ -302,49 +301,43 @@ func updateImageListStatus(nodeResult []eraserv1alpha1.NodeResult, imageList era
 
 	body, err := json.Marshal(imageList)
 	if err != nil {
-		log.Println(err)
+		return err
 	}
 
 	// update imagelist object
 	_, err = clientset.RESTClient().Put().
-		AbsPath("apis/eraser.sh/v1alpha1").
-		Namespace("eraser-system").
+		AbsPath(apiPath).
+		Namespace(namespace).
 		Name(imageList.Name).
 		Resource("imagelists").
 		SubResource("status").
-		Body(body).DoRaw(context.TODO())
+		Body(body).DoRaw(ctx)
 
 	if err != nil {
-		log.Println(err)
+		return err
 	}
+
+	return nil
 }
 
-func updateJobStatus(imageJob eraserv1alpha1.ImageJob) {
-	config, err := rest.InClusterConfig()
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	clientset, err := kubernetes.NewForConfig(config)
-	if err != nil {
-		log.Fatal(err)
-	}
-
+func updateJobStatus(clientset *kubernetes.Clientset, imageJob eraserv1alpha1.ImageJob, ctx context.Context) error {
 	body, err := json.Marshal(imageJob)
 	if err != nil {
-		log.Println(err)
+		return err
 	}
 
 	// update imageJob object
 	_, err = clientset.RESTClient().Put().
-		AbsPath("apis/eraser.sh/v1alpha1").
-		Namespace("eraser-system").
+		AbsPath(apiPath).
+		Namespace(namespace).
 		Name(imageJob.Name).
 		Resource("imagejobs").
 		SubResource("status").
-		Body(body).DoRaw(context.TODO())
+		Body(body).DoRaw(ctx)
 
 	if err != nil {
-		log.Println(err)
+		return err
 	}
+
+	return nil
 }
