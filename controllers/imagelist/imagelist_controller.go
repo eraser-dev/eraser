@@ -15,7 +15,6 @@ package imagelist
 
 import (
 	"context"
-	"log"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -75,7 +74,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	imageList := &eraserv1alpha1.ImageList{}
 	err := r.Get(ctx, req.NamespacedName, imageList)
 	if err != nil {
-		log.Println(err)
+		return ctrl.Result{}, err
 	}
 
 	// Check to make sure reconcile isn't from updating ImageStatus
