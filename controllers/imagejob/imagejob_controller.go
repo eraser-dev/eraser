@@ -125,7 +125,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	err = r.Get(ctx, req.NamespacedName, imageJob)
 	if err != nil {
 		imageJob.Status.Phase = eraserv1alpha1.PhaseFailed
-		updateJobStatus(clientset, *imageJob, ctx)
+		updateJobStatus(ctx, clientset, *imageJob)
 		return ctrl.Result{}, err
 	}
 
@@ -143,7 +143,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 			Phase:     eraserv1alpha1.PhaseRunning,
 		}
 
-		updateJobStatus(clientset, *imageJob, ctx)
+		updateJobStatus(ctx, clientset, *imageJob)
 
 		// map of node names and runtime
 		nodeMap := processNodes(nodes.Items)
@@ -223,7 +223,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 				Phase:     eraserv1alpha1.PhaseCompleted,
 			}
 
-			updateJobStatus(clientset, *imageJob, ctx)
+			updateJobStatus(ctx, clientset, *imageJob)
 
 			// transfer results from imageStatus objects to imageList
 			statusList := &eraserv1alpha1.ImageStatusList{}
@@ -249,7 +249,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 			}
 
 			for _, l := range imageList.Items {
-				updateImageListStatus(clientset, nodeResult, l, ctx)
+				updateImageListStatus(ctx, clientset, nodeResult, l)
 			}
 		}
 	}
@@ -293,7 +293,7 @@ func podsComplete(lst []v1.Pod) bool {
 	return true
 }
 
-func updateImageListStatus(clientset *kubernetes.Clientset, nodeResult []eraserv1alpha1.NodeResult, imageList eraserv1alpha1.ImageList, ctx context.Context) error {
+func updateImageListStatus(ctx context.Context, clientset *kubernetes.Clientset, nodeResult []eraserv1alpha1.NodeResult, imageList eraserv1alpha1.ImageList) error {
 	imageList.Status = eraserv1alpha1.ImageListStatus{
 		Timestamp: &metav1.Time{Time: time.Now()},
 		Node:      nodeResult,
@@ -320,7 +320,7 @@ func updateImageListStatus(clientset *kubernetes.Clientset, nodeResult []eraserv
 	return nil
 }
 
-func updateJobStatus(clientset *kubernetes.Clientset, imageJob eraserv1alpha1.ImageJob, ctx context.Context) error {
+func updateJobStatus(ctx context.Context, clientset *kubernetes.Clientset, imageJob eraserv1alpha1.ImageJob) error {
 	body, err := json.Marshal(imageJob)
 	if err != nil {
 		return err
