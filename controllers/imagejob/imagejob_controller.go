@@ -197,7 +197,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		// get eraser pods
 		podList := &v1.PodList{}
 		err := r.List(ctx, podList, &client.ListOptions{
-			Namespace:     "eraser-system",
+			Namespace:     namespace,
 			LabelSelector: labels.SelectorFromSet(map[string]string{"name": imageJob.Spec.JobTemplate.Spec.Containers[0].Name})})
 		if err != nil {
 			return ctrl.Result{}, err
@@ -229,7 +229,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 			// transfer results from imageStatus objects to imageList
 			statusList := &eraserv1alpha1.ImageStatusList{}
 			err = r.List(ctx, statusList, &client.ListOptions{
-				Namespace: "eraser-system"})
+				Namespace: namespace})
 			if err != nil {
 				return ctrl.Result{}, err
 			}

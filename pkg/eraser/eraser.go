@@ -146,7 +146,7 @@ func getImageClient(ctx context.Context, socketPath string) (pb.ImageServiceClie
 	return imageClient, conn, nil
 }
 
-func updateStatus(clientset *kubernetes.Clientset, results []eraserv1alpha1.NodeCleanUpDetail) error {
+func updateStatus(ctx context.Context, clientset *kubernetes.Clientset, results []eraserv1alpha1.NodeCleanUpDetail) error {
 	imageStatus := eraserv1alpha1.ImageStatus{
 		TypeMeta: v1.TypeMeta{
 			APIVersion: "eraser.sh/v1alpha1",
@@ -173,7 +173,7 @@ func updateStatus(clientset *kubernetes.Clientset, results []eraserv1alpha1.Node
 		Namespace(namespace).
 		Name(imageStatus.Name).
 		Resource("imagestatuses").
-		Body(body).DoRaw(context.TODO())
+		Body(body).DoRaw(ctx)
 
 	if err != nil {
 		log.Println("Could not create imagestatus for  node: ", os.Getenv("NODE_NAME"))
@@ -268,7 +268,7 @@ func removeImages(clientset *kubernetes.Clientset, c Client, socketPath string, 
 		}
 	}
 
-	updateStatus(clientset, results)
+	updateStatus(backgroundContext, clientset, results)
 
 	return nil
 }
