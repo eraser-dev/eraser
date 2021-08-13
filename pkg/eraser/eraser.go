@@ -183,6 +183,17 @@ func updateStatus(ctx context.Context, clientset *kubernetes.Clientset, results 
 	return nil
 }
 
+func mapContainsValue(idMap map[string][]string, img string) bool {
+	for _, v := range idMap {
+		if len(v) > 0 {
+			if v[0] == img {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 func removeImages(clientset *kubernetes.Clientset, c Client, socketPath string, targetImages []string) (err error) {
 	backgroundContext, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
@@ -199,16 +210,14 @@ func removeImages(clientset *kubernetes.Clientset, c Client, socketPath string, 
 	for _, img := range images {
 		allImages = append(allImages, img.Id)
 		idMap[img.Id] = img.RepoTags
-		log.Println(img.Id, " ", idMap[img.Id])
 	}
-
-	log.Println("Number of images before remove: ", len(allImages))
 
 	containers, err := c.listContainers(backgroundContext)
 	if err != nil {
 		return err
 	}
 
+	// holds ids of running images
 	runningImages := make(map[string]struct{}, len(containers))
 	for _, container := range containers {
 		curr := container.Image
@@ -255,7 +264,7 @@ func removeImages(clientset *kubernetes.Clientset, c Client, socketPath string, 
 				})
 			}
 		} else {
-			_, isRunningName := runningImages[img]
+			isRunningName := mapContainsValue(idMap, img)
 			_, isRunningId := runningImages[img]
 			if isRunningName || isRunningId {
 				results = append(results, eraserv1alpha1.NodeCleanUpDetail{
@@ -274,20 +283,6 @@ func removeImages(clientset *kubernetes.Clientset, c Client, socketPath string, 
 	}
 
 	updateStatus(backgroundContext, clientset, results)
-
-	images2, err := c.listImages(backgroundContext)
-	if err != nil {
-		return err
-	}
-
-	allImages2 := make([]string, 0, len(images2))
-
-	for _, img := range images2 {
-		log.Println(img.Id, " ", idMap[img.Id])
-		allImages2 = append(allImages2, img.Id)
-	}
-
-	log.Println("Number of images following remove: ", len(allImages2))
 
 	return nil
 }
