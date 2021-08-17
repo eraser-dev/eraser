@@ -19,8 +19,6 @@ import (
 	"strings"
 
 	v1 "k8s.io/api/core/v1"
-	"k8s.io/kubernetes/pkg/scheduler/framework"
-	"k8s.io/kubernetes/pkg/scheduler/framework/plugins/noderesources"
 
 	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -86,17 +84,6 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	return nil
 }
 
-func checkNodeFitness(pod *v1.Pod, node *v1.Node) bool {
-	nodeInfo := framework.NewNodeInfo()
-	_ = nodeInfo.SetNode(node)
-
-	insufficientResource := noderesources.Fits(pod, nodeInfo)
-
-	log.Println("Pod info: ", insufficientResource)
-
-	return len(insufficientResource) == 0
-}
-
 //+kubebuilder:rbac:groups=eraser.sh,resources=imagejobs,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=eraser.sh,resources=imagejobs/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=eraser.sh,resources=imagejobs/finalizers,verbs=update
@@ -149,12 +136,12 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 			ImagePullPolicy: givenImage.ImagePullPolicy,
 			Resources: v1.ResourceRequirements{
 				Requests: v1.ResourceList{
-					"cpu":    resource.MustParse("10"),
-					"memory": resource.MustParse("1012847608Ki"),
+					"cpu":    resource.MustParse("10m"),
+					"memory": resource.MustParse("256Mi"),
 				},
 				Limits: v1.ResourceList{
-					"cpu":    resource.MustParse("20"),
-					"memory": resource.MustParse("2012847608Ki"),
+					"cpu":    resource.MustParse("20m"),
+					"memory": resource.MustParse("512Mi"),
 				},
 			},
 		}
@@ -175,16 +162,11 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 			ObjectMeta: metav1.ObjectMeta{Namespace: "eraser-system", Name: podName, Labels: map[string]string{"name": image.Name}},
 		}
 
-		// Check if pod fits and can be scheduled on node
-		fitness := checkNodeFitness(pod, &n)
-
-		if fitness {
-			err = r.Create(ctx, pod)
-			if err != nil {
-				return ctrl.Result{}, err
-			}
-			controllerLog.Info("created pod", "name", podName, "node", nodeName, "podType", image.Name)
+		err = r.Create(ctx, pod)
+		if err != nil {
+			return ctrl.Result{}, err
 		}
+		controllerLog.Info("created pod", "name", podName, "node", nodeName, "podType", image.Name)
 
 	}
 	return ctrl.Result{}, nil
