@@ -11,6 +11,14 @@ else
 GOBIN=$(shell go env GOBIN)
 endif
 
+ifdef CACHE_TO
+_CACHE_TO := --cache-to $(CACHE_TO)
+endif
+
+ifdef CACHE_FROM
+_CACHE_FROM := --cache-from $(CACHE_FROM)
+endif
+
 # Setting SHELL to bash allows bash commands to be executed by recipes.
 # This is a requirement for 'setup-envtest.sh' in the test target.
 # Options are set to exit when a recipe line exits non-zero or a piped command fails.
@@ -64,15 +72,15 @@ run: manifests generate fmt vet ## Run a controller from your host.
 	go run ./main.go
 
 docker-build: test ## Build docker image with the manager.
-	docker build -t ${IMG} .
+	docker buildx build $(_CACHE_FROM) $(_CACHE_TO) -t ${IMG} .
 
 docker-push: ## Push docker image with the manager.
 	docker push ${IMG}
 
 docker-build-eraser:
-	sudo docker build -t aldaircoronel/remove_images:latest pkg/eraser -f pkg/eraser/Dockerfile
+  docker buildx build $(_CACHE_FROM) $(_CACHE_TO) -t aldaircoronel/remove_images:latest . -f pkg/eraser/Dockerfile
 docker-push-eraser:
-	sudo docker push aldaircoronel/remove_images:latest
+	docker push aldaircoronel/remove_images:latest
 
 ##@ Deployment
 
