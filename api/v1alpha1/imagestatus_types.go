@@ -17,6 +17,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+// RemovalStatus defines the status of an image cleanup operation in a node.
 type RemovalStatus string
 
 const (

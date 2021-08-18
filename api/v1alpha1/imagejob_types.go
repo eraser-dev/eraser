@@ -31,14 +31,13 @@ type ImageJobSpec struct {
 	ImageListName string             `json:"imageListName"`
 }
 
+// JobPhase defines the phase of an ImageJob status
 type JobPhase string
 
 const (
-	PhaseRunning JobPhase = "Running"
-
+	PhaseRunning   JobPhase = "Running"
 	PhaseCompleted JobPhase = "Completed"
-
-	PhaseFailed JobPhase = "Failed"
+	PhaseFailed    JobPhase = "Failed"
 )
 
 // ImageJobStatus defines the observed state of ImageJob
