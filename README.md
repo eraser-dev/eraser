@@ -1,47 +1,31 @@
 # Eraser: Cleaning up Images from Kubernetes Nodes
 
-Eraser helps you remove a set of images from all Kubernetes nodes in a cluster and checks if they are non-running. Eraser is intended to be used with a scanner that will generate an [ImageList](api/v1alpha1/imagelist_types.go) holding the list of specific images to remove (ex: vulnerable, over 1 week old, non-MCR etc.)
+Eraser helps you remove a set of images from all Kubernetes nodes in a cluster and checks if they are non-running. Eraser is intended to be used with a scanner that will generate an [ImageList](api/v1alpha1/imagelist_types.go) holding the list of specific images to remove (e.g., vulnerable, stale, non-approved registries)
 
-<img src="demo/demo.gif" width="80%" height="80%"/>
+## Design 
+* [Design Documentation](https://docs.google.com/document/d/1Rz1bkZKZSLVMjC_w8WLASPDUjfU80tjV-XWUXZ8vq3I/edit?usp=sharing) 
 
-## How to Use
+## Getting started
 
-To get started, build and push the eraser image:
-* make docker-build-eraser
-* make docker-push-eraser
+Create an [ImageList](config/samples/eraser_v1alpha1_imagelist.yaml) and specify the images you would like to remove manually. (As the project develops, this will change to use scanner)
 
-Then, in your cluster, generate the [CRDs](api/v1alpha1) and [controllers](controllers):
-* make generate manifests
-* make deploly
-* make docker-build
-* make docker-push
-
-Next, create an [ImageList](api/v1alpha1/imagelist_types.go) and specify the images you would like to remove manually. (As the project develops, this will change to use scanner)
-* kubectl apply -f config/samples/[eraser_v1alpha1_imagelist.yaml](config/samples/eraser_v1alpha1_imagelist.yaml) --namespace="eraser-system"
+* `kubectl apply -f config/samples/eraser_v1alpha1_imagelist.yaml --namespace=eraser-system`
 
 This should have triggered an [ImageJob](api/v1alpha1/imagejob_types.go) that will deploy [eraser](pkg/eraser/eraser.go) pods on every node to perform the removal given the list of images. 
 
 To view the result of the removal:
 * describe ImageList CR and look at status field:
-    * kubectl describe ImageList -n eraser-system imagelist_sample
+    * `kubectl describe ImageList -n eraser-system imagelist_sample`
 
 To view the result of the ImageJob eraser pods:
 * find name of ImageJob: 
-    * kubectl get ImageJob -n eraser-system
+    * `kubectl get ImageJob -n eraser-system`
 * describe ImageJob CR and look at status field:
-    * kubectl describe ImageJob -n eraser-system [name of ImageJob]
+    * `kubectl describe ImageJob -n eraser-system [name of ImageJob]`
 
 ## Developer Setup
 
 Developing this project requires access to a Kubernetes cluster and Go version 1.16 or later.
-
-### Design 
-* [Design Documentation](https://docs.google.com/document/d/1Rz1bkZKZSLVMjC_w8WLASPDUjfU80tjV-XWUXZ8vq3I/edit?usp=sharing) 
-
-### Testing
-* [Unit and lint tests](.github/workflows/workflow.yaml) 
-* E2E test in progress
-
 
 ## Contributing
 
