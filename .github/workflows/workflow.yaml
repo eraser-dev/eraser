@@ -66,6 +66,6 @@ jobs:
             ~/.cache/go-build
       - uses: crazy-max/ghaction-github-runtime@v1
       - name: Build main
-        run: make docker-build CACHE_FROM=type=gha,scope=eraser-manager CACHE_TO=type=gha,scope=eraser-manager,mode=max
+        run: make docker-build CACHE_FROM=type=gha,scope=eraser-manager CACHE_TO=type=gha,scope=eraser-manager
       - name: Build eraser
-        run: make docker-build-eraser CACHE_FROM=type=gha,scope=eraser-node CACHE_TO=type=gha,scope=eraser-node,mode=max
+        run: make docker-build-eraser CACHE_FROM=type=gha,scope=eraser-node CACHE_TO=type=gha,scope=eraser-node
