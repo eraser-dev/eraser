@@ -22,7 +22,6 @@ import (
 	"k8s.io/kubernetes/pkg/scheduler/framework"
 	"k8s.io/kubernetes/pkg/scheduler/framework/plugins/noderesources"
 
-	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -92,9 +91,13 @@ func checkNodeFitness(pod *v1.Pod, node *v1.Node) bool {
 
 	insufficientResource := noderesources.Fits(pod, nodeInfo)
 
-	log.Println("Pod info: ", insufficientResource)
+	if len(insufficientResource) != 0 {
+		log.Println("Pod does not fit: ", insufficientResource)
+		return false
+	}
 
-	return len(insufficientResource) == 0
+	log.Println("Pod fits!")
+	return true
 }
 
 //+kubebuilder:rbac:groups=eraser.sh,resources=imagejobs,verbs=get;list;watch;create;update;patch;delete
@@ -147,16 +150,6 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 			Image:           givenImage.Image,
 			Name:            givenImage.Name,
 			ImagePullPolicy: givenImage.ImagePullPolicy,
-			Resources: v1.ResourceRequirements{
-				Requests: v1.ResourceList{
-					"cpu":    resource.MustParse("10"),
-					"memory": resource.MustParse("1012847608Ki"),
-				},
-				Limits: v1.ResourceList{
-					"cpu":    resource.MustParse("20"),
-					"memory": resource.MustParse("2012847608Ki"),
-				},
-			},
 		}
 
 		givenPodSpec := imageJob.Spec.JobTemplate.Spec
