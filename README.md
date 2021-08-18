@@ -1,13 +1,13 @@
 # Eraser: Cleaning up Images from Kubernetes Nodes
 
-Eraser helps you remove a set of images from all Kubernetes nodes in a cluster and checks if they are non-running. Eraser is intended to be used with a scanner that will generate an [ImageList](api/v1alpha1/imagelist_types.go) holding the list of specific images to remove (e.g., vulnerable, stale, non-approved registries)
+Eraser helps Kubernetes admins remove a list of non-running images from all Kubernetes nodes in a cluster.
 
 ## Design 
 * [Design Documentation](https://docs.google.com/document/d/1Rz1bkZKZSLVMjC_w8WLASPDUjfU80tjV-XWUXZ8vq3I/edit?usp=sharing) 
 
 ## Getting started
 
-Create an [ImageList](config/samples/eraser_v1alpha1_imagelist.yaml) and specify the images you would like to remove manually. (As the project develops, this will change to use scanner)
+Create an [ImageList](config/samples/eraser_v1alpha1_imagelist.yaml) and specify the images you would like to remove manually.
 
 * `kubectl apply -f config/samples/eraser_v1alpha1_imagelist.yaml --namespace=eraser-system`
 
