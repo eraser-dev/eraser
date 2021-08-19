@@ -204,6 +204,7 @@ func removeImages(clientset *kubernetes.Clientset, c Client, socketPath string, 
 	}
 
 	allImages := make([]string, 0, len(images))
+
 	// map with key: sha id, value: repoTag list (contains full name of image)
 	idMap := make(map[string][]string)
 
@@ -224,7 +225,7 @@ func removeImages(clientset *kubernetes.Clientset, c Client, socketPath string, 
 		runningImages[curr.GetImage()] = struct{}{}
 	}
 
-	// non-running image ids
+	// map for non-running images by id
 	nonRunningImages := make(map[string]struct{}, len(allImages)-len(runningImages))
 	for _, img := range allImages {
 		if _, isRunning := runningImages[img]; !isRunning {
@@ -232,7 +233,7 @@ func removeImages(clientset *kubernetes.Clientset, c Client, socketPath string, 
 		}
 	}
 
-	// non-running image names
+	// map for non-running imags by name
 	nonRunningNames := make(map[string]struct{}, len(allImages)-len(runningImages))
 	for key := range nonRunningImages {
 		if idMap[key] != nil && len(idMap[key]) > 0 {
