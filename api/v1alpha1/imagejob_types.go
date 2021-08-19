@@ -31,10 +31,28 @@ type ImageJobSpec struct {
 	ImageListName string             `json:"imageListName"`
 }
 
+// JobPhase defines the phase of an ImageJob status
+type JobPhase string
+
+const (
+	PhaseRunning   JobPhase = "Running"
+	PhaseCompleted JobPhase = "Completed"
+	PhaseFailed    JobPhase = "Failed"
+)
+
 // ImageJobStatus defines the observed state of ImageJob
 type ImageJobStatus struct {
-	// Specifies if job was completed, and how many jobs succeeded and failed
-	Message string `json:"message"`
+	// number of pods that failed
+	Failed int `json:"failed"`
+
+	// number of pods that completed successfully
+	Succeeded int `json:"succeeded"`
+
+	// desired number of pods
+	Desired int `json:"desired"`
+
+	// job running, successfully completed, or failed
+	Phase JobPhase `json:"phase"`
 }
 
 //+kubebuilder:object:root=true

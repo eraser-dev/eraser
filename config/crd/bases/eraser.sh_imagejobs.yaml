@@ -6700,12 +6700,23 @@ spec:
           status:
             description: ImageJobStatus defines the observed state of ImageJob
             properties:
-              message:
-                description: Specifies if job was completed, and how many jobs succeeded
-                  and failed
+              desired:
+                description: desired number of pods
+                type: integer
+              failed:
+                description: number of pods that failed
+                type: integer
+              phase:
+                description: job running, successfully completed, or failed
                 type: string
+              succeeded:
+                description: number of pods that completed successfully
+                type: integer
             required:
-            - message
+            - desired
+            - failed
+            - phase
+            - succeeded
             type: object
         type: object
     served: true
