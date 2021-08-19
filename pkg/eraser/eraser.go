@@ -24,7 +24,6 @@ const (
 	// unixProtocol is the network protocol of unix socket.
 	unixProtocol = "unix"
 	apiPath      = "apis/eraser.sh/v1alpha1"
-	namespace    = "eraser-system"
 )
 
 var (
@@ -291,7 +290,6 @@ func main() {
 	result := eraserv1alpha1.ImageList{}
 	err = clientset.RESTClient().Get().
 		AbsPath(apiPath).
-		Namespace(namespace).
 		Resource("imagelists").
 		Name(*imageListPtr).
 		Do(context.Background()).Into(&result)
