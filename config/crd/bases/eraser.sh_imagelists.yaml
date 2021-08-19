@@ -54,33 +54,17 @@ spec:
                     images:
                       description: list of images searched and their results
                       items:
-                        description: ImageStatusStatus defines the observed state
-                          of ImageStatus
                         properties:
-                          node:
-                            description: Specifies on which node image removal took
-                              place
+                          imageName:
                             type: string
-                          results:
-                            description: List of NodeCleanUpDetail that specify image
-                              name, status of removal, and message
-                            items:
-                              properties:
-                                imageName:
-                                  type: string
-                                message:
-                                  type: string
-                                status:
-                                  type: string
-                              required:
-                              - imageName
-                              - message
-                              - status
-                              type: object
-                            type: array
+                          message:
+                            type: string
+                          status:
+                            type: string
                         required:
-                        - node
-                        - results
+                        - imageName
+                        - message
+                        - status
                         type: object
                       type: array
                     name:
