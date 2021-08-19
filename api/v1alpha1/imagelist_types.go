@@ -41,7 +41,7 @@ type ImageListStatus struct {
 
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
-
+//+kubebuilder:resource:scope="Cluster"
 // ImageList is the Schema for the imagelists API
 type ImageList struct {
 	metav1.TypeMeta   `json:",inline"`
