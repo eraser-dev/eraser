@@ -181,13 +181,6 @@ func removeImages(c Client, socketPath string, targetImages []string) (err error
 		}
 	}
 
-	// TESTING :
-	log.Println("\nAll images: ")
-	log.Println(len(allImages))
-	for _, img := range allImages {
-		log.Println(img, "\t ", idMap[img])
-	}
-
 	nonRunningNames := make(map[string]struct{}, len(allImages)-len(runningImages))
 	remove := ""
 
@@ -200,11 +193,6 @@ func removeImages(c Client, socketPath string, targetImages []string) (err error
 
 	// passing in a nonrunning image just for testing
 	targetImages = append(targetImages, remove)
-
-	log.Println("\n\nTarget images:")
-	for _, img := range targetImages {
-		log.Println(img)
-	}
 
 	// remove target images
 	for _, img := range targetImages {
@@ -225,24 +213,6 @@ func removeImages(c Client, socketPath string, targetImages []string) (err error
 			}
 		}
 
-	}
-
-	// TESTING :
-	imageTest, err := c.listImages(backgroundContext)
-	if err != nil {
-		return err
-	}
-
-	allImages2 := make([]string, 0, len(allImages))
-
-	for _, img := range imageTest {
-		allImages2 = append(allImages2, img.Id)
-	}
-
-	log.Println("\n\nAll images following remove: ")
-	log.Println(len(allImages2))
-	for _, img := range allImages2 {
-		log.Println(img, "\t ", idMap[img])
 	}
 
 	return nil
