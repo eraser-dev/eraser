@@ -27,7 +27,6 @@ const (
 	// unixProtocol is the network protocol of unix socket.
 	unixProtocol = "unix"
 	apiPath      = "apis/eraser.sh/v1alpha1"
-	namespace    = "eraser-system"
 )
 
 var (
@@ -153,8 +152,7 @@ func updateStatus(ctx context.Context, clientset *kubernetes.Clientset, results 
 			Kind:       "ImageStatus",
 		},
 		ObjectMeta: v1.ObjectMeta{
-			Name:      "imagestatus-" + os.Getenv("NODE_NAME"),
-			Namespace: "eraser-system",
+			Name: "imagestatus-" + os.Getenv("NODE_NAME"),
 		},
 		Result: eraserv1alpha1.NodeCleanUpResult{
 			Node:    os.Getenv("NODE_NAME"),
