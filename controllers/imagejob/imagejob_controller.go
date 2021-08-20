@@ -96,7 +96,6 @@ func checkNodeFitness(pod *v1.Pod, node *v1.Node) bool {
 		return false
 	}
 
-	log.Println("Pod fits!")
 	return true
 }
 
