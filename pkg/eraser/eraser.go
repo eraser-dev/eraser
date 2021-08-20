@@ -168,7 +168,6 @@ func updateStatus(ctx context.Context, clientset *kubernetes.Clientset, results 
 	// create imageStatus object
 	_, err = clientset.RESTClient().Post().
 		AbsPath(apiPath).
-		Namespace(namespace).
 		Name(imageStatus.Name).
 		Resource("imagestatuses").
 		Body(body).DoRaw(ctx)
@@ -329,7 +328,6 @@ func main() {
 	result := eraserv1alpha1.ImageList{}
 	err = clientset.RESTClient().Get().
 		AbsPath(apiPath).
-		Namespace(namespace).
 		Resource("imagelists").
 		Name(*imageListPtr).
 		Do(context.Background()).Into(&result)
