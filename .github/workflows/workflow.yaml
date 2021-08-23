@@ -79,4 +79,4 @@ jobs:
         with:
           cluster_name: "e2e-cluster"
           config: ../kind-config.yaml
-        run: kubectl get pod -A
+      - run: kubectl get pod -A
