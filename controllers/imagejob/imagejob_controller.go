@@ -102,7 +102,7 @@ func checkNodeFitness(pod *v1.Pod, node *v1.Node) bool {
 	insufficientResource := noderesources.Fits(pod, nodeInfo)
 
 	if len(insufficientResource) != 0 {
-		controllerLog.Info("Pod does not fit: ", insufficientResource)
+		log.Println("Pod does not fit: ", insufficientResource)
 		return false
 	}
 
