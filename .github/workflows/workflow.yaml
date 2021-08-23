@@ -78,5 +78,5 @@ jobs:
         uses: helm/kind-action@v1.2.0
         with:
           cluster_name: "e2e-cluster"
-          config: ../kind-config.yaml
+          config: ../../kind-config.yaml
       - run: kubectl get pod -A
