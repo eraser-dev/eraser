@@ -24,6 +24,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 
+	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -146,10 +147,10 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 
 		updateJobStatus(ctx, clientset, *imageJob)
 
-		// map of node names and runtime
-		nodeMap := processNodes(nodes.Items)
-
-		for nodeName, runtime := range nodeMap {
+		for _, n := range nodes.Items {
+			n := n
+			nodeName := n.Name
+			runtime := n.Status.NodeInfo.ContainerRuntimeVersion
 			runtimeName := strings.Split(runtime, ":")[0]
 			mountPath := getMountPath(runtimeName)
 			if mountPath == "" {
@@ -165,6 +166,16 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 				Name:            givenImage.Name,
 				ImagePullPolicy: givenImage.ImagePullPolicy,
 				Env:             []v1.EnvVar{{Name: "NODE_NAME", ValueFrom: &v1.EnvVarSource{FieldRef: &v1.ObjectFieldSelector{FieldPath: "spec.nodeName"}}}},
+				Resources: v1.ResourceRequirements{
+					Requests: v1.ResourceList{
+						"cpu":    resource.MustParse("10m"),
+						"memory": resource.MustParse("256Mi"),
+					},
+					Limits: v1.ResourceList{
+						"cpu":    resource.MustParse("20m"),
+						"memory": resource.MustParse("512Mi"),
+					},
+				},
 			}
 
 			givenPodSpec := imageJob.Spec.JobTemplate.Spec
@@ -228,7 +239,8 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 
 			// transfer results from imageStatus objects to imageList
 			statusList := &eraserv1alpha1.ImageStatusList{}
-			err = r.List(ctx, statusList)
+			err = r.List(ctx, statusList, &client.ListOptions{
+				Namespace: namespace})
 			if err != nil {
 				return ctrl.Result{}, err
 			}
@@ -243,7 +255,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 			}
 
 			imageList := &eraserv1alpha1.ImageList{}
-			err = r.Get(ctx, types.NamespacedName{Name: imageJob.Spec.ImageListName}, imageList)
+			err = r.Get(ctx, types.NamespacedName{Name: imageJob.Spec.ImageListName, Namespace: "eraser-system"}, imageList)
 			if err != nil {
 				return ctrl.Result{}, err
 			}
@@ -258,14 +270,6 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&eraserv1alpha1.ImageJob{}).
 		Complete(r)
-}
-
-func processNodes(nodes []v1.Node) map[string]string {
-	m := make(map[string]string, len(nodes))
-	for _, n := range nodes {
-		m[n.Name] = n.Status.NodeInfo.ContainerRuntimeVersion
-	}
-	return m
 }
 
 func getMountPath(runtimeName string) string {
@@ -304,6 +308,7 @@ func updateImageListStatus(ctx context.Context, clientset *kubernetes.Clientset,
 	// update imagelist object
 	_, err = clientset.RESTClient().Put().
 		AbsPath(apiPath).
+		Namespace(namespace).
 		Name(imageList.Name).
 		Resource("imagelists").
 		SubResource("status").
@@ -325,6 +330,7 @@ func updateJobStatus(ctx context.Context, clientset *kubernetes.Clientset, image
 	// update imageJob object
 	_, err = clientset.RESTClient().Put().
 		AbsPath(apiPath).
+		Namespace(namespace).
 		Name(imageJob.Name).
 		Resource("imagejobs").
 		SubResource("status").
