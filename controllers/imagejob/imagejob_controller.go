@@ -157,7 +157,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 				log.Println("Incompatible runtime on node ", nodeName)
 				continue
 			}
-        
+
 			givenImage := imageJob.Spec.JobTemplate.Spec.Containers[0]
 			image := v1.Container{
 				Args:            append(givenImage.Args, "--runtime="+runtimeName),
@@ -167,7 +167,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 				ImagePullPolicy: givenImage.ImagePullPolicy,
 				Env:             []v1.EnvVar{{Name: "NODE_NAME", ValueFrom: &v1.EnvVarSource{FieldRef: &v1.ObjectFieldSelector{FieldPath: "spec.nodeName"}}}},
 				Resources: v1.ResourceRequirements{
-				  Requests: v1.ResourceList{
+					Requests: v1.ResourceList{
 						"cpu":    resource.MustParse("10m"),
 						"memory": resource.MustParse("256Mi"),
 					},
