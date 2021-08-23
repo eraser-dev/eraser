@@ -20,17 +20,6 @@ jobs:
         with:
           version: latest
 
-  e2e:
-    name: "End to End Test"
-    runs-on: ubuntu-latest
-    steps:
-      - name: Create k8s Kind Cluster
-        uses: helm/kind-action@v1.2.0
-        with:
-          cluster_name: "e2e-cluster"
-          config: ../kind-config-yaml
-        run: kubectl get pod -A
-
   test:
     name: "Unit Tests"
     runs-on: ubuntu-latest
@@ -80,3 +69,14 @@ jobs:
         run: make docker-build CACHE_FROM=type=gha,scope=eraser-manager CACHE_TO=type=gha,scope=eraser-manager,mode=max
       - name: Build eraser
         run: make docker-build-eraser CACHE_FROM=type=gha,scope=eraser-node CACHE_TO=type=gha,scope=eraser-node,mode=max
+
+  e2e:
+    name: "End to End Test"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create k8s Kind Cluster
+        uses: helm/kind-action@v1.2.0
+        with:
+          cluster_name: "e2e-cluster"
+          config: ../kind-config.yaml
+        run: kubectl get pod -A
