@@ -17,10 +17,18 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+// RemovalStatus defines the status of an image cleanup operation in a node.
+type RemovalStatus string
+
+const (
+	Success RemovalStatus = "Success"
+	Error   RemovalStatus = "Error"
+)
+
 type NodeCleanUpDetail struct {
-	ImageName string `json:"imageName"`
-	Status    string `json:"status"`
-	Message   string `json:"message"`
+	ImageName string        `json:"imageName"`
+	Status    RemovalStatus `json:"status"`
+	Message   string        `json:"message"`
 }
 
 // ImageStatusStatus defines the observed state of ImageStatus
@@ -45,13 +53,13 @@ type ImageStatus struct {
 
 //+kubebuilder:object:root=true
 
-// ImageStatusList contains a list of NodeCleanUpResults
+// ImageStatusList contains a list of ImageStatuses
 type ImageStatusList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []NodeCleanUpResult `json:"items"`
+	Items           []ImageStatus `json:"items"`
 }
 
 func init() {
-	SchemeBuilder.Register(&ImageStatus{}, &ImageStatus{})
+	SchemeBuilder.Register(&ImageStatus{}, &ImageStatusList{})
 }

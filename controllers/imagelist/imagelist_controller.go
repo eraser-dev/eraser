@@ -70,35 +70,46 @@ type Reconciler struct {
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.8.3/pkg/reconcile
 func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	// If there is a change in ImageList, start ImageJob to triger removal
-	job := &eraserv1alpha1.ImageJob{
-		ObjectMeta: metav1.ObjectMeta{
-			GenerateName: "imagejob-",
-			Namespace:    "eraser-system",
-		},
-		Spec: eraserv1alpha1.ImageJobSpec{
-			JobTemplate: corev1.PodTemplateSpec{
-				Spec: corev1.PodSpec{
-					RestartPolicy: "Never",
-					Containers: []corev1.Container{
-						{
-							Name:            "remove-images",
-							Image:           "aldaircoronel/remove_images:latest",
-							ImagePullPolicy: corev1.PullAlways,
-							Args:            []string{"--imagelist=" + req.Name},
-						},
-					},
-					ServiceAccountName: "eraser-controller-manager",
-				},
-			},
-		},
-	}
-	err := r.Create(ctx, job)
+
+	imageList := &eraserv1alpha1.ImageList{}
+	err := r.Get(ctx, req.NamespacedName, imageList)
 	if err != nil {
-		if errors.IsNotFound(err) {
-			return reconcile.Result{}, nil
+		return ctrl.Result{}, err
+	}
+
+	// Check to make sure reconcile isn't from updating ImageStatus
+	if imageList.Status.Timestamp == nil {
+		// If there is a change in ImageList, start ImageJob to triger removal
+		job := &eraserv1alpha1.ImageJob{
+			ObjectMeta: metav1.ObjectMeta{
+				GenerateName: "imagejob-",
+				Namespace:    "eraser-system",
+			},
+			Spec: eraserv1alpha1.ImageJobSpec{
+				JobTemplate: corev1.PodTemplateSpec{
+					Spec: corev1.PodSpec{
+						RestartPolicy: "Never",
+						Containers: []corev1.Container{
+							{
+								Name:            "remove-images",
+								Image:           "aldaircoronel/remove_images:latest",
+								ImagePullPolicy: corev1.PullAlways,
+								Args:            []string{"--imagelist=" + req.Name},
+							},
+						},
+						ServiceAccountName: "eraser-controller-manager",
+					},
+				},
+				ImageListName: req.NamespacedName.Name,
+			},
 		}
-		return reconcile.Result{}, err
+		err := r.Create(ctx, job)
+		if err != nil {
+			if errors.IsNotFound(err) {
+				return reconcile.Result{}, nil
+			}
+			return reconcile.Result{}, err
+		}
 	}
 
 	return ctrl.Result{}, nil
