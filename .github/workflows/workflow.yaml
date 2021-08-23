@@ -20,6 +20,17 @@ jobs:
         with:
           version: latest
 
+  e2e:
+    name: "End to End Test"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create k8s Kind Cluster
+        uses: helm/kind-action@v1.2.0
+        with:
+          cluster_name: "e2e-cluster"
+          config: ../kind-config-yaml
+        run: kubectl get pod -A
+
   test:
     name: "Unit Tests"
     runs-on: ubuntu-latest
