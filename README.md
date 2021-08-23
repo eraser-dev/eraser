@@ -1,14 +1,31 @@
-# Project
+# Eraser: Cleaning up Images from Kubernetes Nodes
 
-> This repo has been populated by an initial template to help get you started. Please
-> make sure to update the content to build a great experience for community-building.
+Eraser helps Kubernetes admins remove a list of non-running images from all Kubernetes nodes in a cluster.
 
-As the maintainer of this project, please make a few updates:
+## Design 
+* [Design Documentation](https://docs.google.com/document/d/1Rz1bkZKZSLVMjC_w8WLASPDUjfU80tjV-XWUXZ8vq3I/edit?usp=sharing) 
 
-- Improving this README.MD file to provide a great experience
-- Updating SUPPORT.MD with content about this project's support experience
-- Understanding the security reporting process in SECURITY.MD
-- Remove this section from the README
+## Getting started
+
+Create an [ImageList](config/samples/eraser_v1alpha1_imagelist.yaml) and specify the images you would like to remove manually.
+
+* `kubectl apply -f config/samples/eraser_v1alpha1_imagelist.yaml --namespace=eraser-system`
+
+This should have triggered an [ImageJob](api/v1alpha1/imagejob_types.go) that will deploy [eraser](pkg/eraser/eraser.go) pods on every node to perform the removal given the list of images. 
+
+To view the result of the removal:
+* describe ImageList CR and look at status field:
+    * `kubectl describe ImageList -n eraser-system imagelist_sample`
+
+To view the result of the ImageJob eraser pods:
+* find name of ImageJob: 
+    * `kubectl get ImageJob -n eraser-system`
+* describe ImageJob CR and look at status field:
+    * `kubectl describe ImageJob -n eraser-system [name of ImageJob]`
+
+## Developer Setup
+
+Developing this project requires access to a Kubernetes cluster and Go version 1.16 or later.
 
 ## Contributing
 

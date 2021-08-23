@@ -2,14 +2,17 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"flag"
 	"log"
+	"os"
 
 	"fmt"
 	"time"
 
 	"google.golang.org/grpc"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
@@ -143,7 +146,55 @@ func getImageClient(ctx context.Context, socketPath string) (pb.ImageServiceClie
 	return imageClient, conn, nil
 }
 
-func removeImages(c Client, socketPath string, targetImages []string) (err error) {
+func updateStatus(ctx context.Context, clientset *kubernetes.Clientset, results []eraserv1alpha1.NodeCleanUpDetail) error {
+	imageStatus := eraserv1alpha1.ImageStatus{
+		TypeMeta: v1.TypeMeta{
+			APIVersion: "eraser.sh/v1alpha1",
+			Kind:       "ImageStatus",
+		},
+		ObjectMeta: v1.ObjectMeta{
+			Name:      "imagestatus-" + os.Getenv("NODE_NAME"),
+			Namespace: "eraser-system",
+		},
+		Result: eraserv1alpha1.NodeCleanUpResult{
+			Node:    os.Getenv("NODE_NAME"),
+			Results: results,
+		},
+	}
+
+	body, err := json.Marshal(imageStatus)
+	if err != nil {
+		return err
+	}
+
+	// create imageStatus object
+	_, err = clientset.RESTClient().Post().
+		AbsPath(apiPath).
+		Namespace(namespace).
+		Name(imageStatus.Name).
+		Resource("imagestatuses").
+		Body(body).DoRaw(ctx)
+
+	if err != nil {
+		log.Println("Could not create imagestatus for  node: ", os.Getenv("NODE_NAME"))
+		return err
+	}
+
+	return nil
+}
+
+func mapContainsValue(idMap map[string][]string, img string) bool {
+	for _, v := range idMap {
+		if len(v) > 0 {
+			if v[0] == img {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func removeImages(clientset *kubernetes.Clientset, c Client, socketPath string, targetImages []string) (err error) {
 	backgroundContext, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
@@ -153,6 +204,7 @@ func removeImages(c Client, socketPath string, targetImages []string) (err error
 	}
 
 	allImages := make([]string, 0, len(images))
+
 	// map with key: sha id, value: repoTag list (contains full name of image)
 	idMap := make(map[string][]string)
 
@@ -166,84 +218,72 @@ func removeImages(c Client, socketPath string, targetImages []string) (err error
 		return err
 	}
 
+	// holds ids of running images
 	runningImages := make(map[string]struct{}, len(containers))
-
 	for _, container := range containers {
 		curr := container.Image
 		runningImages[curr.GetImage()] = struct{}{}
 	}
 
+	// map for non-running images by id
 	nonRunningImages := make(map[string]struct{}, len(allImages)-len(runningImages))
-
 	for _, img := range allImages {
 		if _, isRunning := runningImages[img]; !isRunning {
 			nonRunningImages[img] = struct{}{}
 		}
 	}
 
-	// TESTING :
-	log.Println("\nAll images: ")
-	log.Println(len(allImages))
-	for _, img := range allImages {
-		log.Println(img, "\t ", idMap[img])
-	}
-
+	// map for non-running imags by name
 	nonRunningNames := make(map[string]struct{}, len(allImages)-len(runningImages))
-	remove := ""
-
 	for key := range nonRunningImages {
 		if idMap[key] != nil && len(idMap[key]) > 0 {
 			nonRunningNames[idMap[key][0]] = struct{}{}
-			remove = idMap[key][0]
 		}
 	}
 
-	// passing in a nonrunning image just for testing
-	targetImages = append(targetImages, remove)
-
-	log.Println("\n\nTarget images:")
-	for _, img := range targetImages {
-		log.Println(img)
-	}
+	var results []eraserv1alpha1.NodeCleanUpDetail
 
 	// remove target images
 	for _, img := range targetImages {
+		_, isNonRunningNames := nonRunningNames[img]
+		_, isNonRunningImages := nonRunningImages[img]
 
-		// image passed in as id
-		if _, isNonRunning := nonRunningImages[img]; isNonRunning {
+		if isNonRunningImages || isNonRunningNames {
 			err = c.deleteImage(backgroundContext, img)
+			log.Println("Deleting img: ", img)
 			if err != nil {
-				return err
+				results = append(results, eraserv1alpha1.NodeCleanUpDetail{
+					ImageName: img,
+					Status:    eraserv1alpha1.Error,
+					Message:   err.Error(),
+				})
+			} else {
+				results = append(results, eraserv1alpha1.NodeCleanUpDetail{
+					ImageName: img,
+					Status:    eraserv1alpha1.Success,
+					Message:   "successfully removed image",
+				})
+			}
+		} else {
+			isRunningName := mapContainsValue(idMap, img)
+			_, isRunningId := runningImages[img]
+			if isRunningName || isRunningId {
+				results = append(results, eraserv1alpha1.NodeCleanUpDetail{
+					ImageName: img,
+					Status:    eraserv1alpha1.Error,
+					Message:   "image is running",
+				})
+			} else {
+				results = append(results, eraserv1alpha1.NodeCleanUpDetail{
+					ImageName: img,
+					Status:    eraserv1alpha1.Error,
+					Message:   "image not found",
+				})
 			}
 		}
-
-		// image passed in as name
-		if _, isNonRunning := nonRunningNames[img]; isNonRunning {
-			err = c.deleteImage(backgroundContext, img)
-			if err != nil {
-				return err
-			}
-		}
-
 	}
 
-	// TESTING :
-	imageTest, err := c.listImages(backgroundContext)
-	if err != nil {
-		return err
-	}
-
-	allImages2 := make([]string, 0, len(allImages))
-
-	for _, img := range imageTest {
-		allImages2 = append(allImages2, img.Id)
-	}
-
-	log.Println("\n\nAll images following remove: ")
-	log.Println(len(allImages2))
-	for _, img := range allImages2 {
-		log.Println(img, "\t ", idMap[img])
-	}
+	updateStatus(backgroundContext, clientset, results)
 
 	return nil
 }
@@ -301,10 +341,10 @@ func main() {
 		log.Fatal(err)
 	}
 
-	// set vulnerable images to imagelist values
+	// set target images to imagelist values
 	targetImages = result.Spec.Images
 
-	err = removeImages(client, socketPath, targetImages)
+	err = removeImages(clientset, client, socketPath, targetImages)
 
 	if err != nil {
 		log.Fatal(err)

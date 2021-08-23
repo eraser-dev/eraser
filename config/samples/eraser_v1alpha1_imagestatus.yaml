@@ -4,7 +4,7 @@ metadata:
   name: imagestatus-sample
 status:
   node: "aks-nodepool1-27292825-vmss000000"
-  images:
+  results:
   - name: docker.io/repo/image:tag
     status: success
     message: "successful removal"
