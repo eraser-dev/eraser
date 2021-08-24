@@ -97,3 +97,8 @@ jobs:
         run: |
           kind load docker-image aldaircoronel/controller --name e2e-cluster
           kind load docker-image aldaircoronel/remove_images --name e2e-cluster
+      
+      - name: Deploy images
+        run: |
+          make deploy IMG=aldaircoronel/controller:latest
+          make deploy ERASER_IMG=aldaircoronel/remove_images:latest
