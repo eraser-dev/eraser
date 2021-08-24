@@ -110,3 +110,9 @@ jobs:
 
       - name: Get list of images from control-plane node
         run: docker exec e2e-cluster-control-plane ctr -n k8s.io images list
+
+      - name: Deploy eraser_e2e_imagelist.yaml
+        run: kubectl apply -f config/samples/eraser_e2e_imagelist.yaml
+
+      - name: Get pods
+        run: kubectl get pod -A
