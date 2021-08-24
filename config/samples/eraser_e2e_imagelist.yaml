@@ -1,0 +1,8 @@
+apiVersion: eraser.sh/v1alpha1
+kind: ImageList
+metadata:
+  name: imagelist-test
+spec:
+  images:
+    - sha256:fa68d054b0a8f55613c10f2db5c6617286dd30fde5607d2824ed9fb283e23043
+    - docker.io/library/hello-world:latest
