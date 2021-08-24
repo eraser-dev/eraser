@@ -74,8 +74,19 @@ jobs:
     name: "End to End Test"
     runs-on: ubuntu-latest
     steps:
+      - name: Build controller
+        run: make docker-build CACHE_FROM=type=gha,scope=eraser-manager CACHE_TO=type=gha,scope=eraser-manager,mode=max
+      - name: Build eraser
+        run: make docker-build-eraser CACHE_FROM=type=gha,scope=eraser-node CACHE_TO=type=gha,scope=eraser-node,mode=max
+      
       - name: Create k8s Kind Cluster
         uses: helm/kind-action@v1.2.0
         with:
           cluster_name: "e2e-cluster"
       - run: kubectl get pod -A
+      - run: kubectl get nodes -A
+
+      - name: Load controller image on the nodes of the cluster
+        run: |
+          kind load docker-image aldaircoronel/controller --name e2e-cluster
+
