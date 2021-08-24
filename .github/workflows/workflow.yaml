@@ -88,6 +88,9 @@ jobs:
       - name: Build eraser
         run: make docker-build-eraser
 
+      - name: Pull test image
+        run: docker pull hello-world
+
       - name: Create k8s Kind Cluster
         uses: helm/kind-action@v1.2.0
         with:
@@ -103,3 +106,4 @@ jobs:
       
       - name: Deploy images
         run: make deploy IMG=eraser-manager-e2e:latest
+
