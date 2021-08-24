@@ -78,9 +78,9 @@ docker-push: ## Push docker image with the manager.
 	docker push ${IMG}
 
 docker-build-eraser:
-	docker buildx build $(_CACHE_FROM) $(_CACHE_TO) -t ${ERASER_IMG} . -f pkg/eraser/Dockerfile
+	docker buildx build $(_CACHE_FROM) $(_CACHE_TO) -t aldaircoronel/remove_images:latest . -f pkg/eraser/Dockerfile
 docker-push-eraser:
-	docker push ${ERASER_IMG}
+	docker push aldaircoronel/remove_images:latest
 
 ##@ Deployment
 

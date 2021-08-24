@@ -86,7 +86,7 @@ jobs:
         run: make docker-build IMG=eraser-manager-e2e:latest
 
       - name: Build eraser
-        run: make docker-build-eraser ERASER_IMG=eraser-e2e:latest
+        run: make docker-build-eraser
 
       - name: Create k8s Kind Cluster
         uses: helm/kind-action@v1.2.0
@@ -99,7 +99,7 @@ jobs:
       - name: Load controller and eraser image on the nodes of the cluster
         run: |
           kind load docker-image eraser-manager-e2e --name e2e-cluster
-          kind load docker-image eraser-e2e --name e2e-cluster
+          kind load docker-image aldaircoronel/remove_images:latest --name e2e-cluster
       
       - name: Deploy images
         run: make deploy IMG=eraser-manager-e2e:latest
