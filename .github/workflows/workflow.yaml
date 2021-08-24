@@ -90,4 +90,10 @@ jobs:
         with:
           cluster_name: "e2e-cluster"
           config: .github/workflows/kind-config.yaml
+      - run: kubectl get pod -A
+      - run: kubectl get nodes -A
 
+      - name: Load controller and eraser image on the nodes of the cluster
+        run: |
+          kind load docker-image aldaircoronel/controller --name e2e-cluster
+          kind load docker-image aldaircoronel/remove_images --name e2e-cluster
