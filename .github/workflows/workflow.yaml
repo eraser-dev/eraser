@@ -89,5 +89,5 @@ jobs:
         uses: helm/kind-action@v1.2.0
         with:
           cluster_name: "e2e-cluster"
-          config: .github/workflow/kind-config.yaml
+          config: .github/workflows/kind-config.yaml
 
