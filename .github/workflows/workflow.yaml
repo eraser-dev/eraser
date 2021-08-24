@@ -76,14 +76,17 @@ jobs:
     steps:
       - name: Check out code
         uses: actions/checkout@v2
+      
       - name: Set up Go 1.16
         uses: actions/setup-go@v2
         with:
           go-version: 1.16
+
       - name: Build controller
-        run: make docker-build
+        run: make docker-build IMG=eraser-manager-e2e:latest
+
       - name: Build eraser
-        run: make docker-build-eraser
+        run: make docker-build-eraser ERASER_IMG=eraser-e2e:latest
 
       - name: Create k8s Kind Cluster
         uses: helm/kind-action@v1.2.0
@@ -95,10 +98,8 @@ jobs:
 
       - name: Load controller and eraser image on the nodes of the cluster
         run: |
-          kind load docker-image aldaircoronel/controller --name e2e-cluster
-          kind load docker-image aldaircoronel/remove_images --name e2e-cluster
+          kind load docker-image eraser-manager-e2e --name e2e-cluster
+          kind load docker-image eraser-e2e --name e2e-cluster
       
       - name: Deploy images
-        run: |
-          make deploy IMG=aldaircoronel/controller:latest
-          make deploy ERASER_IMG=aldaircoronel/remove_images:latest
+        run: make deploy IMG=eraser-manager-e2e:latest
