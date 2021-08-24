@@ -89,10 +89,11 @@ jobs:
         uses: helm/kind-action@v1.2.0
         with:
           cluster_name: "e2e-cluster"
-      - run: kubectl get pod -A
-      - run: kubectl get nodes -A
+          config: .github/workflow/kind-config.yaml
+      # - run: kubectl get pod -A
+      # - run: kubectl get nodes -A
 
-      - name: Load controller image on the nodes of the cluster
-        run: |
-          kind load docker-image aldaircoronel/controller --name e2e-cluster
-
+      # - name: Load controller and eraser image on the nodes of the cluster
+      #   run: |
+      #     kind load docker-image aldaircoronel/controller --name e2e-cluster
+      #     kind load docker-image aldaircoronel/remove_images --name e2e-cluster
