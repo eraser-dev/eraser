@@ -107,3 +107,5 @@ jobs:
       - name: Deploy images
         run: make deploy IMG=eraser-manager-e2e:latest
 
+      - name: Get list of images from control-plane node
+        run: docker exec cluster-control-plane ctr -n k8s.io images list
