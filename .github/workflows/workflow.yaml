@@ -76,10 +76,8 @@ jobs:
     steps:
 
       - name: Build controller
-        uses: actions/checkout@v2
         run: make docker-build
       - name: Build eraser
-        uses: actions/checkout@v2
         run: make docker-build-eraser
 
       - name: Create k8s Kind Cluster
