@@ -112,7 +112,7 @@ jobs:
         run: docker exec e2e-cluster-control-plane ctr -n k8s.io images list
 
       - name: Deploy eraser_e2e_imagelist.yaml
-        run: kubectl apply -f config/samples/eraser_e2e_imagelist.yaml
+        run: kubectl apply -f config/samples/eraser_e2e_imagelist.yaml --namespace="eraser-system"
 
       - name: Get image list
         run: kubectl get imagelist -A
