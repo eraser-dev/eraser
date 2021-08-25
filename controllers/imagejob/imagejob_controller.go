@@ -228,8 +228,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 
 			// transfer results from imageStatus objects to imageList
 			statusList := &eraserv1alpha1.ImageStatusList{}
-			err = r.List(ctx, statusList, &client.ListOptions{
-				Namespace: namespace})
+			err = r.List(ctx, statusList)
 			if err != nil {
 				return ctrl.Result{}, err
 			}
@@ -244,7 +243,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 			}
 
 			imageList := &eraserv1alpha1.ImageList{}
-			err = r.Get(ctx, types.NamespacedName{Name: imageJob.Spec.ImageListName, Namespace: "eraser-system"}, imageList)
+			err = r.Get(ctx, types.NamespacedName{Name: imageJob.Spec.ImageListName}, imageList)
 			if err != nil {
 				return ctrl.Result{}, err
 			}
@@ -305,7 +304,6 @@ func updateImageListStatus(ctx context.Context, clientset *kubernetes.Clientset,
 	// update imagelist object
 	_, err = clientset.RESTClient().Put().
 		AbsPath(apiPath).
-		Namespace(namespace).
 		Name(imageList.Name).
 		Resource("imagelists").
 		SubResource("status").
@@ -327,7 +325,6 @@ func updateJobStatus(ctx context.Context, clientset *kubernetes.Clientset, image
 	// update imageJob object
 	_, err = clientset.RESTClient().Put().
 		AbsPath(apiPath).
-		Namespace(namespace).
 		Name(imageJob.Name).
 		Resource("imagejobs").
 		SubResource("status").

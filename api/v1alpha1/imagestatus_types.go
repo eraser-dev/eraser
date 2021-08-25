@@ -42,7 +42,7 @@ type NodeCleanUpResult struct {
 
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
-
+//+kubebuilder:resource:scope="Cluster"
 // ImageStatus is the Schema for the imagestatus API
 type ImageStatus struct {
 	metav1.TypeMeta   `json:",inline"`

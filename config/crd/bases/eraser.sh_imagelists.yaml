@@ -14,7 +14,7 @@ spec:
     listKind: ImageListList
     plural: imagelists
     singular: imagelist
-  scope: Namespaced
+  scope: Cluster
   versions:
   - name: v1alpha1
     schema:
@@ -60,6 +60,8 @@ spec:
                           message:
                             type: string
                           status:
+                            description: RemovalStatus defines the status of an image
+                              cleanup operation in a node.
                             type: string
                         required:
                         - imageName
