@@ -116,3 +116,6 @@ jobs:
 
       - name: Get pods
         run: kubectl get pod -A
+
+      - name: Get image list
+        run: kubectl get imagelist -A
