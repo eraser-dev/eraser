@@ -114,8 +114,11 @@ jobs:
       - name: Deploy eraser_e2e_imagelist.yaml
         run: kubectl apply -f config/samples/eraser_e2e_imagelist.yaml
 
-      - name: Get pods
-        run: kubectl get pod -A
-
       - name: Get image list
         run: kubectl get imagelist -A
+
+      - name: Get image job
+        run: kubectl get imagejob -A
+
+      - name: Get pods
+        run: kubectl get pod -A
