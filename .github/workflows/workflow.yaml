@@ -101,7 +101,7 @@ jobs:
 
       - name: Load controller and eraser image on the nodes of the cluster
         run: |
-          kind load docker-image eraser-manager-e2e --name e2e-cluster
+          kind load docker-image eraser-manager-e2e:test --name e2e-cluster
           kind load docker-image aldaircoronel/remove_images:test --name e2e-cluster
           kind load docker-image hello-world:latest --name e2e-cluster
 
