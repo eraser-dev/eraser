@@ -83,7 +83,6 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		job := &eraserv1alpha1.ImageJob{
 			ObjectMeta: metav1.ObjectMeta{
 				GenerateName: "imagejob-",
-				Namespace:    "eraser-system",
 			},
 			Spec: eraserv1alpha1.ImageJobSpec{
 				JobTemplate: corev1.PodTemplateSpec{
@@ -92,7 +91,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 						Containers: []corev1.Container{
 							{
 								Name:            "remove-images",
-								Image:           "ashnam/remove_images:latest",
+								Image:           "aldaircoronel/remove_images:latest",
 								ImagePullPolicy: corev1.PullAlways,
 								Args:            []string{"--imagelist=" + req.Name},
 							},

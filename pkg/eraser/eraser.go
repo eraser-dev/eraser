@@ -27,7 +27,6 @@ const (
 	// unixProtocol is the network protocol of unix socket.
 	unixProtocol = "unix"
 	apiPath      = "apis/eraser.sh/v1alpha1"
-	namespace    = "eraser-system"
 )
 
 var (
@@ -153,8 +152,7 @@ func updateStatus(ctx context.Context, clientset *kubernetes.Clientset, results 
 			Kind:       "ImageStatus",
 		},
 		ObjectMeta: v1.ObjectMeta{
-			Name:      "imagestatus-" + os.Getenv("NODE_NAME"),
-			Namespace: "eraser-system",
+			Name: "imagestatus-" + os.Getenv("NODE_NAME"),
 		},
 		Result: eraserv1alpha1.NodeCleanUpResult{
 			Node:    os.Getenv("NODE_NAME"),
@@ -170,7 +168,6 @@ func updateStatus(ctx context.Context, clientset *kubernetes.Clientset, results 
 	// create imageStatus object
 	_, err = clientset.RESTClient().Post().
 		AbsPath(apiPath).
-		Namespace(namespace).
 		Name(imageStatus.Name).
 		Resource("imagestatuses").
 		Body(body).DoRaw(ctx)
@@ -331,7 +328,6 @@ func main() {
 	result := eraserv1alpha1.ImageList{}
 	err = clientset.RESTClient().Get().
 		AbsPath(apiPath).
-		Namespace(namespace).
 		Resource("imagelists").
 		Name(*imageListPtr).
 		Do(context.Background()).Into(&result)

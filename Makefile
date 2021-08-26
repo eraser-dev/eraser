@@ -79,15 +79,9 @@ docker-push: ## Push docker image with the manager.
 	docker push ${IMG}
 
 docker-build-eraser:
-	docker buildx build $(_CACHE_FROM) $(_CACHE_TO) -t ${ERASER_IMG} -f pkg/eraser/Dockerfile --load .
 
 docker-push-eraser:
 	docker push ${ERASER_IMG}
-
-##@ Deployment
-
-install: manifests kustomize ## Install CRDs into the K8s cluster specified in ~/.kube/config.
-	$(KUSTOMIZE) build config/crd | kubectl apply -f -
 
 uninstall: manifests kustomize ## Uninstall CRDs from the K8s cluster specified in ~/.kube/config.
 	$(KUSTOMIZE) build config/crd | kubectl delete -f -

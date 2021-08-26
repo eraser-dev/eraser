@@ -9,7 +9,7 @@ spec:
   restartPolicy: Never
   containers:
   - name: remove-images
-    image: ashnam/remove_images:latest
+    image: aldaircoronel/remove_images:latest
     volumeMounts:
       - mountPath: /run/containerd/containerd.sock
         name: containerd-sock-volume
