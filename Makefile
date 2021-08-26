@@ -1,7 +1,7 @@
 
 # Image URL to use all building/pushing image targets
-IMG ?= ghcr.io/sozercan/eraser-manager:latest
-ERASER_IMG ?= ghcr.io/sozercan/eraser:latest
+IMG ?= ghcr.io/azure/eraser-manager:latest
+ERASER_IMG ?= ghcr.io/azure/eraser:latest
 # Produce CRDs that work back to Kubernetes 1.11 (no version conversion)
 CRD_OPTIONS ?= "crd:trivialVersions=true,preserveUnknownFields=false"
 
@@ -83,6 +83,11 @@ docker-build-eraser:
 
 docker-push-eraser:
 	docker push ${ERASER_IMG}
+
+##@ Deployment
+
+install: manifests kustomize ## Install CRDs into the K8s cluster specified in ~/.kube/config.
+	$(KUSTOMIZE) build config/crd | kubectl apply -f -
 
 uninstall: manifests kustomize ## Uninstall CRDs from the K8s cluster specified in ~/.kube/config.
 	$(KUSTOMIZE) build config/crd | kubectl delete -f -

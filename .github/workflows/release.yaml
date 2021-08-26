@@ -13,7 +13,7 @@ env:
 
 jobs:
   build-publish-release:
-    name: "build"
+    name: "release"
     runs-on: ubuntu-latest
     permissions:
       contents: read
