@@ -1,6 +1,7 @@
 
 # Image URL to use all building/pushing image targets
-IMG ?= ashnam/controller:latest
+IMG ?= ghcr.io/sozercan/eraser-manager:latest
+ERASER_IMG ?= ghcr.io/sozercan/eraser:latest
 # Produce CRDs that work back to Kubernetes 1.11 (no version conversion)
 CRD_OPTIONS ?= "crd:trivialVersions=true,preserveUnknownFields=false"
 
@@ -71,16 +72,17 @@ build: generate fmt vet ## Build manager binary.
 run: manifests generate fmt vet ## Run a controller from your host.
 	go run ./main.go
 
-docker-build: test ## Build docker image with the manager.
-	docker buildx build $(_CACHE_FROM) $(_CACHE_TO) -t ${IMG} .
+docker-build: ## Build docker image with the manager.
+	docker buildx build $(_CACHE_FROM) $(_CACHE_TO) -t ${IMG} --load .
 
 docker-push: ## Push docker image with the manager.
 	docker push ${IMG}
 
 docker-build-eraser:
-	docker buildx build $(_CACHE_FROM) $(_CACHE_TO) -t ashnam/remove_images:latest . -f pkg/eraser/Dockerfile
+	docker buildx build $(_CACHE_FROM) $(_CACHE_TO) -t ${ERASER_IMG} -f pkg/eraser/Dockerfile --load .
+
 docker-push-eraser:
-	docker push ashnam/remove_images:latest
+	docker push ${ERASER_IMG}
 
 ##@ Deployment
 
