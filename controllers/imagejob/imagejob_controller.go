@@ -23,6 +23,8 @@ import (
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
+	"k8s.io/kubernetes/pkg/scheduler/framework"
+	"k8s.io/kubernetes/pkg/scheduler/framework/plugins/noderesources"
 
 	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/labels"
@@ -92,6 +94,20 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	}
 
 	return nil
+}
+
+func checkNodeFitness(pod *v1.Pod, node *v1.Node) bool {
+	nodeInfo := framework.NewNodeInfo()
+	_ = nodeInfo.SetNode(node)
+
+	insufficientResource := noderesources.Fits(pod, nodeInfo)
+
+	if len(insufficientResource) != 0 {
+		log.Println("Pod does not fit: ", insufficientResource)
+		return false
+	}
+
+	return true
 }
 
 //+kubebuilder:rbac:groups=eraser.sh,resources=imagejobs,verbs=get;list;watch;create;update;patch;delete
@@ -197,10 +213,13 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 					OwnerReferences: []metav1.OwnerReference{*metav1.NewControllerRef(imageJob, imageJob.GroupVersionKind())}},
 			}
 
-			// TODO: check if pod fits and can be scheduled on node
-			err = r.Create(ctx, pod)
-			if err != nil {
-				return ctrl.Result{}, err
+			fitness := checkNodeFitness(pod, &n)
+
+			if fitness {
+				err = r.Create(ctx, pod)
+				if err != nil {
+					return ctrl.Result{}, err
+				}
 			}
 		}
 
