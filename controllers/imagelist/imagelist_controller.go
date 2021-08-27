@@ -79,11 +79,10 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 
 	// Check to make sure reconcile isn't from updating ImageStatus
 	if imageList.Status.Timestamp == nil {
-		// If there is a change in ImageList, start ImageJob to triger removal
+		// If there is a change in ImageList, start ImageJob to trigger removal
 		job := &eraserv1alpha1.ImageJob{
 			ObjectMeta: metav1.ObjectMeta{
 				GenerateName: "imagejob-",
-				Namespace:    "eraser-system",
 			},
 			Spec: eraserv1alpha1.ImageJobSpec{
 				JobTemplate: corev1.PodTemplateSpec{
@@ -91,8 +90,8 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 						RestartPolicy: "Never",
 						Containers: []corev1.Container{
 							{
-								Name:            "remove-images",
-								Image:           "aldaircoronel/remove_images:latest",
+								Name:            "eraser",
+								Image:           "ghcr.io/azure/eraser:latest",
 								ImagePullPolicy: corev1.PullAlways,
 								Args:            []string{"--imagelist=" + req.Name},
 							},
