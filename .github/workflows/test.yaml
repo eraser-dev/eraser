@@ -86,7 +86,7 @@ jobs:
         run: make docker-build IMG=eraser-manager-e2e:test
 
       - name: Build eraser
-        run: make docker-build-eraser
+        run: make docker-build-eraser ERASER_IMG=eraser-e2e:test
 
       - name: Pull test image
         run: docker pull hello-world
@@ -102,7 +102,7 @@ jobs:
       - name: Load controller and eraser image on the nodes of the cluster
         run: |
           kind load docker-image eraser-manager-e2e:test --name e2e-cluster
-          kind load docker-image aldaircoronel/remove_images --name e2e-cluster
+          kind load docker-image eraser-e2e:test --name e2e-cluster
           kind load docker-image hello-world:latest --name e2e-cluster
 
       - name: Sleep for 30 seconds
@@ -118,15 +118,15 @@ jobs:
       - name: Deploy eraser_e2e_imagelist.yaml
         run: kubectl apply -f config/samples/eraser_e2e_imagelist.yaml --namespace="eraser-system"
 
-      - name: Sleep for 30 seconds
-        run: sleep 30s
+      - name: Sleep for 15 seconds
+        run: sleep 15s
         shell: bash
 
       - name: Get image list
         run: kubectl get imagelist -A
 
-      - name: Sleep for 30 seconds
-        run: sleep 30s
+      - name: Sleep for 15 seconds
+        run: sleep 15s
         shell: bash
         
       - name: Get image job
