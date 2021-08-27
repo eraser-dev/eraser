@@ -184,12 +184,12 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 				Env:             []v1.EnvVar{{Name: "NODE_NAME", ValueFrom: &v1.EnvVarSource{FieldRef: &v1.ObjectFieldSelector{FieldPath: "spec.nodeName"}}}},
 				Resources: v1.ResourceRequirements{
 					Requests: v1.ResourceList{
-						"cpu":    resource.MustParse("10m"),
-						"memory": resource.MustParse("256Mi"),
+						"cpu":    resource.MustParse("7m"),
+						"memory": resource.MustParse("25Mi"),
 					},
 					Limits: v1.ResourceList{
-						"cpu":    resource.MustParse("20m"),
-						"memory": resource.MustParse("512Mi"),
+						"cpu":    resource.MustParse("8m"),
+						"memory": resource.MustParse("30Mi"),
 					},
 				},
 			}
