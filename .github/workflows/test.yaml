@@ -83,10 +83,10 @@ jobs:
           go-version: 1.16
 
       - name: Build controller
-        run: make docker-build IMG=eraser-manager-e2e:test
+        run: make docker-build
 
       - name: Build eraser
-        run: make docker-build-eraser ERASER_IMG=eraser-e2e:test
+        run: make docker-build-eraser
 
       - name: Pull test image
         run: docker pull hello-world
@@ -101,22 +101,25 @@ jobs:
 
       - name: Load controller and eraser image on the nodes of the cluster
         run: |
-          kind load docker-image eraser-manager-e2e:test --name e2e-cluster
-          kind load docker-image eraser-e2e:test --name e2e-cluster
+          kind load docker-image aldaircoronel/eraser-manager:test --name e2e-cluster
+          kind load docker-image aldaircoronel/eraser:test --name e2e-cluster
           kind load docker-image hello-world:latest --name e2e-cluster
 
       - name: Sleep for 30 seconds
         run: sleep 30s
         shell: bash
 
+      - name: Generate manifests
+        run: make generate manifests
+
       - name: Deploy images
-        run: make deploy IMG=eraser-manager-e2e:test
+        run: make deploy
 
       - name: Get list of images from control-plane node
         run: docker exec e2e-cluster-control-plane ctr -n k8s.io images list
 
       - name: Deploy eraser_e2e_imagelist.yaml
-        run: kubectl apply -f config/samples/eraser_e2e_imagelist.yaml --namespace="eraser-system"
+        run: kubectl apply -f config/samples/eraser_e2e_imagelist.yaml
 
       - name: Sleep for 15 seconds
         run: sleep 15s
