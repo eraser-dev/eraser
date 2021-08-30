@@ -26,6 +26,7 @@ import (
 	"k8s.io/kubernetes/pkg/scheduler/framework"
 	"k8s.io/kubernetes/pkg/scheduler/framework/plugins/noderesources"
 
+	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -181,6 +182,16 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 				Name:            givenImage.Name,
 				ImagePullPolicy: givenImage.ImagePullPolicy,
 				Env:             []v1.EnvVar{{Name: "NODE_NAME", ValueFrom: &v1.EnvVarSource{FieldRef: &v1.ObjectFieldSelector{FieldPath: "spec.nodeName"}}}},
+				Resources: v1.ResourceRequirements{
+					Requests: v1.ResourceList{
+						"cpu":    resource.MustParse("7m"),
+						"memory": resource.MustParse("25Mi"),
+					},
+					Limits: v1.ResourceList{
+						"cpu":    resource.MustParse("8m"),
+						"memory": resource.MustParse("30Mi"),
+					},
+				},
 			}
 
 			givenPodSpec := imageJob.Spec.JobTemplate.Spec
