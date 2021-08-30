@@ -91,8 +91,8 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 						Containers: []corev1.Container{
 							{
 								Name:            "eraser",
-								Image:           "ghcr.io/azure/eraser:latest",
-								ImagePullPolicy: corev1.PullAlways,
+								Image:           "aldaircoronel/eraser:test",
+								ImagePullPolicy: corev1.PullIfNotPresent,
 								Args:            []string{"--imagelist=" + req.Name},
 							},
 						},
