@@ -226,8 +226,9 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 					return ctrl.Result{}, err
 				}
 				r.recorder.Event(imageJob, "Normal", "Created", fmt.Sprintf("Pod %s fits the node", pod.ObjectMeta.GenerateName))
+			} else {
+				r.recorder.Event(imageJob, "Warning", "Failed", fmt.Sprintf("Pod %s does not fit the node", pod.ObjectMeta.GenerateName))
 			}
-			r.recorder.Event(imageJob, "Warning", "Failed", fmt.Sprintf("Pod %s does not fit the node", pod.ObjectMeta.GenerateName))
 		}
 
 	} else if imageJob.Status.Phase == eraserv1alpha1.PhaseRunning {
