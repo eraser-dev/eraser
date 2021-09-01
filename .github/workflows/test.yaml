@@ -178,7 +178,7 @@ jobs:
           ./checkpodsarecomplete.sh
         shell: bash
 
-        name: Check if test image is removed
+      - name: Check if test image is removed
         run: |
           cat << 'EOF' >> checktestimagewasremoved.sh
           #!/bin/bash
