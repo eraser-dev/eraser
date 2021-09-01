@@ -16,6 +16,7 @@ package imagejob
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"log"
 	"strings"
 	"time"
@@ -23,6 +24,7 @@ import (
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/record"
 	"k8s.io/kubernetes/pkg/scheduler/framework"
 	"k8s.io/kubernetes/pkg/scheduler/framework/plugins/noderesources"
 
@@ -61,15 +63,17 @@ func Add(mgr manager.Manager) error {
 // newReconciler returns a new reconcile.Reconciler
 func newReconciler(mgr manager.Manager) reconcile.Reconciler {
 	return &Reconciler{
-		Client: mgr.GetClient(),
-		scheme: mgr.GetScheme(),
+		Client:   mgr.GetClient(),
+		scheme:   mgr.GetScheme(),
+		recorder: mgr.GetEventRecorderFor("imagejob-controller"),
 	}
 }
 
 // ImageJobReconciler reconciles a ImageJob object
 type Reconciler struct {
 	client.Client
-	scheme *runtime.Scheme
+	scheme   *runtime.Scheme
+	recorder record.EventRecorder
 }
 
 // add adds a new Controller to mgr with r as the reconcile.Reconciler
@@ -115,6 +119,7 @@ func checkNodeFitness(pod *v1.Pod, node *v1.Node) bool {
 //+kubebuilder:rbac:groups=eraser.sh,resources=imagejobs/finalizers,verbs=update
 //+kubebuilder:rbac:groups="",resources=nodes,verbs=get;list;watch;update
 //+kubebuilder:rbac:groups="",resources=pods,verbs=get;list;watch;update;create;delete
+//+kubebuilder:rbac:groups="",resources=events,verbs=create;patch
 //+kubebuilder:rbac:groups=eraser.sh,resources=imagestatuses,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=eraser.sh,resources=imagestatuses/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=eraser.sh,resources=imagestatuses/finalizers,verbs=update
@@ -220,7 +225,9 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 				if err != nil {
 					return ctrl.Result{}, err
 				}
+				r.recorder.Event(imageJob, "Normal", "Created", fmt.Sprintf("Pod %s fits the node", pod.ObjectMeta.GenerateName))
 			}
+			r.recorder.Event(imageJob, "Warning", "Failed", fmt.Sprintf("Pod %s does not fit the node", pod.ObjectMeta.GenerateName))
 		}
 
 	} else if imageJob.Status.Phase == eraserv1alpha1.PhaseRunning {
