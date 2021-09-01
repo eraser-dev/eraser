@@ -225,9 +225,9 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 				if err != nil {
 					return ctrl.Result{}, err
 				}
-				r.recorder.Event(imageJob, "Normal", "Created", fmt.Sprintf("Pod %s fits the node", pod.ObjectMeta.GenerateName))
+				r.recorder.Event(pod, "Normal", "Created", fmt.Sprintf("Pod %s fits the node", pod.ObjectMeta.GenerateName))
 			} else {
-				r.recorder.Event(imageJob, "Warning", "Failed", fmt.Sprintf("Pod %s does not fit the node", pod.ObjectMeta.GenerateName))
+				r.recorder.Event(pod, "Warning", "Failed", fmt.Sprintf("Pod %s does not fit the node", pod.ObjectMeta.GenerateName))
 			}
 		}
 
