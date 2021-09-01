@@ -203,12 +203,12 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 				Volumes:            []v1.Volume{{Name: runtimeName + "-sock-volume", VolumeSource: v1.VolumeSource{HostPath: &v1.HostPathVolumeSource{Path: mountPath}}}},
 			}
 
-			podName := image.Name + "-" + nodeName
+			podName := image.Name + "-" + nodeName + "-"
 			pod := &v1.Pod{
 				TypeMeta: metav1.TypeMeta{},
 				Spec:     podSpec,
 				ObjectMeta: metav1.ObjectMeta{Namespace: "eraser-system",
-					Name:            podName,
+					GenerateName:    podName,
 					Labels:          map[string]string{"name": image.Name},
 					OwnerReferences: []metav1.OwnerReference{*metav1.NewControllerRef(imageJob, imageJob.GroupVersionKind())}},
 			}
