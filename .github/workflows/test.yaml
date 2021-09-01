@@ -177,3 +177,30 @@ jobs:
           chmod u+x checkpodsarecomplete.sh
           ./checkpodsarecomplete.sh
         shell: bash
+
+        name: Check if test image is removed
+        run: |
+          cat << 'EOF' >> checktestimagewasremoved.sh
+          #!/bin/bash
+
+          nodeNames=$(kubectl get nodes -n eraser-system | grep e2e-cluster | awk '{print $1}')
+
+
+          for nodeName in ${nodeNames}; do
+              $(docker exec "$nodeName" ctr -n k8s.io images list >> outputimagelist.txt)
+
+              if grep -q docker.io/library/hello-world:latest outputimagelist.txt; then
+                  echo "Node $nodeName: Test Image was not removed"
+                  rm outputimagelist.txt
+                  exit 1
+              else
+                  echo "Node $nodeName: Test Image was removed"
+                  rm outputimagelist.txt
+              fi
+          done
+          EOF
+          
+          chmod u+x checktestimagewasremoved.sh
+          ./checktestimagewasremoved.sh
+
+        shell: bash
