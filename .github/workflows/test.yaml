@@ -129,23 +129,22 @@ jobs:
 
       - name: Check if pods are scheduled on all nodes
         run: |
-        cat << 'EOF' >> checkifpodfitnode.sh
-        #!/bin/bash
-        $(kubectl get events -n eraser-system --field-selector involvedObject.name=$1 >> outputevent.txt)
+          cat << 'EOF' > checkifpodfitnode.sh
+          #!/bin/bash
+          $(kubectl get events -n eraser-system --field-selector involvedObject.name=$1 >> outputevent.txt)
 
-        if grep -q "fits the node" outputevent.txt; then
-            echo "Pod fit"
-            rm outputevent.txt
-            exit 0
-        else
-            echo "Pod did not fit"
-            rm outputevent.txt
-            exit 1
-        fi
-        EOF
+          if grep -q "fits the node" outputevent.txt; then
+              echo "Pod fit"
+              rm outputevent.txt
+              exit 0
+          else
+              echo "Pod did not fit"
+              rm outputevent.txt
+              exit 1
+          fi
+          EOF
 
-        chmod u+x checkifpodfitnode.sh
-        ./checkifpodfitnode
-
-      # - name: Check if pods are complete
-      #   run: 
+          chmod u+x checkifpodfitnode.sh
+          ./checkifpodfitnode
+        
+        shell: bash
