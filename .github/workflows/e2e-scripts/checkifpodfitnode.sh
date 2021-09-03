@@ -1,6 +1,6 @@
 #!/bin/bash
 
-podNames=$(kubectl get pods -n eraser-system | grep eraser-e2e-cluster | awk '{print $1}')
+podNames=$(kubectl get pods -n eraser-system | grep eraser-${1} | awk '{print $1}')
 
 for podName in ${podNames}; do
     $(kubectl get events -n eraser-system --field-selector involvedObject.name="$podName" >> outputevent.txt)

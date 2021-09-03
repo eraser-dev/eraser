@@ -1,6 +1,6 @@
 #!/bin/bash
 
-nodeNames=$(kubectl get nodes -n eraser-system | grep e2e-cluster | awk '{print $1}')
+nodeNames=$(kubectl get nodes -n eraser-system | grep ${1} | awk '{print $1}')
 
 
 for nodeName in ${nodeNames}; do

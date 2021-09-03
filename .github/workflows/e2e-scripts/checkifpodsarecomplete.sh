@@ -4,7 +4,7 @@ $(kubectl get pod --field-selector=status.phase=Succeeded -n eraser-system >> ou
 
 numNodes=$(($(kubectl get nodes | wc -l) - 1))
 numPodsCompleted=$(grep -c Completed outputcompleted.txt)
-numNamePodsCompleted=$(grep -c eraser-e2e-cluster outputcompleted.txt)
+numNamePodsCompleted=$(grep -c eraser-${1} outputcompleted.txt)
 
 if [ $numPodsCompleted -ge $numNodes ] && [ $numNamePodsCompleted -ge $numNodes ]; then
     echo "All pods completed"
