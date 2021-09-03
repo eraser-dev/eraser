@@ -44,9 +44,8 @@ jobs:
 
   e2e:
     name: "End to End Test"
-    variables:
-    - name: cluster_name
-      value: e2e-cluster
+    env:
+      CLUSTER_NAME: e2e-cluster
     runs-on: ubuntu-latest
     steps:
       - name: Check out code into the Go module directory
@@ -82,16 +81,16 @@ jobs:
       - name: Create k8s Kind Cluster
         uses: helm/kind-action@v1.2.0
         with:
-          cluster_name: $(cluster_name)
+          cluster_name: env.CLUSTER_NAME
           config: .github/workflows/kind-config.yaml
       - run: kubectl get pod -A
       - run: kubectl get nodes -A
 
       - name: Load controller and eraser image on the nodes of the cluster
         run: |
-          kind load docker-image aldaircoronel/eraser-manager:test --name $(cluster_name)
-          kind load docker-image aldaircoronel/eraser:test --name $(cluster_name)
-          kind load docker-image hello-world:latest --name $(cluster_name)
+          kind load docker-image aldaircoronel/eraser-manager:test --name env.CLUSTER_NAME
+          kind load docker-image aldaircoronel/eraser:test --name env.CLUSTER_NAME
+          kind load docker-image hello-world:latest --name env.CLUSTER_NAME
 
       - name: Sleep for 10 seconds
         run: sleep 10s
@@ -104,7 +103,7 @@ jobs:
         run: make deploy
 
       - name: Get list of images from control-plane node
-        run: docker exec $(cluster_name)-control-plane ctr -n k8s.io images list
+        run: docker exec env.CLUSTER_NAME-control-plane ctr -n k8s.io images list
 
       - name: Deploy eraser_e2e_imagelist.yaml
         run: kubectl apply -f config/samples/eraser_e2e_imagelist.yaml
@@ -133,18 +132,18 @@ jobs:
       - name: Check if pods are scheduled on all nodes
         run: |
           chmod u+x .github/workflows/e2e-scripts/checkifpodfitnode.sh
-          ./.github/workflows/e2e-scripts/checkifpodfitnode.sh $(cluster_name)
+          ./.github/workflows/e2e-scripts/checkifpodfitnode.sh env.CLUSTER_NAME
         shell: bash
 
       - name: Check if pods are complete.
         run: |
           chmod u+x .github/workflows/e2e-scripts/checkpodsarecomplete.sh
-          ./.github/workflows/e2e-scripts/checkpodsarecomplete.sh $(cluster_name)
+          ./.github/workflows/e2e-scripts/checkpodsarecomplete.sh env.CLUSTER_NAME
         shell: bash
 
       - name: Check if test image is removed
         run: |          
           chmod u+x .github/workflows/e2e-scripts/checktestimagewasremoved.sh
-          ./.github/workflows/e2e-scripts/checktestimagewasremoved.sh $(cluster_name)
+          ./.github/workflows/e2e-scripts/checktestimagewasremoved.sh env.CLUSTER_NAME
 
         shell: bash
