@@ -137,8 +137,8 @@ jobs:
 
       - name: Check if pods are complete.
         run: |
-          chmod u+x .github/workflows/e2e-scripts/checkpodsarecomplete.sh
-          ./.github/workflows/e2e-scripts/checkpodsarecomplete.sh ${{ env.CLUSTER_NAME }}
+          chmod u+x .github/workflows/e2e-scripts/checkifpodsarecomplete.sh
+          ./.github/workflows/e2e-scripts/checkifpodsarecomplete.sh ${{ env.CLUSTER_NAME }}
         shell: bash
 
       - name: Check if test image is removed
