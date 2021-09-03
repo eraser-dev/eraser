@@ -44,9 +44,9 @@ jobs:
 
   e2e:
     name: "End to End Test"
-    runs-on: ubuntu-latest
     variables:
       cluster_name: "e2e-cluster"
+    runs-on: ubuntu-latest
     steps:
       - name: Check out code into the Go module directory
         uses: actions/checkout@v2
