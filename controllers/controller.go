@@ -12,7 +12,7 @@ import (
 
 var (
 	controllerLog      = ctrl.Log.WithName("controllerRuntimeLogger")
-	controllerAddFuncs []func(manager.Manager) error
+	controllerAddFuncs []func(manager.Manager, string) error
 )
 
 func init() {
@@ -20,9 +20,9 @@ func init() {
 	controllerAddFuncs = append(controllerAddFuncs, imagejob.Add)
 }
 
-func SetupWithManager(m manager.Manager) error {
+func SetupWithManager(m manager.Manager, eraserImage string) error {
 	for _, f := range controllerAddFuncs {
-		if err := f(m); err != nil {
+		if err := f(m, eraserImage); err != nil {
 			var kindMatchErr *meta.NoKindMatchError
 			if errors.As(err, &kindMatchErr) {
 				controllerLog.Info("CRD %v is not installed", kindMatchErr.GroupKind)

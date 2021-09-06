@@ -56,7 +56,7 @@ const (
 	namespace      = "eraser-system"
 )
 
-func Add(mgr manager.Manager) error {
+func Add(mgr manager.Manager, eraserImage string) error {
 	return add(mgr, newReconciler(mgr))
 }
 

@@ -70,7 +70,7 @@ build: generate fmt vet ## Build manager binary.
 	go build -o bin/manager main.go
 
 run: manifests generate fmt vet ## Run a controller from your host.
-	go run ./main.go
+	go run ./main.go -eraser-image=${ERASER_IMG}
 
 docker-build: ## Build docker image with the manager.
 	docker buildx build $(_CACHE_FROM) $(_CACHE_TO) -t ${IMG} --load .

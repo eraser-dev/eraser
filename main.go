@@ -52,14 +52,17 @@ func main() {
 	var metricsAddr string
 	var enableLeaderElection bool
 	var probeAddr string
+	var eraserImage string
 	flag.StringVar(&metricsAddr, "metrics-bind-address", ":8080", "The address the metric endpoint binds to.")
 	flag.StringVar(&probeAddr, "health-probe-bind-address", ":8081", "The address the probe endpoint binds to.")
 	flag.BoolVar(&enableLeaderElection, "leader-elect", false,
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.")
+	flag.StringVar(&eraserImage, "eraser-image", "ghcr.io/azure/eraser:latest", "The eraser image URL.")
 	opts := zap.Options{
 		Development: true,
 	}
+
 	opts.BindFlags(flag.CommandLine)
 	flag.Parse()
 
@@ -79,7 +82,7 @@ func main() {
 	}
 
 	setupLog.Info("setup controllers")
-	if err = controllers.SetupWithManager(mgr); err != nil {
+	if err = controllers.SetupWithManager(mgr, eraserImage); err != nil {
 		setupLog.Error(err, "unable to setup controllers")
 		os.Exit(1)
 	}

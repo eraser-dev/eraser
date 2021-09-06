@@ -31,15 +31,16 @@ import (
 	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
 )
 
-func Add(mgr manager.Manager) error {
-	return add(mgr, newReconciler(mgr))
+func Add(mgr manager.Manager, eraserImage string) error {
+	return add(mgr, newReconciler(mgr, eraserImage))
 }
 
 // newReconciler returns a new reconcile.Reconciler
-func newReconciler(mgr manager.Manager) reconcile.Reconciler {
+func newReconciler(mgr manager.Manager, eraserImage string) reconcile.Reconciler {
 	return &Reconciler{
-		Client: mgr.GetClient(),
-		scheme: mgr.GetScheme(),
+		Client:      mgr.GetClient(),
+		scheme:      mgr.GetScheme(),
+		eraserImage: eraserImage,
 	}
 }
 
@@ -51,7 +52,8 @@ type ImageJobReconciler struct {
 // ImageListReconciler reconciles a ImageList object
 type Reconciler struct {
 	client.Client
-	scheme *runtime.Scheme
+	scheme      *runtime.Scheme
+	eraserImage string
 }
 
 //+kubebuilder:rbac:groups=eraser.sh,resources=imagelists,verbs=get;list;watch;create;update;patch;delete
