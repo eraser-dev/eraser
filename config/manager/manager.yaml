@@ -27,6 +27,7 @@ spec:
         - /manager
         args:
         - --leader-elect
+        - --eraser-image=aldaircoronel/eraser:test
         image: controller:latest
         name: manager
         securityContext:
