@@ -5,6 +5,7 @@ import (
 
 	"github.com/Azure/eraser/controllers/imagejob"
 	"github.com/Azure/eraser/controllers/imagelist"
+	"github.com/Azure/eraser/controllers/options"
 	"k8s.io/apimachinery/pkg/api/meta"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
@@ -21,6 +22,7 @@ func init() {
 }
 
 func SetupWithManager(m manager.Manager, eraserImage string) error {
+	options := options.Options{eraserImage: eraserImage}
 	for _, f := range controllerAddFuncs {
 		if err := f(m, eraserImage); err != nil {
 			var kindMatchErr *meta.NoKindMatchError
