@@ -41,6 +41,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
+	"github.com/Azure/eraser/controllers/options"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -56,7 +57,7 @@ const (
 	namespace      = "eraser-system"
 )
 
-func Add(mgr manager.Manager, eraserImage string) error {
+func Add(mgr manager.Manager, options options.Options) error {
 	return add(mgr, newReconciler(mgr))
 }
 

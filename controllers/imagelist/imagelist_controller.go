@@ -29,18 +29,19 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
+	"github.com/Azure/eraser/controllers/options"
 )
 
-func Add(mgr manager.Manager, eraserImage string) error {
-	return add(mgr, newReconciler(mgr, eraserImage))
+func Add(mgr manager.Manager, options options.Options) error {
+	return add(mgr, newReconciler(mgr, options))
 }
 
 // newReconciler returns a new reconcile.Reconciler
-func newReconciler(mgr manager.Manager, eraserImage string) reconcile.Reconciler {
+func newReconciler(mgr manager.Manager, options options.Options) reconcile.Reconciler {
 	return &Reconciler{
-		Client:      mgr.GetClient(),
-		scheme:      mgr.GetScheme(),
-		eraserImage: eraserImage,
+		Client:  mgr.GetClient(),
+		scheme:  mgr.GetScheme(),
+		options: options,
 	}
 }
 
@@ -52,8 +53,8 @@ type ImageJobReconciler struct {
 // ImageListReconciler reconciles a ImageList object
 type Reconciler struct {
 	client.Client
-	scheme      *runtime.Scheme
-	eraserImage string
+	scheme  *runtime.Scheme
+	options options.Options
 }
 
 //+kubebuilder:rbac:groups=eraser.sh,resources=imagelists,verbs=get;list;watch;create;update;patch;delete
@@ -93,7 +94,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 						Containers: []corev1.Container{
 							{
 								Name:            "eraser",
-								Image:           r.eraserImage,
+								Image:           r.options.EraserImage,
 								ImagePullPolicy: corev1.PullIfNotPresent,
 								Args:            []string{"--imagelist=" + req.Name},
 							},
