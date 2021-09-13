@@ -1,0 +1,17 @@
+layout:
+- go.kubebuilder.io/v3
+projectName: eraser
+repo: github.com/Azure/eraser
+resources:
+- controller: true
+  group: eraser.sh
+  kind: ImageCollectorResult
+  version: v1alpha1
+- api:
+    crdVersion: v1
+    namespaced: true
+  group: eraser.sh
+  kind: ProjectConfig
+  path: github.com/Azure/eraser/api/v2
+  version: v2
+version: "3"

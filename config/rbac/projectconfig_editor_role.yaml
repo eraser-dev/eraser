@@ -1,0 +1,24 @@
+# permissions for end users to edit projectconfigs.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: projectconfig-editor-role
+rules:
+- apiGroups:
+  - eraser.sh
+  resources:
+  - projectconfigs
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - eraser.sh
+  resources:
+  - projectconfigs/status
+  verbs:
+  - get
