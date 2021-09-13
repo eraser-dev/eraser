@@ -20,33 +20,33 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
-// NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
+// // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
+// // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
-// ImageCollectorResultSpec defines the desired state of ImageCollectorResult
-type ImageCollectorResultSpec struct {
-	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
+// // ImageCollectorResultSpec defines the desired state of ImageCollectorResult
+// type ImageCollectorResultSpec struct {
+// 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
+// 	// Important: Run "make" to regenerate code after modifying this file
 
-	// Foo is an example field of ImageCollectorResult. Edit imagecollectorresult_types.go to remove/update
-	Foo string `json:"foo,omitempty"`
-}
+// }
 
 // ImageCollectorResultStatus defines the observed state of ImageCollectorResult
 type ImageCollectorResultStatus struct {
-	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
+	// Specifies on which node the listing operation took place
+	Node string `json:"node"`
+	// The list of images from the node
+	ImagesResults []string `json:"images"`
 }
 
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
-
+//+kubebuilder:resource:scope="Cluster"
 // ImageCollectorResult is the Schema for the imagecollectorresults API
 type ImageCollectorResult struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   ImageCollectorResultSpec   `json:"spec,omitempty"`
+	// Spec   ImageCollectorResultSpec   `json:"spec,omitempty"`
 	Status ImageCollectorResultStatus `json:"status,omitempty"`
 }
 
