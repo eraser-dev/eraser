@@ -20,16 +20,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
-// // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
-
-// // ImageCollectorResultSpec defines the desired state of ImageCollectorResult
-// type ImageCollectorResultSpec struct {
-// 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
-// 	// Important: Run "make" to regenerate code after modifying this file
-
-// }
-
 // ImageCollectorResultStatus defines the observed state of ImageCollectorResult
 type ImageCollectorResultStatus struct {
 	// Specifies on which node the listing operation took place
@@ -46,7 +36,6 @@ type ImageCollectorResult struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	// Spec   ImageCollectorResultSpec   `json:"spec,omitempty"`
 	Status ImageCollectorResultStatus `json:"status,omitempty"`
 }
 
