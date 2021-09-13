@@ -1,7 +1,7 @@
 
 # Image URL to use all building/pushing image targets
-IMG ?= ghcr.io/azure/eraser-manager:latest
-ERASER_IMG ?= ghcr.io/azure/eraser:latest
+IMG ?= aldaircoronel/eraser-manager:latest
+ERASER_IMG ?= aldaircoronel/eraser:latest
 # Produce CRDs that work back to Kubernetes 1.11 (no version conversion)
 CRD_OPTIONS ?= "crd:trivialVersions=true,preserveUnknownFields=false"
 
