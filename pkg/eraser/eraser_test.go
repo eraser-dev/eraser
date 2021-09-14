@@ -199,7 +199,7 @@ var (
 	image5 = pb.Image{
 		Id:          "sha256:fd46ec1af6de89db1714a243efa1e35c4408f5a5b9df9c653dd70db1ee95522b",
 		RepoTags:    []string{},
-		RepoDigests: []string{"docker.io/aldaircoronel/remove_images@sha256:d93d3d3073797258ef06c39e2dce9782c5c8a2315359337448e140c14423928e"},
+		RepoDigests: []string{"docker.io/ghcr.io/azure/remove_images@sha256:d93d3d3073797258ef06c39e2dce9782c5c8a2315359337448e140c14423928e"},
 	}
 
 	// containers
@@ -402,7 +402,7 @@ func TestRemoveImage(t *testing.T) {
 				containers: []*pb.Container{&container1, &container2},
 				images:     []*pb.Image{&image1, &image2, &image3, &image4, &image5},
 			},
-			imageToDelete: "docker.io/aldaircoronel/remove_images@sha256:d93d3d3073797258ef06c39e2dce9782c5c8a2315359337448e140c14423928e",
+			imageToDelete: "docker.io/ghcr.io/azure/remove_images@sha256:d93d3d3073797258ef06c39e2dce9782c5c8a2315359337448e140c14423928e",
 			imagesOutput:  []*pb.Image{&image1, &image2, &image3, &image4},
 			err:           nil,
 		},
