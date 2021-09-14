@@ -27,7 +27,7 @@ import (
 type ProjectConfig struct {
 	metav1.TypeMeta `json:",inline"`
 
-	cfg.ControllerManagerConfigurationSpec `json:", inline"`
+	cfg.ControllerManagerConfigurationSpec `json:",inline"`
 	EraserImage                            string `json:"clusterName,omitempty"`
 }
 
