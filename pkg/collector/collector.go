@@ -126,8 +126,8 @@ func writeListImagesToCollectorCR(clientSet *kubernetes.Clientset, c Client, soc
 	images, err := c.listImages(backgroundContext)
 	logError(err)
 
-	// list of images id's
-	imagesIds := make([]string, 0, len(images))
+	// list of images repo's
+	imagesRepos := make([]string, 0, len(images))
 
 	// map of sha id and repotags
 	idRepoMap := make(map[string][]string)
