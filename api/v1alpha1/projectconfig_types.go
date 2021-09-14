@@ -28,7 +28,7 @@ type ProjectConfig struct {
 	metav1.TypeMeta `json:",inline"`
 
 	cfg.ControllerManagerConfigurationSpec `json:",inline"`
-	EraserImage                            string `json:"clusterName,omitempty"`
+	EraserImage                            string `json:"eraserImage,omitempty"`
 }
 
 func init() {
