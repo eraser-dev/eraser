@@ -53,7 +53,7 @@ func main() {
 	var metricsAddr string
 	var enableLeaderElection bool
 	var probeAddr string
-	// var eraserImage string
+	var eraserImage string
 	var configFile string
 	var err error
 
@@ -62,7 +62,7 @@ func main() {
 	flag.BoolVar(&enableLeaderElection, "leader-elect", false,
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.")
-	// flag.StringVar(&eraserImage, "eraser-image", "ghcr.io/azure/eraser:latest", "The eraser image URL.")
+	flag.StringVar(&eraserImage, "eraser-image", "ghcr.io/azure/eraser:latest", "The eraser image URL.")
 	flag.StringVar(&configFile, "config", "",
 		"The controller will load its initial configuration from this file. "+
 			"Omit this flag to use the default configuration values. "+
@@ -77,7 +77,7 @@ func main() {
 
 	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
 
-	ctrlConfig := v1alpha1.ProjectConfig{}
+	ctrlConfig := v1alpha1.ProjectConfig{EraserImage: eraserImage}
 	options := ctrl.Options{
 		Scheme:                 scheme,
 		MetricsBindAddress:     metricsAddr,
