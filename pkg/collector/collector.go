@@ -2,18 +2,23 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
 	"log"
 	"net"
 	"net/url"
+	"os"
 	"time"
 
 	"google.golang.org/grpc"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
+
+	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
 )
 
 const (
@@ -120,7 +125,7 @@ func logError(err error) {
 }
 
 func getImageResult(imageRepoTag []string, imageRepoDigest []string) (imageResult string) {
-	[]if len(imageRepoTag) == 0 {
+	if len(imageRepoTag) == 0 {
 		imageResult = imageRepoDigest[0]
 	} else {
 		imageResult = imageRepoTag[0]
@@ -141,6 +146,35 @@ func writeListImagesToCollectorCR(clientSet *kubernetes.Clientset, c Client, soc
 	// Get imageResults slice from repoTags or repoDigest
 	for _, image := range images {
 		imagesResults = append(imagesResults, getImageResult(image.RepoTags, image.RepoDigests))
+	}
+
+	imageCollectorResult := eraserv1alpha1.ImageCollectorResult{
+		TypeMeta: v1.TypeMeta{
+			APIVersion: "eraser.sh/v1alpha1",
+			Kind:       "ImageCollectorResult",
+		},
+		ObjectMeta: v1.ObjectMeta{
+			Name: "imagecollectorresult-" + os.Getenv("NODE_NAME"),
+		},
+		Status: eraserv1alpha1.ImageCollectorResultStatus{
+			Node:          os.Getenv("NODE_NAME"),
+			ImagesResults: imagesResults,
+		},
+	}
+
+	body, err := json.Marshal(imageCollectorResult)
+	logError(err)
+
+	// Create imageCollectorResult object
+	_, err = clientSet.RESTClient().Post().
+		AbsPath(apiPath).
+		Name(imageCollectorResult.Name).
+		Resource("imagecollectorresult").
+		Body(body).DoRaw(backgroundContext)
+
+	if err != nil {
+		log.Println("Could not create imagecollectorresult for node ", os.Getenv("NODE_NAME"))
+		return err
 	}
 
 	return nil
