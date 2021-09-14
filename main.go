@@ -63,7 +63,7 @@ func main() {
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.")
 	flag.StringVar(&eraserImage, "eraser-image", "ghcr.io/azure/eraser:latest", "The eraser image URL.")
-	flag.StringVar(&configFile, "config", "",
+	flag.StringVar(&configFile, "projectconfig", "",
 		"The controller will load its initial configuration from this file. "+
 			"Omit this flag to use the default configuration values. "+
 			"Command-line flags override configuration from this file.")
