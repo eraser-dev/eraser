@@ -119,6 +119,15 @@ func logError(err error) {
 	}
 }
 
+func getImageResult(imageRepoTag []string, imageRepoDigest []string) (imageResult string) {
+	[]if len(imageRepoTag) == 0 {
+		imageResult = imageRepoDigest[0]
+	} else {
+		imageResult = imageRepoTag[0]
+	}
+	return imageResult
+}
+
 func writeListImagesToCollectorCR(clientSet *kubernetes.Clientset, c Client, socketPath string) (err error) {
 	backgroundContext, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
@@ -127,14 +136,11 @@ func writeListImagesToCollectorCR(clientSet *kubernetes.Clientset, c Client, soc
 	logError(err)
 
 	// list of images repo's
-	imagesRepos := make([]string, 0, len(images))
+	imagesResults := make([]string, 0, len(images))
 
-	// map of sha id and repotags
-	idRepoMap := make(map[string][]string)
-
+	// Get imageResults slice from repoTags or repoDigest
 	for _, image := range images {
-		imagesIds = append(imagesIds, image.Id)
-		idRepoMap[image.Id] = image.repoTags
+		imagesResults = append(imagesResults, getImageResult(image.RepoTags, image.RepoDigests))
 	}
 
 	return nil
