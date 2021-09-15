@@ -49,21 +49,35 @@ func init() {
 	//+kubebuilder:scaffold:scheme
 }
 
+// func config(configFile string, options ctrl.Options, ctrlConfig v1alpha1.ProjectConfig) {
+// 	var err error
+// 	if configFile != "" {
+// 		options, err = options.AndFrom(ctrl.ConfigFile().AtPath(configFile).OfKind(&ctrlConfig))
+// 		if err != nil {
+// 			setupLog.Error(err, "unable to load the config file")
+// 			os.Exit(1)
+// 		}
+// 	}
+// }
+
 func main() {
-	var metricsAddr string
-	var enableLeaderElection bool
-	var probeAddr string
 	var eraserImage string
 	var configFile string
 	var err error
 
-	flag.StringVar(&metricsAddr, "metrics-bind-address", ":8080", "The address the metric endpoint binds to.")
-	flag.StringVar(&probeAddr, "health-probe-bind-address", ":8081", "The address the probe endpoint binds to.")
-	flag.BoolVar(&enableLeaderElection, "leader-elect", false,
+	options := ctrl.Options{
+		Scheme:           scheme,
+		Port:             9443,
+		LeaderElectionID: "e29e094a.k8s.io",
+	}
+
+	flag.StringVar(&options.MetricsBindAddress, "metrics-bind-address", ":8080", "The address the metric endpoint binds to.")
+	flag.StringVar(&options.HealthProbeBindAddress, "health-probe-bind-address", ":8081", "The address the probe endpoint binds to.")
+	flag.BoolVar(&options.LeaderElection, "leader-elect", false,
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.")
 	flag.StringVar(&eraserImage, "eraser-image", "ghcr.io/azure/eraser:latest", "The eraser image URL.")
-	flag.StringVar(&configFile, "projectconfig", "",
+	flag.StringVar(&configFile, "config", "",
 		"The controller will load its initial configuration from this file. "+
 			"Omit this flag to use the default configuration values. "+
 			"Command-line flags override configuration from this file.")
@@ -78,14 +92,7 @@ func main() {
 	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
 
 	ctrlConfig := v1alpha1.ProjectConfig{EraserImage: eraserImage}
-	options := ctrl.Options{
-		Scheme:                 scheme,
-		MetricsBindAddress:     metricsAddr,
-		Port:                   9443,
-		HealthProbeBindAddress: probeAddr,
-		LeaderElection:         enableLeaderElection,
-		LeaderElectionID:       "e29e094a.k8s.io",
-	}
+
 	if configFile != "" {
 		options, err = options.AndFrom(ctrl.ConfigFile().AtPath(configFile).OfKind(&ctrlConfig))
 		if err != nil {
@@ -101,7 +108,7 @@ func main() {
 	}
 
 	setupLog.Info("setup controllers")
-	if err = controllers.SetupWithManager(mgr, eraserImage); err != nil {
+	if err = controllers.SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to setup controllers")
 		os.Exit(1)
 	}
