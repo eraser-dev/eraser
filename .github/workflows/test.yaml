@@ -83,8 +83,8 @@ jobs:
         with:
           cluster_name: ${{ env.CLUSTER_NAME }}
           config: .github/workflows/kind-config.yaml
-      - run: kubectl get pod -A
-      - run: kubectl get nodes -A
+      - run: kubectl get pod
+      - run: kubectl get nodes
 
       - name: Load controller and eraser image on the nodes of the cluster
         run: |
@@ -113,14 +113,14 @@ jobs:
         shell: bash
 
       - name: Get image list
-        run: kubectl get imagelist -A
+        run: kubectl get imagelist
 
       - name: Sleep for 10 seconds
         run: sleep 10s
         shell: bash
         
       - name: Get image job
-        run: kubectl get imagejob -A
+        run: kubectl get imagejob
 
       - name: Get pods
         run: kubectl get pod -A
