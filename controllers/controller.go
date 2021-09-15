@@ -5,7 +5,6 @@ import (
 
 	"github.com/Azure/eraser/controllers/imagejob"
 	"github.com/Azure/eraser/controllers/imagelist"
-	"github.com/Azure/eraser/controllers/options"
 	"k8s.io/apimachinery/pkg/api/meta"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
@@ -13,7 +12,7 @@ import (
 
 var (
 	controllerLog      = ctrl.Log.WithName("controllerRuntimeLogger")
-	controllerAddFuncs []func(manager.Manager, options.Options) error
+	controllerAddFuncs []func(manager.Manager) error
 )
 
 func init() {
@@ -21,10 +20,9 @@ func init() {
 	controllerAddFuncs = append(controllerAddFuncs, imagejob.Add)
 }
 
-func SetupWithManager(m manager.Manager, eraserImage string) error {
-	opt := options.Options{EraserImage: eraserImage}
+func SetupWithManager(m manager.Manager) error {
 	for _, f := range controllerAddFuncs {
-		if err := f(m, opt); err != nil {
+		if err := f(m); err != nil {
 			var kindMatchErr *meta.NoKindMatchError
 			if errors.As(err, &kindMatchErr) {
 				controllerLog.Info("CRD %v is not installed", kindMatchErr.GroupKind)
