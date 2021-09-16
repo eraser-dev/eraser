@@ -9,5 +9,5 @@ spec:
         spec:
           containers:
           - name: eraser
-            image: aldaircoronel/eraser:test
+            image: ghcr.io/azure/eraser:test
           restartPolicy: OnFailure
