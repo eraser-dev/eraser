@@ -94,9 +94,7 @@ jobs:
 
       - name: Load controller and eraser image on the nodes of the cluster
         run: |
-          kind load docker-image aldaircoronel/eraser-manager:test --name ${{ env.CLUSTER_NAME }}
-          kind load docker-image aldaircoronel/eraser:test --name ${{ env.CLUSTER_NAME }}
-          kind load docker-image hello-world:latest --name ${{ env.CLUSTER_NAME }}
+          kind load docker-image ghcr.io/azure/eraser-manager:test ghcr.io/azure/eraser:test hello-world:latest --name ${{ env.CLUSTER_NAME }}
 
       - name: Sleep for 10 seconds
         run: sleep 10s
