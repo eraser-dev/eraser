@@ -27,7 +27,7 @@ spec:
         - /manager
         args:
         - --leader-elect
-        - --eraser-image=ghcr.io/azure/eraser:test
+        - --eraser-image
         image: controller:latest
         name: manager
         securityContext:
