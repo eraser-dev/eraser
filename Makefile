@@ -70,7 +70,7 @@ build: generate fmt vet ## Build manager binary.
 	go build -o bin/manager main.go
 
 run: manifests generate fmt vet ## Run a controller from your host.
-	go run ./main.go -eraser-image=${ERASER_IMG}
+	go run ./main.go
 
 docker-build: ## Build docker image with the manager.
 	docker buildx build $(_CACHE_FROM) $(_CACHE_TO) -t ${IMG} --load .
@@ -94,6 +94,9 @@ uninstall: manifests kustomize ## Uninstall CRDs from the K8s cluster specified 
 
 deploy: manifests kustomize ## Deploy controller to the K8s cluster specified in ~/.kube/config.
 	cd config/manager && $(KUSTOMIZE) edit set image controller=${IMG}
+ifeq ($(IS_IC),true)
+	@sed -i '/^ name: manager/a \ \ \ \ \ \ \ \ --eraser-image: ${ERASER_IMG}' ./config/manager/manager.yaml
+endif
 	$(KUSTOMIZE) build config/default | kubectl apply -f -
 
 undeploy: ## Undeploy controller from the K8s cluster specified in ~/.kube/config.
