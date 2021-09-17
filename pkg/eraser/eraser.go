@@ -38,7 +38,7 @@ func updateStatus(ctx context.Context, clientset *kubernetes.Clientset, results 
 
 	// create imageStatus object
 	_, err = clientset.RESTClient().Post().
-		AbsPath(util.ApiPath).
+		AbsPath(util.APIPath).
 		Name(imageStatus.Name).
 		Resource("imagestatuses").
 		Body(body).DoRaw(ctx)
@@ -198,13 +198,13 @@ func main() {
 
 	result := eraserv1alpha1.ImageList{}
 	err = clientset.RESTClient().Get().
-		AbsPath(util.ApiPath).
+		AbsPath(util.APIPath).
 		Resource("imagelists").
 		Name(*imageListPtr).
 		Do(context.Background()).Into(&result)
 
 	if err != nil {
-		log.Println("Unable to find imagelist", " Name: "+*imageListPtr, " AbsPath: ", util.ApiPath)
+		log.Println("Unable to find imagelist", " Name: "+*imageListPtr, " AbsPath: ", util.APIPath)
 		log.Fatal(err)
 	}
 

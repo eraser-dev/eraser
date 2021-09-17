@@ -65,7 +65,7 @@ func writeListImagesToCollectorCR(clientSet *kubernetes.Clientset, c util.Client
 
 	// Create imageCollectorResult object
 	_, err = clientSet.RESTClient().Post().
-		AbsPath(util.ApiPath).
+		AbsPath(util.APIPath).
 		Name(imageCollectorResult.Name).
 		Resource("imagecollectorresult").
 		Body(body).DoRaw(backgroundContext)

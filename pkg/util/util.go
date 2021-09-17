@@ -16,7 +16,7 @@ import (
 const (
 	// unixProtocol is the network protocol of unix socket.
 	UnixProtocol = "unix"
-	ApiPath      = "apis/eraser.sh/v1alpha1"
+	APIPath      = "apis/eraser.sh/v1alpha1"
 )
 
 var (
