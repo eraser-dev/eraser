@@ -3,120 +3,18 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"flag"
-	"fmt"
 	"log"
-	"net"
-	"net/url"
 	"os"
-	"time"
 
-	"google.golang.org/grpc"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 
 	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
+	"github.com/Azure/eraser/pkg/util"
 )
-
-const (
-	// unixProtocol is the network protocol of unix socket.
-	unixProtocol = "unix"
-	apiPath      = "apis/eraser.sh/v1alpha1"
-)
-
-var (
-	// Timeout  of connecting to server (default: 10s)
-	timeout                  = 10 * time.Second
-	ErrProtocolNotSupported  = errors.New("protocol not supported")
-	ErrEndpointDeprecated    = errors.New("endpoint is deprecated, please consider using full url format")
-	ErrOnlySupportUnixSocket = errors.New("only support unix socket endpoint")
-)
-
-type client struct {
-	images  pb.ImageServiceClient
-	runtime pb.RuntimeServiceClient
-}
-
-type Client interface {
-	listImages(context.Context) ([]*pb.Image, error)
-}
-
-func (c *client) listImages(ctx context.Context) (list []*pb.Image, err error) {
-	request := &pb.ListImagesRequest{Filter: nil}
-
-	resp, err := c.images.ListImages(ctx, request)
-	if err != nil {
-		return nil, err
-	}
-
-	return resp.Images, nil
-}
-
-func GetAddressAndDialer(endpoint string) (string, func(ctx context.Context, addr string) (net.Conn, error), error) {
-	protocol, addr, err := parseEndpointWithFallbackProtocol(endpoint, unixProtocol)
-	if err != nil {
-		return "", nil, err
-	}
-	if protocol != unixProtocol {
-		return "", nil, ErrOnlySupportUnixSocket
-	}
-
-	return addr, dial, nil
-}
-
-func dial(ctx context.Context, addr string) (net.Conn, error) {
-	return (&net.Dialer{}).DialContext(ctx, unixProtocol, addr)
-}
-
-func parseEndpointWithFallbackProtocol(endpoint string, fallbackProtocol string) (protocol string, addr string, err error) {
-	if protocol, addr, err = parseEndpoint(endpoint); err != nil && protocol == "" {
-		fallbackEndpoint := fallbackProtocol + "://" + endpoint
-		protocol, addr, err = parseEndpoint(fallbackEndpoint)
-		if err != nil {
-			return "", "", err
-		}
-	}
-	return protocol, addr, err
-}
-
-func parseEndpoint(endpoint string) (string, string, error) {
-	u, err := url.Parse(endpoint)
-	if err != nil {
-		return "", "", fmt.Errorf("error while parsing: %w", err)
-	}
-
-	switch u.Scheme {
-	case "tcp":
-		return "tcp", u.Host, nil
-	case "unix":
-		return "unix", u.Path, nil
-
-	case "":
-		return "", "", fmt.Errorf("using %q as %w", endpoint, ErrEndpointDeprecated)
-
-	default:
-		return u.Scheme, "", fmt.Errorf("%q: %w", u.Scheme, ErrProtocolNotSupported)
-	}
-}
-
-func getImageClient(ctx context.Context, socketPath string) (pb.ImageServiceClient, *grpc.ClientConn, error) {
-	addr, dialer, err := GetAddressAndDialer(socketPath)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	conn, err := grpc.DialContext(ctx, addr, grpc.WithBlock(), grpc.WithInsecure(), grpc.WithContextDialer(dialer))
-	if err != nil {
-		return nil, nil, err
-	}
-
-	imageClient := pb.NewImageServiceClient(conn)
-
-	return imageClient, conn, nil
-}
 
 func logError(err error) {
 	if err != nil {
@@ -133,11 +31,11 @@ func getImageResult(imageRepoTag []string, imageRepoDigest []string) (imageResul
 	return imageResult
 }
 
-func writeListImagesToCollectorCR(clientSet *kubernetes.Clientset, c Client, socketPath string) (err error) {
-	backgroundContext, cancel := context.WithTimeout(context.Background(), timeout)
+func writeListImagesToCollectorCR(clientSet *kubernetes.Clientset, c util.Client, socketPath string) (err error) {
+	backgroundContext, cancel := context.WithTimeout(context.Background(), util.Timeout)
 	defer cancel()
 
-	images, err := c.listImages(backgroundContext)
+	images, err := c.ListImages(backgroundContext)
 	logError(err)
 
 	// list of images repo's
@@ -167,7 +65,7 @@ func writeListImagesToCollectorCR(clientSet *kubernetes.Clientset, c Client, soc
 
 	// Create imageCollectorResult object
 	_, err = clientSet.RESTClient().Post().
-		AbsPath(apiPath).
+		AbsPath(util.ApiPath).
 		Name(imageCollectorResult.Name).
 		Resource("imagecollectorresult").
 		Body(body).DoRaw(backgroundContext)
@@ -197,12 +95,12 @@ func main() {
 		log.Fatal("incorrect runtime")
 	}
 
-	imageClient, conn, err := getImageClient(context.Background(), socketPath)
+	imageClient, conn, err := util.GetImageClient(context.Background(), socketPath)
 	logError(err)
 
 	runtimeClient := pb.NewRuntimeServiceClient(conn)
 
-	client := &client{imageClient, runtimeClient}
+	client := &util.ClientType{imageClient, runtimeClient}
 
 	config, err := rest.InClusterConfig()
 	logError(err)
