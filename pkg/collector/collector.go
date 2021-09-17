@@ -46,13 +46,14 @@ func writeListImagesToCollectorCR(clientSet *kubernetes.Clientset, c util.Client
 		imagesResults = append(imagesResults, getImageResult(image.RepoTags, image.RepoDigests))
 	}
 
+	imageCollectorResultName := "imagecollectorresult-" + os.Getenv("NODE_NAME")
 	imageCollectorResult := eraserv1alpha1.ImageCollectorResult{
 		TypeMeta: v1.TypeMeta{
 			APIVersion: "eraser.sh/v1alpha1",
 			Kind:       "ImageCollectorResult",
 		},
 		ObjectMeta: v1.ObjectMeta{
-			Name: "imagecollectorresult-" + os.Getenv("NODE_NAME"),
+			GenerateName: imageCollectorResultName + "-",
 		},
 		Status: eraserv1alpha1.ImageCollectorResultStatus{
 			Node:          os.Getenv("NODE_NAME"),
