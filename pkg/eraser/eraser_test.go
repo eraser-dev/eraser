@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/Azure/eraser/pkg/util"
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 )
 
@@ -66,7 +67,7 @@ func TestParseEndpointWithFallBackProtocol(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		p, a, e := parseEndpointWithFallbackProtocol(tc.endpoint, tc.fallbackProtocol)
+		p, a, e := util.ParseEndpointWithFallbackProtocol(tc.endpoint, tc.fallbackProtocol)
 
 		if p != tc.protocol || a != tc.addr {
 			t.Errorf("Test fails")
@@ -99,7 +100,7 @@ func TestParseEndpoint(t *testing.T) {
 			protocol: "",
 			addr:     "",
 			errCheck: func(t *testing.T, err error) {
-				if !errors.Is(err, ErrEndpointDeprecated) {
+				if !errors.Is(err, util.ErrEndpointDeprecated) {
 					t.Error(err)
 				}
 			},
@@ -109,7 +110,7 @@ func TestParseEndpoint(t *testing.T) {
 			protocol: "https",
 			addr:     "",
 			errCheck: func(t *testing.T, err error) {
-				if !errors.Is(err, ErrProtocolNotSupported) {
+				if !errors.Is(err, util.ErrProtocolNotSupported) {
 					t.Error(err)
 				}
 			},
@@ -127,7 +128,7 @@ func TestParseEndpoint(t *testing.T) {
 		},
 	}
 	for _, tc := range testCases {
-		p, a, e := parseEndpoint(tc.endpoint)
+		p, a, e := util.ParseEndpoint(tc.endpoint)
 
 		if p != tc.protocol || a != tc.addr {
 			t.Errorf("Test fails")
@@ -151,17 +152,17 @@ func TestGetAddressAndDialer(t *testing.T) {
 		{
 			endpoint: "localhost:8080",
 			addr:     "",
-			err:      ErrProtocolNotSupported,
+			err:      util.ErrProtocolNotSupported,
 		},
 		{
 			endpoint: "tcp://localhost:8080",
 			addr:     "",
-			err:      ErrOnlySupportUnixSocket,
+			err:      util.ErrOnlySupportUnixSocket,
 		},
 	}
 
 	for _, tc := range testCases {
-		a, _, e := GetAddressAndDialer(tc.endpoint)
+		a, _, e := util.GetAddressAndDialer(tc.endpoint)
 		if a != tc.addr || !errors.Is(e, tc.err) {
 			t.Errorf("Test fails")
 		}
