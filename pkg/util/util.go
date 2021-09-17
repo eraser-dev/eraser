@@ -73,11 +73,11 @@ func (c *ClientType) DeleteImage(ctx context.Context, image string) (err error) 
 }
 
 func GetAddressAndDialer(endpoint string) (string, func(ctx context.Context, addr string) (net.Conn, error), error) {
-	protocol, addr, err := ParseEndpointWithFallbackProtocol(endpoint, unixProtocol)
+	protocol, addr, err := ParseEndpointWithFallbackProtocol(endpoint, UnixProtocol)
 	if err != nil {
 		return "", nil, err
 	}
-	if protocol != unixProtocol {
+	if protocol != UnixProtocol {
 		return "", nil, ErrOnlySupportUnixSocket
 	}
 
@@ -85,7 +85,7 @@ func GetAddressAndDialer(endpoint string) (string, func(ctx context.Context, add
 }
 
 func dial(ctx context.Context, addr string) (net.Conn, error) {
-	return (&net.Dialer{}).DialContext(ctx, unixProtocol, addr)
+	return (&net.Dialer{}).DialContext(ctx, UnixProtocol, addr)
 }
 
 func ParseEndpointWithFallbackProtocol(endpoint string, fallbackProtocol string) (protocol string, addr string, err error) {
