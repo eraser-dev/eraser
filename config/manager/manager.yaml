@@ -27,7 +27,6 @@ spec:
         - /manager
         args:
         - --leader-elect
-        - --eraser-image
         image: controller:latest
         name: manager
         securityContext:
