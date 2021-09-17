@@ -1,6 +1,17 @@
 package util
 
-import ()
+import (
+	"context"
+	"errors"
+	"fmt"
+	"net"
+	"net/url"
+	"time"
+
+	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
+
+	"google.golang.org/grpc"
+)
 
 const (
 	// unixProtocol is the network protocol of unix socket.
@@ -17,28 +28,28 @@ var (
 )
 
 type client struct {
-	images  pb.ImageServiceClient
-	runtime pb.RuntimeServiceClient
+	Images  pb.ImageServiceClient
+	Runtime pb.RuntimeServiceClient
 }
 
 type Client interface {
-	listImages(context.Context) ([]*pb.Image, error)
-	listContainers(context.Context) ([]*pb.Container, error)
-	deleteImage(context.Context, string) error
+	ListImages(context.Context) ([]*pb.Image, error)
+	ListContainers(context.Context) ([]*pb.Container, error)
+	DeleteImage(context.Context, string) error
 }
 
-func (c *client) listContainers(context.Context) (list []*pb.Container, err error) {
-	resp, err := c.runtime.ListContainers(context.Background(), new(pb.ListContainersRequest))
+func (c *client) ListContainers(context.Context) (list []*pb.Container, err error) {
+	resp, err := c.Runtime.ListContainers(context.Background(), new(pb.ListContainersRequest))
 	if err != nil {
 		return nil, err
 	}
 	return resp.Containers, nil
 }
 
-func (c *client) listImages(ctx context.Context) (list []*pb.Image, err error) {
+func (c *client) ListImages(ctx context.Context) (list []*pb.Image, err error) {
 	request := &pb.ListImagesRequest{Filter: nil}
 
-	resp, err := c.images.ListImages(ctx, request)
+	resp, err := c.Images.ListImages(ctx, request)
 	if err != nil {
 		return nil, err
 	}
@@ -46,14 +57,14 @@ func (c *client) listImages(ctx context.Context) (list []*pb.Image, err error) {
 	return resp.Images, nil
 }
 
-func (c *client) deleteImage(ctx context.Context, image string) (err error) {
+func (c *client) DeleteImage(ctx context.Context, image string) (err error) {
 	if image == "" {
 		return err
 	}
 
 	request := &pb.RemoveImageRequest{Image: &pb.ImageSpec{Image: image}}
 
-	_, err = c.images.RemoveImage(ctx, request)
+	_, err = c.Images.RemoveImage(ctx, request)
 	if err != nil {
 		return err
 	}
@@ -62,7 +73,7 @@ func (c *client) deleteImage(ctx context.Context, image string) (err error) {
 }
 
 func GetAddressAndDialer(endpoint string) (string, func(ctx context.Context, addr string) (net.Conn, error), error) {
-	protocol, addr, err := parseEndpointWithFallbackProtocol(endpoint, unixProtocol)
+	protocol, addr, err := ParseEndpointWithFallbackProtocol(endpoint, unixProtocol)
 	if err != nil {
 		return "", nil, err
 	}
@@ -77,10 +88,10 @@ func dial(ctx context.Context, addr string) (net.Conn, error) {
 	return (&net.Dialer{}).DialContext(ctx, unixProtocol, addr)
 }
 
-func parseEndpointWithFallbackProtocol(endpoint string, fallbackProtocol string) (protocol string, addr string, err error) {
-	if protocol, addr, err = parseEndpoint(endpoint); err != nil && protocol == "" {
+func ParseEndpointWithFallbackProtocol(endpoint string, fallbackProtocol string) (protocol string, addr string, err error) {
+	if protocol, addr, err = ParseEndpoint(endpoint); err != nil && protocol == "" {
 		fallbackEndpoint := fallbackProtocol + "://" + endpoint
-		protocol, addr, err = parseEndpoint(fallbackEndpoint)
+		protocol, addr, err = ParseEndpoint(fallbackEndpoint)
 		if err != nil {
 			return "", "", err
 		}
@@ -88,7 +99,7 @@ func parseEndpointWithFallbackProtocol(endpoint string, fallbackProtocol string)
 	return protocol, addr, err
 }
 
-func parseEndpoint(endpoint string) (string, string, error) {
+func ParseEndpoint(endpoint string) (string, string, error) {
 	u, err := url.Parse(endpoint)
 	if err != nil {
 		return "", "", fmt.Errorf("error while parsing: %w", err)
@@ -108,7 +119,7 @@ func parseEndpoint(endpoint string) (string, string, error) {
 	}
 }
 
-func getImageClient(ctx context.Context, socketPath string) (pb.ImageServiceClient, *grpc.ClientConn, error) {
+func GetImageClient(ctx context.Context, socketPath string) (pb.ImageServiceClient, *grpc.ClientConn, error) {
 	addr, dialer, err := GetAddressAndDialer(socketPath)
 	if err != nil {
 		return nil, nil, err
