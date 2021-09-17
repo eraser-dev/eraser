@@ -15,19 +15,19 @@ import (
 
 const (
 	// unixProtocol is the network protocol of unix socket.
-	unixProtocol = "unix"
-	apiPath      = "apis/eraser.sh/v1alpha1"
+	UnixProtocol = "unix"
+	ApiPath      = "apis/eraser.sh/v1alpha1"
 )
 
 var (
 	// Timeout  of connecting to server (default: 10s)
-	timeout                  = 10 * time.Second
+	Timeout                  = 10 * time.Second
 	ErrProtocolNotSupported  = errors.New("protocol not supported")
 	ErrEndpointDeprecated    = errors.New("endpoint is deprecated, please consider using full url format")
 	ErrOnlySupportUnixSocket = errors.New("only support unix socket endpoint")
 )
 
-type client struct {
+type ClientType struct {
 	Images  pb.ImageServiceClient
 	Runtime pb.RuntimeServiceClient
 }
@@ -38,7 +38,7 @@ type Client interface {
 	DeleteImage(context.Context, string) error
 }
 
-func (c *client) ListContainers(context.Context) (list []*pb.Container, err error) {
+func (c *ClientType) ListContainers(context.Context) (list []*pb.Container, err error) {
 	resp, err := c.Runtime.ListContainers(context.Background(), new(pb.ListContainersRequest))
 	if err != nil {
 		return nil, err
@@ -46,7 +46,7 @@ func (c *client) ListContainers(context.Context) (list []*pb.Container, err erro
 	return resp.Containers, nil
 }
 
-func (c *client) ListImages(ctx context.Context) (list []*pb.Image, err error) {
+func (c *ClientType) ListImages(ctx context.Context) (list []*pb.Image, err error) {
 	request := &pb.ListImagesRequest{Filter: nil}
 
 	resp, err := c.Images.ListImages(ctx, request)
@@ -57,7 +57,7 @@ func (c *client) ListImages(ctx context.Context) (list []*pb.Image, err error) {
 	return resp.Images, nil
 }
 
-func (c *client) DeleteImage(ctx context.Context, image string) (err error) {
+func (c *ClientType) DeleteImage(ctx context.Context, image string) (err error) {
 	if image == "" {
 		return err
 	}
