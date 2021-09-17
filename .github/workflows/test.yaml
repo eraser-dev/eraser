@@ -75,11 +75,11 @@ jobs:
       - name: Generate manifests
         run: make generate manifests
 
-      - name: Deploy images
-        run: make deploy IS_IC=true ERASER_IMG=ghcr.io/azure/eraser:test
-
       - name: Build eraser
         run: make docker-build-eraser CACHE_FROM=type=gha,scope=eraser-node CACHE_TO=type=gha,scope=eraser-node,mode=max,ERASER_IMG=ghcr.io/azure/eraser:test
+
+      - name: Deploy images
+        run: make deploy IS_IC=true ERASER_IMG=ghcr.io/azure/eraser:test
 
       - name: Pull test image
         run: docker pull hello-world
