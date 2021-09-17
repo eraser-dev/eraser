@@ -38,7 +38,7 @@ func updateStatus(ctx context.Context, clientset *kubernetes.Clientset, results 
 
 	// create imageStatus object
 	_, err = clientset.RESTClient().Post().
-		AbsPath(apiPath).
+		AbsPath(util.ApiPath).
 		Name(imageStatus.Name).
 		Resource("imagestatuses").
 		Body(body).DoRaw(ctx)
@@ -62,11 +62,11 @@ func mapContainsValue(idMap map[string][]string, img string) bool {
 	return false
 }
 
-func removeImages(clientset *kubernetes.Clientset, c Client, socketPath string, targetImages []string) (err error) {
-	backgroundContext, cancel := context.WithTimeout(context.Background(), timeout)
+func removeImages(clientset *kubernetes.Clientset, c util.Client, socketPath string, targetImages []string) (err error) {
+	backgroundContext, cancel := context.WithTimeout(context.Background(), util.Timeout)
 	defer cancel()
 
-	images, err := c.listImages(backgroundContext)
+	images, err := c.ListImages(backgroundContext)
 	if err != nil {
 		return err
 	}
@@ -81,7 +81,7 @@ func removeImages(clientset *kubernetes.Clientset, c Client, socketPath string, 
 		idMap[img.Id] = img.RepoTags
 	}
 
-	containers, err := c.listContainers(backgroundContext)
+	containers, err := c.ListContainers(backgroundContext)
 	if err != nil {
 		return err
 	}
@@ -117,7 +117,7 @@ func removeImages(clientset *kubernetes.Clientset, c Client, socketPath string, 
 		_, isNonRunningImages := nonRunningImages[img]
 
 		if isNonRunningImages || isNonRunningNames {
-			err = c.deleteImage(backgroundContext, img)
+			err = c.DeleteImage(backgroundContext, img)
 			log.Println("Deleting img: ", img)
 			if err != nil {
 				results = append(results, eraserv1alpha1.NodeCleanUpDetail{
@@ -182,7 +182,7 @@ func main() {
 
 	runTimeClient := pb.NewRuntimeServiceClient(conn)
 
-	client := &util.client{imageclient, runTimeClient}
+	client := &util.ClientType{imageclient, runTimeClient}
 
 	// get list of images to remove from ImageList
 	var targetImages []string
@@ -198,13 +198,13 @@ func main() {
 
 	result := eraserv1alpha1.ImageList{}
 	err = clientset.RESTClient().Get().
-		AbsPath(apiPath).
+		AbsPath(util.ApiPath).
 		Resource("imagelists").
 		Name(*imageListPtr).
 		Do(context.Background()).Into(&result)
 
 	if err != nil {
-		log.Println("Unable to find imagelist", " Name: "+*imageListPtr, " AbsPath: ", apiPath)
+		log.Println("Unable to find imagelist", " Name: "+*imageListPtr, " AbsPath: ", util.ApiPath)
 		log.Fatal(err)
 	}
 
