@@ -69,6 +69,15 @@ jobs:
             ~/go/pkg/mod
             ~/.cache/go-build
       - uses: crazy-max/ghaction-github-runtime@v1
+      
+      - name: Create k8s Kind Cluster
+        uses: helm/kind-action@v1.2.0
+        with:
+          cluster_name: ${{ env.CLUSTER_NAME }}
+          config: .github/workflows/kind-config/kind-config.yaml
+      - run: kubectl get pod
+      - run: kubectl get nodes
+
       - name: Build controller
         run: make docker-build CACHE_FROM=type=gha,scope=eraser-manager CACHE_TO=type=gha,scope=eraser-manager,mode=max,IMG=ghcr.io/azure/eraser-manager:latest
 
@@ -83,14 +92,6 @@ jobs:
 
       - name: Pull test image
         run: docker pull hello-world
-
-      - name: Create k8s Kind Cluster
-        uses: helm/kind-action@v1.2.0
-        with:
-          cluster_name: ${{ env.CLUSTER_NAME }}
-          config: .github/workflows/kind-config/kind-config.yaml
-      - run: kubectl get pod
-      - run: kubectl get nodes
 
       - name: Load controller and eraser image on the nodes of the cluster
         run: |
