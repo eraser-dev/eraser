@@ -88,7 +88,7 @@ jobs:
         uses: helm/kind-action@v1.2.0
         with:
           cluster_name: ${{ env.CLUSTER_NAME }}
-          config: .github/workflows/kind-config.yaml
+          config: .github/workflows/kind-config/kind-config.yaml
       - run: kubectl get pod
       - run: kubectl get nodes
 
