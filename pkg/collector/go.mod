@@ -3,7 +3,8 @@ module github.com/Azure/eraser/pkg/collector
 go 1.16
 
 require (
-	google.golang.org/grpc v1.39.0
+	github.com/Azure/eraser v0.0.0-00010101000000-000000000000
+	k8s.io/apimachinery v0.21.2
 	k8s.io/client-go v0.21.3
 	k8s.io/cri-api v0.22.1
 )
