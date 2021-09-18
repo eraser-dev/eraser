@@ -79,23 +79,23 @@ jobs:
       - run: kubectl get nodes
 
       - name: Build controller
-        run: make docker-build CACHE_FROM=type=gha,scope=eraser-manager CACHE_TO=type=gha,scope=eraser-manager,mode=max,IMG=ghcr.io/azure/eraser-manager:latest
+        run: make docker-build CACHE_FROM=type=gha,scope=eraser-manager CACHE_TO=type=gha,scope=eraser-manager,mode=max,IMG=ghcr.io/azure/eraser-manager:test
 
       - name: Build eraser
-        run: make docker-build-eraser CACHE_FROM=type=gha,scope=eraser-node CACHE_TO=type=gha,scope=eraser-node,mode=max,ERASER_IMG=ghcr.io/azure/eraser:latest
+        run: make docker-build-eraser CACHE_FROM=type=gha,scope=eraser-node CACHE_TO=type=gha,scope=eraser-node,mode=max,ERASER_IMG=ghcr.io/azure/eraser:test
 
       - name: Generate manifests
         run: make generate manifests
 
       - name: Deploy images
-        run: make deploy IS_IC=true ERASER_IMG=ghcr.io/azure/eraser:latest
+        run: make deploy IS_IC=true ERASER_IMG=ghcr.io/azure/eraser:test
 
       - name: Pull test image
         run: docker pull hello-world
 
       - name: Load controller and eraser image on the nodes of the cluster
         run: |
-          kind load docker-image ghcr.io/azure/eraser-manager:latest ghcr.io/azure/eraser:latest hello-world:latest --name ${{ env.CLUSTER_NAME }}
+          kind load docker-image ghcr.io/azure/eraser-manager:test ghcr.io/azure/eraser:test hello-world:latest --name ${{ env.CLUSTER_NAME }}
 
       - name: Sleep for 10 seconds
         run: sleep 10s
