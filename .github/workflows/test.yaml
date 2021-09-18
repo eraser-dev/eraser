@@ -70,16 +70,16 @@ jobs:
             ~/.cache/go-build
       - uses: crazy-max/ghaction-github-runtime@v1
       - name: Build controller
-        run: make docker-build CACHE_FROM=type=gha,scope=eraser-manager CACHE_TO=type=gha,scope=eraser-manager,mode=max,IMG=ghcr.io/azure/eraser-manager:test
+        run: make docker-build CACHE_FROM=type=gha,scope=eraser-manager CACHE_TO=type=gha,scope=eraser-manager,mode=max,IMG=ghcr.io/azure/eraser-manager:latest
+
+      - name: Build eraser
+        run: make docker-build-eraser CACHE_FROM=type=gha,scope=eraser-node CACHE_TO=type=gha,scope=eraser-node,mode=max,ERASER_IMG=ghcr.io/azure/eraser:latest
 
       - name: Generate manifests
         run: make generate manifests
 
-      - name: Build eraser
-        run: make docker-build-eraser CACHE_FROM=type=gha,scope=eraser-node CACHE_TO=type=gha,scope=eraser-node,mode=max,ERASER_IMG=ghcr.io/azure/eraser:test
-
       - name: Deploy images
-        run: make deploy IS_IC=true ERASER_IMG=ghcr.io/azure/eraser:test
+        run: make deploy IS_IC=true ERASER_IMG=ghcr.io/azure/eraser:latest
 
       - name: Pull test image
         run: docker pull hello-world
@@ -94,7 +94,7 @@ jobs:
 
       - name: Load controller and eraser image on the nodes of the cluster
         run: |
-          kind load docker-image ghcr.io/azure/eraser-manager:test ghcr.io/azure/eraser:test hello-world:latest --name ${{ env.CLUSTER_NAME }}
+          kind load docker-image ghcr.io/azure/eraser-manager:latest ghcr.io/azure/eraser:latest hello-world:latest --name ${{ env.CLUSTER_NAME }}
 
       - name: Sleep for 10 seconds
         run: sleep 10s
