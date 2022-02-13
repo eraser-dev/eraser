@@ -1,6 +1,6 @@
 module github.com/Azure/eraser
 
-go 1.13
+go 1.16
 
 require (
 	github.com/onsi/ginkgo v1.16.4
@@ -8,8 +8,11 @@ require (
 	k8s.io/api v0.21.2
 	k8s.io/apimachinery v0.21.2
 	k8s.io/client-go v0.21.2
+	k8s.io/klog/v2 v2.8.0
 	k8s.io/kubernetes v1.21.2
 	sigs.k8s.io/controller-runtime v0.9.2
+	sigs.k8s.io/e2e-framework v0.0.5
+	sigs.k8s.io/kind v0.11.1
 )
 
 replace (

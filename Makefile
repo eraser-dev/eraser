@@ -1,7 +1,6 @@
-
 # Image URL to use all building/pushing image targets
-IMG ?= ghcr.io/azure/eraser-manager:latest
-ERASER_IMG ?= ghcr.io/azure/eraser:latest
+IMG ?= ghcr.io/azure/eraser-manager:v0.1.0
+ERASER_IMG ?= ghcr.io/azure/eraser:v0.1.0
 # Produce CRDs that work back to Kubernetes 1.11 (no version conversion)
 CRD_OPTIONS ?= "crd:trivialVersions=true,preserveUnknownFields=false"
 
@@ -19,6 +18,19 @@ endif
 ifdef CACHE_FROM
 _CACHE_FROM := --cache-from $(CACHE_FROM)
 endif
+
+OUTPUT_TYPE ?= type=registry
+TOOLS_DIR := hack/tools
+TOOLS_BIN_DIR := $(abspath $(TOOLS_DIR)/bin)
+GO_INSTALL := ./hack/go-install.sh
+GOLANGCI_LINT_VER := v1.41.1
+GOLANGCI_LINT_BIN := golangci-lint
+GOLANGCI_LINT := $(TOOLS_BIN_DIR)/$(GOLANGCI_LINT_BIN)-$(GOLANGCI_LINT_VER)
+
+$(GOLANGCI_LINT):
+	GOBIN=$(TOOLS_BIN_DIR) $(GO_INSTALL) github.com/golangci/golangci-lint/cmd/golangci-lint $(GOLANGCI_LINT_BIN) $(GOLANGCI_LINT_VER)
+
+NODE_VERSION := kindest/node:v1.22.2
 
 # Setting SHELL to bash allows bash commands to be executed by recipes.
 # This is a requirement for 'setup-envtest.sh' in the test target.
@@ -44,6 +56,11 @@ all: build
 help: ## Display this help.
 	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m\n"} /^[a-zA-Z_0-9-]+:.*?##/ { printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
 
+##@ Linting
+.PHONY: lint
+lint: $(GOLANGCI_LINT)
+	$(GOLANGCI_LINT) run -v
+
 ##@ Development
 
 manifests: controller-gen ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects.
@@ -58,11 +75,13 @@ fmt: ## Run go fmt against code.
 vet: ## Run go vet against code.
 	go vet ./...
 
-ENVTEST_ASSETS_DIR=$(shell pwd)/testbin
-test: manifests generate fmt vet ## Run tests.
-	mkdir -p ${ENVTEST_ASSETS_DIR}
-	test -f ${ENVTEST_ASSETS_DIR}/setup-envtest.sh || curl -sSLo ${ENVTEST_ASSETS_DIR}/setup-envtest.sh https://raw.githubusercontent.com/kubernetes-sigs/controller-runtime/v0.8.3/hack/setup-envtest.sh
-	source ${ENVTEST_ASSETS_DIR}/setup-envtest.sh; fetch_envtest_tools $(ENVTEST_ASSETS_DIR); setup_envtest_env $(ENVTEST_ASSETS_DIR); go test ./... -coverprofile cover.out; make -C pkg/eraser/ run
+ENVTEST = $(shell pwd)/bin/setup-envtest
+.PHONY: envtest
+envtest: ## Download envtest-setup locally if necessary.
+	$(call go-get-tool,$(ENVTEST),sigs.k8s.io/controller-runtime/tools/setup-envtest@latest)
+
+test: manifests generate fmt vet envtest ## Run tests.
+	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) -p path)" go test ./... -coverprofile cover.out; make -C pkg/eraser/ run
 
 ##@ Build
 
@@ -73,13 +92,13 @@ run: manifests generate fmt vet ## Run a controller from your host.
 	go run ./main.go
 
 docker-build: ## Build docker image with the manager.
-	docker buildx build $(_CACHE_FROM) $(_CACHE_TO) -t ${IMG} --load .
+	docker buildx build $(_CACHE_FROM) $(_CACHE_TO) --platform="linux/amd64" --output=$(OUTPUT_TYPE) -t ${IMG} .
 
 docker-push: ## Push docker image with the manager.
 	docker push ${IMG}
 
 docker-build-eraser:
-	docker buildx build $(_CACHE_FROM) $(_CACHE_TO) -t ${ERASER_IMG} -f pkg/eraser/Dockerfile --load .
+	docker buildx build $(_CACHE_FROM) $(_CACHE_TO) --output=$(OUTPUT_TYPE) -t ${ERASER_IMG} -f pkg/eraser/Dockerfile .
 
 docker-push-eraser:
 	docker push ${ERASER_IMG}
@@ -121,3 +140,8 @@ GOBIN=$(PROJECT_DIR)/bin go get $(2) ;\
 rm -rf $$TMP_DIR ;\
 }
 endef
+
+# Run all tests
+.PHONY: e2e-test
+e2e-test:
+	IMAGE=${ERASER_IMG} MANAGER_IMAGE=${IMG} NODE_VERSION=${NODE_VERSION} go test -tags=e2e -v ./test/e2e

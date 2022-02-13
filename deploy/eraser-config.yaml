@@ -1,0 +1,89 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: eraser-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: eraser
+  namespace: eraser-system
+rules:
+- apiGroups: [""]
+  resources: ["namespaces", "configmaps"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: [""]
+  resources: ["nodes"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: [""]
+  resources: ["pods"]
+  verbs: ["create","delete", "get", "list", "watch", "update"]
+- apiGroups: [""]
+  resources: ["bindings", "pods/binding"]
+  verbs: ["create"]
+- apiGroups: [""]
+  resources: ["pods/status"]
+  verbs: ["patch", "update"]
+- apiGroups: [""]
+  resources: ["replicationcontrollers", "services"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["apps", "extensions"]
+  resources: ["replicasets"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["apps"]
+  resources: ["statefulsets"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["authentication.k8s.io"]
+  resources: ["tokenreviews"]
+  verbs: ["create"]
+- apiGroups: ["authorization.k8s.io"]
+  resources: ["subjectaccessreviews"]
+  verbs: ["create"]
+- apiGroups: ["eraser.sh"]
+  resources: ["imagejobs","imagejobstatuses","imagelists","imagestatuses"]
+  verbs: ["get", "list", "watch", "create", "delete", "update", "patch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: eraser
+  namespace: eraser-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: eraser
+subjects:
+  - kind: ServiceAccount
+    name: eraser-controller-manager
+    namespace: eraser-system
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: eraser-controller-manager
+  namespace: eraser-system
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    component: eraser-manager
+  name: eraser-manager
+  namespace: eraser-system
+spec:
+  selector:
+    matchLabels:
+      component: eraser-manager
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        component: eraser-manager
+    spec:
+      serviceAccountName: eraser-controller-manager
+      containers:
+      - command:
+        - /manager
+        image: ghcr.io/azure/eraser-manager:v0.1.0
+        imagePullPolicy: IfNotPresent
+        name: eraser-manager
