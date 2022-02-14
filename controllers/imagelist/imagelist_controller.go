@@ -35,7 +35,7 @@ func Add(mgr manager.Manager) error {
 	return add(mgr, newReconciler(mgr))
 }
 
-// newReconciler returns a new reconcile.Reconciler
+// newReconciler returns a new reconcile.Reconciler.
 func newReconciler(mgr manager.Manager) reconcile.Reconciler {
 	return &Reconciler{
 		Client: mgr.GetClient(),
@@ -43,12 +43,12 @@ func newReconciler(mgr manager.Manager) reconcile.Reconciler {
 	}
 }
 
-// ImageJobReconciler reconciles a ImageJob object
+// ImageJobReconciler reconciles a ImageJob object.
 type ImageJobReconciler struct {
 	client.Client
 }
 
-// ImageListReconciler reconciles a ImageList object
+// ImageListReconciler reconciles a ImageList object.
 type Reconciler struct {
 	client.Client
 	scheme *runtime.Scheme
@@ -70,7 +70,6 @@ type Reconciler struct {
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.8.3/pkg/reconcile
 func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-
 	imageList := &eraserv1alpha1.ImageList{}
 	err := r.Get(ctx, req.NamespacedName, imageList)
 	if err != nil {
@@ -115,9 +114,9 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 }
 
 func add(mgr manager.Manager, r reconcile.Reconciler) error {
-
 	c, err := controller.New("imagelist-controller", mgr, controller.Options{
-		Reconciler: r})
+		Reconciler: r,
+	})
 	if err != nil {
 		return err
 	}

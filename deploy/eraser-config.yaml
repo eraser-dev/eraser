@@ -9,39 +9,104 @@ metadata:
   name: eraser
   namespace: eraser-system
 rules:
-- apiGroups: [""]
-  resources: ["namespaces", "configmaps"]
-  verbs: ["get", "list", "watch"]
-- apiGroups: [""]
-  resources: ["nodes"]
-  verbs: ["get", "list", "watch"]
-- apiGroups: [""]
-  resources: ["pods"]
-  verbs: ["create","delete", "get", "list", "watch", "update"]
-- apiGroups: [""]
-  resources: ["bindings", "pods/binding"]
-  verbs: ["create"]
-- apiGroups: [""]
-  resources: ["pods/status"]
-  verbs: ["patch", "update"]
-- apiGroups: [""]
-  resources: ["replicationcontrollers", "services"]
-  verbs: ["get", "list", "watch"]
-- apiGroups: ["apps", "extensions"]
-  resources: ["replicasets"]
-  verbs: ["get", "list", "watch"]
-- apiGroups: ["apps"]
-  resources: ["statefulsets"]
-  verbs: ["get", "list", "watch"]
-- apiGroups: ["authentication.k8s.io"]
-  resources: ["tokenreviews"]
-  verbs: ["create"]
-- apiGroups: ["authorization.k8s.io"]
-  resources: ["subjectaccessreviews"]
-  verbs: ["create"]
-- apiGroups: ["eraser.sh"]
-  resources: ["imagejobs","imagejobstatuses","imagelists","imagestatuses"]
-  verbs: ["get", "list", "watch", "create", "delete", "update", "patch"]
+- apiGroups:
+  - ""
+  resources:
+  - nodes
+  verbs:
+  - get
+  - list
+  - update
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - pods
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - update
+  - watch
+- apiGroups:
+  - eraser.sh
+  resources:
+  - imagejobs
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - eraser.sh
+  resources:
+  - imagejobs/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - eraser.sh
+  resources:
+  - imagejobs/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - eraser.sh
+  resources:
+  - imagelists
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - eraser.sh
+  resources:
+  - imagelists/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - eraser.sh
+  resources:
+  - imagelists/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - eraser.sh
+  resources:
+  - imagestatuses
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - eraser.sh
+  resources:
+  - imagestatuses/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - eraser.sh
+  resources:
+  - imagestatuses/status
+  verbs:
+  - get
+  - patch
+  - update
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding

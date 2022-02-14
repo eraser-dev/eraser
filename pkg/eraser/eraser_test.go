@@ -11,7 +11,7 @@ import (
 )
 
 func TestParseEndpointWithFallBackProtocol(t *testing.T) {
-	var testCases = []struct {
+	testCases := []struct {
 		endpoint         string
 		fallbackProtocol string
 		protocol         string
@@ -74,11 +74,10 @@ func TestParseEndpointWithFallBackProtocol(t *testing.T) {
 
 		tc.errCheck(t, e)
 	}
-
 }
 
 func TestParseEndpoint(t *testing.T) {
-	var testCases = []struct {
+	testCases := []struct {
 		endpoint string
 		protocol string
 		addr     string
@@ -138,7 +137,7 @@ func TestParseEndpoint(t *testing.T) {
 }
 
 func TestGetAddressAndDialer(t *testing.T) {
-	var testCases = []struct {
+	testCases := []struct {
 		endpoint string
 		addr     string
 		err      error
@@ -174,11 +173,10 @@ type testClient struct {
 }
 
 var (
-	ErrImageNotRemoved = errors.New("image not removed")
-	ErrImageEmpty      = errors.New("unable to remove empty image")
+	errImageNotRemoved = errors.New("image not removed")
+	errImageEmpty      = errors.New("unable to remove empty image")
 	timeoutTest        = 10 * time.Second
 
-	// images
 	image1 = pb.Image{
 		Id:       "sha256:ccd78eb0f420877b5513f61bf470dd379d8e8672671115d65c6f69d1c4261f87",
 		RepoTags: []string{"mcr.microsoft.com/aks/acc/sgx-webhook:0.6"},
@@ -202,13 +200,11 @@ var (
 		RepoDigests: []string{"docker.io/aldaircoronel/remove_images@sha256:d93d3d3073797258ef06c39e2dce9782c5c8a2315359337448e140c14423928e"},
 	}
 
-	// containers
 	container1 = pb.Container{
 		Id:       "7eb07fbb43e86a6114fb3b382339176117bc377cff89d5466210cbf2b101d4cb",
 		Image:    &pb.ImageSpec{Image: "sha256:8adbfa37c6320849612a5ade36bbb94ff03229a0587f026dd1e0561f196824ce", Annotations: map[string]string{}},
 		ImageRef: "sha256:8adbfa37c6320849612a5ade36bbb94ff03229a0587f026dd1e0561f196824ce",
 	}
-
 	container2 = pb.Container{
 		Id:       "36080589120ee72504484c0f407568c49531021c751bc55b3ccd5af03b8af2cb",
 		Image:    &pb.ImageSpec{Image: "sha256:b4034db328056e7f4c27ab76a5b9811b0f5eaa99565194cf7c6446781e772043", Annotations: map[string]string{}},
@@ -236,7 +232,7 @@ func (c *testClient) removeImageFromSlice(index int) {
 
 func (c *testClient) removeImage(ctx context.Context, image string) (err error) {
 	if image == "" {
-		return ErrImageEmpty
+		return errImageEmpty
 	}
 	containersImageNames := make(map[string]bool, len(c.containers))
 	for _, container := range c.containers {
@@ -257,7 +253,7 @@ func (c *testClient) removeImage(ctx context.Context, image string) (err error) 
 			}
 		}
 	}
-	return ErrImageNotRemoved
+	return errImageNotRemoved
 }
 
 func testEqImages(a, b []*pb.Image) bool {
@@ -293,7 +289,7 @@ func testEqContainers(a, b []*pb.Container) bool {
 }
 
 func TestListImages(t *testing.T) {
-	var testCases = []struct {
+	testCases := []struct {
 		imagesInput  testClient
 		imagesOutput []*pb.Image
 		err          error
@@ -325,11 +321,10 @@ func TestListImages(t *testing.T) {
 			t.Errorf("Test fails")
 		}
 	}
-
 }
 
 func TestListContainers(t *testing.T) {
-	var testCases = []struct {
+	testCases := []struct {
 		containersInput testClient
 		containerOutput []*pb.Container
 		err             error
@@ -369,11 +364,10 @@ func TestListContainers(t *testing.T) {
 			t.Errorf("Test fails")
 		}
 	}
-
 }
 
 func TestRemoveImage(t *testing.T) {
-	var testCases = []struct {
+	testCases := []struct {
 		imagesInput   testClient
 		imageToDelete string
 		imagesOutput  []*pb.Image
@@ -413,7 +407,7 @@ func TestRemoveImage(t *testing.T) {
 			},
 			imageToDelete: "",
 			imagesOutput:  []*pb.Image{&image1, &image2, &image3, &image4, &image5},
-			err:           ErrImageEmpty,
+			err:           errImageEmpty,
 		},
 		{
 			imagesInput: testClient{
@@ -422,7 +416,7 @@ func TestRemoveImage(t *testing.T) {
 			},
 			imageToDelete: "",
 			imagesOutput:  []*pb.Image{},
-			err:           ErrImageEmpty,
+			err:           errImageEmpty,
 		},
 		{
 			imagesInput: testClient{
@@ -440,7 +434,7 @@ func TestRemoveImage(t *testing.T) {
 			},
 			imageToDelete: "hellothere",
 			imagesOutput:  []*pb.Image{&image1, &image2, &image3, &image4, &image5},
-			err:           ErrImageNotRemoved,
+			err:           errImageNotRemoved,
 		},
 		{
 			imagesInput: testClient{
@@ -449,7 +443,7 @@ func TestRemoveImage(t *testing.T) {
 			},
 			imageToDelete: "sha256:8adbfa37c6320849612a5ade36bbb94ff03229a0587f026dd1e0561f196824ce",
 			imagesOutput:  []*pb.Image{&image1, &image2, &image3, &image4, &image5},
-			err:           ErrImageNotRemoved,
+			err:           errImageNotRemoved,
 		},
 	}
 
@@ -462,5 +456,4 @@ func TestRemoveImage(t *testing.T) {
 			t.Errorf("Test fails")
 		}
 	}
-
 }

@@ -18,10 +18,16 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@v2
-      - name: golangci-lint
+      - name: lint manager
         uses: golangci/golangci-lint-action@v2
         with:
           version: latest
+      - name: lint eraser
+        uses: golangci/golangci-lint-action@v2
+        with:
+          version: latest
+          working-directory: pkg/eraser
+          skip-pkg-cache: true
 
   unit-test:
     name: "Unit Tests"
@@ -70,8 +76,8 @@ jobs:
       - name: Build main
         run: OUTPUT_TYPE=type=docker make docker-build CACHE_FROM=type=gha,scope=eraser-manager CACHE_TO=type=gha,scope=eraser-manager,mode=max
       - name: Build eraser
-        run: OUTPUT_TYPE=type=docker make docker-build-eraser CACHE_FROM=type=gha,scope=eraser-node CACHE_TO=type=gha,scope=eraser-node,mode=max 
-  
+        run: OUTPUT_TYPE=type=docker make docker-build-eraser CACHE_FROM=type=gha,scope=eraser-node CACHE_TO=type=gha,scope=eraser-node,mode=max
+
   e2e-test:
     name: "E2E Test"
     runs-on: ubuntu-latest
