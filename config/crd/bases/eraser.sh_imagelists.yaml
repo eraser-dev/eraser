@@ -19,7 +19,7 @@ spec:
   - name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: ImageList is the Schema for the imagelists API
+        description: ImageList is the Schema for the imagelists API.
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
@@ -30,7 +30,7 @@ spec:
           metadata:
             type: object
           spec:
-            description: ImageListSpec defines the desired state of ImageList
+            description: ImageListSpec defines the desired state of ImageList.
             properties:
               images:
                 description: The list of vulnerable images to delete if non-running.
@@ -41,7 +41,7 @@ spec:
             - images
             type: object
           status:
-            description: ImageListStatus defines the observed state of ImageList
+            description: ImageListStatus defines the observed state of ImageList.
             properties:
               node:
                 description: list of node names and their images with respective results

@@ -19,10 +19,16 @@ jobs:
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v2
-      - name: golangci-lint
+      - name: lint manager
         uses: golangci/golangci-lint-action@v2
         with:
           version: latest
+      - name: lint eraser
+        uses: golangci/golangci-lint-action@v2
+        with:
+          version: latest
+          working-directory: pkg/eraser
+          skip-pkg-cache: true
 
   unit-test:
     name: "Unit Tests"

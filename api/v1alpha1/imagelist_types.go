@@ -17,7 +17,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// ImageListSpec defines the desired state of ImageList
+// ImageListSpec defines the desired state of ImageList.
 type ImageListSpec struct {
 	// The list of vulnerable images to delete if non-running.
 	Images []string `json:"images"`
@@ -30,7 +30,7 @@ type NodeResult struct {
 	Images []NodeCleanUpDetail `json:"images"`
 }
 
-// ImageListStatus defines the observed state of ImageList
+// ImageListStatus defines the observed state of ImageList.
 type ImageListStatus struct {
 	// Information when the job was completed.
 	Timestamp *metav1.Time `json:"timestamp"`
@@ -42,7 +42,7 @@ type ImageListStatus struct {
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
 //+kubebuilder:resource:scope="Cluster"
-// ImageList is the Schema for the imagelists API
+// ImageList is the Schema for the imagelists API.
 type ImageList struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -53,7 +53,7 @@ type ImageList struct {
 
 //+kubebuilder:object:root=true
 
-// ImageListList contains a list of ImageList
+// ImageListList contains a list of ImageList.
 type ImageListList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`

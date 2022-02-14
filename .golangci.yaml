@@ -1,25 +1,44 @@
 run:
-  deadline: 5m
+  timeout: 5m
+
+linters-settings:
+  gocritic:
+    enabled-tags:
+    - performance
+  gosec:
+    excludes:
+    - G108
+  lll:
+    line-length: 200
+
+  misspell:
+    locale: US
+  staticcheck:
+    # Select the Go version to target. The default is '1.13'.
+    go: "1.17"
 
 linters:
   disable-all: true
   enable:
     - deadcode
-    - errorlint
+    - errcheck
+    - exportloopref
+    - forcetypeassert
+    - gocritic
     - goconst
-    - gocyclo
+    - godot
     - gofmt
+    - gofumpt
     - goimports
     - gosec
     - gosimple
     - govet
     - ineffassign
     - misspell
-    - nakedret
-    - prealloc
-    - revive
+    - revive # replacement for golint
     - staticcheck
     - structcheck
-    - unconvert
+    - typecheck
     - unused
     - varcheck
+    - whitespace
