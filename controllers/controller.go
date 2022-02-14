@@ -16,8 +16,7 @@ var (
 )
 
 func init() {
-	controllerAddFuncs = append(controllerAddFuncs, imagelist.Add)
-	controllerAddFuncs = append(controllerAddFuncs, imagejob.Add)
+	controllerAddFuncs = append(controllerAddFuncs, imagelist.Add, imagejob.Add)
 }
 
 func SetupWithManager(m manager.Manager) error {

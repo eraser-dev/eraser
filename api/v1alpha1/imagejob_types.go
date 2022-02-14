@@ -24,14 +24,14 @@ import (
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
-// ImageJobSpec defines the desired state of ImageJob
+// ImageJobSpec defines the desired state of ImageJob.
 type ImageJobSpec struct {
 	// Specifies the job that will be created when executing an ImageJob.
 	JobTemplate   v1.PodTemplateSpec `json:"template"`
 	ImageListName string             `json:"imageListName"`
 }
 
-// JobPhase defines the phase of an ImageJob status
+// JobPhase defines the phase of an ImageJob status.
 type JobPhase string
 
 const (
@@ -40,7 +40,7 @@ const (
 	PhaseFailed    JobPhase = "Failed"
 )
 
-// ImageJobStatus defines the observed state of ImageJob
+// ImageJobStatus defines the observed state of ImageJob.
 type ImageJobStatus struct {
 	// number of pods that failed
 	Failed int `json:"failed"`
@@ -58,7 +58,7 @@ type ImageJobStatus struct {
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
 //+kubebuilder:resource:scope="Cluster"
-// ImageJob is the Schema for the imagejobs API
+// ImageJob is the Schema for the imagejobs API.
 type ImageJob struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -69,7 +69,7 @@ type ImageJob struct {
 
 //+kubebuilder:object:root=true
 
-// ImageJobList contains a list of ImageJob
+// ImageJobList contains a list of ImageJob.
 type ImageJobList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`

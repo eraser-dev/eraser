@@ -5,10 +5,11 @@ import (
 	"encoding/json"
 	"errors"
 	"flag"
-	"log"
-	"os"
-
 	"fmt"
+	"log"
+	"net"
+	"net/url"
+	"os"
 	"time"
 
 	"google.golang.org/grpc"
@@ -16,9 +17,6 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
-
-	"net"
-	"net/url"
 
 	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
 )
@@ -30,7 +28,7 @@ const (
 )
 
 var (
-	// Timeout  of connecting to server (default: 10s)
+	// Timeout  of connecting to server (default: 10s).
 	timeout                  = 10 * time.Second
 	ErrProtocolNotSupported  = errors.New("protocol not supported")
 	ErrEndpointDeprecated    = errors.New("endpoint is deprecated, please consider using full url format")
@@ -191,7 +189,7 @@ func mapContainsValue(idMap map[string][]string, img string) bool {
 	return false
 }
 
-func removeImages(clientset *kubernetes.Clientset, c Client, socketPath string, targetImages []string) (err error) {
+func removeImages(clientset *kubernetes.Clientset, c Client, socketPath string, targetImages []string) error {
 	backgroundContext, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
@@ -263,8 +261,8 @@ func removeImages(clientset *kubernetes.Clientset, c Client, socketPath string, 
 			}
 		} else {
 			isRunningName := mapContainsValue(idMap, img)
-			_, isRunningId := runningImages[img]
-			if isRunningName || isRunningId {
+			_, isRunningID := runningImages[img]
+			if isRunningName || isRunningID {
 				results = append(results, eraserv1alpha1.NodeCleanUpDetail{
 					ImageName: img,
 					Status:    eraserv1alpha1.Error,
@@ -280,7 +278,9 @@ func removeImages(clientset *kubernetes.Clientset, c Client, socketPath string, 
 		}
 	}
 
-	updateStatus(backgroundContext, clientset, results)
+	if err := updateStatus(backgroundContext, clientset, results); err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -313,8 +313,6 @@ func main() {
 
 	client := &client{imageclient, runTimeClient}
 
-	// get list of images to remove from ImageList
-	var targetImages []string
 	config, err := rest.InClusterConfig()
 	if err != nil {
 		log.Fatal(err)
@@ -326,23 +324,16 @@ func main() {
 	}
 
 	result := eraserv1alpha1.ImageList{}
-	err = clientset.RESTClient().Get().
+	if err = clientset.RESTClient().Get().
 		AbsPath(apiPath).
 		Resource("imagelists").
 		Name(*imageListPtr).
-		Do(context.Background()).Into(&result)
-
-	if err != nil {
+		Do(context.Background()).Into(&result); err != nil {
 		log.Println("Unable to find imagelist", " Name: "+*imageListPtr, " AbsPath: ", apiPath)
 		log.Fatal(err)
 	}
 
-	// set target images to imagelist values
-	targetImages = result.Spec.Images
-
-	err = removeImages(clientset, client, socketPath, targetImages)
-
-	if err != nil {
+	if err := removeImages(clientset, client, socketPath, result.Spec.Images); err != nil {
 		log.Fatal(err)
 	}
 }

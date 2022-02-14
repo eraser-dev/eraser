@@ -31,7 +31,7 @@ type NodeCleanUpDetail struct {
 	Message   string        `json:"message"`
 }
 
-// ImageStatusStatus defines the observed state of ImageStatus
+// ImageStatusStatus defines the observed state of ImageStatus.
 type NodeCleanUpResult struct {
 	// Specifies on which node image removal took place
 	Node string `json:"node"`
@@ -43,7 +43,7 @@ type NodeCleanUpResult struct {
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
 //+kubebuilder:resource:scope="Cluster"
-// ImageStatus is the Schema for the imagestatus API
+// ImageStatus is the Schema for the imagestatus API.
 type ImageStatus struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -53,7 +53,7 @@ type ImageStatus struct {
 
 //+kubebuilder:object:root=true
 
-// ImageStatusList contains a list of ImageStatuses
+// ImageStatusList contains a list of ImageStatuses.
 type ImageStatusList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`

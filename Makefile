@@ -144,4 +144,4 @@ endef
 # Run all tests
 .PHONY: e2e-test
 e2e-test:
-	IMAGE=${ERASER_IMG} MANAGER_IMAGE=${IMG} NODE_VERSION=${NODE_VERSION} go test -tags=e2e -v ./test/e2e
+	IMAGE=${ERASER_IMG} MANAGER_IMAGE=${IMG} NODE_VERSION=${NODE_VERSION} go test -count=1 -tags=e2e -v ./test/e2e
