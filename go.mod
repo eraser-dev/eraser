@@ -8,8 +8,8 @@ require (
 	k8s.io/api v0.21.2
 	k8s.io/apimachinery v0.21.2
 	k8s.io/client-go v0.21.2
-	k8s.io/klog/v2 v2.8.0
-	k8s.io/kubernetes v1.21.2
+	k8s.io/klog/v2 v2.9.0
+	k8s.io/kubernetes v1.21.9
 	sigs.k8s.io/controller-runtime v0.9.2
 	sigs.k8s.io/e2e-framework v0.0.5
 	sigs.k8s.io/kind v0.11.1
