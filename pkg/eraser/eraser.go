@@ -30,9 +30,9 @@ const (
 var (
 	// Timeout  of connecting to server (default: 10s).
 	timeout                  = 10 * time.Second
-	ErrProtocolNotSupported  = errors.New("protocol not supported")
-	ErrEndpointDeprecated    = errors.New("endpoint is deprecated, please consider using full url format")
-	ErrOnlySupportUnixSocket = errors.New("only support unix socket endpoint")
+	errProtocolNotSupported  = errors.New("protocol not supported")
+	errEndpointDeprecated    = errors.New("endpoint is deprecated, please consider using full url format")
+	errOnlySupportUnixSocket = errors.New("only support unix socket endpoint")
 )
 
 type client struct {
@@ -86,7 +86,7 @@ func GetAddressAndDialer(endpoint string) (string, func(ctx context.Context, add
 		return "", nil, err
 	}
 	if protocol != unixProtocol {
-		return "", nil, ErrOnlySupportUnixSocket
+		return "", nil, errOnlySupportUnixSocket
 	}
 
 	return addr, dial, nil
@@ -120,10 +120,10 @@ func parseEndpoint(endpoint string) (string, string, error) {
 		return "unix", u.Path, nil
 
 	case "":
-		return "", "", fmt.Errorf("using %q as %w", endpoint, ErrEndpointDeprecated)
+		return "", "", fmt.Errorf("using %q as %w", endpoint, errEndpointDeprecated)
 
 	default:
-		return u.Scheme, "", fmt.Errorf("%q: %w", u.Scheme, ErrProtocolNotSupported)
+		return u.Scheme, "", fmt.Errorf("%q: %w", u.Scheme, errProtocolNotSupported)
 	}
 }
 
