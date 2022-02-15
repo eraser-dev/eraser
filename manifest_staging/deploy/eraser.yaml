@@ -24,7 +24,7 @@ spec:
   - name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: ImageJob is the Schema for the imagejobs API
+        description: ImageJob is the Schema for the imagejobs API.
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
@@ -35,7 +35,7 @@ spec:
           metadata:
             type: object
           spec:
-            description: ImageJobSpec defines the desired state of ImageJob
+            description: ImageJobSpec defines the desired state of ImageJob.
             properties:
               imageListName:
                 type: string
@@ -3937,7 +3937,7 @@ spec:
             - template
             type: object
           status:
-            description: ImageJobStatus defines the observed state of ImageJob
+            description: ImageJobStatus defines the observed state of ImageJob.
             properties:
               desired:
                 description: desired number of pods
@@ -3988,7 +3988,7 @@ spec:
   - name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: ImageList is the Schema for the imagelists API
+        description: ImageList is the Schema for the imagelists API.
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
@@ -3999,7 +3999,7 @@ spec:
           metadata:
             type: object
           spec:
-            description: ImageListSpec defines the desired state of ImageList
+            description: ImageListSpec defines the desired state of ImageList.
             properties:
               images:
                 description: The list of vulnerable images to delete if non-running.
@@ -4010,7 +4010,7 @@ spec:
             - images
             type: object
           status:
-            description: ImageListStatus defines the observed state of ImageList
+            description: ImageListStatus defines the observed state of ImageList.
             properties:
               node:
                 description: list of node names and their images with respective results
@@ -4080,7 +4080,7 @@ spec:
   - name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: ImageStatus is the Schema for the imagestatus API
+        description: ImageStatus is the Schema for the imagestatus API.
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
@@ -4091,7 +4091,7 @@ spec:
           metadata:
             type: object
           result:
-            description: ImageStatusStatus defines the observed state of ImageStatus
+            description: ImageStatusStatus defines the observed state of ImageStatus.
             properties:
               node:
                 description: Specifies on which node image removal took place
