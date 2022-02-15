@@ -21,8 +21,10 @@ import (
 	"time"
 
 	v1 "k8s.io/api/core/v1"
+	"k8s.io/apiserver/pkg/util/feature"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
+	"k8s.io/kubernetes/pkg/features"
 	"k8s.io/kubernetes/pkg/scheduler/framework"
 	"k8s.io/kubernetes/pkg/scheduler/framework/plugins/noderesources"
 
@@ -99,9 +101,9 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 
 func checkNodeFitness(pod *v1.Pod, node *v1.Node) bool {
 	nodeInfo := framework.NewNodeInfo()
-	_ = nodeInfo.SetNode(node)
+	nodeInfo.SetNode(node)
 
-	insufficientResource := noderesources.Fits(pod, nodeInfo)
+	insufficientResource := noderesources.Fits(pod, nodeInfo, feature.DefaultFeatureGate.Enabled(features.PodOverhead))
 
 	if len(insufficientResource) != 0 {
 		log.Println("Pod does not fit: ", insufficientResource)
