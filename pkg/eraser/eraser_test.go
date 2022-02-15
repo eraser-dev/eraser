@@ -98,7 +98,7 @@ func TestParseEndpoint(t *testing.T) {
 			protocol: "",
 			addr:     "",
 			errCheck: func(t *testing.T, err error) {
-				if !errors.Is(err, ErrEndpointDeprecated) {
+				if !errors.Is(err, errEndpointDeprecated) {
 					t.Error(err)
 				}
 			},
@@ -108,7 +108,7 @@ func TestParseEndpoint(t *testing.T) {
 			protocol: "https",
 			addr:     "",
 			errCheck: func(t *testing.T, err error) {
-				if !errors.Is(err, ErrProtocolNotSupported) {
+				if !errors.Is(err, errProtocolNotSupported) {
 					t.Error(err)
 				}
 			},
@@ -150,12 +150,12 @@ func TestGetAddressAndDialer(t *testing.T) {
 		{
 			endpoint: "localhost:8080",
 			addr:     "",
-			err:      ErrProtocolNotSupported,
+			err:      errProtocolNotSupported,
 		},
 		{
 			endpoint: "tcp://localhost:8080",
 			addr:     "",
-			err:      ErrOnlySupportUnixSocket,
+			err:      errOnlySupportUnixSocket,
 		},
 	}
 
