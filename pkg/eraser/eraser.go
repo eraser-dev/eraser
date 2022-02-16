@@ -31,8 +31,8 @@ const (
 )
 
 var (
-	// Timeout  of connecting to server (default: 10s).
-	timeout                  = 10 * time.Second
+	// Timeout  of connecting to server (default: 5m).
+	timeout                  = 5 * time.Minute
 	errProtocolNotSupported  = errors.New("protocol not supported")
 	errEndpointDeprecated    = errors.New("endpoint is deprecated, please consider using full url format")
 	errOnlySupportUnixSocket = errors.New("only support unix socket endpoint")
