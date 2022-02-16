@@ -274,7 +274,13 @@ func removeImages(clientset *kubernetes.Clientset, c Client, socketPath string, 
 	var results []eraserv1alpha1.NodeCleanUpDetail
 
 	// remove target images
+	var prune bool
+	deletedImages := make(map[string]struct{}, len(targetImages))
 	for _, img := range targetImages {
+		if img == "*" {
+			prune = true
+			continue
+		}
 		_, isNonRunningNames := nonRunningNames[img]
 		_, isNonRunningImages := nonRunningImages[img]
 
@@ -288,6 +294,7 @@ func removeImages(clientset *kubernetes.Clientset, c Client, socketPath string, 
 					Message:   err.Error(),
 				})
 			} else {
+				deletedImages[img] = struct{}{}
 				results = append(results, eraserv1alpha1.NodeCleanUpDetail{
 					ImageName: img,
 					Status:    eraserv1alpha1.Success,
@@ -306,10 +313,38 @@ func removeImages(clientset *kubernetes.Clientset, c Client, socketPath string, 
 			} else {
 				results = append(results, eraserv1alpha1.NodeCleanUpDetail{
 					ImageName: img,
-					Status:    eraserv1alpha1.Error,
+					Status:    eraserv1alpha1.Success,
 					Message:   "image not found",
 				})
 			}
+		}
+	}
+
+	if prune {
+		for img := range nonRunningImages {
+			_, deleted := deletedImages[img]
+			if deleted {
+				continue
+			}
+
+			_, running := runningImages[img]
+			if running {
+				continue
+			}
+
+			if err := c.deleteImage(backgroundContext, img); err != nil {
+				results = append(results, eraserv1alpha1.NodeCleanUpDetail{
+					ImageName: img,
+					Status:    eraserv1alpha1.Error,
+					Message:   err.Error(),
+				})
+				continue
+			}
+			results = append(results, eraserv1alpha1.NodeCleanUpDetail{
+				ImageName: img,
+				Status:    eraserv1alpha1.Success,
+				Message:   "successfully removed image",
+			})
 		}
 	}
 

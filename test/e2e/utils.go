@@ -130,6 +130,25 @@ func getClusterNodes(t *testing.T) []string {
 	return ourNodes
 }
 
+func checkImagesExist(ctx context.Context, t *testing.T, nodes []string, images ...string) {
+	t.Helper()
+
+	for _, node := range nodes {
+		nodeImages, err := listNodeImages(node)
+		if err != nil {
+			t.Errorf("Cannot list images on node %s: %v", node, err)
+			continue
+		}
+
+		for _, image := range images {
+			if !strings.Contains(nodeImages, image) {
+				t.Errorf("image %s missing on node %s", image, node)
+			}
+		}
+
+	}
+}
+
 func checkImageRemoved(ctx context.Context, t *testing.T, nodes []string, images ...string) {
 	t.Helper()
 
