@@ -12,6 +12,8 @@ import (
 	"time"
 
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -76,6 +78,9 @@ func (c *client) deleteImage(ctx context.Context, image string) (err error) {
 
 	_, err = c.images.RemoveImage(ctx, request)
 	if err != nil {
+		if status.Code(err) == codes.NotFound {
+			return nil
+		}
 		return err
 	}
 
@@ -308,7 +313,7 @@ func removeImages(clientset *kubernetes.Clientset, c Client, socketPath string, 
 		}
 	}
 
-	if err := updateStatus(backgroundContext, clientset, results); err != nil {
+	if err := updateStatus(clientset, results); err != nil {
 		return err
 	}
 
