@@ -5,6 +5,7 @@ go 1.16
 require (
 	github.com/onsi/ginkgo v1.16.5
 	github.com/onsi/gomega v1.15.0
+	go.uber.org/zap v1.19.0
 	k8s.io/api v0.22.6
 	k8s.io/apimachinery v0.22.6
 	k8s.io/apiserver v0.22.6

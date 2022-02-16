@@ -16,7 +16,7 @@ package imagejob
 import (
 	"context"
 	"encoding/json"
-	"log"
+	"fmt"
 	"strings"
 	"time"
 
@@ -36,6 +36,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
+	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
@@ -55,6 +56,8 @@ const (
 	apiPath        = "apis/eraser.sh/v1alpha1"
 	namespace      = "eraser-system"
 )
+
+var log = logf.Log.WithName("controller").WithValues("process", "imagejob-controller")
 
 func Add(mgr manager.Manager) error {
 	return add(mgr, newReconciler(mgr))
@@ -106,7 +109,7 @@ func checkNodeFitness(pod *v1.Pod, node *v1.Node) bool {
 	insufficientResource := noderesources.Fits(pod, nodeInfo, feature.DefaultFeatureGate.Enabled(features.PodOverhead))
 
 	if len(insufficientResource) != 0 {
-		log.Println("Pod does not fit: ", insufficientResource)
+		log.Error(fmt.Errorf("pod %v does not fit node %v", pod, node), "insufficient resource")
 		return false
 	}
 
@@ -176,7 +179,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 			runtimeName := strings.Split(runtime, ":")[0]
 			mountPath := getMountPath(runtimeName)
 			if mountPath == "" {
-				log.Println("Incompatible runtime on node ", nodeName)
+				log.Error(fmt.Errorf("incompatible runtime on node %v", nodeName), "incompatible runtime")
 				continue
 			}
 
