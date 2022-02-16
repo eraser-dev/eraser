@@ -145,7 +145,11 @@ func getImageClient(ctx context.Context, socketPath string) (pb.ImageServiceClie
 	return imageClient, conn, nil
 }
 
-func updateStatus(ctx context.Context, clientset *kubernetes.Clientset, results []eraserv1alpha1.NodeCleanUpDetail) error {
+func updateStatus(clientset *kubernetes.Clientset, results []eraserv1alpha1.NodeCleanUpDetail) error {
+	// Use a fresh context here because we really want to make sure the context hasn't timed out already when we try to update the status
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
 	imageStatus := eraserv1alpha1.ImageStatus{
 		TypeMeta: v1.TypeMeta{
 			APIVersion: "eraser.sh/v1alpha1",
