@@ -24,12 +24,15 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
+	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
 )
+
+var log = logf.Log.WithName("controller").WithValues("process", "imagelist-controller")
 
 func Add(mgr manager.Manager) error {
 	return add(mgr, newReconciler(mgr))
@@ -98,10 +101,11 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 						ServiceAccountName: "eraser-controller-manager",
 					},
 				},
-				ImageListName: req.NamespacedName.Name,
+				ImageListName: req.Name,
 			},
 		}
 		err := r.Create(ctx, job)
+		log.Info("creating imagejob", "job", job.Name)
 		if err != nil {
 			if errors.IsNotFound(err) {
 				return reconcile.Result{}, nil
