@@ -109,7 +109,7 @@ func checkNodeFitness(pod *v1.Pod, node *v1.Node) bool {
 	insufficientResource := noderesources.Fits(pod, nodeInfo, feature.DefaultFeatureGate.Enabled(features.PodOverhead))
 
 	if len(insufficientResource) != 0 {
-		log.Error(fmt.Errorf("pod %v does not fit node %v", pod, node), "insufficient resource")
+		log.Error(fmt.Errorf("pod %v in namespace %v does not fit in node %v", pod.Name, pod.Namespace, node.Name), "insufficient resource")
 		return false
 	}
 
@@ -179,7 +179,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 			runtimeName := strings.Split(runtime, ":")[0]
 			mountPath := getMountPath(runtimeName)
 			if mountPath == "" {
-				log.Error(fmt.Errorf("incompatible runtime on node %v", nodeName), "incompatible runtime")
+				log.Error(fmt.Errorf("incompatible runtime on node %s", nodeName), "incompatible runtime")
 				continue
 			}
 
