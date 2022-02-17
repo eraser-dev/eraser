@@ -12,7 +12,6 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/klog/v2"
 )
 
 func newDeployment(namespace, name string, replicas int32, labels map[string]string) *appsv1.Deployment {
@@ -101,7 +100,6 @@ func DockerExec(nodeName string) (string, error) {
 		"images",
 		"list",
 	}
-	klog.Infof("docker %s", strings.Join(args, " "))
 
 	cmd := exec.Command("docker", args...)
 	stdoutStderr, err := cmd.CombinedOutput()

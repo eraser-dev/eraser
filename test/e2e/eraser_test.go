@@ -12,6 +12,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 
 	"sigs.k8s.io/e2e-framework/klient/wait"
 	"sigs.k8s.io/e2e-framework/klient/wait/conditions"
@@ -114,21 +115,67 @@ func TestRemoveImagesFromAllNodes(t *testing.T) {
 			if err != nil {
 				t.Error("Cannot list Kind node list", err)
 			}
-
-			time.Sleep(1 * time.Minute)
-
-			for _, node := range nodeList {
-				if strings.Contains(node.String(), "control-plane") {
-					continue
-				}
-				images, err := DockerExec(node.String())
-				if err != nil {
-					t.Error("Cannot list images", err)
-				}
-				if strings.Contains(images, "nginx") || strings.Contains(images, "docker.io/library/nginx:latest") {
-					t.Error("Image found after running imagelist")
+			var ourNodes []string
+			for i := range nodeList {
+				n := nodeList[i].String()
+				if !strings.Contains(n, "control-plane") {
+					ourNodes = append(ourNodes, n)
 				}
 			}
+
+			timeout := time.NewTimer(time.Minute)
+			defer timeout.Stop()
+
+			cleaned := make(map[string]bool)
+
+			for len(cleaned) < len(ourNodes) {
+				select {
+				case <-timeout.C:
+					t.Error("timeout waiting for images to be cleaned")
+					break
+				default:
+				}
+				for _, node := range ourNodes {
+					done := cleaned[node]
+					if done {
+						continue
+					}
+
+					images, err := DockerExec(node)
+					if err != nil {
+						t.Error("Cannot list images", err)
+					}
+					if !strings.Contains(images, "nginx") {
+						cleaned[node] = true
+					}
+				}
+				time.Sleep(time.Second)
+			}
+
+			if len(cleaned) < len(ourNodes) {
+				t.Error("not all nodes cleaned")
+			}
+			return ctx
+		}).
+		Assess("Pods from imagejobs are cleaned up", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
+			c, err := cfg.NewClient()
+			if err != nil {
+				t.Error("Failed to create new client", err)
+			}
+
+			var ls corev1.PodList
+			err = c.Resources().List(ctx, &ls, func(o *metav1.ListOptions) {
+				o.LabelSelector = labels.SelectorFromSet(map[string]string{"name": "eraser"}).String()
+			})
+			if err != nil {
+				t.Errorf("could not list pods: %v", err)
+			}
+
+			err = wait.For(conditions.New(c.Resources()).ResourcesDeleted(&ls), wait.WithTimeout(time.Minute))
+			if err != nil {
+				t.Errorf("error waiting for pods to be deleted: %v", err)
+			}
+
 			return ctx
 		}).
 		Teardown(func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
