@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"google.golang.org/grpc"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -170,10 +171,36 @@ func updateStatus(ctx context.Context, clientset *kubernetes.Clientset, results 
 		Name(imageStatus.Name).
 		Resource("imagestatuses").
 		Body(body).DoRaw(ctx)
-	if err != nil {
+	if !apierrors.IsAlreadyExists(err) {
+		log.Error(err, "failed to create ImageStatus")
 		return err
 	}
 
+	// Update ImageStatus object
+	result := eraserv1alpha1.ImageStatus{}
+	if err = clientset.RESTClient().Get().
+		AbsPath(apiPath).
+		Resource("imagestatuses").
+		Name(imageStatus.Name).
+		Do(context.Background()).Into(&result); err != nil {
+		log.Error(err, "failed to get ImageStatus")
+		return err
+	}
+
+	result.Result.Results = imageStatus.Result.Results
+	body, err = json.Marshal(result)
+	if err != nil {
+		return err
+	}
+	_, err = clientset.RESTClient().Put().
+		AbsPath(apiPath).
+		Name(imageStatus.Name).
+		Resource("imagestatuses").
+		Body(body).DoRaw(ctx)
+	if err != nil {
+		log.Error(err, "failed to update ImageStatus")
+		return err
+	}
 	return nil
 }
 
