@@ -88,12 +88,12 @@ vet: ## Run go vet against code.
 	go vet ./...
 
 test: manifests generate fmt vet envtest ## Run tests.
-	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) -p path)" go test ./... -coverprofile cover.out; make -C pkg/eraser/ run
+	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) -p path)" go test ./... -coverprofile cover.out
 
 # Run e2e tests
 .PHONY: e2e-test
 e2e-test:
-	IMAGE=${ERASER_IMG} MANAGER_IMAGE=${IMG} NODE_VERSION=kindest/node:v${KUBERNETES_VERSION} go test -tags=e2e -v ./test/e2e
+	IMAGE=${ERASER_IMG} MANAGER_IMAGE=${IMG} NODE_VERSION=kindest/node:v${KUBERNETES_VERSION} go test -count=1 -tags=e2e -v ./test/e2e
 
 ##@ Build
 
@@ -104,13 +104,13 @@ run: manifests generate fmt vet ## Run a controller from your host.
 	go run ./main.go
 
 docker-build: ## Build docker image with the manager.
-	docker buildx build $(_CACHE_FROM) $(_CACHE_TO) --platform="linux/amd64" --output=$(OUTPUT_TYPE) -t ${IMG} .
+	docker buildx build $(_CACHE_FROM) $(_CACHE_TO) --platform="linux/amd64" --output=$(OUTPUT_TYPE) --target manager -t ${IMG} .
 
 docker-push: ## Push docker image with the manager.
 	docker push ${IMG}
 
 docker-build-eraser:
-	docker buildx build $(_CACHE_FROM) $(_CACHE_TO) --platform="linux/amd64" --output=$(OUTPUT_TYPE) -t ${ERASER_IMG} -f pkg/eraser/Dockerfile .
+	docker buildx build $(_CACHE_FROM) $(_CACHE_TO) --platform="linux/amd64" --output=$(OUTPUT_TYPE) -t ${ERASER_IMG} --target eraser .
 
 docker-push-eraser:
 	docker push ${ERASER_IMG}
