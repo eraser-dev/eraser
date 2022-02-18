@@ -15,15 +15,13 @@ package imagejob
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
 
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apiserver/pkg/util/feature"
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/rest"
 	"k8s.io/kubernetes/pkg/features"
 	"k8s.io/kubernetes/pkg/scheduler/framework"
 	"k8s.io/kubernetes/pkg/scheduler/framework/plugins/noderesources"
@@ -42,8 +40,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
-
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 const (
@@ -53,7 +49,6 @@ const (
 	docker         = "docker"
 	containerd     = "containerd"
 	crio           = "cri-o"
-	apiPath        = "apis/eraser.sh/v1alpha1"
 	namespace      = "eraser-system"
 )
 
@@ -94,7 +89,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	}
 
 	// Watch for changes to pods created by ImageJob (eraser pods)
-	err = c.Watch(&source.Kind{Type: &v1.Pod{}}, &handler.EnqueueRequestForOwner{OwnerType: &eraserv1alpha1.ImageJob{}, IsController: true})
+	err = c.Watch(&source.Kind{Type: &corev1.Pod{}}, &handler.EnqueueRequestForOwner{OwnerType: &eraserv1alpha1.ImageJob{}, IsController: true})
 	if err != nil {
 		return err
 	}
@@ -102,7 +97,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	return nil
 }
 
-func checkNodeFitness(pod *v1.Pod, node *v1.Node) bool {
+func checkNodeFitness(pod *corev1.Pod, node *corev1.Node) bool {
 	nodeInfo := framework.NewNodeInfo()
 	nodeInfo.SetNode(node)
 
@@ -135,21 +130,10 @@ func checkNodeFitness(pod *v1.Pod, node *v1.Node) bool {
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.8.3/pkg/reconcile
 func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	config, err := rest.InClusterConfig()
-	if err != nil {
-		return ctrl.Result{}, err
-	}
-
-	clientset, err := kubernetes.NewForConfig(config)
-	if err != nil {
-		return ctrl.Result{}, err
-	}
-
 	imageJob := &eraserv1alpha1.ImageJob{}
-	err = r.Get(ctx, req.NamespacedName, imageJob)
-	if err != nil {
+	if err := r.Get(ctx, req.NamespacedName, imageJob); err != nil {
 		imageJob.Status.Phase = eraserv1alpha1.PhaseFailed
-		if err := updateJobStatus(ctx, clientset, imageJob); err != nil {
+		if err := r.updateJobStatus(ctx, imageJob); err != nil {
 			return ctrl.Result{}, err
 		}
 		return ctrl.Result{}, err
@@ -157,11 +141,11 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 
 	switch imageJob.Status.Phase {
 	case "":
-		if err := r.handleNewJob(ctx, clientset, imageJob); err != nil {
+		if err := r.handleNewJob(ctx, imageJob); err != nil {
 			return ctrl.Result{}, fmt.Errorf("reconcile new: %w", err)
 		}
 	case eraserv1alpha1.PhaseRunning:
-		if err := r.handleRunningJob(ctx, clientset, imageJob); err != nil {
+		if err := r.handleRunningJob(ctx, imageJob); err != nil {
 			return ctrl.Result{}, fmt.Errorf("reconcile running: %w", err)
 		}
 	case eraserv1alpha1.PhaseCompleted, eraserv1alpha1.PhaseFailed:
@@ -186,9 +170,9 @@ func podListOptions(j *eraserv1alpha1.ImageJob) client.ListOptions {
 	}
 }
 
-func (r *Reconciler) handleRunningJob(ctx context.Context, clientset *kubernetes.Clientset, imageJob *eraserv1alpha1.ImageJob) error {
+func (r *Reconciler) handleRunningJob(ctx context.Context, imageJob *eraserv1alpha1.ImageJob) error {
 	// get eraser pods
-	podList := &v1.PodList{}
+	podList := &corev1.PodList{}
 	listOpts := podListOptions(imageJob)
 	err := r.List(ctx, podList, &listOpts)
 	if err != nil {
@@ -205,7 +189,7 @@ func (r *Reconciler) handleRunningJob(ctx context.Context, clientset *kubernetes
 	// if all pods are complete, job is complete
 	// get status of pods
 	for i := range podList.Items {
-		if podList.Items[i].Status.Phase == v1.PodSucceeded {
+		if podList.Items[i].Status.Phase == corev1.PodSucceeded {
 			success++
 		} else {
 			failed++
@@ -218,7 +202,7 @@ func (r *Reconciler) handleRunningJob(ctx context.Context, clientset *kubernetes
 		Failed:    failed,
 		Phase:     eraserv1alpha1.PhaseCompleted,
 	}
-	if err := updateJobStatus(ctx, clientset, imageJob); err != nil {
+	if err := r.updateJobStatus(ctx, imageJob); err != nil {
 		return err
 	}
 
@@ -243,14 +227,14 @@ func (r *Reconciler) handleRunningJob(ctx context.Context, clientset *kubernetes
 	if err != nil {
 		return err
 	}
-	if err := updateImageListStatus(ctx, clientset, nodeResult, imageList); err != nil {
+	if err := r.updateImageListStatus(ctx, nodeResult, imageList); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (r *Reconciler) handleNewJob(ctx context.Context, clientset *kubernetes.Clientset, imageJob *eraserv1alpha1.ImageJob) error {
-	nodes := &v1.NodeList{}
+func (r *Reconciler) handleNewJob(ctx context.Context, imageJob *eraserv1alpha1.ImageJob) error {
+	nodes := &corev1.NodeList{}
 	err := r.List(ctx, nodes)
 	if err != nil {
 		return err
@@ -263,7 +247,7 @@ func (r *Reconciler) handleNewJob(ctx context.Context, clientset *kubernetes.Cli
 		Phase:     eraserv1alpha1.PhaseRunning,
 	}
 
-	if err := updateJobStatus(ctx, clientset, imageJob); err != nil {
+	if err := r.updateJobStatus(ctx, imageJob); err != nil {
 		return err
 	}
 
@@ -278,19 +262,19 @@ func (r *Reconciler) handleNewJob(ctx context.Context, clientset *kubernetes.Cli
 		}
 
 		givenImage := imageJob.Spec.JobTemplate.Spec.Containers[0]
-		image := v1.Container{
+		image := corev1.Container{
 			Args:            append(givenImage.Args, "--runtime="+runtimeName),
-			VolumeMounts:    []v1.VolumeMount{{MountPath: mountPath, Name: runtimeName + "-sock-volume"}},
+			VolumeMounts:    []corev1.VolumeMount{{MountPath: mountPath, Name: runtimeName + "-sock-volume"}},
 			Image:           givenImage.Image,
 			Name:            givenImage.Name,
 			ImagePullPolicy: givenImage.ImagePullPolicy,
-			Env:             []v1.EnvVar{{Name: "NODE_NAME", ValueFrom: &v1.EnvVarSource{FieldRef: &v1.ObjectFieldSelector{FieldPath: "spec.nodeName"}}}},
-			Resources: v1.ResourceRequirements{
-				Requests: v1.ResourceList{
+			Env:             []corev1.EnvVar{{Name: "NODE_NAME", ValueFrom: &corev1.EnvVarSource{FieldRef: &corev1.ObjectFieldSelector{FieldPath: "spec.nodeName"}}}},
+			Resources: corev1.ResourceRequirements{
+				Requests: corev1.ResourceList{
 					"cpu":    resource.MustParse("7m"),
 					"memory": resource.MustParse("25Mi"),
 				},
-				Limits: v1.ResourceList{
+				Limits: corev1.ResourceList{
 					"cpu":    resource.MustParse("8m"),
 					"memory": resource.MustParse("30Mi"),
 				},
@@ -298,16 +282,16 @@ func (r *Reconciler) handleNewJob(ctx context.Context, clientset *kubernetes.Cli
 		}
 
 		givenPodSpec := imageJob.Spec.JobTemplate.Spec
-		podSpec := v1.PodSpec{
+		podSpec := corev1.PodSpec{
 			RestartPolicy:      givenPodSpec.RestartPolicy,
 			ServiceAccountName: givenPodSpec.ServiceAccountName,
-			Containers:         []v1.Container{image},
+			Containers:         []corev1.Container{image},
 			NodeName:           nodeName,
-			Volumes:            []v1.Volume{{Name: runtimeName + "-sock-volume", VolumeSource: v1.VolumeSource{HostPath: &v1.HostPathVolumeSource{Path: mountPath}}}},
+			Volumes:            []corev1.Volume{{Name: runtimeName + "-sock-volume", VolumeSource: corev1.VolumeSource{HostPath: &corev1.HostPathVolumeSource{Path: mountPath}}}},
 		}
 
 		podName := image.Name + "-" + nodeName
-		pod := &v1.Pod{
+		pod := &corev1.Pod{
 			TypeMeta: metav1.TypeMeta{},
 			Spec:     podSpec,
 			ObjectMeta: metav1.ObjectMeta{
@@ -352,18 +336,17 @@ func getMountPath(runtimeName string) string {
 	}
 }
 
-func podsComplete(podList []v1.Pod) bool {
+func podsComplete(podList []corev1.Pod) bool {
 	for i := range podList {
-		if podList[i].Status.Phase == v1.PodRunning || podList[i].Status.Phase == v1.PodPending {
+		if podList[i].Status.Phase == corev1.PodRunning || podList[i].Status.Phase == corev1.PodPending {
 			return false
 		}
 	}
 	return true
 }
 
-func updateImageListStatus(
+func (r *Reconciler) updateImageListStatus(
 	ctx context.Context,
-	clientset *kubernetes.Clientset,
 	nodeResult []eraserv1alpha1.NodeResult,
 	imageList *eraserv1alpha1.ImageList) error {
 	imageList.Status = eraserv1alpha1.ImageListStatus{
@@ -371,42 +354,15 @@ func updateImageListStatus(
 		Node:      nodeResult,
 	}
 
-	body, err := json.Marshal(imageList)
-	if err != nil {
+	if err := r.Status().Update(ctx, imageList); err != nil {
 		return err
 	}
-
-	// update imagelist object
-	_, err = clientset.RESTClient().Put().
-		AbsPath(apiPath).
-		Name(imageList.Name).
-		Resource("imagelists").
-		SubResource("status").
-		Body(body).DoRaw(ctx)
-
-	if err != nil {
-		return err
-	}
-
 	return nil
 }
 
-func updateJobStatus(ctx context.Context, clientset *kubernetes.Clientset, imageJob *eraserv1alpha1.ImageJob) error {
-	body, err := json.Marshal(imageJob)
-	if err != nil {
+func (r *Reconciler) updateJobStatus(ctx context.Context, imageJob *eraserv1alpha1.ImageJob) error {
+	if err := r.Status().Update(ctx, imageJob); err != nil {
 		return err
 	}
-
-	// update imageJob object
-	_, err = clientset.RESTClient().Put().
-		AbsPath(apiPath).
-		Name(imageJob.Name).
-		Resource("imagejobs").
-		SubResource("status").
-		Body(body).DoRaw(ctx)
-	if err != nil {
-		return err
-	}
-
 	return nil
 }
