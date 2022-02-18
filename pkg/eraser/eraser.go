@@ -6,7 +6,6 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"log"
 	"net"
 	"net/url"
 	"os"
@@ -18,6 +17,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
+	logf "sigs.k8s.io/controller-runtime/pkg/log"
 
 	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
 )
@@ -34,6 +34,7 @@ var (
 	errProtocolNotSupported  = errors.New("protocol not supported")
 	errEndpointDeprecated    = errors.New("endpoint is deprecated, please consider using full url format")
 	errOnlySupportUnixSocket = errors.New("only support unix socket endpoint")
+	log                      = logf.Log.WithName("eraser")
 )
 
 type client struct {
@@ -164,43 +165,42 @@ func updateStatus(ctx context.Context, clientset *kubernetes.Clientset, results 
 		return err
 	}
 
-	// create imageStatus object
+	// Create ImageStatus object
 	_, err = clientset.RESTClient().Post().
 		AbsPath(apiPath).
 		Name(imageStatus.Name).
 		Resource("imagestatuses").
 		Body(body).DoRaw(ctx)
-	if err != nil {
-		if apierrors.IsAlreadyExists(err) {
-			result := eraserv1alpha1.ImageStatus{}
-			if err = clientset.RESTClient().Get().
-				AbsPath(apiPath).
-				Resource("imagestatuses").
-				Name(imageStatus.Name).
-				Do(context.Background()).Into(&result); err != nil {
-				log.Println("Could not get imagestatus", imageStatus.Name)
-				return err
-			}
-
-			result.Result.Results = imageStatus.Result.Results
-			body, err := json.Marshal(result)
-			if err != nil {
-				return err
-			}
-			_, err = clientset.RESTClient().Put().
-				AbsPath(apiPath).
-				Name(imageStatus.Name).
-				Resource("imagestatuses").
-				Body(body).DoRaw(ctx)
-			if err != nil {
-				log.Println("Could not update imagestatus for node: ", os.Getenv("NODE_NAME"))
-				return err
-			}
-		}
-		log.Println("Could not create imagestatus for  node: ", os.Getenv("NODE_NAME"))
+	if !apierrors.IsAlreadyExists(err) {
+		log.Error(err, "failed to create ImageStatus")
 		return err
 	}
 
+	// Update ImageStatus object
+	result := eraserv1alpha1.ImageStatus{}
+	if err = clientset.RESTClient().Get().
+		AbsPath(apiPath).
+		Resource("imagestatuses").
+		Name(imageStatus.Name).
+		Do(context.Background()).Into(&result); err != nil {
+		log.Error(err, "failed to get ImageStatus")
+		return err
+	}
+
+	result.Result.Results = imageStatus.Result.Results
+	body, err = json.Marshal(result)
+	if err != nil {
+		return err
+	}
+	_, err = clientset.RESTClient().Put().
+		AbsPath(apiPath).
+		Name(imageStatus.Name).
+		Resource("imagestatuses").
+		Body(body).DoRaw(ctx)
+	if err != nil {
+		log.Error(err, "failed to update ImageStatus")
+		return err
+	}
 	return nil
 }
 
@@ -271,7 +271,7 @@ func removeImages(clientset *kubernetes.Clientset, c Client, socketPath string, 
 
 		if isNonRunningImages || isNonRunningNames {
 			err = c.deleteImage(backgroundContext, img)
-			log.Println("Deleting img: ", img)
+			log.Info("deleting image", img)
 			if err != nil {
 				results = append(results, eraserv1alpha1.NodeCleanUpDetail{
 					ImageName: img,
@@ -327,12 +327,14 @@ func main() {
 	case "cri-o":
 		socketPath = "unix:///var/run/crio/crio.sock"
 	default:
-		log.Fatal("incorrect runtime")
+		log.Error(fmt.Errorf("unsupported runtime"), "runtime", runtime)
+		os.Exit(1)
 	}
 
 	imageclient, conn, err := getImageClient(context.Background(), socketPath)
 	if err != nil {
-		log.Fatal(err)
+		log.Error(err, "failed to get image client")
+		os.Exit(1)
 	}
 
 	runTimeClient := pb.NewRuntimeServiceClient(conn)
@@ -341,12 +343,14 @@ func main() {
 
 	config, err := rest.InClusterConfig()
 	if err != nil {
-		log.Fatal(err)
+		log.Error(err, "failed to get Kubernetes config")
+		os.Exit(1)
 	}
 
 	clientset, err := kubernetes.NewForConfig(config)
 	if err != nil {
-		log.Fatal(err)
+		log.Error(err, "failed to get Kubernetes client")
+		os.Exit(1)
 	}
 
 	result := eraserv1alpha1.ImageList{}
@@ -355,11 +359,12 @@ func main() {
 		Resource("imagelists").
 		Name(*imageListPtr).
 		Do(context.Background()).Into(&result); err != nil {
-		log.Println("Unable to find imagelist", " Name: "+*imageListPtr, " AbsPath: ", apiPath)
-		log.Fatal(err)
+		log.Error(err, "failed to get ImageList")
+		os.Exit(1)
 	}
 
 	if err := removeImages(clientset, client, socketPath, result.Spec.Images); err != nil {
-		log.Fatal(err)
+		log.Error(err, "failed to remove images")
+		os.Exit(1)
 	}
 }
