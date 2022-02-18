@@ -1,9 +1,0 @@
-apiVersion: eraser.sh/v1alpha1
-kind: ImageList
-metadata:
-  name: imagelist-sample
-spec:
-  images:
-    - sha256:bb1a8f1f32ccb0c81bc98690fa4e84810834f41bbb3ffd825d71d29973c29de7
-    - gcr.io/repo/image:tag
-    - docker.io/library/alpine:latest

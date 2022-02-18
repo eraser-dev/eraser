@@ -1,11 +1,13 @@
+VERSION := v0.1.0
+
 # Image URL to use all building/pushing image targets
-IMG ?= ghcr.io/azure/eraser-manager:v0.1.0
-ERASER_IMG ?= ghcr.io/azure/eraser:v0.1.0
+MANAGER_IMG ?= ghcr.io/azure/eraser-manager:${VERSION}
+ERASER_IMG ?= ghcr.io/azure/eraser:${VERSION}
 
 KUSTOMIZE_VERSION ?= 3.8.9
 KUBERNETES_VERSION ?= 1.23.0
 ENVTEST_K8S_VERSION ?= 1.23
-GOLANGCI_LINT_VERSION := v1.43.0
+GOLANGCI_LINT_VERSION := 1.43.0
 
 # Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
 ifeq (,$(shell go env GOBIN))
@@ -26,12 +28,12 @@ OUTPUT_TYPE ?= type=registry
 TOOLS_DIR := hack/tools
 TOOLS_BIN_DIR := $(abspath $(TOOLS_DIR)/bin)
 GO_INSTALL := ./hack/go-install.sh
+
 GOLANGCI_LINT_BIN := golangci-lint
-GOLANGCI_LINT := $(TOOLS_BIN_DIR)/$(GOLANGCI_LINT_BIN)-$(GOLANGCI_LINT_VERSION)
+GOLANGCI_LINT := $(TOOLS_BIN_DIR)/$(GOLANGCI_LINT_BIN)-v$(GOLANGCI_LINT_VERSION)
 
 $(GOLANGCI_LINT):
-	GOBIN=$(TOOLS_BIN_DIR) $(GO_INSTALL) github.com/golangci/golangci-lint/cmd/golangci-lint $(GOLANGCI_LINT_BIN) $(GOLANGCI_LINT_VERSION)
-
+	GOBIN=$(TOOLS_BIN_DIR) $(GO_INSTALL) github.com/golangci/golangci-lint/cmd/golangci-lint $(GOLANGCI_LINT_BIN) v$(GOLANGCI_LINT_VERSION)
 
 # Setting SHELL to bash allows bash commands to be executed by recipes.
 # This is a requirement for 'setup-envtest.sh' in the test target.
@@ -65,6 +67,9 @@ lint: $(GOLANGCI_LINT)
 ##@ Development
 
 manifests: __controller-gen
+	@sed -e "s~ERASER_IMG~${ERASER_IMG}~g" config/manager/kustomization.template.yaml > config/manager/kustomization.yaml
+	docker run -v $(shell pwd)/config:/config -w /config/manager \
+		k8s.gcr.io/kustomize/kustomize:v${KUSTOMIZE_VERSION} edit set image controller=${MANAGER_IMG}
 	$(CONTROLLER_GEN) \
 		crd \
 		rbac:roleName=manager-role \
@@ -93,7 +98,7 @@ test: manifests generate fmt vet envtest ## Run tests.
 # Run e2e tests
 .PHONY: e2e-test
 e2e-test:
-	IMAGE=${ERASER_IMG} MANAGER_IMAGE=${IMG} NODE_VERSION=kindest/node:v${KUBERNETES_VERSION} go test -count=1 -tags=e2e -v ./test/e2e
+	IMAGE=${ERASER_IMG} MANAGER_IMAGE=${MANAGER_IMG} NODE_VERSION=kindest/node:v${KUBERNETES_VERSION} go test -count=1 -tags=e2e -v ./test/e2e
 
 ##@ Build
 
@@ -103,11 +108,11 @@ build: generate fmt vet ## Build manager binary.
 run: manifests generate fmt vet ## Run a controller from your host.
 	go run ./main.go
 
-docker-build: ## Build docker image with the manager.
-	docker buildx build $(_CACHE_FROM) $(_CACHE_TO) --platform="linux/amd64" --output=$(OUTPUT_TYPE) --target manager -t ${IMG} .
+docker-build-manager: ## Build docker image with the manager.
+	docker buildx build $(_CACHE_FROM) $(_CACHE_TO) --platform="linux/amd64" --output=$(OUTPUT_TYPE) --target manager -t ${MANAGER_IMG} .
 
-docker-push: ## Push docker image with the manager.
-	docker push ${IMG}
+docker-push-manager: ## Push docker image with the manager.
+	docker push ${MANAGER_IMG}
 
 docker-build-eraser:
 	docker buildx build $(_CACHE_FROM) $(_CACHE_TO) --platform="linux/amd64" --output=$(OUTPUT_TYPE) -t ${ERASER_IMG} --target eraser .
@@ -128,8 +133,8 @@ uninstall: manifests ## Uninstall CRDs from the K8s cluster specified in ~/.kube
 		/config/crd | kubectl delete -f -
 
 deploy: manifests ## Deploy controller to the K8s cluster specified in ~/.kube/config.
-	docker run -v $(shell pwd)/config:/config -w /config/manager\
-		k8s.gcr.io/kustomize/kustomize:v${KUSTOMIZE_VERSION} edit set image controller=${IMG}
+	docker run -v $(shell pwd)/config:/config -w /config/manager \
+		k8s.gcr.io/kustomize/kustomize:v${KUSTOMIZE_VERSION} edit set image controller=${MANAGER_IMG}
 	docker run -v $(shell pwd)/config:/config \
 		k8s.gcr.io/kustomize/kustomize:v${KUSTOMIZE_VERSION} build \
 		/config/default | kubectl apply -f -
@@ -138,6 +143,18 @@ undeploy: ## Undeploy controller from the K8s cluster specified in ~/.kube/confi
 	docker run -v $(shell pwd)/config:/config \
 		k8s.gcr.io/kustomize/kustomize:v${KUSTOMIZE_VERSION} build \
 		/config/default | kubectl delete -f -
+
+##@ Release
+
+release-manifest:
+	@sed -i -e 's/^VERSION := .*/VERSION := ${NEWVERSION}/' ./Makefile
+	export
+	$(MAKE) manifests
+
+promote-staging-manifest:
+	@rm -rf deploy
+	@cp -r manifest_staging/deploy .
+
 
 ENVTEST = $(shell pwd)/bin/setup-envtest
 .PHONY: envtest

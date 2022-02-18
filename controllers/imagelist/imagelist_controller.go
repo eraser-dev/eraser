@@ -15,6 +15,7 @@ package imagelist
 
 import (
 	"context"
+	"flag"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -32,7 +33,14 @@ import (
 	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
 )
 
-var log = logf.Log.WithName("controller").WithValues("process", "imagelist-controller")
+var (
+	log         = logf.Log.WithName("controller").WithValues("process", "imagelist-controller")
+	eraserImage *string
+)
+
+func init() {
+	eraserImage = flag.String("eraser-image", "ghcr.io/azure/eraser:latest", "eraser image")
+}
 
 func Add(mgr manager.Manager) error {
 	return add(mgr, newReconciler(mgr))
@@ -93,7 +101,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 						Containers: []corev1.Container{
 							{
 								Name:            "eraser",
-								Image:           "ghcr.io/azure/eraser:v0.1.0",
+								Image:           *eraserImage,
 								ImagePullPolicy: corev1.PullIfNotPresent,
 								Args:            []string{"--imagelist=" + req.Name},
 							},
