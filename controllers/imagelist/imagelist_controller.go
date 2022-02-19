@@ -35,12 +35,8 @@ import (
 
 var (
 	log         = logf.Log.WithName("controller").WithValues("process", "imagelist-controller")
-	eraserImage *string
-)
-
-func init() {
 	eraserImage = flag.String("eraser-image", "ghcr.io/azure/eraser:latest", "eraser image")
-}
+)
 
 func Add(mgr manager.Manager) error {
 	return add(mgr, newReconciler(mgr))
@@ -97,7 +93,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 			Spec: eraserv1alpha1.ImageJobSpec{
 				JobTemplate: corev1.PodTemplateSpec{
 					Spec: corev1.PodSpec{
-						RestartPolicy: "Never",
+						RestartPolicy: corev1.RestartPolicyNever,
 						Containers: []corev1.Container{
 							{
 								Name:            "eraser",

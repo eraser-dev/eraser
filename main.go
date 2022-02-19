@@ -42,8 +42,19 @@ import (
 )
 
 var (
-	scheme   = runtime.NewScheme()
-	setupLog = ctrl.Log.WithName("setup")
+	scheme               = runtime.NewScheme()
+	setupLog             = ctrl.Log.WithName("setup")
+	metricsAddr          = flag.String("metrics-bind-address", ":8080", "The address the metric endpoint binds to.")
+	probeAddr            = flag.String("health-probe-bind-address", ":8081", "The address the probe endpoint binds to.")
+	enableLeaderElection = flag.Bool("leader-elect", false,
+		"Enable leader election for controller manager. "+
+			"Enabling this will ensure there is only one active controller manager.")
+	logLevel = flag.String("log-level", zapcore.InfoLevel.String(),
+		fmt.Sprintf("Log verbosity level. Supported values (in order of detail) are %q, %q, %q, and %q.",
+			zapcore.DebugLevel.String(),
+			zapcore.InfoLevel.String(),
+			zapcore.WarnLevel.String(),
+			zapcore.ErrorLevel.String()))
 )
 
 func init() {
@@ -54,18 +65,7 @@ func init() {
 }
 
 func main() {
-	metricsAddr := flag.String("metrics-bind-address", ":8080", "The address the metric endpoint binds to.")
-	probeAddr := flag.String("health-probe-bind-address", ":8081", "The address the probe endpoint binds to.")
-	enableLeaderElection := flag.Bool("leader-elect", false,
-		"Enable leader election for controller manager. "+
-			"Enabling this will ensure there is only one active controller manager.")
-	logLevel := flag.String("log-level", zapcore.InfoLevel.String(),
-		fmt.Sprintf("Log verbosity level. Supported values (in order of detail) are %q, %q, %q, and %q.",
-			zapcore.DebugLevel.String(),
-			zapcore.InfoLevel.String(),
-			zapcore.WarnLevel.String(),
-			zapcore.ErrorLevel.String()))
-
+	flag.Parse()
 	var zapLevel zapcore.Level
 	if err := zapLevel.UnmarshalText([]byte(*logLevel)); err != nil {
 		setupLog.Error(err, "unable to parse log level", "level", *logLevel)
