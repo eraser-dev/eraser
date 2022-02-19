@@ -61,9 +61,28 @@ func TestRemoveImagesFromAllNodes(t *testing.T) {
 			if err != nil {
 				t.Error("Failed to create new client", err)
 			}
+
+			var pods corev1.PodList
+			err = client.Resources().List(ctx, &pods, func(o *metav1.ListOptions) {
+				o.LabelSelector = labels.SelectorFromSet(labels.Set{"app": nginx}).String()
+			})
+			if err != nil {
+				t.Fatal(err)
+			}
+
 			dep := ctx.Value(nginx).(*appsv1.Deployment)
 			if err := client.Resources().Delete(ctx, dep); err != nil {
 				t.Error("Failed to delete the dep", err)
+			}
+			if err := wait.For(conditions.New(client.Resources()).ResourceDeleted(dep), wait.WithTimeout(time.Minute*1)); err != nil {
+				// Let's not mark this as an error
+				// We only have this to prevent race conditions with the eraser spinning up
+				t.Logf("error while waiting for deployment deletion: %v", err)
+			}
+			if err := wait.For(conditions.New(client.Resources()).ResourcesDeleted(&pods), wait.WithTimeout(time.Minute)); err != nil {
+				// Same as above, we aren't really interested in this error except for debugging problems later on.
+				// We are only waiting for these pods so we don't hit race conditions with the eraser pod.
+				t.Logf("error waiting for pods to be deleted: %v", err)
 			}
 
 			// deploy imageJob config
