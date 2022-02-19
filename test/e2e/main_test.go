@@ -11,9 +11,12 @@ import (
 	"testing"
 	"time"
 
+	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/e2e-framework/klient/wait"
 	"sigs.k8s.io/e2e-framework/klient/wait/conditions"
@@ -34,6 +37,8 @@ var (
 )
 
 func TestMain(m *testing.M) {
+	utilruntime.Must(eraserv1alpha1.AddToScheme(scheme.Scheme))
+
 	testenv = env.NewWithConfig(envconf.New())
 	// Create KinD Cluster
 	namespace := envconf.RandomName("eraser-ns", 16)
