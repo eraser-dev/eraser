@@ -26,7 +26,7 @@ func TestRemoveImagesFromAllNodes(t *testing.T) {
 		redis = "redis"
 		caddy = "caddy"
 
-		prune = "prune"
+		prune = "imagelist"
 	)
 
 	rmImageFeat := features.New("Test Remove Image From All Nodes").
