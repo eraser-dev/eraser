@@ -88,7 +88,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	imageList := &eraserv1alpha1.ImageList{}
 	err := r.Get(ctx, req.NamespacedName, imageList)
 	if err != nil {
-		return ctrl.Result{}, err
+		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
 	// Check to make sure reconcile isn't from updating ImageStatus
