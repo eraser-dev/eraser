@@ -2,15 +2,14 @@
 
 Eraser helps Kubernetes admins remove a list of non-running images from all Kubernetes nodes in a cluster.
 
-## Design
-* [Design Documentation](https://docs.google.com/document/d/1Rz1bkZKZSLVMjC_w8WLASPDUjfU80tjV-XWUXZ8vq3I/edit?usp=sharing)
+> 🚨 This project is currently in early alpha stage. Do NOT use for production.
 
 ## Getting started
 
 Create an [ImageList](./test/e2e/test-data/eraser_v1alpha1_imagelist.yaml) and specify the images you would like to remove manually.
 
 Example:
-```
+```bash
 cat <<EOF | kubectl apply -f -
 apiVersion: eraser.sh/v1alpha1
 kind: ImageList
@@ -20,25 +19,56 @@ spec:
   images:
     - sha256:2834dc507516af02784808c5f48b7cbe38b8ed5d0f4837f16e78d00deb7e7767
     - docker.io/library/nginx:latest
-    - nginx
+    - redis
 EOF
 ```
 
-This should trigger an [ImageJob](api/v1alpha1/imagejob_types.go) that will deploy [eraser](pkg/eraser/eraser.go) pods on every node to perform the removal given the list of images. You can specify `*` for all non-running images.
+ImageList is a cluster-scoped resource and must be called `imagelist`. You can specify `"*"` for all non-running images.
 
-To view the result of the removal:
-* describe ImageList CR and look at status field:
-    * `kubectl describe ImageList imagelist`
+Creating an imagelist should trigger an [ImageJob](api/v1alpha1/imagejob_types.go) that will deploy [eraser](pkg/eraser/eraser.go) pods on every node to perform the removal given the list of images.
 
-To view the result of the ImageJob eraser pods:
-* find name of ImageJob:
-    * `kubectl get ImageJob`
-* describe ImageJob CR and look at status field:
-    * `kubectl describe ImageJob [name of ImageJob]`
+```bash
+$ kubectl get pods -n eraser-system
+eraser-system        eraser-controller-manager-55d54c4fb6-dcglq   1/1     Running   0          9m8s
+eraser-system        eraser-kind-control-plane                    1/1     Running   0          11s
+eraser-system        eraser-kind-worker                           1/1     Running   0          11s
+eraser-system        eraser-kind-worker2                          1/1     Running   0          11s
+```
+
+Pods will run to completion and the images will be removed.
+
+```bash
+$ kubectl get pods -n eraser-system
+eraser-system        eraser-controller-manager-6d6d5594d4-phl2q   1/1     Running     0          4m16s
+eraser-system        eraser-kind-control-plane                    0/1     Completed   0          22s
+eraser-system        eraser-kind-worker                           0/1     Completed   0          22s
+eraser-system        eraser-kind-worker2                          0/1     Completed   0          22s
+```
+
+The `imagelist` custom resource status field will contain the status of the last job.
+
+```bash
+$ kubectl describe ImageList imagelist
+...
+Status:
+  Failed:     0
+  Success:    3
+  Timestamp:  2022-02-25T23:41:55Z
+...
+```
+
+By default, successful jobs will be deleted after a period of time. You can change this behavior by setting the following flags in the eraser-controller-manager:
+
+- `--job-cleanup-on-success-delay`: Seconds to delay job deletion after successful runs. 0 means no delay.
+- `--job-cleanup-on-error-delay`: Seconds to delay job deletion after errored runs. 0 means no delay.
+- `--job-success-ratio`: Ratio of successful/total runs to consider a job successful. 1.0 means all runs must succeed.
 
 ## Developer Setup
 
 Developing this project requires access to a Kubernetes cluster and Go version 1.16 or later.
+
+## Design and Future Work
+* [Design Documentation](https://docs.google.com/document/d/1Rz1bkZKZSLVMjC_w8WLASPDUjfU80tjV-XWUXZ8vq3I/edit?usp=sharing)
 
 ## Contributing
 
