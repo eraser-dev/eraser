@@ -35,6 +35,7 @@ jobs:
           path: |
             ~/go/pkg/mod
             ~/.cache/go-build
+      - uses: crazy-max/ghaction-github-runtime@v1
 
       - name: Get tag
         run: |
