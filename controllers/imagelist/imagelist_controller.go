@@ -21,6 +21,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -36,6 +37,7 @@ import (
 var (
 	log         = logf.Log.WithName("controller").WithValues("process", "imagelist-controller")
 	eraserImage = flag.String("eraser-image", "ghcr.io/azure/eraser:latest", "eraser image")
+	imageList   = types.NamespacedName{Name: "imagelist"}
 )
 
 func Add(mgr manager.Manager) error {
@@ -77,10 +79,16 @@ type Reconciler struct {
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.8.3/pkg/reconcile
 func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+	// Ignore unsupported lists
+	if req.NamespacedName != imageList {
+		log.Info("Ignoring unsupported imagelist name", "name", req.Name)
+		return reconcile.Result{}, nil
+	}
+
 	imageList := &eraserv1alpha1.ImageList{}
 	err := r.Get(ctx, req.NamespacedName, imageList)
 	if err != nil {
-		return ctrl.Result{}, err
+		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
 	// Check to make sure reconcile isn't from updating ImageStatus

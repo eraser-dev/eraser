@@ -136,7 +136,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		if err := r.updateJobStatus(ctx, imageJob); err != nil {
 			return ctrl.Result{}, err
 		}
-		return ctrl.Result{}, err
+		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
 	switch imageJob.Status.Phase {
@@ -361,8 +361,10 @@ func (r *Reconciler) updateImageListStatus(
 }
 
 func (r *Reconciler) updateJobStatus(ctx context.Context, imageJob *eraserv1alpha1.ImageJob) error {
-	if err := r.Status().Update(ctx, imageJob); err != nil {
-		return err
+	if imageJob.Name != "" {
+		if err := r.Status().Update(ctx, imageJob); err != nil {
+			return err
+		}
 	}
 	return nil
 }
