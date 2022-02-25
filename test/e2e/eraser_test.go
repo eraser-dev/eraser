@@ -118,15 +118,10 @@ func TestRemoveImagesFromAllNodes(t *testing.T) {
 			return ctx
 		}).
 		Teardown(func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
-			//remove imagelist
 			if err := deleteEraserConfig(cfg.KubeconfigFile(), "eraser-system", "test-data", "eraser_v1alpha1_imagelist.yaml"); err != nil {
 				t.Error("Failed to delete image list config ", err)
 			}
-			//remove imagejob(s)
 			if err := KubectlDelete(cfg.KubeconfigFile(), "eraser-system", append([]string{"imagejob", "--all"})); err != nil {
-				t.Error("Failed to delete image job(s) config ", err)
-			}
-			if err := KubectlDelete(cfg.KubeconfigFile(), "eraser-system", append([]string{"imagestatus", "--all"})); err != nil {
 				t.Error("Failed to delete image job(s) config ", err)
 			}
 			if err := KubectlDelete(cfg.KubeconfigFile(), "eraser-system", append([]string{"imagelist", "--all"})); err != nil {
@@ -278,9 +273,6 @@ func TestRemoveImagesFromAllNodes(t *testing.T) {
 			}
 
 			if err := KubectlDelete(cfg.KubeconfigFile(), "eraser-system", append([]string{"imagejob", "--all"})); err != nil {
-				t.Error("Failed to delete image job(s) config ", err)
-			}
-			if err := KubectlDelete(cfg.KubeconfigFile(), "eraser-system", append([]string{"imagestatus", "--all"})); err != nil {
 				t.Error("Failed to delete image job(s) config ", err)
 			}
 			if err := KubectlDelete(cfg.KubeconfigFile(), "eraser-system", append([]string{"imagelist", "--all"})); err != nil {
