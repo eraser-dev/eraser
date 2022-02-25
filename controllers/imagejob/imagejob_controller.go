@@ -15,6 +15,7 @@ package imagejob
 
 import (
 	"context"
+	"flag"
 	"fmt"
 	"strings"
 	"time"
@@ -54,6 +55,12 @@ const (
 
 var log = logf.Log.WithName("controller").WithValues("process", "imagejob-controller")
 
+var (
+	successDelDelaySeconds = flag.Int64("job-cleanup-on-success-delay", 0, "Seconds to delay job deletion after successful runs. 0 means no delay")
+	errDelDelaySeconds     = flag.Int64("job-cleanup-on-error-delay", 86400, "Seconds to delay job deletion after errored runs. 0 means no delay")
+	successRatio           = flag.Float64("job-success-ratio", 1.0, "Ratio of successful/total runs to consider a job successful. 1.0 means all runs must succeed.")
+)
+
 func Add(mgr manager.Manager) error {
 	return add(mgr, newReconciler(mgr))
 }
@@ -61,8 +68,11 @@ func Add(mgr manager.Manager) error {
 // newReconciler returns a new reconcile.Reconciler.
 func newReconciler(mgr manager.Manager) reconcile.Reconciler {
 	return &Reconciler{
-		Client: mgr.GetClient(),
-		scheme: mgr.GetScheme(),
+		Client:       mgr.GetClient(),
+		scheme:       mgr.GetScheme(),
+		successDelay: *successDelDelaySeconds,
+		errDelay:     *errDelDelaySeconds,
+		successRatio: *successRatio,
 	}
 }
 
@@ -70,6 +80,10 @@ func newReconciler(mgr manager.Manager) reconcile.Reconciler {
 type Reconciler struct {
 	client.Client
 	scheme *runtime.Scheme
+
+	successDelay int64
+	errDelay     int64
+	successRatio float64
 }
 
 // add adds a new Controller to mgr with r as the reconcile.Reconciler.
@@ -116,9 +130,6 @@ func checkNodeFitness(pod *corev1.Pod, node *corev1.Node) bool {
 //+kubebuilder:rbac:groups=eraser.sh,resources=imagejobs/finalizers,verbs=update
 //+kubebuilder:rbac:groups="",resources=nodes,verbs=get;list;watch;update
 //+kubebuilder:rbac:groups="",resources=pods,verbs=get;list;watch;update;create;delete
-//+kubebuilder:rbac:groups=eraser.sh,resources=imagestatuses,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=eraser.sh,resources=imagestatuses/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=eraser.sh,resources=imagestatuses/finalizers,verbs=update
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
@@ -149,9 +160,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 			return ctrl.Result{}, fmt.Errorf("reconcile running: %w", err)
 		}
 	case eraserv1alpha1.PhaseCompleted, eraserv1alpha1.PhaseFailed:
-		if err := r.handleCompletedJob(ctx, imageJob); err != nil {
-			return ctrl.Result{}, fmt.Errorf("reconcile completion: %w", err)
-		}
+		return r.handleCompletedJob(ctx, imageJob)
 	default:
 		return ctrl.Result{}, fmt.Errorf("reconcile: unexpected imagejob phase: %s", imageJob.Status.Phase)
 	}
@@ -159,8 +168,18 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	return ctrl.Result{}, nil
 }
 
-func (r *Reconciler) handleCompletedJob(ctx context.Context, imageJob *eraserv1alpha1.ImageJob) error {
-	return r.Delete(ctx, imageJob)
+func (r *Reconciler) handleCompletedJob(ctx context.Context, j *eraserv1alpha1.ImageJob) (ctrl.Result, error) {
+	if j.Status.DeleteAfter == nil {
+		return ctrl.Result{}, nil
+	}
+
+	if !metav1.Now().After(j.Status.DeleteAfter.Time) {
+		log.Info("Delaying imagejob delete", "job", j.Name, "deleteAter", j.Status.DeleteAfter)
+		return ctrl.Result{RequeueAfter: time.Until(j.Status.DeleteAfter.Time)}, nil
+	}
+
+	log.Info("Deleting imagejob", "job", j.Name)
+	return ctrl.Result{}, r.Delete(ctx, j)
 }
 
 func podListOptions(j *eraserv1alpha1.ImageJob) client.ListOptions {
@@ -197,29 +216,21 @@ func (r *Reconciler) handleRunningJob(ctx context.Context, imageJob *eraserv1alp
 	}
 
 	imageJob.Status = eraserv1alpha1.ImageJobStatus{
-		Desired:   imageJob.Status.Desired,
-		Succeeded: success,
-		Failed:    failed,
-		Phase:     eraserv1alpha1.PhaseCompleted,
+		Desired:     imageJob.Status.Desired,
+		Succeeded:   success,
+		Failed:      failed,
+		Phase:       eraserv1alpha1.PhaseCompleted,
+		DeleteAfter: after(time.Now(), r.successDelay),
 	}
+
+	if float64(success/imageJob.Status.Desired) < r.successRatio {
+		log.Info("Marking job as failed", "success ratio", r.successRatio, "actual ratio", success/imageJob.Status.Desired)
+		imageJob.Status.Phase = eraserv1alpha1.PhaseFailed
+		imageJob.Status.DeleteAfter = after(time.Now(), r.errDelay)
+	}
+
 	if err := r.updateJobStatus(ctx, imageJob); err != nil {
 		return err
-	}
-
-	// transfer results from imageStatus objects to imageList
-	statusList := &eraserv1alpha1.ImageStatusList{}
-	err = r.List(ctx, statusList)
-	if err != nil {
-		return err
-	}
-
-	var nodeResult []eraserv1alpha1.NodeResult
-
-	for i := range statusList.Items {
-		nodeResult = append(nodeResult, eraserv1alpha1.NodeResult{
-			Name:   statusList.Items[i].Result.Node,
-			Images: statusList.Items[i].Result.Results,
-		})
 	}
 
 	imageList := &eraserv1alpha1.ImageList{}
@@ -227,10 +238,18 @@ func (r *Reconciler) handleRunningJob(ctx context.Context, imageJob *eraserv1alp
 	if err != nil {
 		return err
 	}
-	if err := r.updateImageListStatus(ctx, nodeResult, imageList); err != nil {
-		return err
-	}
-	return nil
+
+	now := metav1.Now()
+	imageList.Status.Timestamp = &now
+	imageList.Status.Success = int64(success)
+	imageList.Status.Failed = int64(failed)
+
+	return r.Status().Update(ctx, imageList)
+}
+
+func after(t time.Time, seconds int64) *metav1.Time {
+	newT := metav1.NewTime(t.Add(time.Duration(seconds) * time.Second))
+	return &newT
 }
 
 func (r *Reconciler) handleNewJob(ctx context.Context, imageJob *eraserv1alpha1.ImageJob) error {
@@ -247,17 +266,26 @@ func (r *Reconciler) handleNewJob(ctx context.Context, imageJob *eraserv1alpha1.
 		Phase:     eraserv1alpha1.PhaseRunning,
 	}
 
+	var ls eraserv1alpha1.ImageList
+	if err := r.Get(ctx, types.NamespacedName{Name: imageJob.Spec.ImageListName}, &ls); err != nil {
+		return err
+	}
+
 	if err := r.updateJobStatus(ctx, imageJob); err != nil {
 		return err
 	}
 
+	log := log.WithValues("job", imageJob.Name)
+
 	for i := range nodes.Items {
+		log := log.WithValues("node", nodes.Items[i].Name)
+
 		nodeName := nodes.Items[i].Name
 		runtime := nodes.Items[i].Status.NodeInfo.ContainerRuntimeVersion
 		runtimeName := strings.Split(runtime, ":")[0]
 		mountPath := getMountPath(runtimeName)
 		if mountPath == "" {
-			log.Error(fmt.Errorf("incompatible runtime on node %s", nodeName), "incompatible runtime")
+			log.Error(fmt.Errorf("incompatible runtime on node"), "incompatible runtime")
 			continue
 		}
 
@@ -306,12 +334,16 @@ func (r *Reconciler) handleNewJob(ctx context.Context, imageJob *eraserv1alpha1.
 
 		fitness := checkNodeFitness(pod, &nodes.Items[i])
 
-		if fitness {
-			err = r.Create(ctx, pod)
-			if err != nil {
-				return err
-			}
+		if !fitness {
+			log.Info("Eraser pod does not fit on node, skipping")
+			continue
 		}
+
+		err = r.Create(ctx, pod)
+		if err != nil {
+			return err
+		}
+		log.Info("Started eraser pod on node", "images", ls.Spec.Images)
 	}
 	return nil
 }
@@ -343,21 +375,6 @@ func podsComplete(podList []corev1.Pod) bool {
 		}
 	}
 	return true
-}
-
-func (r *Reconciler) updateImageListStatus(
-	ctx context.Context,
-	nodeResult []eraserv1alpha1.NodeResult,
-	imageList *eraserv1alpha1.ImageList) error {
-	imageList.Status = eraserv1alpha1.ImageListStatus{
-		Timestamp: &metav1.Time{Time: time.Now()},
-		Node:      nodeResult,
-	}
-
-	if err := r.Status().Update(ctx, imageList); err != nil {
-		return err
-	}
-	return nil
 }
 
 func (r *Reconciler) updateJobStatus(ctx context.Context, imageJob *eraserv1alpha1.ImageJob) error {

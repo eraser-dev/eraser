@@ -23,20 +23,14 @@ type ImageListSpec struct {
 	Images []string `json:"images"`
 }
 
-type NodeResult struct {
-	// node name of image results
-	Name string `json:"name"`
-	// list of images searched and their results
-	Images []NodeCleanUpDetail `json:"images"`
-}
-
 // ImageListStatus defines the observed state of ImageList.
 type ImageListStatus struct {
 	// Information when the job was completed.
 	Timestamp *metav1.Time `json:"timestamp"`
-
-	// list of node names and their images with respective results
-	Node []NodeResult `json:"node"`
+	// Number of nodes that successfully ran the job
+	Success int64 `json:"success"`
+	// Number of nodes that failed to run the job
+	Failed int64 `json:"failed"`
 }
 
 //+kubebuilder:object:root=true

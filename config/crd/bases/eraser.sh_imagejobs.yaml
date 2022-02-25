@@ -3963,6 +3963,10 @@ spec:
           status:
             description: ImageJobStatus defines the observed state of ImageJob.
             properties:
+              deleteAfter:
+                description: Time to delay deletion until
+                format: date-time
+                type: string
               desired:
                 description: desired number of pods
                 type: integer

@@ -53,6 +53,9 @@ type ImageJobStatus struct {
 
 	// job running, successfully completed, or failed
 	Phase JobPhase `json:"phase"`
+
+	// Time to delay deletion until
+	DeleteAfter *metav1.Time `json:"deleteAfter,omitempty"`
 }
 
 //+kubebuilder:object:root=true

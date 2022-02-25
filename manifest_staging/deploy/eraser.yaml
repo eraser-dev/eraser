@@ -3968,6 +3968,10 @@ spec:
           status:
             description: ImageJobStatus defines the observed state of ImageJob.
             properties:
+              deleteAfter:
+                description: Time to delay deletion until
+                format: date-time
+                type: string
               desired:
                 description: desired number of pods
                 type: integer
@@ -4041,110 +4045,22 @@ spec:
           status:
             description: ImageListStatus defines the observed state of ImageList.
             properties:
-              node:
-                description: list of node names and their images with respective results
-                items:
-                  properties:
-                    images:
-                      description: list of images searched and their results
-                      items:
-                        properties:
-                          imageName:
-                            type: string
-                          message:
-                            type: string
-                          status:
-                            description: RemovalStatus defines the status of an image cleanup operation in a node.
-                            type: string
-                        required:
-                        - imageName
-                        - message
-                        - status
-                        type: object
-                      type: array
-                    name:
-                      description: node name of image results
-                      type: string
-                  required:
-                  - images
-                  - name
-                  type: object
-                type: array
+              failed:
+                description: Number of nodes that failed to run the job
+                format: int64
+                type: integer
+              success:
+                description: Number of nodes that successfully ran the job
+                format: int64
+                type: integer
               timestamp:
                 description: Information when the job was completed.
                 format: date-time
                 type: string
             required:
-            - node
+            - failed
+            - success
             - timestamp
-            type: object
-        type: object
-    served: true
-    storage: true
-    subresources:
-      status: {}
-status:
-  acceptedNames:
-    kind: ""
-    plural: ""
-  conditions: []
-  storedVersions: []
----
-apiVersion: apiextensions.k8s.io/v1
-kind: CustomResourceDefinition
-metadata:
-  annotations:
-    controller-gen.kubebuilder.io/version: v0.5.0
-  creationTimestamp: null
-  name: imagestatuses.eraser.sh
-spec:
-  group: eraser.sh
-  names:
-    kind: ImageStatus
-    listKind: ImageStatusList
-    plural: imagestatuses
-    singular: imagestatus
-  scope: Cluster
-  versions:
-  - name: v1alpha1
-    schema:
-      openAPIV3Schema:
-        description: ImageStatus is the Schema for the imagestatus API.
-        properties:
-          apiVersion:
-            description: 'APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
-            type: string
-          kind:
-            description: 'Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
-            type: string
-          metadata:
-            type: object
-          result:
-            description: ImageStatusStatus defines the observed state of ImageStatus.
-            properties:
-              node:
-                description: Specifies on which node image removal took place
-                type: string
-              results:
-                description: List of NodeCleanUpDetail that specify image name, status of removal, and message
-                items:
-                  properties:
-                    imageName:
-                      type: string
-                    message:
-                      type: string
-                    status:
-                      description: RemovalStatus defines the status of an image cleanup operation in a node.
-                      type: string
-                  required:
-                  - imageName
-                  - message
-                  - status
-                  type: object
-                type: array
-            required:
-            - node
-            - results
             type: object
         type: object
     served: true
@@ -4276,32 +4192,6 @@ rules:
   - eraser.sh
   resources:
   - imagelists/status
-  verbs:
-  - get
-  - patch
-  - update
-- apiGroups:
-  - eraser.sh
-  resources:
-  - imagestatuses
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - eraser.sh
-  resources:
-  - imagestatuses/finalizers
-  verbs:
-  - update
-- apiGroups:
-  - eraser.sh
-  resources:
-  - imagestatuses/status
   verbs:
   - get
   - patch

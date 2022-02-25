@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
@@ -14,8 +13,6 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
@@ -150,69 +147,6 @@ func getImageClient(ctx context.Context, socketPath string) (pb.ImageServiceClie
 	return imageClient, conn, nil
 }
 
-func updateStatus(clientset *kubernetes.Clientset, results []eraserv1alpha1.NodeCleanUpDetail) error {
-	// Use a fresh context here because we really want to make sure the context hasn't timed out already when we try to update the status
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancel()
-
-	imageStatus := eraserv1alpha1.ImageStatus{
-		TypeMeta: v1.TypeMeta{
-			APIVersion: "eraser.sh/v1alpha1",
-			Kind:       "ImageStatus",
-		},
-		ObjectMeta: v1.ObjectMeta{
-			Name: "imagestatus-" + os.Getenv("NODE_NAME"),
-		},
-		Result: eraserv1alpha1.NodeCleanUpResult{
-			Node:    os.Getenv("NODE_NAME"),
-			Results: results,
-		},
-	}
-
-	body, err := json.Marshal(imageStatus)
-	if err != nil {
-		return err
-	}
-
-	// Create ImageStatus object
-	_, err = clientset.RESTClient().Post().
-		AbsPath(apiPath).
-		Name(imageStatus.Name).
-		Resource("imagestatuses").
-		Body(body).DoRaw(ctx)
-	if !apierrors.IsAlreadyExists(err) {
-		log.Error(err, "failed to create ImageStatus")
-		return err
-	}
-
-	// Update ImageStatus object
-	result := eraserv1alpha1.ImageStatus{}
-	if err = clientset.RESTClient().Get().
-		AbsPath(apiPath).
-		Resource("imagestatuses").
-		Name(imageStatus.Name).
-		Do(context.Background()).Into(&result); err != nil {
-		log.Error(err, "failed to get ImageStatus")
-		return err
-	}
-
-	result.Result.Results = imageStatus.Result.Results
-	body, err = json.Marshal(result)
-	if err != nil {
-		return err
-	}
-	_, err = clientset.RESTClient().Put().
-		AbsPath(apiPath).
-		Name(imageStatus.Name).
-		Resource("imagestatuses").
-		Body(body).DoRaw(ctx)
-	if err != nil {
-		log.Error(err, "failed to update ImageStatus")
-		return err
-	}
-	return nil
-}
-
 func mapContainsValue(idMap map[string][]string, img string) bool {
 	for _, v := range idMap {
 		if len(v) > 0 {
@@ -224,7 +158,7 @@ func mapContainsValue(idMap map[string][]string, img string) bool {
 	return false
 }
 
-func removeImages(clientset *kubernetes.Clientset, c Client, socketPath string, targetImages []string) error {
+func removeImages(c Client, socketPath string, targetImages []string) error {
 	backgroundContext, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
@@ -271,8 +205,6 @@ func removeImages(clientset *kubernetes.Clientset, c Client, socketPath string, 
 		}
 	}
 
-	var results []eraserv1alpha1.NodeCleanUpDetail
-
 	// remove target images
 	var prune bool
 	deletedImages := make(map[string]struct{}, len(targetImages))
@@ -286,36 +218,19 @@ func removeImages(clientset *kubernetes.Clientset, c Client, socketPath string, 
 
 		if isNonRunningImages || isNonRunningNames {
 			err = c.deleteImage(backgroundContext, img)
-			log.Info("deleting image", img)
 			if err != nil {
-				results = append(results, eraserv1alpha1.NodeCleanUpDetail{
-					ImageName: img,
-					Status:    eraserv1alpha1.Error,
-					Message:   err.Error(),
-				})
+				log.Error(err, "Error removing", "image", img)
 			} else {
 				deletedImages[img] = struct{}{}
-				results = append(results, eraserv1alpha1.NodeCleanUpDetail{
-					ImageName: img,
-					Status:    eraserv1alpha1.Success,
-					Message:   "successfully removed image",
-				})
+				log.Info("Removed", "image", img)
 			}
 		} else {
 			isRunningName := mapContainsValue(idMap, img)
 			_, isRunningID := runningImages[img]
 			if isRunningName || isRunningID {
-				results = append(results, eraserv1alpha1.NodeCleanUpDetail{
-					ImageName: img,
-					Status:    eraserv1alpha1.Error,
-					Message:   "image is running",
-				})
+				log.Info("Image is running", "image", img)
 			} else {
-				results = append(results, eraserv1alpha1.NodeCleanUpDetail{
-					ImageName: img,
-					Status:    eraserv1alpha1.Success,
-					Message:   "image not found",
-				})
+				log.Info("Image is not on node", "image", img)
 			}
 		}
 	}
@@ -333,23 +248,11 @@ func removeImages(clientset *kubernetes.Clientset, c Client, socketPath string, 
 			}
 
 			if err := c.deleteImage(backgroundContext, img); err != nil {
-				results = append(results, eraserv1alpha1.NodeCleanUpDetail{
-					ImageName: img,
-					Status:    eraserv1alpha1.Error,
-					Message:   err.Error(),
-				})
+				log.Error(err, "Error during prune", "image", img)
 				continue
 			}
-			results = append(results, eraserv1alpha1.NodeCleanUpDetail{
-				ImageName: img,
-				Status:    eraserv1alpha1.Success,
-				Message:   "successfully removed image",
-			})
+			log.Info("Prune successful", "image", img)
 		}
-	}
-
-	if err := updateStatus(clientset, results); err != nil {
-		return err
 	}
 
 	return nil
@@ -407,7 +310,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err := removeImages(clientset, client, socketPath, result.Spec.Images); err != nil {
+	if err := removeImages(client, socketPath, result.Spec.Images); err != nil {
 		log.Error(err, "failed to remove images")
 		os.Exit(1)
 	}
