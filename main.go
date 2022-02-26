@@ -18,17 +18,14 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"os"
 
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
 
-	"go.uber.org/zap"
-	"go.uber.org/zap/zapcore"
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
-	"k8s.io/klog/v2"
 
+	"github.com/Azure/eraser/pkg/logger"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
@@ -37,7 +34,6 @@ import (
 
 	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
 	"github.com/Azure/eraser/controllers"
-	crzap "sigs.k8s.io/controller-runtime/pkg/log/zap"
 	//+kubebuilder:scaffold:imports
 )
 
@@ -49,12 +45,6 @@ var (
 	enableLeaderElection = flag.Bool("leader-elect", false,
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.")
-	logLevel = flag.String("log-level", zapcore.InfoLevel.String(),
-		fmt.Sprintf("Log verbosity level. Supported values (in order of detail) are %q, %q, %q, and %q.",
-			zapcore.DebugLevel.String(),
-			zapcore.InfoLevel.String(),
-			zapcore.WarnLevel.String(),
-			zapcore.ErrorLevel.String()))
 )
 
 func init() {
@@ -66,27 +56,10 @@ func init() {
 
 func main() {
 	flag.Parse()
-	var zapLevel zapcore.Level
-	if err := zapLevel.UnmarshalText([]byte(*logLevel)); err != nil {
-		setupLog.Error(err, "unable to parse log level", "level", *logLevel)
-		os.Exit(1)
-	}
 
-	switch zapLevel {
-	case zap.DebugLevel:
-		cfg := zap.NewDevelopmentEncoderConfig()
-		logger := crzap.New(crzap.UseDevMode(true), crzap.Encoder(zapcore.NewConsoleEncoder(cfg)))
-		crzap.Level(zapLevel)
-		ctrl.SetLogger(logger)
-		klog.SetLogger(logger)
-	case zap.WarnLevel, zap.ErrorLevel, zap.InfoLevel:
-		fallthrough
-	default:
-		cfg := zap.NewProductionEncoderConfig()
-		logger := crzap.New(crzap.UseDevMode(false), crzap.Encoder(zapcore.NewJSONEncoder(cfg)))
-		crzap.Level(zapLevel)
-		ctrl.SetLogger(logger)
-		klog.SetLogger(logger)
+	if err := logger.Configure(); err != nil {
+		setupLog.Error(err, "unable to configure logger")
+		os.Exit(1)
 	}
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
