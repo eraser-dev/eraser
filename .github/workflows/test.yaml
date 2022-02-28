@@ -20,11 +20,11 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: lint manager
-        uses: golangci/golangci-lint-action@v2
+        uses: golangci/golangci-lint-action@v3.1.0
         with:
           version: latest
       - name: lint eraser
-        uses: golangci/golangci-lint-action@v2
+        uses: golangci/golangci-lint-action@v3.1.0
         with:
           version: latest
           working-directory: pkg/eraser
