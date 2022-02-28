@@ -15,8 +15,10 @@ package imagejob
 
 import (
 	"context"
+	"encoding/json"
 	"flag"
 	"fmt"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -52,6 +54,7 @@ const (
 	containerd     = "containerd"
 	crio           = "cri-o"
 	namespace      = "eraser-system"
+	imgListPath    = "/run/eraser.sh/imagelist"
 )
 
 var log = logf.Log.WithName("controller").WithValues("process", "imagejob-controller")
@@ -235,7 +238,7 @@ func (r *Reconciler) handleRunningJob(ctx context.Context, imageJob *eraserv1alp
 	}
 
 	imageList := &eraserv1alpha1.ImageList{}
-	err = r.Get(ctx, types.NamespacedName{Name: imageJob.Spec.ImageListName}, imageList)
+	err = r.Get(ctx, types.NamespacedName{Name: imageJob.OwnerReferences[0].Name}, imageList)
 	if err != nil {
 		return err
 	}
@@ -253,6 +256,10 @@ func after(t time.Time, seconds int64) *metav1.Time {
 	return &newT
 }
 
+func boolPtr(b bool) *bool {
+	return &b
+}
+
 func (r *Reconciler) handleNewJob(ctx context.Context, imageJob *eraserv1alpha1.ImageJob) error {
 	nodes := &corev1.NodeList{}
 	err := r.List(ctx, nodes)
@@ -267,16 +274,40 @@ func (r *Reconciler) handleNewJob(ctx context.Context, imageJob *eraserv1alpha1.
 		Phase:     eraserv1alpha1.PhaseRunning,
 	}
 
-	var ls eraserv1alpha1.ImageList
-	if err := r.Get(ctx, types.NamespacedName{Name: imageJob.Spec.ImageListName}, &ls); err != nil {
-		return err
-	}
-
 	if err := r.updateJobStatus(ctx, imageJob); err != nil {
 		return err
 	}
 
 	log := log.WithValues("job", imageJob.Name)
+
+	env := []corev1.EnvVar{
+		{Name: "NODE_NAME", ValueFrom: &corev1.EnvVarSource{FieldRef: &corev1.ObjectFieldSelector{FieldPath: "spec.nodeName"}}},
+	}
+
+	var imgList eraserv1alpha1.ImageList
+	if err := r.Get(ctx, types.NamespacedName{Name: imageJob.OwnerReferences[0].Name}, &imgList); err != nil {
+		return fmt.Errorf("get image list %s: %w", imageJob.OwnerReferences[0].Name, err)
+	}
+
+	imgListJSON, err := json.Marshal(imgList.Spec.Images)
+	if err != nil {
+		return fmt.Errorf("marshal image list: %w", err)
+	}
+
+	configName := imageJob.Name + "-imagelist"
+	if err := r.Create(ctx, &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      configName,
+			Namespace: namespace,
+			OwnerReferences: []metav1.OwnerReference{
+				*metav1.NewControllerRef(imageJob, imageJob.GroupVersionKind()),
+			},
+		},
+		Immutable: boolPtr(true),
+		Data:      map[string]string{"images": string(imgListJSON)},
+	}); err != nil {
+		return fmt.Errorf("create configmap: %w", err)
+	}
 
 	for i := range nodes.Items {
 		log := log.WithValues("node", nodes.Items[i].Name)
@@ -291,14 +322,21 @@ func (r *Reconciler) handleNewJob(ctx context.Context, imageJob *eraserv1alpha1.
 		}
 
 		givenImage := imageJob.Spec.JobTemplate.Spec.Containers[0]
-		args := []string{"--runtime=" + runtimeName, "--log-level=" + logger.GetLevel()}
+		args := []string{
+			"--imagelist=" + filepath.Join(imgListPath, "images"),
+			"--runtime=" + runtimeName,
+			"--log-level=" + logger.GetLevel(),
+		}
 		image := corev1.Container{
-			Args:            append(givenImage.Args, args...),
-			VolumeMounts:    []corev1.VolumeMount{{MountPath: mountPath, Name: runtimeName + "-sock-volume"}},
+			Args: append(givenImage.Args, args...),
+			VolumeMounts: []corev1.VolumeMount{
+				{MountPath: mountPath, Name: runtimeName + "-sock-volume"},
+				{MountPath: imgListPath, Name: configName},
+			},
 			Image:           givenImage.Image,
 			Name:            givenImage.Name,
 			ImagePullPolicy: givenImage.ImagePullPolicy,
-			Env:             []corev1.EnvVar{{Name: "NODE_NAME", ValueFrom: &corev1.EnvVarSource{FieldRef: &corev1.ObjectFieldSelector{FieldPath: "spec.nodeName"}}}},
+			Env:             env,
 			Resources: corev1.ResourceRequirements{
 				Requests: corev1.ResourceList{
 					"cpu":    resource.MustParse("7m"),
@@ -313,11 +351,13 @@ func (r *Reconciler) handleNewJob(ctx context.Context, imageJob *eraserv1alpha1.
 
 		givenPodSpec := imageJob.Spec.JobTemplate.Spec
 		podSpec := corev1.PodSpec{
-			RestartPolicy:      givenPodSpec.RestartPolicy,
-			ServiceAccountName: givenPodSpec.ServiceAccountName,
-			Containers:         []corev1.Container{image},
-			NodeName:           nodeName,
-			Volumes:            []corev1.Volume{{Name: runtimeName + "-sock-volume", VolumeSource: corev1.VolumeSource{HostPath: &corev1.HostPathVolumeSource{Path: mountPath}}}},
+			RestartPolicy: givenPodSpec.RestartPolicy,
+			Containers:    []corev1.Container{image},
+			NodeName:      nodeName,
+			Volumes: []corev1.Volume{
+				{Name: runtimeName + "-sock-volume", VolumeSource: corev1.VolumeSource{HostPath: &corev1.HostPathVolumeSource{Path: mountPath}}},
+				{Name: configName, VolumeSource: corev1.VolumeSource{ConfigMap: &corev1.ConfigMapVolumeSource{LocalObjectReference: corev1.LocalObjectReference{Name: configName}}}},
+			},
 		}
 
 		pod := &corev1.Pod{
@@ -344,7 +384,7 @@ func (r *Reconciler) handleNewJob(ctx context.Context, imageJob *eraserv1alpha1.
 		if err != nil {
 			return err
 		}
-		log.Info("Started eraser pod on node", "images", ls.Spec.Images)
+		log.Info("Started eraser pod on node", "images", imgList.Spec.Images)
 	}
 	return nil
 }

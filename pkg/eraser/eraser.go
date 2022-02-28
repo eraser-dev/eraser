@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
@@ -13,19 +14,15 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/rest"
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 
-	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
 	"github.com/Azure/eraser/pkg/logger"
 )
 
 const (
 	// unixProtocol is the network protocol of unix socket.
 	unixProtocol = "unix"
-	apiPath      = "apis/eraser.sh/v1alpha1"
 )
 
 var (
@@ -294,29 +291,19 @@ func main() {
 
 	client := &client{imageclient, runTimeClient}
 
-	config, err := rest.InClusterConfig()
+	data, err := os.ReadFile(*imageListPtr)
 	if err != nil {
-		log.Error(err, "failed to get Kubernetes config")
+		log.Error(err, "failed to read image list file")
 		os.Exit(1)
 	}
 
-	clientset, err := kubernetes.NewForConfig(config)
-	if err != nil {
-		log.Error(err, "failed to get Kubernetes client")
+	var ls []string
+	if err := json.Unmarshal(data, &ls); err != nil {
+		log.Error(err, "failed to unmarshal image list")
 		os.Exit(1)
 	}
 
-	result := eraserv1alpha1.ImageList{}
-	if err = clientset.RESTClient().Get().
-		AbsPath(apiPath).
-		Resource("imagelists").
-		Name(*imageListPtr).
-		Do(context.Background()).Into(&result); err != nil {
-		log.Error(err, "failed to get ImageList")
-		os.Exit(1)
-	}
-
-	if err := removeImages(client, result.Spec.Images); err != nil {
+	if err := removeImages(client, ls); err != nil {
 		log.Error(err, "failed to remove images")
 		os.Exit(1)
 	}

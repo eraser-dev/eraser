@@ -97,6 +97,9 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		job := &eraserv1alpha1.ImageJob{
 			ObjectMeta: metav1.ObjectMeta{
 				GenerateName: "imagejob-",
+				OwnerReferences: []metav1.OwnerReference{
+					*metav1.NewControllerRef(imageList, imageList.GroupVersionKind()),
+				},
 			},
 			Spec: eraserv1alpha1.ImageJobSpec{
 				JobTemplate: corev1.PodTemplateSpec{
@@ -107,13 +110,10 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 								Name:            "eraser",
 								Image:           *eraserImage,
 								ImagePullPolicy: corev1.PullIfNotPresent,
-								Args:            []string{"--imagelist=" + req.Name},
 							},
 						},
-						ServiceAccountName: "eraser-controller-manager",
 					},
 				},
-				ImageListName: req.Name,
 			},
 		}
 		err := r.Create(ctx, job)
