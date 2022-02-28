@@ -19,6 +19,7 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 
 	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
+	"github.com/Azure/eraser/pkg/logger"
 )
 
 const (
@@ -263,6 +264,11 @@ func main() {
 	imageListPtr := flag.String("imagelist", "", "name of ImageList")
 
 	flag.Parse()
+
+	if err := logger.Configure(); err != nil {
+		fmt.Fprintln(os.Stderr, "Error setting up logger:", err)
+		os.Exit(1)
+	}
 
 	var socketPath string
 
