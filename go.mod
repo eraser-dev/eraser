@@ -3,6 +3,7 @@ module github.com/Azure/eraser
 go 1.16
 
 require (
+	github.com/go-logr/logr v1.2.0
 	github.com/onsi/ginkgo v1.16.5
 	github.com/onsi/gomega v1.17.0
 	go.uber.org/zap v1.19.1
@@ -14,7 +15,7 @@ require (
 	k8s.io/cri-api v0.0.0
 	k8s.io/klog/v2 v2.30.0
 	k8s.io/kubernetes v1.22.6
-	sigs.k8s.io/controller-runtime v0.11.0
+	sigs.k8s.io/controller-runtime v0.11.1
 	sigs.k8s.io/e2e-framework v0.0.6
 	sigs.k8s.io/kind v0.11.1
 )

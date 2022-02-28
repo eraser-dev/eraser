@@ -41,6 +41,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
+	"github.com/Azure/eraser/pkg/logger"
 )
 
 const (
@@ -290,8 +291,9 @@ func (r *Reconciler) handleNewJob(ctx context.Context, imageJob *eraserv1alpha1.
 		}
 
 		givenImage := imageJob.Spec.JobTemplate.Spec.Containers[0]
+		args := []string{"--runtime=" + runtimeName, "--log-level=" + logger.GetLevel()}
 		image := corev1.Container{
-			Args:            append(givenImage.Args, "--runtime="+runtimeName),
+			Args:            append(givenImage.Args, args...),
 			VolumeMounts:    []corev1.VolumeMount{{MountPath: mountPath, Name: runtimeName + "-sock-volume"}},
 			Image:           givenImage.Image,
 			Name:            givenImage.Name,
