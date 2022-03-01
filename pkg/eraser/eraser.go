@@ -159,7 +159,7 @@ func mapContainsValue(idMap map[string][]string, img string) bool {
 	return false
 }
 
-func removeImages(c Client, socketPath string, targetImages []string) error {
+func removeImages(c Client, targetImages []string) error {
 	backgroundContext, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
@@ -316,7 +316,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err := removeImages(client, socketPath, result.Spec.Images); err != nil {
+	if err := removeImages(client, result.Spec.Images); err != nil {
 		log.Error(err, "failed to remove images")
 		os.Exit(1)
 	}

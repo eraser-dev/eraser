@@ -1,11 +1,9 @@
 package main
 
 import (
-	"context"
 	"errors"
 	"net/url"
 	"testing"
-	"time"
 
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 )
@@ -167,299 +165,83 @@ func TestGetAddressAndDialer(t *testing.T) {
 	}
 }
 
-type testClient struct {
-	containers []*pb.Container
-	images     []*pb.Image
-}
-
-var (
-	errImageNotRemoved = errors.New("image not removed")
-	errImageEmpty      = errors.New("unable to remove empty image")
-	timeoutTest        = 10 * time.Second
-
-	image1 = pb.Image{
-		Id:       "sha256:ccd78eb0f420877b5513f61bf470dd379d8e8672671115d65c6f69d1c4261f87",
-		RepoTags: []string{"mcr.microsoft.com/aks/acc/sgx-webhook:0.6"},
-	}
-	image2 = pb.Image{
-		Id:       "sha256:d153e49438bdcf34564a4e6b4f186658ca1168043be299106f8d6048e8617574",
-		RepoTags: []string{"mcr.microsoft.com/containernetworking/azure-npm:v1.2.1"},
-	}
-	image3 = pb.Image{
-		Id:       "sha256:8adbfa37c6320849612a5ade36bbb94ff03229a0587f026dd1e0561f196824ce",
-		RepoTags: []string{"mcr.microsoft.com/oss/kubernetes/ip-masq-agent:v2.5.0.4"},
-	}
-	image4 = pb.Image{
-		Id:          "sha256:b4034db328056e7f4c27ab76a5b9811b0f5eaa99565194cf7c6446781e772043",
-		RepoTags:    []string{"mcr.microsoft.com/oss/kubernetes/kube-proxy:v1.19.11-hotfix.20210526"},
-		RepoDigests: []string{"mcr.microsoft.com/oss/kubernetes/kube-proxy@sha256:a64d3538b72905b07356881314755b02db3675ff47ee2bcc49dd7be856e285d5"},
-	}
-	image5 = pb.Image{
-		Id:          "sha256:fd46ec1af6de89db1714a243efa1e35c4408f5a5b9df9c653dd70db1ee95522b",
-		RepoTags:    []string{},
-		RepoDigests: []string{"docker.io/aldaircoronel/remove_images@sha256:d93d3d3073797258ef06c39e2dce9782c5c8a2315359337448e140c14423928e"},
+func TestRemoveImages(t *testing.T) {
+	type testCase struct {
+		running   []string
+		cached    []string
+		remove    []string
+		expect    []string
+		shouldErr bool
 	}
 
-	container1 = pb.Container{
-		Id:       "7eb07fbb43e86a6114fb3b382339176117bc377cff89d5466210cbf2b101d4cb",
-		Image:    &pb.ImageSpec{Image: "sha256:8adbfa37c6320849612a5ade36bbb94ff03229a0587f026dd1e0561f196824ce", Annotations: map[string]string{}},
-		ImageRef: "sha256:8adbfa37c6320849612a5ade36bbb94ff03229a0587f026dd1e0561f196824ce",
+	// In these cases "running" are automatically populated into the list of cached images just to remove uneccessary duplication
+	// "Prune" in the test case names refers to using "*" to remove all non-running images.
+	cases := map[string]testCase{
+		"No images at all":                       {},
+		"Images to remove but no images on node": {remove: []string{"image1", "image2"}},
+		"No images to remove but images on node": {cached: []string{"image1", "image2"}, expect: []string{"image1", "image2"}},
+		"Remove subset of images":                {cached: []string{"image1", "image2", "image3"}, remove: []string{"image1", "image2"}, expect: []string{"image3"}},
+		"Remove all images explicitly":           {cached: []string{"image1", "image2", "image3"}, remove: []string{"image1", "image2", "image3"}, expect: []string{}},
+		"Remove single running image":            {running: []string{"image1"}, remove: []string{"image1"}, expect: []string{"image1"}},
+		"Remove multiple running images":         {cached: []string{"image1"}, running: []string{"image2", "image3"}, remove: []string{"image2", "image3"}, expect: []string{"image1", "image2", "image3"}},
+		"Remove all images by prune":             {cached: []string{"image1", "image2", "image3"}, remove: []string{"*"}, expect: []string{}},
+		"Prune and explicit image running=false": {cached: []string{"image1", "image2", "image3"}, remove: []string{"*", "image2"}, expect: []string{}},
+		"Prune and explicit image running=true":  {running: []string{"image1"}, cached: []string{"image2", "image3"}, remove: []string{"*", "image2"}, expect: []string{"image1"}},
 	}
-	container2 = pb.Container{
-		Id:       "36080589120ee72504484c0f407568c49531021c751bc55b3ccd5af03b8af2cb",
-		Image:    &pb.ImageSpec{Image: "sha256:b4034db328056e7f4c27ab76a5b9811b0f5eaa99565194cf7c6446781e772043", Annotations: map[string]string{}},
-		ImageRef: "sha256:b4034db328056e7f4c27ab76a5b9811b0f5eaa99565194cf7c6446781e772043",
-	}
-)
 
-func (c *testClient) listImages(ctx context.Context) (list []*pb.Image, err error) {
-	images := make([]*pb.Image, len(c.images))
-	copy(images, c.images)
-	return images, nil
-}
-
-func (c *testClient) listContainers(ctx context.Context) (list []*pb.Container, err error) {
-	containers := make([]*pb.Container, len(c.containers))
-	copy(containers, c.containers)
-	return containers, nil
-}
-
-func (c *testClient) removeImageFromSlice(index int) {
-	s := c.images
-	s = append(s[:index], s[index+1:]...)
-	c.images = s
-}
-
-func (c *testClient) removeImage(ctx context.Context, image string) (err error) {
-	if image == "" {
-		return errImageEmpty
-	}
-	containersImageNames := make(map[string]bool, len(c.containers))
-	for _, container := range c.containers {
-		containersImageNames[container.ImageRef] = true
-	}
-	for index, value := range c.images {
-		for _, repotag := range value.RepoTags {
-			if (value.Id == image || repotag == image) && containersImageNames[value.Id] == false {
-				c.removeImageFromSlice(index)
-				return nil
+	for k, tc := range cases {
+		tc := tc
+		t.Run(k, func(t *testing.T) {
+			client := &testClient{t: t}
+			added := make(map[string]struct{})
+			running := make(map[string]struct{})
+			for j := range tc.running {
+				client.containers = append(client.containers, &pb.Container{
+					Image: &pb.ImageSpec{Image: tc.running[j]},
+				})
+				client.images = append(client.images, &pb.Image{Id: tc.running[j]})
+				added[tc.running[j]] = struct{}{}
+				running[tc.running[j]] = struct{}{}
 			}
-		}
 
-		for _, repodigest := range value.RepoDigests {
-			if repodigest == image && containersImageNames[value.Id] == false {
-				c.removeImageFromSlice(index)
-				return nil
+			for j := range tc.cached {
+				if _, ok := added[tc.cached[j]]; !ok {
+					client.images = append(client.images, &pb.Image{Id: tc.cached[j]})
+				}
 			}
-		}
-	}
-	return errImageNotRemoved
-}
 
-func testEqImages(a, b []*pb.Image) bool {
-	if len(a) != len(b) {
-		return false
-	}
-	auxMap := make(map[string]bool, len(a))
-	for _, i := range a {
-		auxMap[i.Id] = true
-	}
-	for _, j := range b {
-		if auxMap[j.Id] == false {
-			return false
-		}
-	}
-	return true
-}
+			err := removeImages(client, tc.remove)
+			if tc.shouldErr && err == nil {
+				t.Fatal("expected error, got none")
+			}
+			if !tc.shouldErr && err != nil {
+				t.Fatalf("expected no error, got %v", err)
+			}
 
-func testEqContainers(a, b []*pb.Container) bool {
-	if len(a) != len(b) {
-		return false
-	}
-	auxMap := make(map[string]bool, len(a))
-	for _, i := range a {
-		auxMap[i.Id] = true
-	}
-	for _, j := range b {
-		if auxMap[j.Id] == false {
-			return false
-		}
-	}
-	return true
-}
+			images := make(map[string]struct{})
 
-func TestTestClient(t *testing.T) {
-	t.Run("TestListImages", testListImages)
-	t.Run("TestListContainers", testListContainers)
-	t.Run("TestRemoveImage", testRemoveImage)
-}
+			for k := range client.images {
+				images[client.images[k].Id] = struct{}{}
+			}
 
-func testListImages(t *testing.T) {
-	testCases := []struct {
-		imagesInput  testClient
-		imagesOutput []*pb.Image
-		err          error
-	}{
-		{
-			imagesInput: testClient{
-				containers: []*pb.Container{},
-				images:     []*pb.Image{&image1, &image2, &image3, &image4, &image5},
-			},
-			imagesOutput: []*pb.Image{&image1, &image2, &image3, &image4, &image5},
-			err:          nil,
-		},
-		{
-			imagesInput: testClient{
-				containers: []*pb.Container{},
-				images:     []*pb.Image{},
-			},
-			imagesOutput: []*pb.Image{},
-			err:          nil,
-		},
-	}
+			if len(tc.expect) != len(images) {
+				t.Fatalf("unexpected imaages remaining: expected: %v, got: %v", tc.expect, images)
+			}
 
-	ctx, cancel := context.WithTimeout(context.Background(), timeoutTest)
-	defer cancel()
-
-	for _, tc := range testCases {
-		l, e := tc.imagesInput.listImages(ctx)
-		if testEqImages(l, tc.imagesOutput) == false || !errors.Is(e, tc.err) {
-			t.Errorf("Test fails")
-		}
-	}
-}
-
-func testListContainers(t *testing.T) {
-	testCases := []struct {
-		containersInput testClient
-		containerOutput []*pb.Container
-		err             error
-	}{
-		{
-			containersInput: testClient{
-				containers: []*pb.Container{&container1, &container2},
-				images:     []*pb.Image{},
-			},
-			containerOutput: []*pb.Container{&container1, &container2},
-			err:             nil,
-		},
-		{
-			containersInput: testClient{
-				containers: []*pb.Container{},
-				images:     []*pb.Image{},
-			},
-			containerOutput: []*pb.Container{},
-			err:             nil,
-		},
-		{
-			containersInput: testClient{
-				containers: []*pb.Container{},
-				images:     []*pb.Image{&image1},
-			},
-			containerOutput: []*pb.Container{},
-			err:             nil,
-		},
-	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), timeoutTest)
-	defer cancel()
-
-	for _, tc := range testCases {
-		l, e := tc.containersInput.listContainers(ctx)
-		if testEqContainers(l, tc.containerOutput) == false || !errors.Is(e, tc.err) {
-			t.Errorf("Test fails")
-		}
-	}
-}
-
-func testRemoveImage(t *testing.T) {
-	testCases := []struct {
-		imagesInput   testClient
-		imageToDelete string
-		imagesOutput  []*pb.Image
-		err           error
-	}{
-		{
-			imagesInput: testClient{
-				containers: []*pb.Container{&container1, &container2},
-				images:     []*pb.Image{&image1, &image2, &image3, &image4, &image5},
-			},
-			imageToDelete: "sha256:ccd78eb0f420877b5513f61bf470dd379d8e8672671115d65c6f69d1c4261f87",
-			imagesOutput:  []*pb.Image{&image2, &image3, &image4, &image5},
-			err:           nil,
-		},
-		{
-			imagesInput: testClient{
-				containers: []*pb.Container{&container1, &container2},
-				images:     []*pb.Image{&image1, &image2, &image3, &image4, &image5},
-			},
-			imageToDelete: "mcr.microsoft.com/containernetworking/azure-npm:v1.2.1",
-			imagesOutput:  []*pb.Image{&image1, &image3, &image4, &image5},
-			err:           nil,
-		},
-		{
-			imagesInput: testClient{
-				containers: []*pb.Container{&container1, &container2},
-				images:     []*pb.Image{&image1, &image2, &image3, &image4, &image5},
-			},
-			imageToDelete: "docker.io/aldaircoronel/remove_images@sha256:d93d3d3073797258ef06c39e2dce9782c5c8a2315359337448e140c14423928e",
-			imagesOutput:  []*pb.Image{&image1, &image2, &image3, &image4},
-			err:           nil,
-		},
-		{
-			imagesInput: testClient{
-				containers: []*pb.Container{&container1, &container2},
-				images:     []*pb.Image{&image1, &image2, &image3, &image4, &image5},
-			},
-			imageToDelete: "",
-			imagesOutput:  []*pb.Image{&image1, &image2, &image3, &image4, &image5},
-			err:           errImageEmpty,
-		},
-		{
-			imagesInput: testClient{
-				containers: []*pb.Container{&container1, &container2},
-				images:     []*pb.Image{},
-			},
-			imageToDelete: "",
-			imagesOutput:  []*pb.Image{},
-			err:           errImageEmpty,
-		},
-		{
-			imagesInput: testClient{
-				containers: []*pb.Container{&container1, &container2},
-				images:     []*pb.Image{&image2},
-			},
-			imageToDelete: "sha256:d153e49438bdcf34564a4e6b4f186658ca1168043be299106f8d6048e8617574",
-			imagesOutput:  []*pb.Image{},
-			err:           nil,
-		},
-		{
-			imagesInput: testClient{
-				containers: []*pb.Container{&container1, &container2},
-				images:     []*pb.Image{&image1, &image2, &image3, &image4, &image5},
-			},
-			imageToDelete: "hellothere",
-			imagesOutput:  []*pb.Image{&image1, &image2, &image3, &image4, &image5},
-			err:           errImageNotRemoved,
-		},
-		{
-			imagesInput: testClient{
-				containers: []*pb.Container{&container1, &container2},
-				images:     []*pb.Image{&image1, &image2, &image3, &image4, &image5},
-			},
-			imageToDelete: "sha256:8adbfa37c6320849612a5ade36bbb94ff03229a0587f026dd1e0561f196824ce",
-			imagesOutput:  []*pb.Image{&image1, &image2, &image3, &image4, &image5},
-			err:           errImageNotRemoved,
-		},
-	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), timeoutTest)
-	cancel()
-
-	for _, tc := range testCases {
-		e := tc.imagesInput.removeImage(ctx, tc.imageToDelete)
-		if testEqImages(tc.imagesInput.images, tc.imagesOutput) == false || !errors.Is(e, tc.err) {
-			t.Errorf("Test fails")
-		}
+			for j := range tc.expect {
+				if _, ok := images[tc.expect[j]]; !ok {
+					t.Fatalf("expected image to still exist: %s", tc.expect[j])
+				}
+			}
+			for j := range tc.remove {
+				if _, ok := running[tc.remove[j]]; ok {
+					// Skip checking if image still exists if it is running
+					continue
+				}
+				if _, ok := images[tc.remove[j]]; ok {
+					t.Fatalf("expected image to be removed: %s", tc.remove[j])
+				}
+			}
+		})
 	}
 }
