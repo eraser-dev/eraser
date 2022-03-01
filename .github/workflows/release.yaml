@@ -8,8 +8,6 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  MANAGER_IMAGE_REPO: ${{ github.repository }}-manager
-  ERASER_IMAGE_REPO: ${{ github.repository }}
 
 jobs:
   build-publish-release:
@@ -37,16 +35,25 @@ jobs:
             ~/.cache/go-build
       - uses: crazy-max/ghaction-github-runtime@v1
 
-      - name: Get tag
+      # need to convert repo name to lowercase for Docker
+      - name: Get tag and repo
         run: |
           echo "TAG=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
-          echo $TAG
+          echo "REPO=$(echo $GITHUB_REPOSITORY | awk '{print tolower($0)}')" >> $GITHUB_ENV
 
       - name: Build eraser-manager
-        run: make docker-build-manager OUTPUT_TYPE=type=docker CACHE_FROM=type=gha,scope=eraser-manager CACHE_TO=type=gha,scope=eraser-manager,mode=max MANAGER_IMG=${{ env.REGISTRY }}/${{ env.MANAGER_IMAGE_REPO }}:${TAG}
+        run: make docker-build-manager \
+          OUTPUT_TYPE=type=docker \
+          CACHE_FROM=type=gha,scope=eraser-manager \
+          CACHE_TO=type=gha,scope=eraser-manager,mode=max \
+          MANAGER_IMG=${{ env.REGISTRY }}/${REPO}-manager:${TAG}
 
       - name: Build eraser
-        run: make docker-build-eraser OUTPUT_TYPE=type=docker CACHE_FROM=type=gha,scope=eraser-node CACHE_TO=type=gha,scope=eraser-node,mode=max ERASER_IMG=${{ env.REGISTRY }}/${{ env.ERASER_IMAGE_REPO }}:${TAG}
+        run: make docker-build-eraser \
+          OUTPUT_TYPE=type=docker \
+          CACHE_FROM=type=gha,scope=eraser-node \
+          CACHE_TO=type=gha,scope=eraser-node,mode=max \
+          ERASER_IMG=${{ env.REGISTRY }}/${REPO}:${TAG}
 
       - name: Log in to the GHCR
         uses: docker/login-action@v1
@@ -57,8 +64,8 @@ jobs:
 
       - name: Publish
         run: |
-          make docker-push-manager MANAGER_IMG=${{ env.REGISTRY }}/${{ env.MANAGER_IMAGE_REPO }}:${TAG}
-          make docker-push-eraser ERASER_IMG=${{ env.REGISTRY }}/${{ env.ERASER_IMAGE_REPO }}:${TAG}
+          make docker-push-manager MANAGER_IMG=${{ env.REGISTRY }}/${REPO}-manager:${TAG}
+          make docker-push-eraser ERASER_IMG=${{ env.REGISTRY }}/${REPO}:${TAG}
 
       - name: Create GitHub release
         uses: "marvinpinto/action-automatic-releases@v1.2.1"
