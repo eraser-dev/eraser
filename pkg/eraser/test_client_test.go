@@ -3,176 +3,25 @@ package main
 import (
 	"context"
 	"errors"
-	"net/url"
 	"testing"
 	"time"
 
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 )
 
-func TestParseEndpointWithFallBackProtocol(t *testing.T) {
-	testCases := []struct {
-		endpoint         string
-		fallbackProtocol string
-		protocol         string
-		addr             string
-		errCheck         func(t *testing.T, err error)
-	}{
-		{
-			endpoint:         "unix:///run/containerd/containerd.sock",
-			fallbackProtocol: "unix",
-			protocol:         "unix",
-			addr:             "/run/containerd/containerd.sock",
-			errCheck: func(t *testing.T, err error) {
-				if err != nil {
-					t.Error(err)
-				}
-			},
-		},
-		{
-			endpoint:         "192.168.123.132",
-			fallbackProtocol: "unix",
-			protocol:         "unix",
-			addr:             "",
-			errCheck: func(t *testing.T, err error) {
-				if err != nil {
-					t.Error(err)
-				}
-			},
-		},
-		{
-			endpoint:         "tcp://localhost:8080",
-			fallbackProtocol: "unix",
-			protocol:         "tcp",
-			addr:             "localhost:8080",
-			errCheck: func(t *testing.T, err error) {
-				if err != nil {
-					t.Error(err)
-				}
-			},
-		},
-		{
-			endpoint:         "  ",
-			fallbackProtocol: "unix",
-			protocol:         "",
-			addr:             "",
-			errCheck: func(t *testing.T, err error) {
-				as := &url.Error{}
-				if !errors.As(err, &as) {
-					t.Error(err)
-				}
-			},
-		},
-	}
-
-	for _, tc := range testCases {
-		p, a, e := parseEndpointWithFallbackProtocol(tc.endpoint, tc.fallbackProtocol)
-
-		if p != tc.protocol || a != tc.addr {
-			t.Errorf("Test fails")
-		}
-
-		tc.errCheck(t, e)
-	}
-}
-
-func TestParseEndpoint(t *testing.T) {
-	testCases := []struct {
-		endpoint string
-		protocol string
-		addr     string
-		errCheck func(t *testing.T, err error)
-	}{
-		{
-			endpoint: "unix:///run/containerd/containerd.sock",
-			protocol: "unix",
-			addr:     "/run/containerd/containerd.sock",
-			errCheck: func(t *testing.T, err error) {
-				if err != nil {
-					t.Error(err)
-				}
-			},
-		},
-		{
-			endpoint: "192.168.123.132",
-			protocol: "",
-			addr:     "",
-			errCheck: func(t *testing.T, err error) {
-				if !errors.Is(err, errEndpointDeprecated) {
-					t.Error(err)
-				}
-			},
-		},
-		{
-			endpoint: "https://myaccount.blob.core.windows.net/mycontainer/myblob",
-			protocol: "https",
-			addr:     "",
-			errCheck: func(t *testing.T, err error) {
-				if !errors.Is(err, errProtocolNotSupported) {
-					t.Error(err)
-				}
-			},
-		},
-		{
-			endpoint: "unix://  ",
-			protocol: "",
-			addr:     "",
-			errCheck: func(t *testing.T, err error) {
-				as := &url.Error{}
-				if !errors.As(err, &as) {
-					t.Error(err)
-				}
-			},
-		},
-	}
-	for _, tc := range testCases {
-		p, a, e := parseEndpoint(tc.endpoint)
-
-		if p != tc.protocol || a != tc.addr {
-			t.Errorf("Test fails")
-		}
-
-		tc.errCheck(t, e)
-	}
-}
-
-func TestGetAddressAndDialer(t *testing.T) {
-	testCases := []struct {
-		endpoint string
-		addr     string
-		err      error
-	}{
-		{
-			endpoint: "unix:///var/run/dockershim.sock",
-			addr:     "/var/run/dockershim.sock",
-			err:      nil,
-		},
-		{
-			endpoint: "localhost:8080",
-			addr:     "",
-			err:      errProtocolNotSupported,
-		},
-		{
-			endpoint: "tcp://localhost:8080",
-			addr:     "",
-			err:      errOnlySupportUnixSocket,
-		},
-	}
-
-	for _, tc := range testCases {
-		a, _, e := GetAddressAndDialer(tc.endpoint)
-		if a != tc.addr || !errors.Is(e, tc.err) {
-			t.Errorf("Test fails")
-		}
-	}
+type testLogger interface {
+	Logf(format string, args ...interface{})
 }
 
 type testClient struct {
 	containers []*pb.Container
 	images     []*pb.Image
+	t          testLogger
 }
 
 var (
+	_ Client = &testClient{}
+
 	errImageNotRemoved = errors.New("image not removed")
 	errImageEmpty      = errors.New("unable to remove empty image")
 	timeoutTest        = 10 * time.Second
@@ -212,6 +61,13 @@ var (
 	}
 )
 
+func (c *testClient) logf(format string, args ...interface{}) {
+	if c.t == nil {
+		return
+	}
+	c.t.Logf(format, args...)
+}
+
 func (c *testClient) listImages(ctx context.Context) (list []*pb.Image, err error) {
 	images := make([]*pb.Image, len(c.images))
 	copy(images, c.images)
@@ -230,24 +86,25 @@ func (c *testClient) removeImageFromSlice(index int) {
 	c.images = s
 }
 
-func (c *testClient) removeImage(ctx context.Context, image string) (err error) {
+func (c *testClient) deleteImage(ctx context.Context, image string) (err error) {
+	c.logf("deleteImage: %s", image)
 	if image == "" {
 		return errImageEmpty
 	}
-	containersImageNames := make(map[string]bool, len(c.containers))
-	for _, container := range c.containers {
-		containersImageNames[container.ImageRef] = true
-	}
 	for index, value := range c.images {
+		if value.Id == image {
+			c.removeImageFromSlice(index)
+			return nil
+		}
 		for _, repotag := range value.RepoTags {
-			if (value.Id == image || repotag == image) && containersImageNames[value.Id] == false {
+			if repotag == image {
 				c.removeImageFromSlice(index)
 				return nil
 			}
 		}
 
 		for _, repodigest := range value.RepoDigests {
-			if repodigest == image && containersImageNames[value.Id] == false {
+			if repodigest == image {
 				c.removeImageFromSlice(index)
 				return nil
 			}
@@ -289,9 +146,9 @@ func testEqContainers(a, b []*pb.Container) bool {
 }
 
 func TestTestClient(t *testing.T) {
-	t.Run("TestListImages", testListImages)
-	t.Run("TestListContainers", testListContainers)
-	t.Run("TestRemoveImage", testRemoveImage)
+	t.Run("ListImages", testListImages)
+	t.Run("ListContainers", testListContainers)
+	t.Run("DeleteImage", testDeleteImage)
 }
 
 func testListImages(t *testing.T) {
@@ -372,7 +229,7 @@ func testListContainers(t *testing.T) {
 	}
 }
 
-func testRemoveImage(t *testing.T) {
+func testDeleteImage(t *testing.T) {
 	testCases := []struct {
 		imagesInput   testClient
 		imageToDelete string
@@ -442,24 +299,15 @@ func testRemoveImage(t *testing.T) {
 			imagesOutput:  []*pb.Image{&image1, &image2, &image3, &image4, &image5},
 			err:           errImageNotRemoved,
 		},
-		{
-			imagesInput: testClient{
-				containers: []*pb.Container{&container1, &container2},
-				images:     []*pb.Image{&image1, &image2, &image3, &image4, &image5},
-			},
-			imageToDelete: "sha256:8adbfa37c6320849612a5ade36bbb94ff03229a0587f026dd1e0561f196824ce",
-			imagesOutput:  []*pb.Image{&image1, &image2, &image3, &image4, &image5},
-			err:           errImageNotRemoved,
-		},
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), timeoutTest)
 	cancel()
 
-	for _, tc := range testCases {
-		e := tc.imagesInput.removeImage(ctx, tc.imageToDelete)
+	for i, tc := range testCases {
+		e := tc.imagesInput.deleteImage(ctx, tc.imageToDelete)
 		if testEqImages(tc.imagesInput.images, tc.imagesOutput) == false || !errors.Is(e, tc.err) {
-			t.Errorf("Test fails")
+			t.Errorf("Test fails: %d", i)
 		}
 	}
 }
