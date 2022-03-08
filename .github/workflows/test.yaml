@@ -18,7 +18,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: lint manager
         uses: golangci/golangci-lint-action@v2
         with:
@@ -48,7 +48,7 @@ jobs:
             ~/go/pkg/mod
             ~/.cache/go-build
       - name: Check out code into the Go module directory
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: Unit test
         run: make test
 
@@ -58,7 +58,7 @@ jobs:
     timeout-minutes: 5
     steps:
       - name: Check out code into the Go module directory
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: Set up Go 1.17
         uses: actions/setup-go@v2
         with:
@@ -76,7 +76,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: Check out code into the Go module directory
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: Set up Go 1.17
         uses: actions/setup-go@v2
         with:
