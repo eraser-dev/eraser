@@ -8,14 +8,14 @@ require (
 	github.com/onsi/gomega v1.17.0
 	go.uber.org/zap v1.19.1
 	google.golang.org/grpc v1.38.1
-	k8s.io/api v0.23.0
-	k8s.io/apimachinery v0.23.0
+	k8s.io/api v0.23.5
+	k8s.io/apimachinery v0.23.5
 	k8s.io/apiserver v0.22.6
-	k8s.io/client-go v0.23.0
+	k8s.io/client-go v0.23.5
 	k8s.io/cri-api v0.0.0
 	k8s.io/klog/v2 v2.30.0
 	k8s.io/kubernetes v1.22.8
-	sigs.k8s.io/controller-runtime v0.11.1
+	sigs.k8s.io/controller-runtime v0.11.2
 	sigs.k8s.io/e2e-framework v0.0.6
 	sigs.k8s.io/kind v0.11.1
 )
