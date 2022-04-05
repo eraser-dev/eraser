@@ -21,6 +21,8 @@ spec:
     metadata:
       labels:
         control-plane: controller-manager
+    nodeSelector:
+      kubernetes.io/os: linux
     spec:
       containers:
       - command:
