@@ -50,6 +50,9 @@ type ImageJobStatus struct {
 	// desired number of pods
 	Desired int `json:"desired"`
 
+	// number of nodes that were skipped e.g. because they are not a linux node
+	Skipped int `json:"skipped"`
+
 	// job running, successfully completed, or failed
 	Phase JobPhase `json:"phase"`
 

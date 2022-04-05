@@ -271,6 +271,7 @@ func (r *Reconciler) handleNewJob(ctx context.Context, imageJob *eraserv1alpha1.
 	imageJob.Status = eraserv1alpha1.ImageJobStatus{
 		Desired:   len(nodes.Items),
 		Succeeded: 0,
+		Skipped:   0,
 		Failed:    0,
 		Phase:     eraserv1alpha1.PhaseRunning,
 	}
@@ -278,6 +279,8 @@ func (r *Reconciler) handleNewJob(ctx context.Context, imageJob *eraserv1alpha1.
 	if err := r.updateJobStatus(ctx, imageJob); err != nil {
 		return err
 	}
+
+	skipped := 0
 
 	log := log.WithValues("job", imageJob.Name)
 
@@ -387,6 +390,13 @@ func (r *Reconciler) handleNewJob(ctx context.Context, imageJob *eraserv1alpha1.
 		}
 		log.Info("Started eraser pod on node", "images", imgList.Spec.Images)
 	}
+
+	imageJob.Status.Skipped = skipped
+	if err := r.updateJobStatus(ctx, imageJob); err != nil {
+		log.Error(err, "failure updating job status")
+		return err
+	}
+
 	return nil
 }
 
