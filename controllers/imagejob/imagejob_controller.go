@@ -205,6 +205,7 @@ func (r *Reconciler) handleRunningJob(ctx context.Context, imageJob *eraserv1alp
 
 	failed := 0
 	success := 0
+	skipped := imageJob.Status.Skipped
 
 	if !podsComplete(podList.Items) {
 		return nil
@@ -223,12 +224,14 @@ func (r *Reconciler) handleRunningJob(ctx context.Context, imageJob *eraserv1alp
 	imageJob.Status = eraserv1alpha1.ImageJobStatus{
 		Desired:     imageJob.Status.Desired,
 		Succeeded:   success,
+		Skipped:     skipped,
 		Failed:      failed,
 		Phase:       eraserv1alpha1.PhaseCompleted,
 		DeleteAfter: after(time.Now(), r.successDelay),
 	}
 
-	if float64(success/imageJob.Status.Desired) < r.successRatio {
+	success_and_skipped := success + skipped
+	if float64(success_and_skipped/imageJob.Status.Desired) < r.successRatio {
 		log.Info("Marking job as failed", "success ratio", r.successRatio, "actual ratio", success/imageJob.Status.Desired)
 		imageJob.Status.Phase = eraserv1alpha1.PhaseFailed
 		imageJob.Status.DeleteAfter = after(time.Now(), r.errDelay)

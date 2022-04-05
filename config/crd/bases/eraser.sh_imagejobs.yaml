@@ -3973,6 +3973,9 @@ spec:
               phase:
                 description: job running, successfully completed, or failed
                 type: string
+              skipped:
+                description: number of nodes that were skipped e.g. because they are not a linux node
+                type: integer
               succeeded:
                 description: number of pods that completed successfully
                 type: integer
@@ -3980,6 +3983,7 @@ spec:
             - desired
             - failed
             - phase
+            - skipped
             - succeeded
             type: object
         type: object
