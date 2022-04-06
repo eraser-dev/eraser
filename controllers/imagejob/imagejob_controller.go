@@ -249,6 +249,7 @@ func (r *Reconciler) handleRunningJob(ctx context.Context, imageJob *eraserv1alp
 
 	now := metav1.Now()
 	imageList.Status.Timestamp = &now
+	imageList.Status.Skipped = int64(skipped)
 	imageList.Status.Success = int64(success)
 	imageList.Status.Failed = int64(failed)
 

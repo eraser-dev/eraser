@@ -47,6 +47,10 @@ spec:
                 description: Number of nodes that failed to run the job
                 format: int64
                 type: integer
+              skipped:
+                description: Number of nodes that were skipped, e.g. because they are a non-linux node
+                format: int64
+                type: integer
               success:
                 description: Number of nodes that successfully ran the job
                 format: int64
@@ -57,6 +61,7 @@ spec:
                 type: string
             required:
             - failed
+            - skipped
             - success
             - timestamp
             type: object

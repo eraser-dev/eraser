@@ -31,6 +31,8 @@ type ImageListStatus struct {
 	Success int64 `json:"success"`
 	// Number of nodes that failed to run the job
 	Failed int64 `json:"failed"`
+	// Number of nodes that were skipped, e.g. because they are a non-linux node
+	Skipped int64 `json:"skipped"`
 }
 
 //+kubebuilder:object:root=true
