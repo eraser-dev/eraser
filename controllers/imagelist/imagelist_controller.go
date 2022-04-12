@@ -28,6 +28,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
@@ -91,39 +92,36 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
-	// Check to make sure reconcile isn't from updating ImageStatus
-	if imageList.Status.Timestamp == nil {
-		// If there is a change in ImageList, start ImageJob to trigger removal
-		job := &eraserv1alpha1.ImageJob{
-			ObjectMeta: metav1.ObjectMeta{
-				GenerateName: "imagejob-",
-			},
-			Spec: eraserv1alpha1.ImageJobSpec{
-				JobTemplate: corev1.PodTemplateSpec{
-					Spec: corev1.PodSpec{
-						RestartPolicy: corev1.RestartPolicyNever,
-						Containers: []corev1.Container{
-							{
-								Name:            "eraser",
-								Image:           *eraserImage,
-								ImagePullPolicy: corev1.PullIfNotPresent,
-								Args:            []string{"--imagelist=" + req.Name},
-							},
+	// If there is a change in ImageList, start ImageJob to trigger removal
+	job := &eraserv1alpha1.ImageJob{
+		ObjectMeta: metav1.ObjectMeta{
+			GenerateName: "imagejob-",
+		},
+		Spec: eraserv1alpha1.ImageJobSpec{
+			JobTemplate: corev1.PodTemplateSpec{
+				Spec: corev1.PodSpec{
+					RestartPolicy: corev1.RestartPolicyNever,
+					Containers: []corev1.Container{
+						{
+							Name:            "eraser",
+							Image:           *eraserImage,
+							ImagePullPolicy: corev1.PullIfNotPresent,
+							Args:            []string{"--imagelist=" + req.Name},
 						},
-						ServiceAccountName: "eraser-controller-manager",
 					},
+					ServiceAccountName: "eraser-controller-manager",
 				},
-				ImageListName: req.Name,
 			},
+			ImageListName: req.Name,
+		},
+	}
+	err = r.Create(ctx, job)
+	log.Info("creating imagejob", "job", job.Name)
+	if err != nil {
+		if errors.IsNotFound(err) {
+			return reconcile.Result{}, nil
 		}
-		err := r.Create(ctx, job)
-		log.Info("creating imagejob", "job", job.Name)
-		if err != nil {
-			if errors.IsNotFound(err) {
-				return reconcile.Result{}, nil
-			}
-			return reconcile.Result{}, err
-		}
+		return reconcile.Result{}, err
 	}
 
 	return ctrl.Result{}, nil
@@ -139,7 +137,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 
 	err = c.Watch(
 		&source.Kind{Type: &eraserv1alpha1.ImageList{}},
-		&handler.EnqueueRequestForObject{})
+		&handler.EnqueueRequestForObject{}, predicate.GenerationChangedPredicate{})
 	if err != nil {
 		return err
 	}
