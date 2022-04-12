@@ -63,7 +63,13 @@ var (
 	successDelDelaySeconds = flag.Int64("job-cleanup-on-success-delay", 0, "Seconds to delay job deletion after successful runs. 0 means no delay")
 	errDelDelaySeconds     = flag.Int64("job-cleanup-on-error-delay", 86400, "Seconds to delay job deletion after errored runs. 0 means no delay")
 	successRatio           = flag.Float64("job-success-ratio", 1.0, "Ratio of successful/total runs to consider a job successful. 1.0 means all runs must succeed.")
+
+	labelMap = stringMap(make(map[string]string))
 )
+
+func init() {
+	flag.Var(labelMap, "skip-node-labels", `A comma-separated list, of "="-separated key-value pairs. Matching nodes will be skipped.`)
+}
 
 func Add(mgr manager.Manager) error {
 	return add(mgr, newReconciler(mgr))
@@ -272,6 +278,17 @@ func (r *Reconciler) handleNewJob(ctx context.Context, imageJob *eraserv1alpha1.
 		return err
 	}
 
+	skipNodes := &corev1.NodeList{}
+	skipSet := make(map[string]struct{})
+	err = r.List(ctx, nodes, client.MatchingLabels(labelMap))
+	if err != nil {
+		return err
+	}
+
+	for _, node := range skipNodes.Items {
+		skipSet[node.Name] = struct{}{}
+	}
+
 	imageJob.Status = eraserv1alpha1.ImageJobStatus{
 		Desired:   len(nodes.Items),
 		Succeeded: 0,
@@ -321,6 +338,17 @@ func (r *Reconciler) handleNewJob(ctx context.Context, imageJob *eraserv1alpha1.
 		log := log.WithValues("node", nodes.Items[i].Name)
 
 		nodeName := nodes.Items[i].Name
+		if _, nodeShouldBeSkipped := skipSet[nodeName]; nodeShouldBeSkipped {
+			log.Info("node will be skipped because it matched the specified labels",
+				"nodeName", nodeName,
+				"labels", nodes.Items[i].ObjectMeta.Labels,
+				"specifiedLabels", labelMap,
+			)
+
+			skipped++
+			continue
+		}
+
 		runtime := nodes.Items[i].Status.NodeInfo.ContainerRuntimeVersion
 		runtimeName := strings.Split(runtime, ":")[0]
 		mountPath := getMountPath(runtimeName)
