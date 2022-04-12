@@ -12,13 +12,13 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 images:
 - name: controller
-  newName: ghcr.io/azure/eraser-manager
-  newTag: v0.1.0
+  newName: ashnam/manager
+  newTag: v1.2
 
 patches:
 - patch: |-
     - op: add
       path: /spec/template/spec/containers/0/args/-
-      value: --eraser-image=ghcr.io/azure/eraser:v0.1.0
+      value: --eraser-image=ashnam/eraser:v1.2
   target:
     kind: Deployment
