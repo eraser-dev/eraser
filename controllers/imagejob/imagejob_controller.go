@@ -63,13 +63,8 @@ var (
 	successDelDelaySeconds = flag.Int64("job-cleanup-on-success-delay", 0, "Seconds to delay job deletion after successful runs. 0 means no delay")
 	errDelDelaySeconds     = flag.Int64("job-cleanup-on-error-delay", 86400, "Seconds to delay job deletion after errored runs. 0 means no delay")
 	successRatio           = flag.Float64("job-success-ratio", 1.0, "Ratio of successful/total runs to consider a job successful. 1.0 means all runs must succeed.")
-
-	labelMap = stringMap(make(map[string]string))
+	skipNodesSelector      = flag.String("skipNodesSelector", "kubernetes.io/os=windows", `A kubernetes selector. If a node's labels are a match, the node will be skipped.`)
 )
-
-func init() {
-	flag.Var(labelMap, "skip-node-labels", `A comma-separated list, of "="-separated key-value pairs. Matching nodes will be skipped.`)
-}
 
 func Add(mgr manager.Manager) error {
 	return add(mgr, newReconciler(mgr))
@@ -278,13 +273,18 @@ func (r *Reconciler) handleNewJob(ctx context.Context, imageJob *eraserv1alpha1.
 		return err
 	}
 
-	skipNodes := &corev1.NodeList{}
-	skipSet := make(map[string]struct{})
-	err = r.List(ctx, nodes, client.MatchingLabels(labelMap))
+	skipLabels, err := labels.Parse(*skipNodesSelector)
 	if err != nil {
 		return err
 	}
 
+	skipNodes := &corev1.NodeList{}
+	err = r.List(ctx, nodes, client.MatchingLabelsSelector{Selector: skipLabels})
+	if err != nil {
+		return err
+	}
+
+	skipSet := make(map[string]struct{})
 	for _, node := range skipNodes.Items {
 		skipSet[node.Name] = struct{}{}
 	}
@@ -342,7 +342,7 @@ func (r *Reconciler) handleNewJob(ctx context.Context, imageJob *eraserv1alpha1.
 			log.Info("node will be skipped because it matched the specified labels",
 				"nodeName", nodeName,
 				"labels", nodes.Items[i].ObjectMeta.Labels,
-				"specifiedLabels", labelMap,
+				"specifiedLabels", skipLabels,
 			)
 
 			skipped++
