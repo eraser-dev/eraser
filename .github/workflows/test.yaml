@@ -19,12 +19,16 @@ jobs:
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v3
+      - name: Set up Go 1.17
+        uses: actions/setup-go@v3
+        with:
+          go-version: 1.17
       - name: lint manager
-        uses: golangci/golangci-lint-action@v2
+        uses: golangci/golangci-lint-action@v3
         with:
           version: latest
       - name: lint eraser
-        uses: golangci/golangci-lint-action@v2
+        uses: golangci/golangci-lint-action@v3
         with:
           version: latest
           working-directory: pkg/eraser
