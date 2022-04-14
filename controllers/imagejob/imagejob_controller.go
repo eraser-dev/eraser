@@ -63,7 +63,7 @@ var (
 	successDelDelaySeconds = flag.Int64("job-cleanup-on-success-delay", 0, "Seconds to delay job deletion after successful runs. 0 means no delay")
 	errDelDelaySeconds     = flag.Int64("job-cleanup-on-error-delay", 86400, "Seconds to delay job deletion after errored runs. 0 means no delay")
 	successRatio           = flag.Float64("job-success-ratio", 1.0, "Ratio of successful/total runs to consider a job successful. 1.0 means all runs must succeed.")
-	skipNodesSelector      = flag.String("skipNodesSelector", "kubernetes.io/os=windows", `A kubernetes selector. If a node's labels are a match, the node will be skipped.`)
+	skipNodesSelector      = flag.String("skip-nodes-selector", "kubernetes.io/os=windows", `A kubernetes selector. If a node's labels are a match, the node will be skipped.`)
 )
 
 func Add(mgr manager.Manager) error {
