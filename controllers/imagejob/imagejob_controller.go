@@ -63,8 +63,12 @@ var (
 	successDelDelaySeconds = flag.Int64("job-cleanup-on-success-delay", 0, "Seconds to delay job deletion after successful runs. 0 means no delay")
 	errDelDelaySeconds     = flag.Int64("job-cleanup-on-error-delay", 86400, "Seconds to delay job deletion after errored runs. 0 means no delay")
 	successRatio           = flag.Float64("job-success-ratio", 1.0, "Ratio of successful/total runs to consider a job successful. 1.0 means all runs must succeed.")
-	skipNodesSelector      = flag.String("skipNodesSelector", "kubernetes.io/os=windows", `A kubernetes selector. If a node's labels are a match, the node will be skipped.`)
+	skipNodesSelectors     = nodeSkipSelectors([]string{"kubernetes.io/os=windows", "eraser.sh/cleanup.skip"})
 )
+
+func init() {
+	flag.Var(&skipNodesSelectors, "skip-nodes-selector", "A kubernetes selector. If a node's labels are a match, the node will be skipped. If this flag is supplied multiple times, the selectors will be logically ORed together.")
+}
 
 func Add(mgr manager.Manager) error {
 	return add(mgr, newReconciler(mgr))
@@ -273,22 +277,6 @@ func (r *Reconciler) handleNewJob(ctx context.Context, imageJob *eraserv1alpha1.
 		return err
 	}
 
-	skipLabels, err := labels.Parse(*skipNodesSelector)
-	if err != nil {
-		return err
-	}
-
-	skipNodes := &corev1.NodeList{}
-	err = r.List(ctx, nodes, client.MatchingLabelsSelector{Selector: skipLabels})
-	if err != nil {
-		return err
-	}
-
-	skipSet := make(map[string]struct{})
-	for _, node := range skipNodes.Items {
-		skipSet[node.Name] = struct{}{}
-	}
-
 	imageJob.Status = eraserv1alpha1.ImageJobStatus{
 		Desired:   len(nodes.Items),
 		Succeeded: 0,
@@ -334,19 +322,29 @@ func (r *Reconciler) handleNewJob(ctx context.Context, imageJob *eraserv1alpha1.
 		return fmt.Errorf("create configmap: %w", err)
 	}
 
+nodes:
 	for i := range nodes.Items {
 		log := log.WithValues("node", nodes.Items[i].Name)
 
 		nodeName := nodes.Items[i].Name
-		if _, nodeShouldBeSkipped := skipSet[nodeName]; nodeShouldBeSkipped {
-			log.Info("node will be skipped because it matched the specified labels",
-				"nodeName", nodeName,
-				"labels", nodes.Items[i].ObjectMeta.Labels,
-				"specifiedLabels", skipLabels,
-			)
+		for _, skipNodesSelector := range skipNodesSelectors {
+			skipLabels, err := labels.Parse(skipNodesSelector)
+			if err != nil {
+				return err
+			}
 
-			skipped++
-			continue
+			log.Info("skipLabels", "skipLabels", skipLabels)
+			log.Info("nodeLabels", "nodeLabels", nodes.Items[i].ObjectMeta.Labels)
+			if skipLabels.Matches(labels.Set(nodes.Items[i].ObjectMeta.Labels)) {
+				log.Info("node will be skipped because it matched the specified labels",
+					"nodeName", nodeName,
+					"labels", nodes.Items[i].ObjectMeta.Labels,
+					"specifiedSelectors", skipNodesSelectors,
+				)
+
+				skipped++
+				continue nodes
+			}
 		}
 
 		runtime := nodes.Items[i].Status.NodeInfo.ContainerRuntimeVersion
