@@ -22,6 +22,3 @@ patches:
       value: --eraser-image=ghcr.io/azure/eraser:v0.1.0
   target:
     kind: Deployment
-- patch: '[{"op": "add", "path": "/spec/template/spec/containers/0/args/-", "value": "--skip-nodes-selector=\"son_of=arathorn,alignment in (good,neutral)\""}]'
-  target:
-    kind: Deployment

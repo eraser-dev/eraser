@@ -71,22 +71,7 @@ lint: $(GOLANGCI_LINT)
 
 ##@ Development
 
-test-manifests: __controller-gen clean-kustomize-template
-	docker run -v $(shell pwd)/config:/config -w /config/manager \
-		k8s.gcr.io/kustomize/kustomize:v${KUSTOMIZE_VERSION} edit add patch --kind=Deployment \
-		--patch '[{"op": "add", "path": "/spec/template/spec/containers/0/args/-", "value": "--skip-nodes-selector=\"son_of=arathorn,alignment in (good,neutral)\""}]'
-	$(CONTROLLER_GEN) \
-		crd \
-		rbac:roleName=manager-role \
-		webhook \
-		paths="./..." \
-		output:crd:artifacts:config=config/crd/bases
-	mkdir -p manifest_staging/deploy
-	docker run --rm -v $(shell pwd):/eraser \
-		k8s.gcr.io/kustomize/kustomize:v${KUSTOMIZE_VERSION} build \
-		/eraser/config/default -o /eraser/manifest_staging/deploy/eraser_test_node_skip.yaml
-
-manifests: __controller-gen clean-kustomize-template
+manifests: __controller-gen
 	@sed -e "s~ERASER_IMG~${ERASER_IMG}~g" config/manager/kustomization.template.yaml > config/manager/kustomization.yaml
 	docker run -v $(shell pwd)/config:/config -w /config/manager \
 		k8s.gcr.io/kustomize/kustomize:v${KUSTOMIZE_VERSION} edit set image controller=${MANAGER_IMG}
@@ -101,12 +86,6 @@ manifests: __controller-gen clean-kustomize-template
 	docker run --rm -v $(shell pwd):/eraser \
 		k8s.gcr.io/kustomize/kustomize:v${KUSTOMIZE_VERSION} build \
 		/eraser/config/default -o /eraser/manifest_staging/deploy/eraser.yaml
-
-.PHONY: clean-kustomize-template
-clean-kustomize-template:
-	@sed -e "s~ERASER_IMG~${ERASER_IMG}~g" config/manager/kustomization.template.yaml > config/manager/kustomization.yaml
-	docker run -v $(shell pwd)/config:/config -w /config/manager \
-		k8s.gcr.io/kustomize/kustomize:v${KUSTOMIZE_VERSION} edit set image controller=${MANAGER_IMG}
 
 ## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations.
 generate: __controller-gen
