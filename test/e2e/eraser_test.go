@@ -286,17 +286,15 @@ func TestRemoveImagesFromAllNodes(t *testing.T) {
 
 	imglistChangeFeat := features.New("Test Updating ImageList to Reconcile").
 		Setup(func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
-			// Deploy 2 deployments with different images (nginx, redis)
-			// We'll shutdown both of them, and run eraser twice (once with nginx, and a second time adding redis to the imagelist)
-			// After each run, we will check that the respective image is removed from the cluster
-
-			nginxDep := newDeployment(cfg.Namespace(), nginx, 2, map[string]string{"app": nginx}, corev1.Container{Image: nginx, Name: nginx})
-			if err := cfg.Client().Resources().Create(ctx, nginxDep); err != nil {
-				t.Error("Failed to create the nginx dep", err)
-			}
+			// Deploy 2 deployments with different images (caddy, redis)
 			newDeployment(cfg.Namespace(), redis, 2, map[string]string{"app": redis}, corev1.Container{Image: redis, Name: redis})
 			err := cfg.Client().Resources().Create(ctx, newDeployment(cfg.Namespace(), redis, 2, map[string]string{"app": redis}, corev1.Container{Image: redis, Name: redis}))
 			if err != nil {
+				t.Fatal(err)
+			}
+
+			newDeployment(cfg.Namespace(), caddy, 2, map[string]string{"app": caddy}, corev1.Container{Image: caddy, Name: caddy})
+			if err := cfg.Client().Resources().Create(ctx, newDeployment(cfg.Namespace(), caddy, 2, map[string]string{"app": caddy}, corev1.Container{Image: caddy, Name: caddy})); err != nil {
 				t.Fatal(err)
 			}
 
@@ -308,16 +306,6 @@ func TestRemoveImagesFromAllNodes(t *testing.T) {
 				t.Error("Failed to create new client", err)
 			}
 
-			nginxDep := appsv1.Deployment{
-				ObjectMeta: metav1.ObjectMeta{Name: nginx, Namespace: cfg.Namespace()},
-			}
-
-			if err = wait.For(conditions.New(client.Resources()).DeploymentConditionMatch(&nginxDep, appsv1.DeploymentAvailable, corev1.ConditionTrue),
-				wait.WithTimeout(time.Minute*1)); err != nil {
-				t.Fatal("nginx deployment not found", err)
-			}
-			ctx = context.WithValue(ctx, nginx, &nginxDep)
-
 			redisDep := appsv1.Deployment{
 				ObjectMeta: metav1.ObjectMeta{Name: redis, Namespace: cfg.Namespace()},
 			}
@@ -326,6 +314,15 @@ func TestRemoveImagesFromAllNodes(t *testing.T) {
 				t.Fatal("redis deployment not found", err)
 			}
 			ctx = context.WithValue(ctx, redis, &redisDep)
+
+			caddyDep := appsv1.Deployment{
+				ObjectMeta: metav1.ObjectMeta{Name: caddy, Namespace: cfg.Namespace()},
+			}
+			if err = wait.For(conditions.New(client.Resources()).DeploymentConditionMatch(&caddyDep, appsv1.DeploymentAvailable, corev1.ConditionTrue),
+				wait.WithTimeout(time.Minute*1)); err != nil {
+				t.Fatal("caddy deployment not found", err)
+			}
+			ctx = context.WithValue(ctx, caddy, &caddyDep)
 
 			return ctx
 		}).
@@ -340,21 +337,21 @@ func TestRemoveImagesFromAllNodes(t *testing.T) {
 				t.Fatal("missing pods in redis deployment")
 			}
 
-			var nginxPods corev1.PodList
-			if err := cfg.Client().Resources().List(ctx, &nginxPods, func(o *metav1.ListOptions) {
-				o.LabelSelector = labels.SelectorFromSet(map[string]string{"app": nginx}).String()
+			var caddyPods corev1.PodList
+			if err := cfg.Client().Resources().List(ctx, &caddyPods, func(o *metav1.ListOptions) {
+				o.LabelSelector = labels.SelectorFromSet(map[string]string{"app": caddy}).String()
 			}); err != nil {
 				t.Fatal(err)
 			}
-			if len(nginxPods.Items) != 2 {
-				t.Fatal("missing pods in nginx deployment")
+			if len(caddyPods.Items) != 2 {
+				t.Fatal("missing pods in caddy deployment")
 			}
 
 			err := cfg.Client().Resources().Delete(ctx, ctx.Value(redis).(*appsv1.Deployment))
 			if err != nil {
 				t.Fatal(err)
 			}
-			err = cfg.Client().Resources().Delete(ctx, ctx.Value(nginx).(*appsv1.Deployment))
+			err = cfg.Client().Resources().Delete(ctx, ctx.Value(caddy).(*appsv1.Deployment))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -363,47 +360,38 @@ func TestRemoveImagesFromAllNodes(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			err = wait.For(conditions.New(cfg.Client().Resources()).ResourcesDeleted(&nginxPods), wait.WithTimeout(time.Minute*1))
+			err = wait.For(conditions.New(cfg.Client().Resources()).ResourcesDeleted(&caddyPods), wait.WithTimeout(time.Minute*1))
 			if err != nil {
 				t.Fatal(err)
 			}
 			return ctx
 		}).
-		Assess("Nginx image successfully deleted from all nodes", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
+		Assess("Update imagelist to remove each image from cluster", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
 			imgList := &eraserv1alpha1.ImageList{
-				ObjectMeta: metav1.ObjectMeta{Name: "imagelist"},
+				ObjectMeta: metav1.ObjectMeta{Name: prune},
 				Spec: eraserv1alpha1.ImageListSpec{
-					Images: []string{"nginx"},
+					Images: []string{redis},
 				},
 			}
 
 			if err := cfg.Client().Resources().Create(ctx, imgList); err != nil {
 				t.Fatal(err)
 			}
-			ctx = context.WithValue(ctx, "imagelist", imgList)
 
-			ctxT, cancel := context.WithTimeout(ctx, 5*time.Minute)
-			defer cancel()
-			checkImageRemoved(ctxT, t, getClusterNodes(t), nginx)
+			imgList.Spec.Images = append(imgList.Spec.Images, caddy)
 
-			return ctx
-		}).
-		Assess("Update imagelist: Redis image successfully deleted from all nodes", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
-			imgList := &eraserv1alpha1.ImageList{
-				ObjectMeta: metav1.ObjectMeta{Name: "imagelist"},
-				Spec: eraserv1alpha1.ImageListSpec{
-					Images: []string{"redis"},
-				},
-			}
-
-			if err := cfg.Client().Resources().Create(ctx, imgList); err != nil {
+			if err := cfg.Client().Resources().Update(ctx, imgList); err != nil {
 				t.Fatal(err)
 			}
-			ctx = context.WithValue(ctx, "imagelist", imgList)
+			ctx = context.WithValue(ctx, prune, imgList)
 
 			ctxT, cancel := context.WithTimeout(ctx, 5*time.Minute)
 			defer cancel()
 			checkImageRemoved(ctxT, t, getClusterNodes(t), redis)
+
+			ctxT, cancel = context.WithTimeout(ctx, time.Minute)
+			defer cancel()
+			checkImageRemoved(ctxT, t, getClusterNodes(t), caddy)
 
 			return ctx
 		}).
