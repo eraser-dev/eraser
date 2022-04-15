@@ -13,6 +13,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
+	clientgo "k8s.io/client-go/kubernetes"
 
 	"sigs.k8s.io/e2e-framework/klient/wait"
 	"sigs.k8s.io/e2e-framework/klient/wait/conditions"
@@ -29,7 +30,11 @@ func TestRemoveImagesFromAllNodes(t *testing.T) {
 		redis         = "redis"
 		caddy         = "caddy"
 
-		prune = "imagelist"
+		prune               = "imagelist"
+		skippedNodeName     = "eraser-e2e-test-worker"
+		skippedNodeSelector = "kubernetes.io/hostname=eraser-e2e-test-worker"
+		skipLabelKey        = "eraser.sh/cleanup.skip"
+		skipLabelValue      = "true"
 	)
 
 	rmImageFeat := features.New("Test Remove Image From All Nodes").
@@ -88,6 +93,7 @@ func TestRemoveImagesFromAllNodes(t *testing.T) {
 			}
 
 			// deploy imageJob config
+			time.Sleep(15 * time.Second)
 			if err := deployEraserConfig(cfg.KubeconfigFile(), "eraser-system", "test-data", "eraser_v1alpha1_imagelist.yaml"); err != nil {
 				t.Error("Failed to deploy image list config", err)
 			}
@@ -248,6 +254,7 @@ func TestRemoveImagesFromAllNodes(t *testing.T) {
 				},
 			}
 
+			time.Sleep(15 * time.Second)
 			if err := cfg.Client().Resources().Create(ctx, imgList); err != nil {
 				t.Fatal(err)
 			}
@@ -583,8 +590,188 @@ func TestRemoveImagesFromAllNodes(t *testing.T) {
 		}).
 		Feature()
 
+	skipNodesFeat := features.New("Test node skipping by applying label").
+		Setup(func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
+			// fetch node info
+			c := cfg.Client().RESTConfig()
+			k8sClient, err := clientgo.NewForConfig(c)
+			if err != nil {
+				t.Error("unable to obtain k8s client from config", err)
+			}
+
+			podSelectorLabels := map[string]string{"app": nginx}
+			nginxDep := newDeployment(cfg.Namespace(), nginx, 2, podSelectorLabels, corev1.Container{Image: nginx, Name: nginx})
+			if err := cfg.Client().Resources().Create(ctx, nginxDep); err != nil {
+				t.Error("Failed to create the dep", err)
+			}
+
+			nodeList, err := k8sClient.CoreV1().Nodes().List(ctx, metav1.ListOptions{LabelSelector: skippedNodeSelector})
+			if err != nil {
+				t.Errorf("unable to list node %s\n%#v", skippedNodeSelector, err)
+			}
+
+			if len(nodeList.Items) != 1 {
+				t.Errorf("List operation for selector %s resulted in the wrong number of nodes", skippedNodeSelector)
+			}
+
+			nodeToSkip := &nodeList.Items[0]
+			nodeToSkip.ObjectMeta.Labels[skipLabelKey] = skipLabelValue
+
+			nodeToSkip, err = k8sClient.CoreV1().Nodes().Update(ctx, nodeToSkip, metav1.UpdateOptions{})
+			if err != nil {
+				t.Errorf("unable to update node %#v with label {%s: %s}\nerror: %#v", nodeToSkip, skipLabelKey, skipLabelValue, err)
+			}
+
+			return ctx
+		}).
+		Assess("Deployment and labelling the node have succeeded", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
+			c := cfg.Client().RESTConfig()
+			k8sClient, err := clientgo.NewForConfig(c)
+			if err != nil {
+				t.Error("unable to obtain k8s client from config", err)
+			}
+
+			ctxT, cancel := context.WithTimeout(ctx, time.Minute)
+			defer cancel()
+
+			nodeList := &corev1.NodeList{}
+			for len(nodeList.Items) != 1 {
+				select {
+				case <-ctxT.Done():
+					t.Errorf("Timeout while waiting for label %s to be applied to node %s", skipLabelKey, skippedNodeSelector)
+				default:
+				}
+
+				nodeList, err = k8sClient.CoreV1().Nodes().List(ctx, metav1.ListOptions{LabelSelector: skipLabelKey})
+				if err != nil {
+					t.Errorf("unable to list node %s\n%#v", skippedNodeSelector, err)
+				}
+				time.Sleep(2 * time.Second)
+			}
+
+			resultDeployment := appsv1.Deployment{
+				ObjectMeta: metav1.ObjectMeta{Name: nginx, Namespace: cfg.Namespace()},
+			}
+
+			if err = wait.For(
+				conditions.New(cfg.Client().Resources()).DeploymentConditionMatch(&resultDeployment, appsv1.DeploymentAvailable, corev1.ConditionTrue),
+				wait.WithTimeout(time.Minute*1),
+			); err != nil {
+				t.Error("deployment not found", err)
+			}
+
+			ctxV := context.WithValue(ctx, nginx, &resultDeployment)
+			return context.WithValue(ctxV, skippedNodeSelector, &nodeList.Items[0])
+		}).
+		Assess("Node(s) successfully skipped", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
+			//delete deployment
+			client, err := cfg.NewClient()
+			if err != nil {
+				t.Error("Failed to create new client", err)
+			}
+
+			var pods corev1.PodList
+			err = client.Resources().List(ctx, &pods, func(o *metav1.ListOptions) {
+				o.LabelSelector = labels.SelectorFromSet(labels.Set{"app": nginx}).String()
+			})
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			dep := ctx.Value(nginx).(*appsv1.Deployment)
+			if err := client.Resources().Delete(ctx, dep); err != nil {
+				t.Error("Failed to delete the dep", err)
+			}
+			if err := wait.For(conditions.New(client.Resources()).ResourceDeleted(dep), wait.WithTimeout(time.Minute*2)); err != nil {
+				// Let's not mark this as an error
+				// We only have this to prevent race conditions with the eraser spinning up
+				t.Logf("error while waiting for deployment deletion: %v", err)
+			}
+			if err := wait.For(conditions.New(client.Resources()).ResourcesDeleted(&pods), wait.WithTimeout(time.Minute)); err != nil {
+				// Same as above, we aren't really interested in this error except for debugging problems later on.
+				// We are only waiting for these pods so we don't hit race conditions with the eraser pod.
+				t.Logf("error waiting for pods to be deleted: %v", err)
+			}
+
+			time.Sleep(15 * time.Second)
+			// deploy imageJob config
+			if err := deployEraserConfig(cfg.KubeconfigFile(), "eraser-system", "test-data", "eraser_v1alpha1_imagelist.yaml"); err != nil {
+				t.Error("Failed to deploy image list config", err)
+			}
+
+			ctxT, cancel := context.WithTimeout(ctx, time.Minute)
+			defer cancel()
+
+			// ensure images are removed from all nodes except the one we are skipping. remove the node we are skipping from the list of nodes.
+			clusterNodes := getClusterNodes(t)
+			for i, nodeName := range clusterNodes {
+				if nodeName == skippedNodeName {
+					clusterNodes = append(clusterNodes[:i], clusterNodes[i+1:]...)
+				}
+			}
+			checkImageRemoved(ctxT, t, clusterNodes, nginx)
+
+			return ctx
+		}).
+		Teardown(func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
+			if err := deleteEraserConfig(cfg.KubeconfigFile(), "eraser-system", "test-data", "eraser_v1alpha1_imagelist.yaml"); err != nil {
+				t.Error("Failed to delete image list config ", err)
+			}
+
+			c := cfg.Client().RESTConfig()
+			k8sClient, err := clientgo.NewForConfig(c)
+			if err != nil {
+				t.Error("unable to obtain k8s client from config", err)
+			}
+
+			nodeList, err := k8sClient.CoreV1().Nodes().List(ctx, metav1.ListOptions{LabelSelector: skippedNodeSelector})
+			if err != nil {
+				t.Errorf("unable to list node %s\n%#v", skippedNodeSelector, err)
+			}
+
+			if len(nodeList.Items) != 1 {
+				t.Errorf("List operation for selector %s resulted in the wrong number of nodes", skippedNodeSelector)
+			}
+
+			skippedNode := &nodeList.Items[0]
+			delete(skippedNode.ObjectMeta.Labels, skipLabelKey)
+
+			skippedNode, err = k8sClient.CoreV1().Nodes().Update(ctx, skippedNode, metav1.UpdateOptions{})
+			if err != nil {
+				t.Errorf("unable to remove label %s from node %#v\nerror: %#v", skipLabelKey, skippedNode, err)
+			}
+
+			ctxT, cancel := context.WithTimeout(ctx, time.Minute)
+			defer cancel()
+
+			for len(nodeList.Items) != 0 {
+				select {
+				case <-ctxT.Done():
+					t.Errorf("Timeout while waiting for label %s to be deleted from node %s", skipLabelKey, skippedNodeSelector)
+				default:
+				}
+
+				nodeList, err = k8sClient.CoreV1().Nodes().List(ctx, metav1.ListOptions{LabelSelector: skipLabelKey})
+				if err != nil {
+					t.Errorf("unable to list node %s\n%#v", skippedNodeSelector, err)
+				}
+				time.Sleep(2 * time.Second)
+			}
+
+			if err := KubectlDelete(cfg.KubeconfigFile(), "eraser-system", append([]string{"imagejob", "--all"})); err != nil {
+				t.Error("Failed to delete image job(s) config ", err)
+			}
+			if err := KubectlDelete(cfg.KubeconfigFile(), "eraser-system", append([]string{"imagelist", "--all"})); err != nil {
+				t.Error("Failed to delete image job(s) config ", err)
+			}
+
+			return ctx
+		}).
+		Feature()
+
 	testenv.Test(t, rmImageFeat)
 	testenv.Test(t, pruneImagesFeat)
 	testenv.Test(t, imglistChangeFeat)
 	testenv.Test(t, aliasFix)
+	testenv.Test(t, skipNodesFeat)
 }
