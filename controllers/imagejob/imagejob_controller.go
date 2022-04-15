@@ -235,8 +235,8 @@ func (r *Reconciler) handleRunningJob(ctx context.Context, imageJob *eraserv1alp
 		DeleteAfter: after(time.Now(), r.successDelay),
 	}
 
-	success_and_skipped := success + skipped
-	if float64(success_and_skipped/imageJob.Status.Desired) < r.successRatio {
+	successAndSkipped := success + skipped
+	if float64(successAndSkipped/imageJob.Status.Desired) < r.successRatio {
 		log.Info("Marking job as failed", "success ratio", r.successRatio, "actual ratio", success/imageJob.Status.Desired)
 		imageJob.Status.Phase = eraserv1alpha1.PhaseFailed
 		imageJob.Status.DeleteAfter = after(time.Now(), r.errDelay)
