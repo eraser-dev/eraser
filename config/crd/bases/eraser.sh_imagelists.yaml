@@ -48,7 +48,7 @@ spec:
                 format: int64
                 type: integer
               skipped:
-                description: Number of nodes that were skipped, e.g. because they are a non-linux node
+                description: Number of nodes that were skipped due to a skip selector
                 format: int64
                 type: integer
               success:
