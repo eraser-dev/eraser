@@ -195,11 +195,16 @@ func removeImages(c Client, targetImages []string) error {
 		}
 	}
 
-	// map for non-running imags by name
-	nonRunningNames := make(map[string]struct{}, len(allImages)-len(runningImages))
-	for key := range nonRunningImages {
-		if idMap[key] != nil && len(idMap[key]) > 0 {
-			nonRunningNames[idMap[key][0]] = struct{}{}
+	log.V(1).Info("List of non-running images by digest", "nonRunningImages", nonRunningImages)
+	log.V(1).Info("Map of digest to image name(s)", "idMap", idMap)
+
+	// mapping of non-running image names to digests
+	nonRunningNames := make(map[string]string, len(allImages)-len(runningImages))
+	for digest := range nonRunningImages {
+		if idMap[digest] != nil && len(idMap[digest]) > 0 {
+			for _, name := range idMap[digest] {
+				nonRunningNames[name] = digest
+			}
 		}
 	}
 
@@ -211,16 +216,21 @@ func removeImages(c Client, targetImages []string) error {
 			prune = true
 			continue
 		}
-		_, isNonRunningNames := nonRunningNames[img]
+		digest := img
 		_, isNonRunningImages := nonRunningImages[img]
+		foundDigest, isNonRunningNames := nonRunningNames[img]
+
+		if isNonRunningNames {
+			digest = foundDigest
+		}
 
 		if isNonRunningImages || isNonRunningNames {
 			err = c.deleteImage(backgroundContext, img)
 			if err != nil {
-				log.Error(err, "Error removing", "image", img)
+				log.Error(err, "Error removing", "image", digest)
 			} else {
 				deletedImages[img] = struct{}{}
-				log.Info("Removed", "image", img)
+				log.Info("Removed", "image", img, "by_name", isNonRunningNames, "by_digest", isNonRunningImages, "digest", digest)
 			}
 		} else {
 			isRunningName := mapContainsValue(idMap, img)
