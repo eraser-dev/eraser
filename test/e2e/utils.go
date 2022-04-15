@@ -177,19 +177,14 @@ func checkImageRemoved(ctx context.Context, t *testing.T, nodes []string, images
 					found++
 				}
 			}
-
 			if found == len(images) {
 				cleaned[node] = true
-			} else {
-				cleaned[node] = false
 			}
 		}
 		time.Sleep(time.Second)
 	}
 
-	for _, check := range cleaned {
-		if !check {
-			t.Error("not all nodes cleaned")
-		}
+	if len(cleaned) < len(nodes) {
+		t.Error("not all nodes cleaned")
 	}
 }
