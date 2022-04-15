@@ -31,7 +31,7 @@ type ImageListStatus struct {
 	Success int64 `json:"success"`
 	// Number of nodes that failed to run the job
 	Failed int64 `json:"failed"`
-	// Number of nodes that were skipped, e.g. because they are a non-linux node
+	// Number of nodes that were skipped due to a skip selector
 	Skipped int64 `json:"skipped"`
 }
 
