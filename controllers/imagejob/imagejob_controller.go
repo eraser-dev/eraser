@@ -320,14 +320,13 @@ func (r *Reconciler) handleNewJob(ctx context.Context, imageJob *eraserv1alpha1.
 			Volumes:            []corev1.Volume{{Name: runtimeName + "-sock-volume", VolumeSource: corev1.VolumeSource{HostPath: &corev1.HostPathVolumeSource{Path: mountPath}}}},
 		}
 
-		podName := image.Name + "-" + nodeName
 		pod := &corev1.Pod{
 			TypeMeta: metav1.TypeMeta{},
 			Spec:     podSpec,
 			ObjectMeta: metav1.ObjectMeta{
-				Namespace: "eraser-system",
-				Name:      podName,
-				Labels:    map[string]string{"name": image.Name},
+				Namespace:    "eraser-system",
+				GenerateName: image.Name + "-" + nodeName + "-",
+				Labels:       map[string]string{"name": image.Name},
 				OwnerReferences: []metav1.OwnerReference{
 					*metav1.NewControllerRef(imageJob, imageJob.GroupVersionKind()),
 				},
