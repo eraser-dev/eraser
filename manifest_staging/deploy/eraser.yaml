@@ -4263,10 +4263,10 @@ spec:
       containers:
       - args:
         - --leader-elect=false
-        - --eraser-image=ashnam/eraser:v1.2
+        - --eraser-image=ghcr.io/azure/eraser:v0.1.0
         command:
         - /manager
-        image: ashnam/manager:v1.2
+        image: ghcr.io/azure/eraser-manager:v0.1.0
         livenessProbe:
           httpGet:
             path: /healthz
