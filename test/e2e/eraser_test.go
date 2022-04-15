@@ -93,7 +93,7 @@ func TestRemoveImagesFromAllNodes(t *testing.T) {
 			}
 
 			// deploy imageJob config
-			time.Sleep(15 * time.Second)
+			time.Sleep(45 * time.Second)
 			if err := deployEraserConfig(cfg.KubeconfigFile(), "eraser-system", "test-data", "eraser_v1alpha1_imagelist.yaml"); err != nil {
 				t.Error("Failed to deploy image list config", err)
 			}
@@ -254,7 +254,7 @@ func TestRemoveImagesFromAllNodes(t *testing.T) {
 				},
 			}
 
-			time.Sleep(15 * time.Second)
+			time.Sleep(45 * time.Second)
 			if err := cfg.Client().Resources().Create(ctx, imgList); err != nil {
 				t.Fatal(err)
 			}
@@ -693,7 +693,7 @@ func TestRemoveImagesFromAllNodes(t *testing.T) {
 				t.Logf("error waiting for pods to be deleted: %v", err)
 			}
 
-			time.Sleep(15 * time.Second)
+			time.Sleep(45 * time.Second)
 			// deploy imageJob config
 			if err := deployEraserConfig(cfg.KubeconfigFile(), "eraser-system", "test-data", "eraser_v1alpha1_imagelist.yaml"); err != nil {
 				t.Error("Failed to deploy image list config", err)
