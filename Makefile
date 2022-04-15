@@ -158,8 +158,10 @@ promote-staging-manifest:
 
 ENVTEST = $(shell pwd)/bin/setup-envtest
 .PHONY: envtest
-envtest: ## Download envtest-setup locally if necessary.
-	$(call go-get-tool,$(ENVTEST),sigs.k8s.io/controller-runtime/tools/setup-envtest@latest)
+envtest: __tooling-image bin/setup-envtest
+
+bin/setup-envtest:
+	docker run --rm -v $(shell pwd)/bin:/go/bin -e GO111MODULE=on eraser-tooling go install sigs.k8s.io/controller-runtime/tools/setup-envtest@latest
 
 __controller-gen: __tooling-image
 CONTROLLER_GEN=docker run -v $(shell pwd):/eraser eraser-tooling controller-gen
@@ -168,17 +170,3 @@ __tooling-image:
 	docker build . \
 		-t eraser-tooling \
 		-f build/tooling/Dockerfile
-
-# go-get-tool will 'go get' any package $2 and install it to $1.
-PROJECT_DIR := $(shell dirname $(abspath $(lastword $(MAKEFILE_LIST))))
-define go-get-tool
-@[ -f $(1) ] || { \
-set -e ;\
-TMP_DIR=$$(mktemp -d) ;\
-cd $$TMP_DIR ;\
-go mod init tmp ;\
-echo "Downloading $(2)" ;\
-GOBIN=$(PROJECT_DIR)/bin go get $(2) ;\
-rm -rf $$TMP_DIR ;\
-}
-endef
