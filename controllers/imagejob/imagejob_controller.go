@@ -333,8 +333,8 @@ nodes:
 				return err
 			}
 
-			log.Info("skipLabels", "skipLabels", skipLabels)
-			log.Info("nodeLabels", "nodeLabels", nodes.Items[i].ObjectMeta.Labels)
+			log.V(1).Info("skipLabels", "skipLabels", skipLabels)
+			log.V(1).Info("nodeLabels", "nodeLabels", nodes.Items[i].ObjectMeta.Labels)
 			if skipLabels.Matches(labels.Set(nodes.Items[i].ObjectMeta.Labels)) {
 				log.Info("node will be skipped because it matched the specified labels",
 					"nodeName", nodeName,
