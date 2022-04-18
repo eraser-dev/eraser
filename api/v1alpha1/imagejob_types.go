@@ -27,8 +27,7 @@ import (
 // ImageJobSpec defines the desired state of ImageJob.
 type ImageJobSpec struct {
 	// Specifies the job that will be created when executing an ImageJob.
-	JobTemplate   v1.PodTemplateSpec `json:"template"`
-	ImageListName string             `json:"imageListName"`
+	JobTemplate v1.PodTemplateSpec `json:"template"`
 }
 
 // JobPhase defines the phase of an ImageJob status.
