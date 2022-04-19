@@ -284,3 +284,21 @@ func kindLoadImage(clusterName, image string) (string, error) {
 
 	return output, err
 }
+
+func deleteStringFromSlice(strings []string, s string) []string {
+	idx := -1
+	for i, cmp := range strings {
+		if cmp == s {
+			idx = i
+			break
+		}
+	}
+
+	if idx >= 0 {
+		l := len(strings)
+		strings[l-1], strings[idx] = strings[idx], strings[l-1]
+		return strings[:l-1]
+	}
+
+	return strings
+}
