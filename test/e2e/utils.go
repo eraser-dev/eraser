@@ -75,6 +75,17 @@ func deployEraserConfig(kubeConfig, namespace, resourcePath, fileName string) er
 	return nil
 }
 
+func containerNotPresentOnNode(nodeName, containerName string) func() (bool, error) {
+	return func() (bool, error) {
+		output, err := listNodeContainers(nodeName)
+		if err != nil {
+			return false, err
+		}
+
+		return !strings.Contains(output, containerName), nil
+	}
+}
+
 // delete eraser config
 func deleteEraserConfig(kubeConfig, namespace, resourcePath, fileName string) error {
 	wd, err := os.Getwd()
@@ -92,6 +103,22 @@ func deleteEraserConfig(kubeConfig, namespace, resourcePath, fileName string) er
 	}
 
 	return nil
+}
+
+func listNodeContainers(nodeName string) (string, error) {
+	args := []string{
+		"exec",
+		nodeName,
+		"ctr",
+		"-n",
+		"k8s.io",
+		"containers",
+		"list",
+	}
+
+	cmd := exec.Command("docker", args...)
+	stdoutStderr, err := cmd.CombinedOutput()
+	return strings.TrimSpace(string(stdoutStderr)), err
 }
 
 func listNodeImages(nodeName string) (string, error) {

@@ -74,15 +74,14 @@ func TestRemoveImagesFromAllNodes(t *testing.T) {
 			if err := client.Resources().Delete(ctx, dep); err != nil {
 				t.Error("Failed to delete the dep", err)
 			}
-			if err := wait.For(conditions.New(client.Resources()).ResourceDeleted(dep), wait.WithTimeout(time.Minute*1)); err != nil {
-				// Let's not mark this as an error
-				// We only have this to prevent race conditions with the eraser spinning up
-				t.Logf("error while waiting for deployment deletion: %v", err)
-			}
-			if err := wait.For(conditions.New(client.Resources()).ResourcesDeleted(&pods), wait.WithTimeout(time.Minute)); err != nil {
-				// Same as above, we aren't really interested in this error except for debugging problems later on.
-				// We are only waiting for these pods so we don't hit race conditions with the eraser pod.
-				t.Logf("error waiting for pods to be deleted: %v", err)
+
+			for _, nodeName := range getClusterNodes(t) {
+				err := wait.For(containerNotPresentOnNode(nodeName, nginx), wait.WithTimeout(time.Minute*2))
+				if err != nil {
+					// Let's not mark this as an error
+					// We only have this to prevent race conditions with the eraser spinning up
+					t.Logf("error while waiting for deployment deletion: %v", err)
+				}
 			}
 
 			// deploy imageJob config
@@ -220,13 +219,21 @@ func TestRemoveImagesFromAllNodes(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			err = wait.For(conditions.New(cfg.Client().Resources()).ResourcesDeleted(&redisPods), wait.WithTimeout(time.Minute*1))
-			if err != nil {
-				t.Fatal(err)
+			for _, nodeName := range getClusterNodes(t) {
+				err := wait.For(containerNotPresentOnNode(nodeName, redis), wait.WithTimeout(time.Minute*2))
+				if err != nil {
+					// Let's not mark this as an error
+					// We only have this to prevent race conditions with the eraser spinning up
+					t.Logf("error while waiting for deployment deletion: %v", err)
+				}
 			}
-			err = wait.For(conditions.New(cfg.Client().Resources()).ResourcesDeleted(&caddyPods), wait.WithTimeout(time.Minute*1))
-			if err != nil {
-				t.Fatal(err)
+			for _, nodeName := range getClusterNodes(t) {
+				err := wait.For(containerNotPresentOnNode(nodeName, caddy), wait.WithTimeout(time.Minute*2))
+				if err != nil {
+					// Let's not mark this as an error
+					// We only have this to prevent race conditions with the eraser spinning up
+					t.Logf("error while waiting for deployment deletion: %v", err)
+				}
 			}
 			return ctx
 		}).
@@ -277,6 +284,16 @@ func TestRemoveImagesFromAllNodes(t *testing.T) {
 			}
 			if err := KubectlDelete(cfg.KubeconfigFile(), "eraser-system", append([]string{"imagelist", "--all"})); err != nil {
 				t.Error("Failed to delete image job(s) config ", err)
+			}
+
+			// make sure nginx containers are cleaned up before proceeding
+			for _, nodeName := range getClusterNodes(t) {
+				err := wait.For(containerNotPresentOnNode(nodeName, nginx), wait.WithTimeout(time.Minute*2))
+				if err != nil {
+					// Let's not mark this as an error
+					// We only have this to prevent race conditions with the eraser spinning up
+					t.Logf("error while waiting for deployment deletion: %v", err)
+				}
 			}
 
 			return ctx
