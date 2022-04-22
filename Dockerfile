@@ -1,7 +1,15 @@
 # syntax=mcr.microsoft.com/oss/moby/dockerfile:1.3.1
+ARG BUILDPLATFORM="linux/amd64"
+ARG BUILDERIMAGE="golang:1.17"
+
+ARG ERASERBASEIMAGE="gcr.io/distroless/static:latest"
+ARG MANAGERBASEIMAGE="gcr.io/distroless/static:nonroot"
+
+ARG TARGETOS=linux
+ARG TARGETARCH=amd64
 
 # Build the manager binary
-FROM golang:1.17 AS builder
+FROM --platform=$BUILDPLATFORM $BUILDERIMAGE AS builder
 WORKDIR /workspace
 # Copy the Go Modules manifests
 COPY go.mod go.mod
@@ -20,21 +28,21 @@ FROM builder AS manager-build
 RUN \
     --mount=type=cache,target=${GOCACHE} \
     --mount=type=cache,target=/go/pkg/mod \
-    GOOS=linux GOARCH=amd64 go build -o out/manager main.go
+    GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -o out/manager main.go
 
 FROM builder AS eraser-build
 RUN \
     --mount=type=cache,target=${GOCACHE} \
     --mount=type=cache,target=/go/pkg/mod \
-    GOOS=linux GOARCH=amd64 go build -ldflags '-w -extldflags "-static"' -o out/eraser ./pkg/eraser
+    GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -ldflags '-w -extldflags "-static"' -o out/eraser ./pkg/eraser
 
-FROM gcr.io/distroless/static:latest as eraser
+FROM --platform=$BUILDPLATFORM $ERASERBASEIMAGE as eraser
 COPY --from=eraser-build /workspace/out/eraser /
 ENTRYPOINT ["/eraser"]
 
 # Use distroless as minimal base image to package the manager binary
 # Refer to https://github.com/GoogleContainerTools/distroless for more details
-FROM gcr.io/distroless/static:nonroot AS manager
+FROM --platform=$BUILDPLATFORM $MANAGERBASEIMAGE AS manager
 WORKDIR /
 COPY --from=manager-build /workspace/out/manager .
 USER 65532:65532

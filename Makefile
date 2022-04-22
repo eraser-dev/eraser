@@ -9,6 +9,8 @@ KUBERNETES_VERSION ?= 1.23.0
 ENVTEST_K8S_VERSION ?= 1.23
 GOLANGCI_LINT_VERSION := 1.43.0
 
+PLATFORMS ?= linux/amd64
+
 # Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
 ifeq (,$(shell go env GOBIN))
 GOBIN=$(shell go env GOPATH)/bin
@@ -111,13 +113,13 @@ run: manifests generate fmt vet ## Run a controller from your host.
 	go run ./main.go
 
 docker-build-manager: ## Build docker image with the manager.
-	docker buildx build $(_CACHE_FROM) $(_CACHE_TO) --platform="linux/amd64" --output=$(OUTPUT_TYPE) --target manager -t ${MANAGER_IMG} .
+	docker buildx build $(_CACHE_FROM) $(_CACHE_TO) --platform="$(PLATFORMS)" --output=$(OUTPUT_TYPE) --target manager -t ${MANAGER_IMG} .
 
 docker-push-manager: ## Push docker image with the manager.
 	docker push ${MANAGER_IMG}
 
 docker-build-eraser:
-	docker buildx build $(_CACHE_FROM) $(_CACHE_TO) --platform="linux/amd64" --output=$(OUTPUT_TYPE) -t ${ERASER_IMG} --target eraser .
+	docker buildx build $(_CACHE_FROM) $(_CACHE_TO) --platform="$(PLATFORMS)" --output=$(OUTPUT_TYPE) -t ${ERASER_IMG} --target eraser .
 
 docker-push-eraser:
 	docker push ${ERASER_IMG}
