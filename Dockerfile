@@ -1,12 +1,11 @@
 # syntax=mcr.microsoft.com/oss/moby/dockerfile:1.3.1
-ARG BUILDPLATFORM="linux/amd64"
 ARG BUILDERIMAGE="golang:1.17"
 
 ARG ERASERBASEIMAGE="gcr.io/distroless/static:latest"
 ARG MANAGERBASEIMAGE="gcr.io/distroless/static:nonroot"
 
-ARG TARGETOS=linux
-ARG TARGETARCH=amd64
+ARG TARGETOS
+ARG TARGETARCH
 
 # Build the manager binary
 FROM --platform=$BUILDPLATFORM $BUILDERIMAGE AS builder
