@@ -437,7 +437,151 @@ func TestRemoveImagesFromAllNodes(t *testing.T) {
 			return ctx
 		}).Feature()
 
+	aliasFix := features.New("Specifying an image alias in the image list will delete the underlying image").
+		// Deploy 3 deployments with different images
+		// We'll shutdown two of them, run eraser with `*`, then check that the images for the removed deployments are removed from the cluster.
+		Setup(func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
+			// Ensure that both nginx:one and nginx:two are tags for the same image digest
+			_, err := dockerPullImage(nginxLatest)
+			if err != nil {
+				t.Error("failed to pull nginx image", err)
+			}
+
+			// Create the alias nginx:one
+			_, err = dockerTagImage(nginxLatest, nginxAliasOne)
+			if err != nil {
+				t.Error("failed to tag nginx image", err)
+			}
+
+			// Create the alias nginx:two
+			_, err = dockerTagImage(nginxLatest, nginxAliasTwo)
+			if err != nil {
+				t.Error("failed to tag nginx image", err)
+			}
+
+			// Load the images into the cluster
+			_, err = kindLoadImage(kindClusterName, nginxAliasOne)
+			if err != nil {
+				t.Error("failed to load kind image", err)
+			}
+
+			_, err = kindLoadImage(kindClusterName, nginxAliasTwo)
+			if err != nil {
+				t.Error("failed to load kind image", err)
+			}
+
+			// Schedule two pods on a single node. Both pods will create containers from the same image,
+			// but each pod refers to that same image by a different tag.
+			nodeName := getClusterNodes(t)[0]
+			nginxOnePod := newPod(cfg.Namespace(), nginxAliasOne, "nginxone", nodeName)
+			ctx = context.WithValue(ctx, "nodeName", nodeName)
+
+			if err := cfg.Client().Resources().Create(ctx, nginxOnePod); err != nil {
+				t.Error("Failed to create the nginx pod", err)
+			}
+			ctx = context.WithValue(ctx, nginxAliasOne, nginxOnePod)
+
+			nginxTwoPod := newPod(cfg.Namespace(), nginxAliasTwo, "nginxtwo", nodeName)
+			if err := cfg.Client().Resources().Create(ctx, nginxTwoPod); err != nil {
+				t.Error("Failed to create the nginx pod", err)
+			}
+			ctx = context.WithValue(ctx, nginxAliasTwo, nginxTwoPod)
+
+			return ctx
+		}).
+		Assess("Pods successfully deployed", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
+			client, err := cfg.NewClient()
+			if err != nil {
+				t.Error("Failed to create new client", err)
+			}
+
+			resultPod := corev1.Pod{
+				ObjectMeta: metav1.ObjectMeta{Name: "nginxone", Namespace: cfg.Namespace()},
+			}
+
+			err = wait.For(conditions.New(client.Resources()).PodConditionMatch(&resultPod, corev1.PodReady, corev1.ConditionTrue), wait.WithTimeout(time.Minute*1))
+			if err != nil {
+				t.Error("pod not deployed", err)
+			}
+
+			resultPod = corev1.Pod{
+				ObjectMeta: metav1.ObjectMeta{Name: "nginxtwo", Namespace: cfg.Namespace()},
+			}
+
+			err = wait.For(conditions.New(client.Resources()).PodConditionMatch(&resultPod, corev1.PodReady, corev1.ConditionTrue), wait.WithTimeout(time.Minute*1))
+			if err != nil {
+				t.Error("pod not deployed", err)
+			}
+
+			// Delete the pods, so they will be cleaned up
+			nginxOnePod := ctx.Value(nginxAliasOne).(*corev1.Pod)
+			if err := client.Resources().Delete(ctx, nginxOnePod); err != nil {
+				t.Error("Failed to delete the dep", err)
+			}
+
+			nodeName := ctx.Value("nodeName").(string)
+			err = wait.For(containerNotPresentOnNode(nodeName, "nginxone"), wait.WithTimeout(time.Minute*2))
+			if err != nil {
+				// Let's not mark this as an error
+				// We only have this to prevent race conditions with the eraser spinning up
+				t.Logf("error while waiting for deployment deletion: %v", err)
+			}
+
+			nginxTwoPod := ctx.Value(nginxAliasTwo).(*corev1.Pod)
+			if err := client.Resources().Delete(ctx, nginxTwoPod); err != nil {
+				t.Error("Failed to delete the dep", err)
+			}
+			err = wait.For(containerNotPresentOnNode(nodeName, "nginxtwo"), wait.WithTimeout(time.Minute*2))
+			if err != nil {
+				// Let's not mark this as an error
+				// We only have this to prevent race conditions with the eraser spinning up
+				t.Logf("error while waiting for deployment deletion: %v", err)
+			}
+
+			return ctx
+		}).
+		Assess("Image deleted when referencing by alias", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
+			imgList := &eraserv1alpha1.ImageList{
+				ObjectMeta: metav1.ObjectMeta{Name: prune},
+				Spec: eraserv1alpha1.ImageListSpec{
+					Images: []string{nginxAliasTwo},
+				},
+			}
+			if err := cfg.Client().Resources().Create(ctx, imgList); err != nil {
+				t.Fatal(err)
+			}
+
+			nodeName := ctx.Value("nodeName").(string)
+			ctxT, cancel := context.WithTimeout(ctx, time.Minute)
+			defer cancel()
+			checkImageRemoved(ctxT, t, []string{nodeName}, nginx)
+
+			return ctx
+		}).
+		Teardown(func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
+			if err := KubectlDelete(cfg.KubeconfigFile(), "eraser-system", append([]string{"imagejob", "--all"})); err != nil {
+				t.Error("Failed to delete image job(s) config ", err)
+			}
+			if err := KubectlDelete(cfg.KubeconfigFile(), "eraser-system", append([]string{"imagelist", "--all"})); err != nil {
+				t.Error("Failed to delete image job(s) config ", err)
+			}
+
+			// make sure nginx containers are cleaned up before proceeding
+			for _, nodeName := range getClusterNodes(t) {
+				err := wait.For(containerNotPresentOnNode(nodeName, nginx), wait.WithTimeout(time.Minute*2))
+				if err != nil {
+					// Let's not mark this as an error
+					// We only have this to prevent race conditions with the eraser spinning up
+					t.Logf("error while waiting for deployment deletion: %v", err)
+				}
+			}
+
+			return ctx
+		}).
+		Feature()
+
 	testenv.Test(t, rmImageFeat)
 	testenv.Test(t, pruneImagesFeat)
 	testenv.Test(t, imglistChangeFeat)
+	testenv.Test(t, aliasFix)
 }
