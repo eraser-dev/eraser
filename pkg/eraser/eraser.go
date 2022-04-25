@@ -145,17 +145,6 @@ func getImageClient(ctx context.Context, socketPath string) (pb.ImageServiceClie
 	return imageClient, conn, nil
 }
 
-func mapContainsValue(idMap map[string][]string, img string) bool {
-	for _, v := range idMap {
-		if len(v) > 0 {
-			if v[0] == img {
-				return true
-			}
-		}
-	}
-	return false
-}
-
 func removeImages(c Client, targetImages []string) error {
 	backgroundContext, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
