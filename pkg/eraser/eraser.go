@@ -177,10 +177,8 @@ func removeImages(c Client, targetImages []string) error {
 		digest := curr.GetImage()
 		runningImages[digest] = digest
 
-		if idToTagListMap[digest] != nil {
-			for _, tag := range idToTagListMap[digest] {
-				runningImages[tag] = digest
-			}
+		for _, tag := range idToTagListMap[digest] {
+			runningImages[tag] = digest
 		}
 	}
 
@@ -191,10 +189,8 @@ func removeImages(c Client, targetImages []string) error {
 		if _, isRunning := runningImages[digest]; !isRunning {
 			nonRunningImages[digest] = digest
 
-			if idToTagListMap[digest] != nil {
-				for _, tag := range idToTagListMap[digest] {
-					nonRunningImages[tag] = digest
-				}
+			for _, tag := range idToTagListMap[digest] {
+				nonRunningImages[tag] = digest
 			}
 		}
 	}
