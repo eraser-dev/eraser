@@ -9,6 +9,8 @@ KUBERNETES_VERSION ?= 1.23.0
 ENVTEST_K8S_VERSION ?= 1.23
 GOLANGCI_LINT_VERSION := 1.43.0
 
+PLATFORM ?= linux
+
 # Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
 ifeq (,$(shell go env GOBIN))
 GOBIN=$(shell go env GOPATH)/bin
@@ -31,6 +33,8 @@ GO_INSTALL := ./hack/go-install.sh
 
 GOLANGCI_LINT_BIN := golangci-lint
 GOLANGCI_LINT := $(TOOLS_BIN_DIR)/$(GOLANGCI_LINT_BIN)-v$(GOLANGCI_LINT_VERSION)
+
+TEST_COUNT ?= 1
 
 $(GOLANGCI_LINT):
 	GOBIN=$(TOOLS_BIN_DIR) $(GO_INSTALL) github.com/golangci/golangci-lint/cmd/golangci-lint $(GOLANGCI_LINT_BIN) v$(GOLANGCI_LINT_VERSION)
@@ -98,7 +102,7 @@ test: manifests generate fmt vet envtest ## Run tests.
 # Run e2e tests
 .PHONY: e2e-test
 e2e-test:
-	IMAGE=${ERASER_IMG} MANAGER_IMAGE=${MANAGER_IMG} NODE_VERSION=kindest/node:v${KUBERNETES_VERSION} go test -count=1 -tags=e2e -v ./test/e2e
+	CGO_ENABLED=0 IMAGE=${ERASER_IMG} MANAGER_IMAGE=${MANAGER_IMG} NODE_VERSION=kindest/node:v${KUBERNETES_VERSION} go test -count=$(TEST_COUNT) -timeout 1200s -tags=e2e -v ./test/e2e
 
 ##@ Build
 
@@ -109,13 +113,13 @@ run: manifests generate fmt vet ## Run a controller from your host.
 	go run ./main.go
 
 docker-build-manager: ## Build docker image with the manager.
-	docker buildx build $(_CACHE_FROM) $(_CACHE_TO) --platform="linux/amd64" --output=$(OUTPUT_TYPE) --target manager -t ${MANAGER_IMG} .
+	docker buildx build $(_CACHE_FROM) $(_CACHE_TO) --platform="$(PLATFORM)" --output=$(OUTPUT_TYPE) --target manager -t ${MANAGER_IMG} .
 
 docker-push-manager: ## Push docker image with the manager.
 	docker push ${MANAGER_IMG}
 
 docker-build-eraser:
-	docker buildx build $(_CACHE_FROM) $(_CACHE_TO) --platform="linux/amd64" --output=$(OUTPUT_TYPE) -t ${ERASER_IMG} --target eraser .
+	docker buildx build $(_CACHE_FROM) $(_CACHE_TO) --platform="$(PLATFORM)" --output=$(OUTPUT_TYPE) -t ${ERASER_IMG} --target eraser .
 
 docker-push-eraser:
 	docker push ${ERASER_IMG}
@@ -158,8 +162,10 @@ promote-staging-manifest:
 
 ENVTEST = $(shell pwd)/bin/setup-envtest
 .PHONY: envtest
-envtest: ## Download envtest-setup locally if necessary.
-	$(call go-get-tool,$(ENVTEST),sigs.k8s.io/controller-runtime/tools/setup-envtest@latest)
+envtest: __tooling-image bin/setup-envtest
+
+bin/setup-envtest:
+	docker run --rm -v $(shell pwd)/bin:/go/bin -e GO111MODULE=on eraser-tooling go install sigs.k8s.io/controller-runtime/tools/setup-envtest@latest
 
 __controller-gen: __tooling-image
 CONTROLLER_GEN=docker run -v $(shell pwd):/eraser eraser-tooling controller-gen
@@ -168,17 +174,3 @@ __tooling-image:
 	docker build . \
 		-t eraser-tooling \
 		-f build/tooling/Dockerfile
-
-# go-get-tool will 'go get' any package $2 and install it to $1.
-PROJECT_DIR := $(shell dirname $(abspath $(lastword $(MAKEFILE_LIST))))
-define go-get-tool
-@[ -f $(1) ] || { \
-set -e ;\
-TMP_DIR=$$(mktemp -d) ;\
-cd $$TMP_DIR ;\
-go mod init tmp ;\
-echo "Downloading $(2)" ;\
-GOBIN=$(PROJECT_DIR)/bin go get $(2) ;\
-rm -rf $$TMP_DIR ;\
-}
-endef

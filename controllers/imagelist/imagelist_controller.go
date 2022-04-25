@@ -112,7 +112,6 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 					ServiceAccountName: "eraser-controller-manager",
 				},
 			},
-			ImageListName: req.Name,
 		},
 	}
 	err = r.Create(ctx, job)

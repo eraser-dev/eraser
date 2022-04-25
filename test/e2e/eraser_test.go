@@ -29,7 +29,6 @@ const (
 )
 
 func TestRemoveImagesFromAllNodes(t *testing.T) {
-
 	rmImageFeat := features.New("Test Remove Image From All Nodes").
 		Setup(func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
 			podSelectorLabels := map[string]string{"app": nginx}
