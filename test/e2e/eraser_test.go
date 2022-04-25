@@ -22,9 +22,12 @@ import (
 
 func TestRemoveImagesFromAllNodes(t *testing.T) {
 	const (
-		nginx = "nginx"
-		redis = "redis"
-		caddy = "caddy"
+		nginx         = "nginx"
+		nginxLatest   = "docker.io/library/nginx:latest"
+		nginxAliasOne = "docker.io/library/nginx:one"
+		nginxAliasTwo = "docker.io/library/nginx:two"
+		redis         = "redis"
+		caddy         = "caddy"
 
 		prune = "imagelist"
 	)
