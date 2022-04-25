@@ -114,6 +114,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 			},
 		},
 	}
+  
 	err = r.Create(ctx, job)
 	log.Info("creating imagejob", "job", job.Name)
 	if err != nil {
