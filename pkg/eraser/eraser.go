@@ -209,8 +209,7 @@ func removeImages(c Client, targetImages []string) error {
 			continue
 		}
 
-		digest, isNonRunning := nonRunningImages[imgDigestOrTag]
-		if isNonRunning {
+		if digest, isNonRunning := nonRunningImages[imgDigestOrTag]; isNonRunning {
 			err = c.deleteImage(backgroundContext, digest)
 			if err != nil {
 				log.Error(err, "Error removing", "image", digest)
