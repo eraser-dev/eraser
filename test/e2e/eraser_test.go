@@ -29,6 +29,7 @@ const (
 )
 
 func TestRemoveImagesFromAllNodes(t *testing.T) {
+
 	rmImageFeat := features.New("Test Remove Image From All Nodes").
 		Setup(func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
 			podSelectorLabels := map[string]string{"app": nginx}
@@ -327,7 +328,7 @@ func TestRemoveImagesFromAllNodes(t *testing.T) {
 			}
 
 			if err = wait.For(conditions.New(client.Resources()).DeploymentConditionMatch(&nginxDep, appsv1.DeploymentAvailable, corev1.ConditionTrue),
-				wait.WithTimeout(time.Minute*1)); err != nil {
+				wait.WithTimeout(time.Minute*3)); err != nil {
 				t.Fatal("nginx deployment not found", err)
 			}
 			ctx = context.WithValue(ctx, nginx, &nginxDep)
@@ -336,7 +337,7 @@ func TestRemoveImagesFromAllNodes(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{Name: redis, Namespace: cfg.Namespace()},
 			}
 			if err = wait.For(conditions.New(client.Resources()).DeploymentConditionMatch(&redisDep, appsv1.DeploymentAvailable, corev1.ConditionTrue),
-				wait.WithTimeout(time.Minute*1)); err != nil {
+				wait.WithTimeout(time.Minute*3)); err != nil {
 				t.Fatal("redis deployment not found", err)
 			}
 			ctx = context.WithValue(ctx, redis, &redisDep)
