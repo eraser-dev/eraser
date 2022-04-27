@@ -20,15 +20,14 @@ import (
 	"sigs.k8s.io/e2e-framework/pkg/features"
 )
 
-const (
-	nginx = "nginx"
-	redis = "redis"
-	caddy = "caddy"
-
-	prune = "imagelist"
-)
-
 func TestRemoveImagesFromAllNodes(t *testing.T) {
+	const (
+		nginx = "nginx"
+		redis = "redis"
+		caddy = "caddy"
+
+		prune = "imagelist"
+	)
 
 	rmImageFeat := features.New("Test Remove Image From All Nodes").
 		Setup(func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
@@ -345,6 +344,7 @@ func TestRemoveImagesFromAllNodes(t *testing.T) {
 			return ctx
 		}).
 		Assess("Remove deployments so the images aren't running", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
+			// Here we remove the redis and nginx deployments
 			var redisPods corev1.PodList
 			if err := cfg.Client().Resources().List(ctx, &redisPods, func(o *metav1.ListOptions) {
 				o.LabelSelector = labels.SelectorFromSet(map[string]string{"app": redis}).String()
@@ -374,13 +374,21 @@ func TestRemoveImagesFromAllNodes(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			err = wait.For(conditions.New(cfg.Client().Resources()).ResourcesDeleted(&redisPods), wait.WithTimeout(time.Minute*1))
-			if err != nil {
-				t.Fatal(err)
+			for _, nodeName := range getClusterNodes(t) {
+				err := wait.For(containerNotPresentOnNode(nodeName, redis), wait.WithTimeout(time.Minute*2))
+				if err != nil {
+					// Let's not mark this as an error
+					// We only have this to prevent race conditions with the eraser spinning up
+					t.Logf("error while waiting for deployment deletion: %v", err)
+				}
 			}
-			err = wait.For(conditions.New(cfg.Client().Resources()).ResourcesDeleted(&nginxPods), wait.WithTimeout(time.Minute*1))
-			if err != nil {
-				t.Fatal(err)
+			for _, nodeName := range getClusterNodes(t) {
+				err := wait.For(containerNotPresentOnNode(nodeName, nginx), wait.WithTimeout(time.Minute*2))
+				if err != nil {
+					// Let's not mark this as an error
+					// We only have this to prevent race conditions with the eraser spinning up
+					t.Logf("error while waiting for deployment deletion: %v", err)
+				}
 			}
 			return ctx
 		}).
