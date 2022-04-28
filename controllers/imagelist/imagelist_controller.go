@@ -96,6 +96,9 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	job := &eraserv1alpha1.ImageJob{
 		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: "imagejob-",
+			OwnerReferences: []metav1.OwnerReference{
+				*metav1.NewControllerRef(imageList, imageList.GroupVersionKind()),
+			},
 		},
 		Spec: eraserv1alpha1.ImageJobSpec{
 			JobTemplate: corev1.PodTemplateSpec{
@@ -143,4 +146,5 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	}
 
 	return nil
+
 }
