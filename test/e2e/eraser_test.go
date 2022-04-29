@@ -647,7 +647,7 @@ func TestRemoveImagesFromAllNodes(t *testing.T) {
 
 			if err = wait.For(
 				conditions.New(cfg.Client().Resources()).DeploymentConditionMatch(&resultDeployment, appsv1.DeploymentAvailable, corev1.ConditionTrue),
-				wait.WithTimeout(time.Minute*1),
+				wait.WithTimeout(time.Minute*3),
 			); err != nil {
 				t.Error("deployment not found", err)
 			}
