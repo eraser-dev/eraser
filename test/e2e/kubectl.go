@@ -83,7 +83,12 @@ func kubectl(args []string) (string, error) {
 	klog.Infof("kubectl %s", strings.Join(args, " "))
 
 	cmd := exec.Command("kubectl", args...)
-	stdoutStderr, err := cmd.CombinedOutput()
 
-	return strings.TrimSpace(string(stdoutStderr)), err
+	stdoutStderr, err := cmd.CombinedOutput()
+	output := strings.TrimSpace(string(stdoutStderr))
+	if err != nil {
+		err = fmt.Errorf("%w: %s", err, output)
+	}
+
+	return output, err
 }

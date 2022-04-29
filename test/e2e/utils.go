@@ -5,6 +5,7 @@ package e2e
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -50,6 +51,24 @@ func newDeployment(namespace, name string, replicas int32, labels map[string]str
 						},
 					},
 					Containers: containers,
+				},
+			},
+		},
+	}
+}
+
+func newPod(namespace, image, name, nodeName string) *corev1.Pod {
+	return &corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+		},
+		Spec: corev1.PodSpec{
+			NodeName: nodeName,
+			Containers: []corev1.Container{
+				{
+					Name:  name,
+					Image: image,
 				},
 			},
 		},
@@ -118,7 +137,12 @@ func listNodeContainers(nodeName string) (string, error) {
 
 	cmd := exec.Command("docker", args...)
 	stdoutStderr, err := cmd.CombinedOutput()
-	return strings.TrimSpace(string(stdoutStderr)), err
+	output := strings.TrimSpace(string(stdoutStderr))
+	if err != nil {
+		err = fmt.Errorf("%w: %s", err, output)
+	}
+
+	return output, err
 }
 
 func listNodeImages(nodeName string) (string, error) {
@@ -134,7 +158,12 @@ func listNodeImages(nodeName string) (string, error) {
 
 	cmd := exec.Command("docker", args...)
 	stdoutStderr, err := cmd.CombinedOutput()
-	return strings.TrimSpace(string(stdoutStderr)), err
+	output := strings.TrimSpace(string(stdoutStderr))
+	if err != nil {
+		err = fmt.Errorf("%w: %s", err, output)
+	}
+
+	return output, err
 }
 
 // This lists nodes in the cluster, filtering out the control-plane
@@ -215,4 +244,43 @@ func checkImageRemoved(ctx context.Context, t *testing.T, nodes []string, images
 	if len(cleaned) < len(nodes) {
 		t.Error("not all nodes cleaned")
 	}
+}
+
+func dockerPullImage(image string) (string, error) {
+	args := []string{"pull", image}
+	cmd := exec.Command("docker", args...)
+
+	stdoutStderr, err := cmd.CombinedOutput()
+	output := strings.TrimSpace(string(stdoutStderr))
+	if err != nil {
+		err = fmt.Errorf("%w: %s", err, output)
+	}
+
+	return output, err
+}
+
+func dockerTagImage(image, tag string) (string, error) {
+	args := []string{"tag", image, tag}
+	cmd := exec.Command("docker", args...)
+
+	stdoutStderr, err := cmd.CombinedOutput()
+	output := strings.TrimSpace(string(stdoutStderr))
+	if err != nil {
+		err = fmt.Errorf("%w: %s", err, output)
+	}
+
+	return output, err
+}
+
+func kindLoadImage(clusterName, image string) (string, error) {
+	args := []string{"load", "docker-image", image, "--name", clusterName}
+	cmd := exec.Command("kind", args...)
+
+	stdoutStderr, err := cmd.CombinedOutput()
+	output := strings.TrimSpace(string(stdoutStderr))
+	if err != nil {
+		err = fmt.Errorf("%w: %s", err, output)
+	}
+
+	return output, err
 }
