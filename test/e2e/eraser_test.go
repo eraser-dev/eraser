@@ -502,7 +502,7 @@ func TestRemoveImagesFromAllNodes(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{Name: "nginxone", Namespace: cfg.Namespace()},
 			}
 
-			err = wait.For(conditions.New(client.Resources()).PodConditionMatch(&resultPod, corev1.PodReady, corev1.ConditionTrue), wait.WithTimeout(time.Minute*1))
+			err = wait.For(conditions.New(client.Resources()).PodConditionMatch(&resultPod, corev1.PodReady, corev1.ConditionTrue), wait.WithTimeout(time.Minute*3))
 			if err != nil {
 				t.Error("pod not deployed", err)
 			}
@@ -511,7 +511,7 @@ func TestRemoveImagesFromAllNodes(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{Name: "nginxtwo", Namespace: cfg.Namespace()},
 			}
 
-			err = wait.For(conditions.New(client.Resources()).PodConditionMatch(&resultPod, corev1.PodReady, corev1.ConditionTrue), wait.WithTimeout(time.Minute*1))
+			err = wait.For(conditions.New(client.Resources()).PodConditionMatch(&resultPod, corev1.PodReady, corev1.ConditionTrue), wait.WithTimeout(time.Minute*3))
 			if err != nil {
 				t.Error("pod not deployed", err)
 			}
