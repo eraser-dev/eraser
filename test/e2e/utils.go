@@ -5,6 +5,7 @@ package e2e
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -136,7 +137,12 @@ func listNodeContainers(nodeName string) (string, error) {
 
 	cmd := exec.Command("docker", args...)
 	stdoutStderr, err := cmd.CombinedOutput()
-	return strings.TrimSpace(string(stdoutStderr)), err
+	output := strings.TrimSpace(string(stdoutStderr))
+	if err != nil {
+		err = fmt.Errorf("%w: %s", err, output)
+	}
+
+	return output, err
 }
 
 func listNodeImages(nodeName string) (string, error) {
@@ -152,7 +158,12 @@ func listNodeImages(nodeName string) (string, error) {
 
 	cmd := exec.Command("docker", args...)
 	stdoutStderr, err := cmd.CombinedOutput()
-	return strings.TrimSpace(string(stdoutStderr)), err
+	output := strings.TrimSpace(string(stdoutStderr))
+	if err != nil {
+		err = fmt.Errorf("%w: %s", err, output)
+	}
+
+	return output, err
 }
 
 // This lists nodes in the cluster, filtering out the control-plane
@@ -238,20 +249,38 @@ func checkImageRemoved(ctx context.Context, t *testing.T, nodes []string, images
 func dockerPullImage(image string) (string, error) {
 	args := []string{"pull", image}
 	cmd := exec.Command("docker", args...)
+
 	stdoutStderr, err := cmd.CombinedOutput()
-	return strings.TrimSpace(string(stdoutStderr)), err
+	output := strings.TrimSpace(string(stdoutStderr))
+	if err != nil {
+		err = fmt.Errorf("%w: %s", err, output)
+	}
+
+	return output, err
 }
 
 func dockerTagImage(image, tag string) (string, error) {
 	args := []string{"tag", image, tag}
 	cmd := exec.Command("docker", args...)
+
 	stdoutStderr, err := cmd.CombinedOutput()
-	return strings.TrimSpace(string(stdoutStderr)), err
+	output := strings.TrimSpace(string(stdoutStderr))
+	if err != nil {
+		err = fmt.Errorf("%w: %s", err, output)
+	}
+
+	return output, err
 }
 
 func kindLoadImage(clusterName, image string) (string, error) {
 	args := []string{"load", "docker-image", image, "--name", clusterName}
 	cmd := exec.Command("kind", args...)
+
 	stdoutStderr, err := cmd.CombinedOutput()
-	return strings.TrimSpace(string(stdoutStderr)), err
+	output := strings.TrimSpace(string(stdoutStderr))
+	if err != nil {
+		err = fmt.Errorf("%w: %s", err, output)
+	}
+
+	return output, err
 }
