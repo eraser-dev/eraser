@@ -177,9 +177,10 @@ func (r *Reconciler) handleCompletedJob(ctx context.Context, j *eraserv1alpha1.I
 		return ctrl.Result{}, nil
 	}
 
-	if !metav1.Now().After(j.Status.DeleteAfter.Time) {
+	until := time.Until(j.Status.DeleteAfter.Time)
+	if until > 0 {
 		log.Info("Delaying imagejob delete", "job", j.Name, "deleteAter", j.Status.DeleteAfter)
-		return ctrl.Result{RequeueAfter: time.Until(j.Status.DeleteAfter.Time)}, nil
+		return ctrl.Result{RequeueAfter: until}, nil
 	}
 
 	log.Info("Deleting imagejob", "job", j.Name)
