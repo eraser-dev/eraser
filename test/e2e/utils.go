@@ -204,6 +204,7 @@ func checkImageRemoved(ctx context.Context, t *testing.T, nodes []string, images
 					found++
 				}
 			}
+
 			if found == len(images) {
 				cleaned[node] = true
 			}
