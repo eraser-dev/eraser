@@ -1,7 +1,0 @@
-apiVersion: eraser.sh/v1alpha1
-kind: ImageList
-metadata:
-  name: imagelist
-spec:
-  images:
-    - docker.io/library/nginx:two
