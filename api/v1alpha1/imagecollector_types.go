@@ -18,11 +18,17 @@ import (
 )
 
 type ImageCollectorSpec struct {
-	Images []string `json:"images"`
+	Images []Image `json:"images"`
+}
+
+type Image struct {
+	Digest string `json:"digest"`
+	Name   string `json:"name,omitempty"`
+	Node   string `json:"node,omitempty"` // only need if scanner
 }
 
 type ImageCollectorStatus struct {
-	Result []string `json:"result"`
+	Result []Image `json:"result"`
 }
 
 //+kubebuilder:object:root=true
