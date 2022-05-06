@@ -27,7 +27,7 @@ var (
 	errProtocolNotSupported  = errors.New("protocol not supported")
 	errEndpointDeprecated    = errors.New("endpoint is deprecated, please consider using full url format")
 	errOnlySupportUnixSocket = errors.New("only support unix socket endpoint")
-	log                      = logf.Log.WithName("eraser")
+	log                      = logf.Log.WithName("collector")
 )
 
 type client struct {

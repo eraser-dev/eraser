@@ -2,6 +2,7 @@
 ARG BUILDERIMAGE="golang:1.17"
 
 ARG ERASERBASEIMAGE="gcr.io/distroless/static:latest"
+ARG COLLECTORBASEIMAGE="gcr.io/distroless/static:latest"
 ARG MANAGERBASEIMAGE="gcr.io/distroless/static:nonroot"
 
 # Build the manager binary
@@ -43,6 +44,20 @@ RUN \
 FROM --platform=$BUILDPLATFORM $ERASERBASEIMAGE as eraser
 COPY --from=eraser-build /workspace/out/eraser /
 ENTRYPOINT ["/eraser"]
+
+FROM builder AS collector-build
+
+ARG TARGETOS
+ARG TARGETARCH
+
+RUN \
+    --mount=type=cache,target=${GOCACHE} \
+    --mount=type=cache,target=/go/pkg/mod \
+    GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -o out/collector ./pkg/collector
+
+FROM --platform=$BUILDPLATFORM $COLLECTORBASEIMAGE as collector
+COPY --from=collector-build /workspace/out/collector /
+ENTRYPOINT ["/collector"]
 
 # Use distroless as minimal base image to package the manager binary
 # Refer to https://github.com/GoogleContainerTools/distroless for more details

@@ -8,7 +8,3 @@ require (
 	sigs.k8s.io/controller-runtime v0.11.2
 	github.com/go-logr/logr v1.2.3
 )
-
-replace (
-	github.com/Azure/eraser/pkg/logger => github.com/Azure/eraser/pkg/logger v0.1.0
-)
