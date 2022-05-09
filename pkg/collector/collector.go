@@ -14,11 +14,16 @@ import (
 	"google.golang.org/grpc"
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
+
+	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 const (
 	// unixProtocol is the network protocol of unix socket.
 	unixProtocol = "unix"
+	apiPath      = "apis/eraser.sh/v1alpha1"
+	namespace    = "eraser-system"
 )
 
 var (
@@ -173,10 +178,30 @@ func main() {
 		os.Exit(1)
 	}
 
-	log.Info("List of images on node:")
-	// append ls into ImageCollectorCR
+	finalImages := []eraserv1alpha1.Image
+
 	for id, tags := range allImages {
-		fmt.Fprint(os.Stderr, id+"\t")
-		fmt.Fprintln(os.Stderr, tags)
+		currImage := eraserv1alpha1.Image{
+			Digest: id,
+			Name: tags,
+			Node: os.Getenv("NODE_NAME")
+		}
+
+		append(finalImages, currImage)
 	}
+
+	imageCollector := eraserv1alpha1.ImageCollector{
+        TypeMeta: v1.TypeMeta{
+            APIVersion: "eraser.sh/v1alpha1"
+            Kind: "ImageStatus"
+        },
+        ObjectMeta: v1.ObjectMeta{
+            Name: "imagecollector-"+os.Getenv("NODE_NAME"),
+            Namespace: namespace,
+        },
+        Spec: eraserv1alpha1.ImageCollectorSpec{
+            Images: finalImages
+        }
+    }
+
 }
