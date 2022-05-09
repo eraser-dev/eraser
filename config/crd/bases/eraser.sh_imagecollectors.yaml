@@ -36,7 +36,9 @@ spec:
                     digest:
                       type: string
                     name:
-                      type: string
+                      items:
+                        type: string
+                      type: array
                     node:
                       type: string
                   required:
@@ -54,7 +56,9 @@ spec:
                     digest:
                       type: string
                     name:
-                      type: string
+                      items:
+                        type: string
+                      type: array
                     node:
                       type: string
                   required:
