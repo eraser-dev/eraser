@@ -14,9 +14,6 @@ import (
 	"google.golang.org/grpc"
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
-
-	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 const (
@@ -171,37 +168,37 @@ func main() {
 
 	client := &client{imageclient, runTimeClient}
 
-	allImages, err := getAllImages(client)
+	//allImages, err := getAllImages(client)
 
 	if err != nil {
 		log.Error(err, "failed to list all images")
 		os.Exit(1)
 	}
+	/*
+		finalImages := make([]eraserv1alpha1.Images, 0, len(images))
 
-	finalImages := []eraserv1alpha1.Image
+		for id, tags := range allImages {
+			currImage := eraserv1alpha1.Image{
+				Digest: id,
+				Name:   tags,
+				Node:   os.Getenv("NODE_NAME"),
+			}
 
-	for id, tags := range allImages {
-		currImage := eraserv1alpha1.Image{
-			Digest: id,
-			Name: tags,
-			Node: os.Getenv("NODE_NAME")
+			append(finalImages, currImage)
 		}
 
-		append(finalImages, currImage)
-	}
-
-	imageCollector := eraserv1alpha1.ImageCollector{
-        TypeMeta: v1.TypeMeta{
-            APIVersion: "eraser.sh/v1alpha1"
-            Kind: "ImageStatus"
-        },
-        ObjectMeta: v1.ObjectMeta{
-            Name: "imagecollector-"+os.Getenv("NODE_NAME"),
-            Namespace: namespace,
-        },
-        Spec: eraserv1alpha1.ImageCollectorSpec{
-            Images: finalImages
-        }
-    }
+		imageCollector := eraserv1alpha1.ImageCollector{
+			TypeMeta: v1.TypeMeta{
+				APIVersion: "eraser.sh/v1alpha1",
+				Kind:       "ImageStatus",
+			},
+			ObjectMeta: v1.ObjectMeta{
+				Name:      "imagecollector-" + os.Getenv("NODE_NAME"),
+				Namespace: namespace,
+			},
+			Spec: eraserv1alpha1.ImageCollectorSpec{
+				Images: finalImages,
+			},
+		} */
 
 }

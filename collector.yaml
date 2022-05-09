@@ -11,6 +11,8 @@ spec:
   - name: collector
     args: 
       - --runtime=containerd
+    env: 
+      - NODE_NAME=aks-nodepool1-16280983-vmss000003
     image: ashnam/collector:latest
     volumeMounts:
       - mountPath: /run/containerd/containerd.sock
