@@ -113,7 +113,7 @@ func parseEndpoint(endpoint string) (string, string, error) {
 	}
 }
 
-func getAllImages(c Client) ([]string, error) {
+func getAllImages(c Client) (map[string][]string, error) {
 	backgroundContext, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
@@ -122,17 +122,17 @@ func getAllImages(c Client) ([]string, error) {
 		return nil, err
 	}
 
-	allImages := make([]string, 0, len(images))
+	// all images on node stored by key: sha id, value: repoTag list
+	allImages := make(map[string][]string)
 
 	for _, img := range images {
-		allImages = append(allImages, img.Id)
+		allImages[img.Id] = img.RepoTags
 	}
 
 	return allImages, nil
 }
 
 func main() {
-	fmt.Fprintln(os.Stderr, "TEST")
 	runtimePtr := flag.String("runtime", "containerd", "container runtime")
 
 	flag.Parse()
@@ -156,8 +156,6 @@ func main() {
 		os.Exit(1)
 	}
 
-	log.Info("RUNTIME: ", socketPath)
-
 	imageclient, conn, err := getImageClient(context.Background(), socketPath)
 	if err != nil {
 		log.Error(err, "failed to get image client")
@@ -168,7 +166,7 @@ func main() {
 
 	client := &client{imageclient, runTimeClient}
 
-	ls, err := getAllImages(client)
+	allImages, err := getAllImages(client)
 
 	if err != nil {
 		log.Error(err, "failed to list all images")
@@ -177,7 +175,8 @@ func main() {
 
 	log.Info("List of images on node:")
 	// append ls into ImageCollectorCR
-	for _, img := range ls {
-		fmt.Fprintln(os.Stderr, img)
+	for id, tags := range allImages {
+		fmt.Fprint(os.Stderr, id+"\t")
+		fmt.Fprintln(os.Stderr, tags)
 	}
 }
