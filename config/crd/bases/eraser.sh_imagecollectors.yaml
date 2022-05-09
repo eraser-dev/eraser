@@ -32,7 +32,16 @@ spec:
             properties:
               images:
                 items:
-                  type: string
+                  properties:
+                    digest:
+                      type: string
+                    name:
+                      type: string
+                    node:
+                      type: string
+                  required:
+                  - digest
+                  type: object
                 type: array
             required:
             - images
@@ -41,7 +50,16 @@ spec:
             properties:
               result:
                 items:
-                  type: string
+                  properties:
+                    digest:
+                      type: string
+                    name:
+                      type: string
+                    node:
+                      type: string
+                  required:
+                  - digest
+                  type: object
                 type: array
             required:
             - result

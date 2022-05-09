@@ -24,7 +24,7 @@ type ImageCollectorSpec struct {
 type Image struct {
 	Digest string `json:"digest"`
 	Name   string `json:"name,omitempty"`
-	Node   string `json:"node,omitempty"` // only need if scanner
+	Node   string `json:"node,omitempty"`
 }
 
 type ImageCollectorStatus struct {
