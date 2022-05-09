@@ -36,10 +36,6 @@ spec:
                     digest:
                       type: string
                     name:
-                      items:
-                        type: string
-                      type: array
-                    node:
                       type: string
                   required:
                   - digest
@@ -56,10 +52,6 @@ spec:
                     digest:
                       type: string
                     name:
-                      items:
-                        type: string
-                      type: array
-                    node:
                       type: string
                   required:
                   - digest
