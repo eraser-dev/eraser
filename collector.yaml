@@ -1,0 +1,24 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: collector
+  labels:
+    name: collector
+spec:
+  nodeName: aks-nodepool1-16280983-vmss000003
+  restartPolicy: Never
+  containers:
+  - name: collector
+    args: 
+      - --runtime=containerd
+    image: ashnam/collector:latest
+    volumeMounts:
+      - mountPath: /run/containerd/containerd.sock
+        name: containerd-sock-volume
+    ports:
+    - containerPort: 80
+    imagePullPolicy: Always
+  volumes:
+  - name: containerd-sock-volume
+    hostPath:
+      path: /run/containerd/containerd.sock
