@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
@@ -10,8 +11,12 @@ import (
 	"os"
 	"time"
 
+	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
 	"github.com/Azure/eraser/pkg/logger"
 	"google.golang.org/grpc"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 )
@@ -115,7 +120,7 @@ func parseEndpoint(endpoint string) (string, string, error) {
 	}
 }
 
-func getAllImages(c Client) (map[string][]string, error) {
+func getAllImages(c Client) ([]eraserv1alpha1.Image, error) {
 	backgroundContext, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
@@ -124,14 +129,69 @@ func getAllImages(c Client) (map[string][]string, error) {
 		return nil, err
 	}
 
-	// all images on node stored by key: sha id, value: repoTag list
-	allImages := make(map[string][]string)
+	allImages := make([]eraserv1alpha1.Image, 0, len(images))
 
 	for _, img := range images {
-		allImages[img.Id] = img.RepoTags
+		currImage := eraserv1alpha1.Image{
+			Digest: img.Id,
+		}
+		if len(img.RepoTags) > 0 {
+			currImage.Name = img.RepoTags[0]
+		}
+
+		append(allImages, currImage)
 	}
 
 	return allImages, nil
+}
+
+func createCollectorCR(ctx context.Context, allImages []eraserv1alpha1.Image) error {
+	config, err := rest.InClusterConfig()
+	if err != nil {
+		log.Info("Could not create InClusterConfig")
+		return err
+	}
+
+	clientset, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		log.Info("Could not create clientset")
+		return err
+	}
+
+	imageCollector := eraserv1alpha1.ImageCollector{
+		TypeMeta: v1.TypeMeta{
+			APIVersion: "eraser.sh/v1alpha1",
+			Kind:       "ImageCollector",
+		},
+		ObjectMeta: v1.ObjectMeta{
+			// imagejob will set node name as env when creating collector pod
+			Name:      "imagecollector-" + os.Getenv("NODE_NAME"),
+			Namespace: namespace,
+		},
+		Spec: eraserv1alpha1.ImageCollectorSpec{
+			Images: allImages,
+		},
+	}
+
+	body, err := json.Marshal(imageCollector)
+	if err != nil {
+		log.Info("Could not marshal imagecollector for node: ", os.Getenv("NODE_NAME"))
+		return err
+	}
+
+	_, err = clientset.RESTClient().Post().
+		AbsPath(apiPath).
+		Namespace(namespace).
+		Name(imageCollector.Name).
+		Resource("imagecollectors").
+		Body(body).DoRaw(ctx)
+
+	if err != nil {
+		log.Info("Could not create imagecollector for  node: ", os.Getenv("NODE_NAME"))
+		return err
+	}
+
+	return nil
 }
 
 func main() {
@@ -168,37 +228,12 @@ func main() {
 
 	client := &client{imageclient, runTimeClient}
 
-	//allImages, err := getAllImages(client)
+	allImages, err := getAllImages(client)
 
 	if err != nil {
 		log.Error(err, "failed to list all images")
 		os.Exit(1)
 	}
-	/*
-		finalImages := make([]eraserv1alpha1.Images, 0, len(images))
 
-		for id, tags := range allImages {
-			currImage := eraserv1alpha1.Image{
-				Digest: id,
-				Name:   tags,
-				Node:   os.Getenv("NODE_NAME"),
-			}
-
-			append(finalImages, currImage)
-		}
-
-		imageCollector := eraserv1alpha1.ImageCollector{
-			TypeMeta: v1.TypeMeta{
-				APIVersion: "eraser.sh/v1alpha1",
-				Kind:       "ImageStatus",
-			},
-			ObjectMeta: v1.ObjectMeta{
-				Name:      "imagecollector-" + os.Getenv("NODE_NAME"),
-				Namespace: namespace,
-			},
-			Spec: eraserv1alpha1.ImageCollectorSpec{
-				Images: finalImages,
-			},
-		} */
-
+	createCollectorCR(context.Background(), allImages)
 }
