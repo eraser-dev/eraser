@@ -423,7 +423,6 @@ nodes:
 
 	imageJob.Status.Skipped = skipped
 	if err := r.updateJobStatus(ctx, imageJob); err != nil {
-		log.Error(err, "failure updating job status")
 		return err
 	}
 
