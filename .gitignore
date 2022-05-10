@@ -23,3 +23,6 @@ testbin/*
 *.swp
 *.swo
 *~
+
+PROJECT
+.vscode/
