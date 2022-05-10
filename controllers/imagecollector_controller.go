@@ -23,6 +23,8 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
+
+	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
 )
 
 // ImageCollectorReconciler reconciles a ImageCollector object
@@ -47,7 +49,18 @@ type ImageCollectorReconciler struct {
 func (r *ImageCollectorReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	_ = log.FromContext(ctx)
 
-	// TODO(user): your logic here
+	imageCollectorList := &eraserv1alpha1.ImageCollectorList{}
+
+	if err := r.Get(ctx, req.NamespacedName, imageCollectorList); err != nil {
+		return ctrl.Result{}, err
+	}
+
+	// for each collector in imagecollector list, get list of images
+	// store image in deduplicated list
+
+	// create imagecollector-shared crd
+
+	// delete individual imagecollector CRs
 
 	return ctrl.Result{}, nil
 }
