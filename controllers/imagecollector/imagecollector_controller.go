@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package controllers
+package imagecollector
 
 import (
 	"context"
@@ -23,6 +23,8 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/manager"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
 )
@@ -31,6 +33,22 @@ import (
 type ImageCollectorReconciler struct {
 	client.Client
 	Scheme *runtime.Scheme
+}
+
+func Add(mgr manager.Manager) error {
+	return add(mgr, newReconciler(mgr))
+}
+
+// newReconciler returns a new reconcile.Reconciler.
+func newReconciler(mgr manager.Manager) reconcile.Reconciler {
+	return &ImageCollectorReconciler{
+		Client: mgr.GetClient(),
+		Scheme: mgr.GetScheme(),
+	}
+}
+
+func add(mgr manager.Manager, r reconcile.Reconciler) error {
+	return nil
 }
 
 //+kubebuilder:rbac:groups=eraser.sh.tutorial.kubebuilder.io,resources=imagecollectors,verbs=get;list;watch;create;update;patch;delete
