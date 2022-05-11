@@ -30,6 +30,16 @@ RUN \
     --mount=type=cache,target=/go/pkg/mod \
     GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -o out/manager main.go
 
+FROM builder AS scanner-build
+
+ARG TARGETOS
+ARG TARGETARCH
+
+RUN \
+    --mount=type=cache,target=${GOCACHE} \
+    --mount=type=cache,target=/go/pkg/mod \
+    GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -o out/scanner ./pkg/scanner
+
 FROM builder AS eraser-build
 
 RUN \
@@ -59,3 +69,8 @@ WORKDIR /
 COPY --from=manager-build /workspace/out/manager .
 USER 65532:65532
 ENTRYPOINT ["/manager"]
+
+FROM --platform=$BUILDPLATFORM $STATICNONROOTBASEIMAGE as scanner
+COPY --from=scanner-build /workspace/out/scanner /
+USER 65532:65532
+ENTRYPOINT ["/scanner"]
