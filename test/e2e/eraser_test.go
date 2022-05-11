@@ -698,6 +698,15 @@ func TestRemoveImagesFromAllNodes(t *testing.T) {
 
 			checkImageRemoved(ctxT, t, clusterNodes, nginx)
 
+			// Wait for the imagejob to be completed by checking for its nonexistence in the cluster
+			err = wait.For(imagejobNotInCluster(cfg.KubeconfigFile()), wait.WithTimeout(time.Minute*2))
+			if err != nil {
+				t.Logf("error while waiting for imagejob cleanup: %v", err)
+			}
+
+			// the imagejob has done its work, so now we can check the node to make sure it didn't remove the image
+			checkImagesExist(ctx, t, []string{skippedNodeName}, nginx)
+
 			return ctx
 		}).
 		Teardown(func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
