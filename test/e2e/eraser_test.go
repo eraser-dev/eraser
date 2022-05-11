@@ -652,7 +652,7 @@ func TestRemoveImagesFromAllNodes(t *testing.T) {
 				t.Error("deployment not found", err)
 			}
 
-			return ctx
+			return context.WithValue(ctx, nginx, &resultDeployment)
 		}).
 		Assess("Node(s) successfully skipped", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
 			//delete deployment
