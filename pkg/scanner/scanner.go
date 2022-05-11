@@ -13,6 +13,7 @@ import (
 	"github.com/aquasecurity/fanal/applier"
 	"github.com/aquasecurity/fanal/cache"
 
+	"github.com/aquasecurity/fanal/analyzer/config"
 	"github.com/aquasecurity/fanal/artifact"
 	artifactImage "github.com/aquasecurity/fanal/artifact/image"
 	fanalImage "github.com/aquasecurity/fanal/image"
@@ -39,7 +40,6 @@ const (
 var (
 	imageListPath = flag.String("image-list", "/etc/images.json", "path to a JSON array of image references")
 	cacheDir      = flag.String("cache-dir", "/var/lib/trivy", "path to the cache dir")
-	dbRepository  = flag.String("db-repo", "ghcr.io/aquasecurity/trivy-db", "URI for db repo")
 	severity      = flag.String("severity", "CRITICAL,HIGH,MEDIUM,LOW,UNKNOWN", "list of severity levels to report")
 	ignoreUnfixed = flag.Bool("ignore-unfixed", false, "report only fixed vulnerabilities")
 
@@ -84,7 +84,7 @@ func main() {
 		os.Exit(generalErr)
 	}
 
-	err = downloadAndInitDB(*cacheDir, *dbRepository)
+	err = downloadAndInitDB(*cacheDir)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(generalErr)
@@ -113,7 +113,7 @@ func main() {
 			}
 			defer cleanup()
 
-			artifactToScan, err := artifactImage.NewArtifact(dockerImage, scanConfig.fscache, artifact.Option{})
+			artifactToScan, err := artifactImage.NewArtifact(dockerImage, scanConfig.fscache, artifact.Option{}, config.ScannerOption{})
 			if err != nil {
 				fmt.Fprintln(os.Stderr, err)
 				os.Exit(generalErr)
@@ -195,8 +195,8 @@ func readImageList(imageListPath string) (imageList, error) {
 	return scanList, nil
 }
 
-func downloadAndInitDB(cacheDir, dbRepository string) error {
-	err := downloadDB(cacheDir, dbRepository)
+func downloadAndInitDB(cacheDir string) error {
+	err := downloadDB(cacheDir)
 	if err != nil {
 		return err
 	}
@@ -209,8 +209,8 @@ func downloadAndInitDB(cacheDir, dbRepository string) error {
 	return nil
 }
 
-func downloadDB(cacheDir, dbRepository string) error {
-	client := dlDb.NewClient(cacheDir, false, dlDb.WithDBRepository(dbRepository))
+func downloadDB(cacheDir string) error {
+	client := dlDb.NewClient(cacheDir, true)
 	ctx := context.Background()
 	needsUpdate, err := client.NeedsUpdate("dev", false)
 	if err != nil {
