@@ -139,7 +139,8 @@ func getAllImages(c Client) ([]eraserv1alpha1.Image, error) {
 			currImage.Name = img.RepoTags[0]
 		}
 
-		append(allImages, currImage)
+		allImages = append(allImages, currImage)
+
 	}
 
 	return allImages, nil
@@ -171,6 +172,10 @@ func createCollectorCR(ctx context.Context, allImages []eraserv1alpha1.Image) er
 		Spec: eraserv1alpha1.ImageCollectorSpec{
 			Images: allImages,
 		},
+		// filling in status for testing purposes
+		Status: eraserv1alpha1.ImageCollectorStatus{
+			Result: allImages,
+		},
 	}
 
 	body, err := json.Marshal(imageCollector)
@@ -187,7 +192,7 @@ func createCollectorCR(ctx context.Context, allImages []eraserv1alpha1.Image) er
 		Body(body).DoRaw(ctx)
 
 	if err != nil {
-		log.Info("Could not create imagecollector for  node: ", os.Getenv("NODE_NAME"))
+		log.Error(err, "ERROR: Could not create imagecollector", imageCollector)
 		return err
 	}
 
