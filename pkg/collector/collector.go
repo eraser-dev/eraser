@@ -25,7 +25,7 @@ const (
 	// unixProtocol is the network protocol of unix socket.
 	unixProtocol = "unix"
 	apiPath      = "apis/eraser.sh/v1alpha1"
-	namespace    = "eraser-system"
+	namespace    = "default"
 )
 
 var (
