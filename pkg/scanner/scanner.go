@@ -10,6 +10,8 @@ import (
 	"strings"
 	"sync"
 
+	machinerytypes "k8s.io/apimachinery/pkg/types"
+
 	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
 
 	"k8s.io/client-go/kubernetes"
@@ -196,13 +198,30 @@ func main() {
 		close(imgChan)
 	}()
 
-	vulnerableImages := make([]string, 0, len(scanList))
+	vulnerableImages := make([]eraserv1alpha1.Image, 0, len(scanList))
 	for imageRef := range imgChan {
-		vulnerableImages = append(vulnerableImages, imageRef)
+		image := eraserv1alpha1.Image{Name: imageRef}
+		vulnerableImages = append(vulnerableImages, image)
+	}
+
+	result.Status.Result = vulnerableImages
+	body, err := json.Marshal(&result)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(generalErr)
+	}
+
+	_, err = clientset.RESTClient().Patch(machinerytypes.JSONPatchType).
+		AbsPath(apiPath).
+		Name("collector-cr").
+		Resource("imagecollectors").
+		Body(body).DoRaw(ctx)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(generalErr)
 	}
 
 	for _, imageRef := range vulnerableImages {
-		// TODO: add to ImageCollector CR
 		fmt.Println(imageRef)
 	}
 }
