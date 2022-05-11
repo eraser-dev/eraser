@@ -10,15 +10,21 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/aquasecurity/fanal/applier"
-	"github.com/aquasecurity/fanal/cache"
+	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
+
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 
 	"github.com/aquasecurity/fanal/analyzer/config"
+	"github.com/aquasecurity/fanal/applier"
 	"github.com/aquasecurity/fanal/artifact"
 	artifactImage "github.com/aquasecurity/fanal/artifact/image"
+	"github.com/aquasecurity/fanal/cache"
 	fanalImage "github.com/aquasecurity/fanal/image"
 	fanalTypes "github.com/aquasecurity/fanal/types"
+
 	"github.com/aquasecurity/trivy-db/pkg/db"
+
 	dlDb "github.com/aquasecurity/trivy/pkg/db"
 	"github.com/aquasecurity/trivy/pkg/detector/ospkg"
 	pkgResult "github.com/aquasecurity/trivy/pkg/result"
@@ -35,6 +41,8 @@ const (
 	severityMedium   = "MEDIUM"
 	severityLow      = "LOW"
 	severityUnknown  = "UNKNOWN"
+
+	apiPath = "apis/eraser.sh/v1alpha1"
 )
 
 var (
@@ -78,11 +86,43 @@ func init() {
 func main() {
 	ctx := context.Background()
 
-	scanList, err := readImageList(*imageListPath)
+	cfg, err := rest.InClusterConfig()
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(generalErr)
 	}
+
+	clientset, err := kubernetes.NewForConfig(cfg)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(generalErr)
+	}
+
+	result := eraserv1alpha1.ImageCollector{}
+
+	err = clientset.RESTClient().Get().
+		AbsPath(apiPath).
+		Resource("imagecollectors").
+		Name("collector-cr").
+		Do(context.Background()).
+		Into(&result)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(generalErr)
+	}
+
+	scanList := make(map[string]string)
+	for _, img := range result.Spec.Images {
+		scanList[img.Digest] = img.Name
+	}
+
+	// fmt.Printf("%#v\n", result)
+
+	// scanList, err := readImageList(*imageListPath)
+	// if err != nil {
+	// 	fmt.Fprintln(os.Stderr, err)
+	// 	os.Exit(generalErr)
+	// }
 
 	err = downloadAndInitDB(*cacheDir)
 	if err != nil {
@@ -101,7 +141,7 @@ func main() {
 	imgChan := make(chan string)
 	var wg sync.WaitGroup
 
-	for _, imageRef := range scanList {
+	for _, imageName := range scanList {
 		wg.Add(1)
 
 		go func(imageRef string) {
@@ -148,7 +188,7 @@ func main() {
 			}
 
 			wg.Done()
-		}(imageRef)
+		}(imageName)
 	}
 
 	go func() {
