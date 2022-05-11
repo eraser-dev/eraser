@@ -25,7 +25,7 @@ const (
 	// unixProtocol is the network protocol of unix socket.
 	unixProtocol = "unix"
 	apiPath      = "apis/eraser.sh/v1alpha1"
-	namespace    = "default"
+	namespace    = "eraser-system"
 )
 
 var (
@@ -192,7 +192,7 @@ func createCollectorCR(ctx context.Context, allImages []eraserv1alpha1.Image) er
 		Body(body).DoRaw(ctx)
 
 	if err != nil {
-		log.Error(err, "ERROR: Could not create imagecollector", imageCollector)
+		log.Error(err, "ERROR: Could not create imagecollector", imageCollector.Name, imageCollector.APIVersion)
 		return err
 	}
 
