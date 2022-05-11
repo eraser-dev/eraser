@@ -1,6 +1,7 @@
 VERSION := v0.1.0
 
 # Image URL to use all building/pushing image targets
+SCANNER_IMG ?= ghcr.io/azure/eraser-scanner:${VERSION}
 MANAGER_IMG ?= ghcr.io/azure/eraser-manager:${VERSION}
 ERASER_IMG ?= ghcr.io/azure/eraser:${VERSION}
 COLLECTOR_IMG ?= ghcr.io/azure/collector:${VERSION}
@@ -127,6 +128,12 @@ docker-build-manager: ## Build docker image with the manager.
 		--output=$(OUTPUT_TYPE) \
 		-t ${MANAGER_IMG} \
 		--target manager .
+
+docker-build-scanner: ## Build docker image with the manager.
+	docker buildx build $(_CACHE_FROM) $(_CACHE_TO) --platform="$(PLATFORM)" --output=$(OUTPUT_TYPE) --target scanner -t ${SCANNER_IMG} .
+
+docker-push-scanner: ## Push docker image with the manager.
+	docker push ${SCANNER_IMG}
 
 docker-push-manager: ## Push docker image for the eraser manager.
 	docker push ${MANAGER_IMG}
