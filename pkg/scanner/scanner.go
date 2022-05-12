@@ -44,14 +44,16 @@ const (
 	severityLow      = "LOW"
 	severityUnknown  = "UNKNOWN"
 
-	apiPath = "apis/eraser.sh/v1alpha1"
+	apiPath         = "apis/eraser.sh/v1alpha1"
+	resourceName    = "imagecollectors"
+	subResourceName = "status"
 )
 
 var (
-	imageListPath = flag.String("image-list", "/etc/images.json", "path to a JSON array of image references")
-	cacheDir      = flag.String("cache-dir", "/var/lib/trivy", "path to the cache dir")
-	severity      = flag.String("severity", "CRITICAL,HIGH,MEDIUM,LOW,UNKNOWN", "list of severity levels to report")
-	ignoreUnfixed = flag.Bool("ignore-unfixed", false, "report only fixed vulnerabilities")
+	collectorCRName = flag.String("collector-cr-name", "collector-cr", "name of the collector cr to read from and write to")
+	cacheDir        = flag.String("cache-dir", "/var/lib/trivy", "path to the cache dir")
+	severity        = flag.String("severity", "CRITICAL,HIGH,MEDIUM,LOW,UNKNOWN", "list of severity levels to report")
+	ignoreUnfixed   = flag.Bool("ignore-unfixed", false, "report only fixed vulnerabilities")
 
 	// Will be modified by parseSeverities() to reflect the `severity` CLI flag
 	// These are the only recognized severities and the keys of this map should never be modified.
@@ -76,6 +78,16 @@ type (
 
 	patch struct {
 		Status eraserv1alpha1.ImageCollectorStatus `json:"status"`
+	}
+
+	statusUpdate struct {
+		apiPath         string
+		ctx             context.Context
+		clientset       *kubernetes.Clientset
+		collectorCRName string
+		resourceName    string
+		subResourceName string
+		images          []eraserv1alpha1.Image
 	}
 )
 
@@ -108,8 +120,8 @@ func main() {
 
 	err = clientset.RESTClient().Get().
 		AbsPath(apiPath).
-		Resource("imagecollectors").
-		Name("collector-cr").
+		Resource(resourceName).
+		Name(*collectorCRName).
 		Do(context.Background()).
 		Into(&result)
 	if err != nil {
@@ -200,7 +212,15 @@ func main() {
 		vulnerableImages = append(vulnerableImages, image)
 	}
 
-	err = updateStatus(ctx, clientset, vulnerableImages)
+	err = updateStatus(statusUpdate{
+		apiPath:         apiPath,
+		ctx:             ctx,
+		clientset:       clientset,
+		collectorCRName: *collectorCRName,
+		resourceName:    resourceName,
+		subResourceName: subResourceName,
+		images:          vulnerableImages,
+	})
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(generalErr)
@@ -302,10 +322,10 @@ func initializeResultClient() pkgResult.Client {
 	return client
 }
 
-func updateStatus(ctx context.Context, clientset *kubernetes.Clientset, result []eraserv1alpha1.Image) error {
+func updateStatus(opts statusUpdate) error {
 	collectorPatch := patch{
 		Status: eraserv1alpha1.ImageCollectorStatus{
-			Result: result,
+			Result: opts.images,
 		},
 	}
 
@@ -314,12 +334,12 @@ func updateStatus(ctx context.Context, clientset *kubernetes.Clientset, result [
 		return err
 	}
 
-	_, err = clientset.RESTClient().Patch(machinerytypes.MergePatchType).
-		AbsPath(apiPath).
-		Resource("imagecollectors").
-		SubResource("status").
-		Name("collector-cr").
-		Body(body).DoRaw(ctx)
+	_, err = opts.clientset.RESTClient().Patch(machinerytypes.MergePatchType).
+		AbsPath(opts.apiPath).
+		Resource(opts.resourceName).
+		SubResource(opts.subResourceName).
+		Name(opts.collectorCRName).
+		Body(body).DoRaw(opts.ctx)
 
 	return err
 }
