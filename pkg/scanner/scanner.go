@@ -73,6 +73,10 @@ type (
 		scanOptions   trivyTypes.ScanOptions
 		dockerOptions fanalTypes.DockerOption
 	}
+
+	patch struct {
+		Status eraserv1alpha1.ImageCollectorStatus `json:"status"`
+	}
 )
 
 func init() {
@@ -117,14 +121,6 @@ func main() {
 	for _, img := range result.Spec.Images {
 		scanList[img.Digest] = img.Name
 	}
-
-	// fmt.Printf("%#v\n", result)
-
-	// scanList, err := readImageList(*imageListPath)
-	// if err != nil {
-	// 	fmt.Fprintln(os.Stderr, err)
-	// 	os.Exit(generalErr)
-	// }
 
 	err = downloadAndInitDB(*cacheDir)
 	if err != nil {
@@ -200,22 +196,11 @@ func main() {
 
 	vulnerableImages := make([]eraserv1alpha1.Image, 0, len(scanList))
 	for imageRef := range imgChan {
-		image := eraserv1alpha1.Image{Name: imageRef}
+		image := eraserv1alpha1.Image{Digest: "abc123", Name: imageRef}
 		vulnerableImages = append(vulnerableImages, image)
 	}
 
-	result.Status.Result = vulnerableImages
-	body, err := json.Marshal(&result)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		os.Exit(generalErr)
-	}
-
-	_, err = clientset.RESTClient().Patch(machinerytypes.JSONPatchType).
-		AbsPath(apiPath).
-		Name("collector-cr").
-		Resource("imagecollectors").
-		Body(body).DoRaw(ctx)
+	err = updateStatus(ctx, clientset, vulnerableImages)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(generalErr)
@@ -315,4 +300,26 @@ func initializeResultClient() pkgResult.Client {
 	config := db.Config{}
 	client := pkgResult.NewClient(config)
 	return client
+}
+
+func updateStatus(ctx context.Context, clientset *kubernetes.Clientset, result []eraserv1alpha1.Image) error {
+	collectorPatch := patch{
+		Status: eraserv1alpha1.ImageCollectorStatus{
+			Result: result,
+		},
+	}
+
+	body, err := json.Marshal(&collectorPatch)
+	if err != nil {
+		return err
+	}
+
+	_, err = clientset.RESTClient().Patch(machinerytypes.MergePatchType).
+		AbsPath(apiPath).
+		Resource("imagecollectors").
+		SubResource("status").
+		Name("collector-cr").
+		Body(body).DoRaw(ctx)
+
+	return err
 }
