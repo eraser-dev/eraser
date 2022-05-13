@@ -139,7 +139,6 @@ func getAllImages(c Client) ([]eraserv1alpha1.Image, error) {
 		}
 
 		allImages = append(allImages, currImage)
-
 	}
 
 	return allImages, nil
@@ -226,11 +225,13 @@ func main() {
 	client := &client{imageclient, runTimeClient}
 
 	allImages, err := getAllImages(client)
-
 	if err != nil {
 		log.Error(err, "failed to list all images")
 		os.Exit(1)
 	}
 
-	createCollectorCR(context.Background(), allImages)
+	if err := createCollectorCR(context.Background(), allImages); err != nil {
+		log.Error(err, "Error creating ImageCollector CR")
+		os.Exit(1)
+	}
 }
