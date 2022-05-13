@@ -166,8 +166,7 @@ func createCollectorCR(ctx context.Context, allImages []eraserv1alpha1.Image) er
 		},
 		ObjectMeta: v1.ObjectMeta{
 			// imagejob will set node name as env when creating collector pod
-			Name:      "imagecollector-" + os.Getenv("NODE_NAME"),
-			Namespace: namespace,
+			Name: "imagecollector-" + os.Getenv("NODE_NAME"),
 		},
 		Spec: eraserv1alpha1.ImageCollectorSpec{
 			Images: allImages,
@@ -186,8 +185,6 @@ func createCollectorCR(ctx context.Context, allImages []eraserv1alpha1.Image) er
 
 	_, err = clientset.RESTClient().Post().
 		AbsPath(apiPath).
-		Namespace(namespace).
-		Name(imageCollector.Name).
 		Resource("imagecollectors").
 		Body(body).DoRaw(ctx)
 
