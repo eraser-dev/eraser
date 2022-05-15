@@ -63,7 +63,12 @@ var (
 	successDelDelaySeconds = flag.Int64("job-cleanup-on-success-delay", 0, "Seconds to delay job deletion after successful runs. 0 means no delay")
 	errDelDelaySeconds     = flag.Int64("job-cleanup-on-error-delay", 86400, "Seconds to delay job deletion after errored runs. 0 means no delay")
 	successRatio           = flag.Float64("job-success-ratio", 1.0, "Ratio of successful/total runs to consider a job successful. 1.0 means all runs must succeed.")
+	skipNodesSelectors     = nodeSkipSelectors([]string{"kubernetes.io/os=windows", "eraser.sh/cleanup.skip"})
 )
+
+func init() {
+	flag.Var(&skipNodesSelectors, "skip-nodes-selector", "A kubernetes selector. If a node's labels are a match, the node will be skipped. If this flag is supplied multiple times, the selectors will be logically ORed together.")
+}
 
 func Add(mgr manager.Manager) error {
 	return add(mgr, newReconciler(mgr))
@@ -205,6 +210,7 @@ func (r *Reconciler) handleRunningJob(ctx context.Context, imageJob *eraserv1alp
 
 	failed := 0
 	success := 0
+	skipped := imageJob.Status.Skipped
 
 	if !podsComplete(podList.Items) {
 		return nil
@@ -223,12 +229,14 @@ func (r *Reconciler) handleRunningJob(ctx context.Context, imageJob *eraserv1alp
 	imageJob.Status = eraserv1alpha1.ImageJobStatus{
 		Desired:     imageJob.Status.Desired,
 		Succeeded:   success,
+		Skipped:     skipped,
 		Failed:      failed,
 		Phase:       eraserv1alpha1.PhaseCompleted,
 		DeleteAfter: after(time.Now(), r.successDelay),
 	}
 
-	if float64(success/imageJob.Status.Desired) < r.successRatio {
+	successAndSkipped := success + skipped
+	if float64(successAndSkipped/imageJob.Status.Desired) < r.successRatio {
 		log.Info("Marking job as failed", "success ratio", r.successRatio, "actual ratio", success/imageJob.Status.Desired)
 		imageJob.Status.Phase = eraserv1alpha1.PhaseFailed
 		imageJob.Status.DeleteAfter = after(time.Now(), r.errDelay)
@@ -246,6 +254,7 @@ func (r *Reconciler) handleRunningJob(ctx context.Context, imageJob *eraserv1alp
 
 	now := metav1.Now()
 	imageList.Status.Timestamp = &now
+	imageList.Status.Skipped = int64(skipped)
 	imageList.Status.Success = int64(success)
 	imageList.Status.Failed = int64(failed)
 
@@ -271,6 +280,7 @@ func (r *Reconciler) handleNewJob(ctx context.Context, imageJob *eraserv1alpha1.
 	imageJob.Status = eraserv1alpha1.ImageJobStatus{
 		Desired:   len(nodes.Items),
 		Succeeded: 0,
+		Skipped:   0,
 		Failed:    0,
 		Phase:     eraserv1alpha1.PhaseRunning,
 	}
@@ -278,6 +288,8 @@ func (r *Reconciler) handleNewJob(ctx context.Context, imageJob *eraserv1alpha1.
 	if err := r.updateJobStatus(ctx, imageJob); err != nil {
 		return err
 	}
+
+	skipped := 0
 
 	log := log.WithValues("job", imageJob.Name)
 
@@ -310,10 +322,31 @@ func (r *Reconciler) handleNewJob(ctx context.Context, imageJob *eraserv1alpha1.
 		return fmt.Errorf("create configmap: %w", err)
 	}
 
+nodes:
 	for i := range nodes.Items {
 		log := log.WithValues("node", nodes.Items[i].Name)
 
 		nodeName := nodes.Items[i].Name
+		for _, skipNodesSelector := range skipNodesSelectors {
+			skipLabels, err := labels.Parse(skipNodesSelector)
+			if err != nil {
+				return err
+			}
+
+			log.V(1).Info("skipLabels", "skipLabels", skipLabels)
+			log.V(1).Info("nodeLabels", "nodeLabels", nodes.Items[i].ObjectMeta.Labels)
+			if skipLabels.Matches(labels.Set(nodes.Items[i].ObjectMeta.Labels)) {
+				log.Info("node will be skipped because it matched the specified labels",
+					"nodeName", nodeName,
+					"labels", nodes.Items[i].ObjectMeta.Labels,
+					"specifiedSelectors", skipNodesSelectors,
+				)
+
+				skipped++
+				continue nodes
+			}
+		}
+
 		runtime := nodes.Items[i].Status.NodeInfo.ContainerRuntimeVersion
 		runtimeName := strings.Split(runtime, ":")[0]
 		mountPath := getMountPath(runtimeName)
@@ -387,6 +420,12 @@ func (r *Reconciler) handleNewJob(ctx context.Context, imageJob *eraserv1alpha1.
 		}
 		log.Info("Started eraser pod on node", "images", imgList.Spec.Images)
 	}
+
+	imageJob.Status.Skipped = skipped
+	if err := r.updateJobStatus(ctx, imageJob); err != nil {
+		return err
+	}
+
 	return nil
 }
 
