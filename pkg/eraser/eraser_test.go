@@ -5,6 +5,7 @@ import (
 	"net/url"
 	"testing"
 
+	util "github.com/Azure/eraser/pkg/utils"
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 )
 
@@ -64,7 +65,7 @@ func TestParseEndpointWithFallBackProtocol(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		p, a, e := parseEndpointWithFallbackProtocol(tc.endpoint, tc.fallbackProtocol)
+		p, a, e := util.ParseEndpointWithFallbackProtocol(tc.endpoint, tc.fallbackProtocol)
 
 		if p != tc.protocol || a != tc.addr {
 			t.Errorf("Test fails")
@@ -124,7 +125,7 @@ func TestParseEndpoint(t *testing.T) {
 		},
 	}
 	for _, tc := range testCases {
-		p, a, e := parseEndpoint(tc.endpoint)
+		p, a, e := util.ParseEndpoint(tc.endpoint)
 
 		if p != tc.protocol || a != tc.addr {
 			t.Errorf("Test fails")
@@ -158,7 +159,7 @@ func TestGetAddressAndDialer(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		a, _, e := GetAddressAndDialer(tc.endpoint)
+		a, _, e := util.GetAddressAndDialer(tc.endpoint)
 		if a != tc.addr || !errors.Is(e, tc.err) {
 			t.Errorf("Test fails")
 		}
