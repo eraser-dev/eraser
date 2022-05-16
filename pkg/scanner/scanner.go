@@ -59,8 +59,8 @@ const (
 var (
     collectorCRName = flag.String("collector-cr-name", "collector-cr", "name of the collector cr to read from and write to")
     cacheDir        = flag.String("cache-dir", "/var/lib/trivy", "path to the cache dir")
-    severity        = flag.String("severity", "CRITICAL,HIGH,MEDIUM,LOW,UNKNOWN", "list of severity levels to report")
-    ignoreUnfixed   = flag.Bool("ignore-unfixed", false, "report only fixed vulnerabilities")
+    severity        = flag.String("severity", "CRITICAL", "list of severity levels to report")
+    ignoreUnfixed   = flag.Bool("ignore-unfixed", true, "report only fixed vulnerabilities")
     vulnTypes       = flag.String("vuln-type", "os,library", "comma separated list of vulnerability types")
     securityChecks  = flag.String("security-checks", "vuln,secret", "comma-separated list of what security issues to detect")
 
