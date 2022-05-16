@@ -1,7 +1,7 @@
 VERSION := v0.1.0
 
 # Image URL to use all building/pushing image targets
-SCANNER_IMG ?= ghcr.io/azure/eraser-scanner:${VERSION}
+TRIVY_SCANNER_IMG ?= ghcr.io/azure/eraser-trivy-scanner:${VERSION}
 MANAGER_IMG ?= ghcr.io/azure/eraser-manager:${VERSION}
 ERASER_IMG ?= ghcr.io/azure/eraser:${VERSION}
 COLLECTOR_IMG ?= ghrc.io/azure/collector:${VERSION}
@@ -116,11 +116,11 @@ build: generate fmt vet ## Build manager binary.
 run: manifests generate fmt vet ## Run a controller from your host.
 	go run ./main.go
 
-docker-build-scanner: ## Build docker image with the manager.
-	docker buildx build $(_CACHE_FROM) $(_CACHE_TO) --platform="$(PLATFORM)" --output=$(OUTPUT_TYPE) --target scanner -t ${SCANNER_IMG} .
+docker-build-trivy-scanner: ## Build docker image with the manager.
+	docker buildx build $(_CACHE_FROM) $(_CACHE_TO) --platform="$(PLATFORM)" --output=$(OUTPUT_TYPE) --target trivy-scanner -t ${TRIVY_SCANNER_IMG} .
 
-docker-push-scanner: ## Push docker image with the manager.
-	docker push ${SCANNER_IMG}
+docker-push-trivy-scanner: ## Push docker image with the manager.
+	docker push ${TRIVY_SCANNER_IMG}
 
 docker-build-manager: ## Build docker image for the eraser manager.
 	docker buildx build $(_CACHE_FROM) $(_CACHE_TO) --platform="$(PLATFORM)" --output=$(OUTPUT_TYPE) --target manager -t ${MANAGER_IMG} .

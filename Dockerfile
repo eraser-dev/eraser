@@ -33,12 +33,12 @@ RUN \
     --mount=type=cache,target=/go/pkg/mod \
     GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -o out/manager main.go
 
-FROM builder AS scanner-build
+FROM builder AS trivy-scanner-build
 
 RUN \
     --mount=type=cache,target=${GOCACHE} \
     --mount=type=cache,target=/go/pkg/mod \
-    GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -o out/scanner ./pkg/scanners/trivy
+    GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -o out/trivy-scanner ./pkg/scanners/trivy
 
 FROM builder AS eraser-build
 
@@ -73,4 +73,4 @@ ENTRYPOINT ["/manager"]
 FROM --platform=$BUILDPLATFORM $STATICNONROOTBASEIMAGE as scanner
 COPY --from=scanner-build /workspace/out/scanner /
 USER 65532:65532
-ENTRYPOINT ["/scanner"]
+ENTRYPOINT ["/trivy-scanner"]
