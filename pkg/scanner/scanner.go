@@ -44,6 +44,13 @@ const (
 	severityLow      = "LOW"
 	severityUnknown  = "UNKNOWN"
 
+	vulnTypeOs      = "os"
+	vulnTypeLibrary = "library"
+
+	securityCheckVuln = "vuln"
+	securityCheckConfig = "config"
+	securityCheckSecret = "secret"
+
 	apiPath         = "apis/eraser.sh/v1alpha1"
 	resourceName    = "imagecollectors"
 	subResourceName = "status"
@@ -54,8 +61,10 @@ var (
 	cacheDir        = flag.String("cache-dir", "/var/lib/trivy", "path to the cache dir")
 	severity        = flag.String("severity", "CRITICAL,HIGH,MEDIUM,LOW,UNKNOWN", "list of severity levels to report")
 	ignoreUnfixed   = flag.Bool("ignore-unfixed", false, "report only fixed vulnerabilities")
+	vulnTypes       = flag.String("vuln-type", "os,library", "comma separated list of vulnerability types")
+	securityChecks  = flag.String("security-checks", "vuln,secret", "comma-separated list of what security issues to detect")
 
-	// Will be modified by parseSeverities() to reflect the `severity` CLI flag
+	// Will be modified by parseCommaSeparatedOptions() to reflect the `severity` CLI flag
 	// These are the only recognized severities and the keys of this map should never be modified.
 	severityMap map[string]bool = map[string]bool{
 		severityCritical: false,
@@ -63,6 +72,21 @@ var (
 		severityMedium:   false,
 		severityLow:      false,
 		severityUnknown:  false,
+	}
+
+	// Will be modified by parseCommaSeparatedOptions() to reflect the `security-checks` CLI flag
+	// These are the only recognized security checks and the keys of this map should never be modified.
+	securityCheckMap map[string]bool = map[string]bool{
+		securityCheckVuln: false,
+		securityCheckSecret: false,
+		securityCheckConfig: false,
+	}
+
+	// Will be modified by parseCommaSeparatedOptions()  to reflect the `vuln-type` CLI flag
+	// These are the only recognized vulnerability types and the keys of this map should never be modified.
+	vulnTypeMap map[string]bool = map[string]bool{
+		vulnTypeOs:      false,
+		vulnTypeLibrary: false,
 	}
 )
 
@@ -80,6 +104,11 @@ type (
 		Status eraserv1alpha1.ImageCollectorStatus `json:"status"`
 	}
 
+    optionSet struct {
+        input string
+        m map[string]bool
+    }
+
 	statusUpdate struct {
 		apiPath         string
 		ctx             context.Context
@@ -94,11 +123,29 @@ type (
 func init() {
 	flag.Parse()
 
-	err := parseSeverity(*severity)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		os.Exit(generalErr)
-	}
+    allCommaSeparatedOptions := []optionSet{
+        {
+            input: *severity,
+            m: severityMap,
+        },
+        {
+            input: *vulnTypes,
+            m: vulnTypeMap,
+        },
+        {
+            input: *securityChecks,
+            m: securityCheckMap,
+        },
+    }
+
+    for _, oSet := range allCommaSeparatedOptions {
+       // note: this function has side effects and will modify the map supplied as the first argument
+        err := parseCommaSeparatedOptions(oSet.m, oSet.input)
+        if err != nil {
+            fmt.Fprintln(os.Stderr, err)
+            os.Exit(generalErr)
+        }
+    }
 }
 
 func main() {
@@ -140,7 +187,10 @@ func main() {
 		os.Exit(generalErr)
 	}
 
-	scanConfig, err := setupScanner(*cacheDir)
+    vulnTypeList := trueMapKeys(vulnTypeMap)
+    securityCheckList := trueMapKeys(securityCheckMap)
+
+	scanConfig, err := setupScanner(*cacheDir, vulnTypeList, securityCheckList)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(generalErr)
@@ -231,14 +281,16 @@ func main() {
 	}
 }
 
-func parseSeverity(sevString string) error {
-	sevs := strings.Split(sevString, ",")
-	for _, sev := range sevs {
-		_, ok := severityMap[sev]
-		if !ok {
-			return fmt.Errorf("severity '%s' should be one of [CRITICAL, HIGH, MEDIUM, LOW, UNKNOWN]", sev)
+// side effects: map `m` will be modified according to the values in `commaSeparatedList`
+func parseCommaSeparatedOptions(m map[string]bool, commaSeparatedList string) error {
+	list := strings.Split(commaSeparatedList, ",")
+	for _, item := range list {
+		if _, ok := m[item]; !ok {
+            keys := mapKeys(m)
+			return fmt.Errorf("'%s' was not one of %#v", item, keys)
 		}
-		severityMap[sev] = true
+
+		m[item] = true
 	}
 
 	return nil
@@ -290,7 +342,7 @@ func downloadDB(cacheDir string) error {
 	return nil
 }
 
-func setupScanner(cacheDir string) (scannerSetup, error) {
+func setupScanner(cacheDir string, vulnTypes, securityChecks []string) (scannerSetup, error) {
 	filesystemCache, err := cache.NewFSCache(cacheDir)
 	if err != nil {
 		return scannerSetup{}, err
@@ -302,8 +354,8 @@ func setupScanner(cacheDir string) (scannerSetup, error) {
 	scan := local.NewScanner(app, det)
 
 	sopts := trivyTypes.ScanOptions{
-		VulnType:            []string{"os", "library"},
-		SecurityChecks:      []string{"vuln", "secret"},
+		VulnType:            vulnTypes,
+		SecurityChecks:      securityChecks,
 		ScanRemovedPackages: false,
 		ListAllPackages:     false,
 	}
@@ -342,4 +394,24 @@ func updateStatus(opts statusUpdate) error {
 		Body(body).DoRaw(opts.ctx)
 
 	return err
+}
+
+func mapKeys(m map[string]bool) []string {
+	list := []string{}
+	for k := range m {
+		list = append(list, k)
+	}
+
+	return list
+}
+
+func trueMapKeys(m map[string]bool) []string {
+	list := []string{}
+	for k := range m {
+        if m[k] {
+            list = append(list, k)
+        }
+	}
+
+	return list
 }
