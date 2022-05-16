@@ -9,6 +9,12 @@ import (
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 )
 
+var (
+	errProtocolNotSupported  = errors.New("protocol not supported")
+	errEndpointDeprecated    = errors.New("endpoint is deprecated, please consider using full url format")
+	errOnlySupportUnixSocket = errors.New("only support unix socket endpoint")
+)
+
 func TestParseEndpointWithFallBackProtocol(t *testing.T) {
 	testCases := []struct {
 		endpoint         string
