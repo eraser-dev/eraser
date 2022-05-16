@@ -5,6 +5,9 @@ ARG ERASERBASEIMAGE="gcr.io/distroless/static:latest"
 ARG COLLECTORBASEIMAGE="gcr.io/distroless/static:latest"
 ARG MANAGERBASEIMAGE="gcr.io/distroless/static:nonroot"
 
+ARG TARGETOS
+ARG TARGETARCH
+
 # Build the manager binary
 FROM --platform=$BUILDPLATFORM $BUILDERIMAGE AS builder
 WORKDIR /workspace
@@ -23,18 +26,12 @@ COPY . .
 
 FROM builder AS manager-build
 
-ARG TARGETOS
-ARG TARGETARCH
-
 RUN \
     --mount=type=cache,target=${GOCACHE} \
     --mount=type=cache,target=/go/pkg/mod \
     GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -o out/manager main.go
 
 FROM builder AS eraser-build
-
-ARG TARGETOS
-ARG TARGETARCH
 
 RUN \
     --mount=type=cache,target=${GOCACHE} \
@@ -46,9 +43,6 @@ COPY --from=eraser-build /workspace/out/eraser /
 ENTRYPOINT ["/eraser"]
 
 FROM builder AS collector-build
-
-ARG TARGETOS
-ARG TARGETARCH
 
 RUN \
     --mount=type=cache,target=${GOCACHE} \
