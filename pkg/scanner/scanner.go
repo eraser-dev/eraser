@@ -236,7 +236,7 @@ func parseSeverity(sevString string) error {
 	for _, sev := range sevs {
 		_, ok := severityMap[sev]
 		if !ok {
-			return fmt.Errorf("severity '%s' should be one of of [CRITICAL, HIGH, MEDIUM, LOW, UNKNOWN]", sev)
+			return fmt.Errorf("severity '%s' should be one of [CRITICAL, HIGH, MEDIUM, LOW, UNKNOWN]", sev)
 		}
 		severityMap[sev] = true
 	}
