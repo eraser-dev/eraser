@@ -183,7 +183,7 @@ func createCollectorCR(ctx context.Context, allImages []eraserv1alpha1.Image) er
 		Body(body).DoRaw(ctx)
 
 	if err != nil {
-		log.Error(err, "ERROR: Could not create imagecollector", imageCollector.Name, imageCollector.APIVersion)
+		log.Error(err, "Could not create imagecollector", imageCollector.Name, imageCollector.APIVersion)
 		return err
 	}
 
