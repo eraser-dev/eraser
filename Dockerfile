@@ -34,13 +34,10 @@ RUN \
 
 FROM builder AS scanner-build
 
-ARG TARGETOS
-ARG TARGETARCH
-
 RUN \
     --mount=type=cache,target=${GOCACHE} \
     --mount=type=cache,target=/go/pkg/mod \
-    GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -o out/scanner ./pkg/scanner
+    GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build ${LDFLAGS:+-ldflags "$LDFLAGS"} -o out/scanner ./pkg/scanner
 
 FROM builder AS eraser-build
 
