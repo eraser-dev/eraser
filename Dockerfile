@@ -7,6 +7,9 @@ ARG STATICNONROOTBASEIMAGE="gcr.io/distroless/static:nonroot"
 ARG TARGETOS
 ARG TARGETARCH
 
+ARG TARGETOS
+ARG TARGETARCH
+
 # Build the manager binary
 FROM --platform=$BUILDPLATFORM $BUILDERIMAGE AS builder
 WORKDIR /workspace
@@ -31,9 +34,6 @@ RUN \
     GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -o out/manager main.go
 
 FROM builder AS scanner-build
-
-ARG TARGETOS
-ARG TARGETARCH
 
 RUN \
     --mount=type=cache,target=${GOCACHE} \
