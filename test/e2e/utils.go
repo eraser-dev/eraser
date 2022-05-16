@@ -105,6 +105,17 @@ func containerNotPresentOnNode(nodeName, containerName string) func() (bool, err
 	}
 }
 
+func imagejobNotInCluster(kubeconfigPath string) func() (bool, error) {
+	return func() (bool, error) {
+		output, err := KubectlGet(kubeconfigPath, "imagejob")
+		if err != nil {
+			return false, err
+		}
+
+		return strings.Contains(output, "No resources"), nil
+	}
+}
+
 // delete eraser config
 func deleteEraserConfig(kubeConfig, namespace, resourcePath, fileName string) error {
 	wd, err := os.Getwd()
@@ -283,4 +294,22 @@ func kindLoadImage(clusterName, image string) (string, error) {
 	}
 
 	return output, err
+}
+
+func deleteStringFromSlice(strings []string, s string) []string {
+	idx := -1
+	for i, cmp := range strings {
+		if cmp == s {
+			idx = i
+			break
+		}
+	}
+
+	if idx >= 0 {
+		l := len(strings)
+		strings[l-1], strings[idx] = strings[idx], strings[l-1]
+		return strings[:l-1]
+	}
+
+	return strings
 }
