@@ -4300,6 +4300,32 @@ rules:
   - get
   - patch
   - update
+- apiGroups:
+  - eraser.sh.tutorial.kubebuilder.io
+  resources:
+  - imagecollectors
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - eraser.sh.tutorial.kubebuilder.io
+  resources:
+  - imagecollectors/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - eraser.sh.tutorial.kubebuilder.io
+  resources:
+  - imagecollectors/status
+  verbs:
+  - get
+  - patch
+  - update
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
