@@ -6,12 +6,9 @@ import (
 	"fmt"
 	"net"
 	"net/url"
-	"time"
 
 	"google.golang.org/grpc"
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
-
-	logf "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 const (
@@ -20,12 +17,9 @@ const (
 )
 
 var (
-	// Timeout  of connecting to server (default: 5m).
-	timeout                  = 5 * time.Minute
 	errProtocolNotSupported  = errors.New("protocol not supported")
 	errEndpointDeprecated    = errors.New("endpoint is deprecated, please consider using full url format")
 	errOnlySupportUnixSocket = errors.New("only support unix socket endpoint")
-	log                      = logf.Log.WithName("eraser")
 )
 
 func GetAddressAndDialer(endpoint string) (string, func(ctx context.Context, addr string) (net.Conn, error), error) {
