@@ -9,12 +9,6 @@ import (
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 )
 
-var (
-	errProtocolNotSupported  = errors.New("protocol not supported")
-	errEndpointDeprecated    = errors.New("endpoint is deprecated, please consider using full url format")
-	errOnlySupportUnixSocket = errors.New("only support unix socket endpoint")
-)
-
 func TestParseEndpointWithFallBackProtocol(t *testing.T) {
 	testCases := []struct {
 		endpoint         string
@@ -103,7 +97,7 @@ func TestParseEndpoint(t *testing.T) {
 			protocol: "",
 			addr:     "",
 			errCheck: func(t *testing.T, err error) {
-				if !errors.Is(err, errEndpointDeprecated) {
+				if !errors.Is(err, util.ErrEndpointDeprecated) {
 					t.Error(err)
 				}
 			},
@@ -113,7 +107,7 @@ func TestParseEndpoint(t *testing.T) {
 			protocol: "https",
 			addr:     "",
 			errCheck: func(t *testing.T, err error) {
-				if !errors.Is(err, errProtocolNotSupported) {
+				if !errors.Is(err, util.ErrProtocolNotSupported) {
 					t.Error(err)
 				}
 			},
@@ -155,12 +149,12 @@ func TestGetAddressAndDialer(t *testing.T) {
 		{
 			endpoint: "localhost:8080",
 			addr:     "",
-			err:      errProtocolNotSupported,
+			err:      util.ErrProtocolNotSupported,
 		},
 		{
 			endpoint: "tcp://localhost:8080",
 			addr:     "",
-			err:      errOnlySupportUnixSocket,
+			err:      util.ErrOnlySupportUnixSocket,
 		},
 	}
 
