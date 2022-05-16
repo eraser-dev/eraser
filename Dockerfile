@@ -37,7 +37,7 @@ FROM builder AS scanner-build
 RUN \
     --mount=type=cache,target=${GOCACHE} \
     --mount=type=cache,target=/go/pkg/mod \
-    GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build ${LDFLAGS:+-ldflags "$LDFLAGS"} -o out/scanner ./pkg/scanner
+    GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build ${LDFLAGS:+-ldflags "$LDFLAGS"} -o out/scanner ./pkg/scanners/trivy
 
 FROM builder AS eraser-build
 
