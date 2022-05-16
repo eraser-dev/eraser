@@ -18,11 +18,6 @@ import (
 	util "github.com/Azure/eraser/pkg/utils"
 )
 
-const (
-	// unixProtocol is the network protocol of unix socket.
-	unixProtocol = "unix"
-)
-
 var (
 	// Timeout  of connecting to server (default: 5m).
 	timeout = 5 * time.Minute
