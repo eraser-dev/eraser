@@ -24,5 +24,4 @@ testbin/*
 *.swo
 *~
 
-PROJECT
 .vscode/
