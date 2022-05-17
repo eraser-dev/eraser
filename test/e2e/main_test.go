@@ -39,18 +39,22 @@ var (
 func TestMain(m *testing.M) {
 	utilruntime.Must(eraserv1alpha1.AddToScheme(scheme.Scheme))
 
-	testenv = env.NewWithConfig(envconf.New())
+	cfg := envconf.New()
+	testenv = env.NewWithConfig(cfg)
 	// Create KinD Cluster
-	namespace := envconf.RandomName("eraser-ns", 16)
+	// namespace := envconf.RandomName("eraser-ns", 16)
+	namespace := "eraser-ns-d1f99e"
+	cfg.WithNamespace(namespace)
 	testenv.Setup(
 		envfuncs.CreateKindClusterWithConfig(kindClusterName, nodeVersion, "kind-config.yaml"),
-		envfuncs.CreateNamespace(namespace),
-		envfuncs.LoadDockerImageToCluster(kindClusterName, managerImage),
-		envfuncs.LoadDockerImageToCluster(kindClusterName, image),
-		deployEraserManifest(eraserNamespace),
-	).Finish(
-		envfuncs.DeleteNamespace(namespace),
+		//envfuncs.CreateNamespace(namespace),
+	// envfuncs.LoadDockerImageToCluster(kindClusterName, managerImage),
+	// envfuncs.LoadDockerImageToCluster(kindClusterName, image),
+	// deployEraserManifest(eraserNamespace),
 	)
+	// .Finish(
+	// 	envfuncs.DeleteNamespace(namespace),
+	// )
 	os.Exit(testenv.Run(m))
 }
 

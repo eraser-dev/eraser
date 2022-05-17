@@ -223,18 +223,19 @@ func checkImageRemoved(ctx context.Context, t *testing.T, nodes []string, images
 			}
 
 			nodeImages, err := listNodeImages(node)
+			t.Log(nodeImages)
 			if err != nil {
 				t.Error("Cannot list images", err)
 			}
 
 			var found int
 			for _, img := range images {
-				if !strings.Contains(nodeImages, img) {
+				if strings.Contains(nodeImages, img) {
 					found++
 				}
 			}
 
-			if found == len(images) {
+			if found == 0 {
 				cleaned[node] = true
 			}
 		}
