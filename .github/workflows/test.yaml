@@ -137,7 +137,7 @@ jobs:
       - name: Run trivy for eraser 
         run: |
           for img in "${{ env.REGISTRY }}/${REPO}:${TAG}" "${{ env.REGISTRY }}/${REPO}:${TAG}"; do
-            trivy image --ignore-unfixed --exit-code=1 --vuln-type="os,library" "${img}"
+            trivy image --ignore-unfixed --exit-code=1 --vuln-type=os,library "${img}"
           done
 
       - name: Run trivy for eraser-manager 
