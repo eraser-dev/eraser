@@ -39,14 +39,7 @@ type Client interface {
 }
 
 func (c *client) listImages(ctx context.Context) (list []*pb.Image, err error) {
-	request := &pb.ListImagesRequest{Filter: nil}
-
-	resp, err := c.images.ListImages(ctx, request)
-	if err != nil {
-		return nil, err
-	}
-
-	return resp.Images, nil
+	return util.ListImages(c.images, ctx)
 }
 
 func getAllImages(c Client) ([]eraserv1alpha1.Image, error) {

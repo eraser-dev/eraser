@@ -84,3 +84,14 @@ func GetImageClient(ctx context.Context, socketPath string) (pb.ImageServiceClie
 
 	return imageClient, conn, nil
 }
+
+func ListImages(images pb.ImageServiceClient, ctx context.Context) (list []*pb.Image, err error) {
+	request := &pb.ListImagesRequest{Filter: nil}
+
+	resp, err := images.ListImages(ctx, request)
+	if err != nil {
+		return nil, err
+	}
+
+	return resp.Images, nil
+}
