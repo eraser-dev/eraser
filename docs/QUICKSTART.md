@@ -1,10 +1,12 @@
 # Quickstart Tutorial
 
-1. Clone the Eraser repo
+1. Clone or create a new Codespace from the Eraser repo
+
     ```shell
     git clone https://github.com/Azure/eraser.git
     cd eraser
     ```
+    
 2. Create a cluster
 
     This will install and create a Kind cluster with a control-plane and two worker nodes.
