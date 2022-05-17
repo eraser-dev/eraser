@@ -27,7 +27,8 @@ podAnnotations: {}
 podSecurityContext: {}
   # fsGroup: 2000
 
-securityContext: {}
+securityContext:
+  allowPrivilegeEscalation: false
   # capabilities:
   #   drop:
   #   - ALL
@@ -38,10 +39,10 @@ securityContext: {}
 resources:
   limits:
     cpu: 100m
-    memory: 128Mi
+    memory: 30Mi
   requests:
     cpu: 100m
-    memory: 128Mi
+    memory: 20Mi
 
 nodeSelector: {}
 

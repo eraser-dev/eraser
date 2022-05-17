@@ -3,15 +3,12 @@ kind: RoleBinding
 metadata:
   name: eraser-leader-election-rolebinding
   labels:
-    app: '{{ template "eraser.name" . }}'
-    chart: '{{ template "eraser.name" . }}'
-    heritage: '{{ .Release.Service }}'
-    release: '{{ .Release.Name }}'
+    {{- include "eraser.labels" . | nindent 4 }}
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
   name: eraser-leader-election-role
 subjects:
 - kind: ServiceAccount
-  name: eraser-controller-manager
-  namespace: eraser-system
+  name: {{ include "eraser.serviceAccountName" . }}
+  namespace: {{ .Release.Namespace }}

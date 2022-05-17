@@ -3,15 +3,12 @@ kind: ClusterRoleBinding
 metadata:
   name: eraser-manager-rolebinding
   labels:
-    app: '{{ template "eraser.name" . }}'
-    chart: '{{ template "eraser.name" . }}'
-    heritage: '{{ .Release.Service }}'
-    release: '{{ .Release.Name }}'
+    {{- include "eraser.labels" . | nindent 4 }}
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
   name: eraser-manager-role
 subjects:
 - kind: ServiceAccount
-  name: eraser-controller-manager
-  namespace: eraser-system
+  name: {{ include "eraser.serviceAccountName" . }}
+  namespace: {{ .Release.Namespace }}

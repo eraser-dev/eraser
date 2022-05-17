@@ -4,10 +4,7 @@ metadata:
   creationTimestamp: null
   name: eraser-manager-role
   labels:
-    app: '{{ template "eraser.name" . }}'
-    chart: '{{ template "eraser.name" . }}'
-    heritage: '{{ .Release.Service }}'
-    release: '{{ .Release.Name }}'
+    {{- include "eraser.labels" . | nindent 4 }}
 rules:
 - apiGroups:
   - ""

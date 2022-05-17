@@ -3,34 +3,30 @@ kind: Deployment
 metadata:
   labels:
     control-plane: controller-manager
-    app: '{{ template "eraser.name" . }}'
-    chart: '{{ template "eraser.name" . }}'
-    heritage: '{{ .Release.Service }}'
-    release: '{{ .Release.Name }}'
+    {{- include "eraser.labels" . | nindent 4 }}
   name: eraser-controller-manager
 spec:
   replicas: 1
   selector:
     matchLabels:
       control-plane: controller-manager    
-      app: '{{ template "eraser.name" . }}'
-      chart: '{{ template "eraser.name" . }}'
-      heritage: '{{ .Release.Service }}'
-      release: '{{ .Release.Name }}'
+      {{- include "eraser.labels" . | nindent 6 }}
   template:
     metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       labels:
         control-plane: controller-manager    
-        app: '{{ template "eraser.name" . }}'
-        chart: '{{ template "eraser.name" . }}'
-        heritage: '{{ .Release.Service }}'
-        release: '{{ .Release.Name }}'
+	    {{- include "eraser.labels" . | nindent 8 }}
     spec:
+      serviceAccountName: {{ include "eraser.serviceAccountName" . }}
       containers:
       - name: manager
         args:
         - --leader-elect=false
-        - --eraser-image=ghcr.io/azure/eraser:v0.1.0
+        - --eraser-image={{ .Values.workerImage.repository }}:{{ .Values.workerImage.tag | default .Chart.AppVersion }}
         command:
         - /manager
         image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
@@ -48,17 +44,27 @@ spec:
           initialDelaySeconds: 5
           periodSeconds: 10
         resources:
-          limits:
-            cpu: 100m
-            memory: 30Mi
-          requests:
-            cpu: 100m
-            memory: 20Mi
+          {{- toYaml .Values.resources | nindent 10 }}
         securityContext:
-          allowPrivilegeEscalation: false
-      serviceAccountName: eraser-controller-manager
+          {{- toYaml .Values.securityContext | nindent 10 }}
+      terminationGracePeriodSeconds: 10
+      {{- with .Values.podSecurityContext }}
+      securityContext:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       {{- with .Values.imagePullSecrets }}
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      terminationGracePeriodSeconds: 10
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

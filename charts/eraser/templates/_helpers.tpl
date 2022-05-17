@@ -10,6 +10,14 @@ Create the name of the service account to use
 */}}
 {{- define "eraser.serviceAccountName" -}}
 {{- default (include "eraser.name" .) .Values.serviceAccount.name }}
-{{- else }}
-{{- default "default" .Values.serviceAccount.name }}
+{{- end }}
+
+{{/*
+Common labels
+*/}}
+{{- define "eraser.labels" -}}
+app: {{ include "eraser.name" . }}
+chart: {{ template "eraser.name" . }}
+heritage: {{ .Release.Service }}
+release: {{ .Release.Name }}
 {{- end }}
