@@ -1,9 +1,8 @@
 # syntax=mcr.microsoft.com/oss/moby/dockerfile:1.3.1
 ARG BUILDERIMAGE="golang:1.17"
 
-ARG ERASERBASEIMAGE="gcr.io/distroless/static:latest"
-ARG COLLECTORBASEIMAGE="gcr.io/distroless/static:latest"
-ARG MANAGERBASEIMAGE="gcr.io/distroless/static:nonroot"
+ARG STATICBASEIMAGE="gcr.io/distroless/static:latest"
+ARG STATICNONROOTBASEIMAGE="gcr.io/distroless/static:nonroot"
 
 ARG TARGETOS
 ARG TARGETARCH
@@ -38,7 +37,7 @@ RUN \
     --mount=type=cache,target=/go/pkg/mod \
     GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -ldflags '-w -extldflags "-static"' -o out/eraser ./pkg/eraser
 
-FROM --platform=$BUILDPLATFORM $ERASERBASEIMAGE as eraser
+FROM --platform=$BUILDPLATFORM $STATICBASEIMAGE as eraser
 COPY --from=eraser-build /workspace/out/eraser /
 ENTRYPOINT ["/eraser"]
 
@@ -49,13 +48,13 @@ RUN \
     --mount=type=cache,target=/go/pkg/mod \
     GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -o out/collector ./pkg/collector
 
-FROM --platform=$BUILDPLATFORM $COLLECTORBASEIMAGE as collector
+FROM --platform=$BUILDPLATFORM $STATICBASEIMAGE as collector
 COPY --from=collector-build /workspace/out/collector /
 ENTRYPOINT ["/collector"]
 
 # Use distroless as minimal base image to package the manager binary
 # Refer to https://github.com/GoogleContainerTools/distroless for more details
-FROM --platform=$BUILDPLATFORM $MANAGERBASEIMAGE AS manager
+FROM --platform=$BUILDPLATFORM $STATICNONROOTBASEIMAGE AS manager
 WORKDIR /
 COPY --from=manager-build /workspace/out/manager .
 USER 65532:65532
