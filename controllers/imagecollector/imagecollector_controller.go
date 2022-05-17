@@ -18,15 +18,25 @@ package imagecollector
 
 import (
 	"context"
+	"flag"
 
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/cri-api/pkg/errors"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	logf "sigs.k8s.io/controller-runtime/pkg/log"
+)
+
+var (
+	collectorImage = flag.String("collector-image", "ghcr.io/azure/collector:latest", "collector image")
+	log            = logf.Log.WithName("controller").WithValues("process", "imagecollector-controller")
 )
 
 // ImageCollectorReconciler reconciles a ImageCollector object
@@ -65,19 +75,42 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.11.2/pkg/reconcile
 func (r *ImageCollectorReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	_ = log.FromContext(ctx)
-
-	imageCollectorList := &eraserv1alpha1.ImageCollectorList{}
-
-	if err := r.Get(ctx, req.NamespacedName, imageCollectorList); err != nil {
-		return ctrl.Result{}, err
+	// periodically create imageJob with collector pods
+	job := &eraserv1alpha1.ImageJob{
+		ObjectMeta: metav1.ObjectMeta{
+			GenerateName: "imagejob-",
+		},
+		Spec: eraserv1alpha1.ImageJobSpec{
+			JobTemplate: corev1.PodTemplateSpec{
+				Spec: corev1.PodSpec{
+					RestartPolicy: corev1.RestartPolicyNever,
+					Containers: []corev1.Container{
+						{
+							Name:            "collector",
+							Image:           *collectorImage,
+							ImagePullPolicy: corev1.PullIfNotPresent,
+						},
+					},
+					ServiceAccountName: "eraser-controller-manager",
+				},
+			},
+		},
 	}
 
-	// for each collector in imagecollector list, get list of images
+	err := r.Create(ctx, job)
+	log.Info("creating imagejob", "job", job.Name)
+	if err != nil {
+		if errors.IsNotFound(err) {
+			return reconcile.Result{}, nil
+		}
+		return reconcile.Result{}, err
+	}
+
+	return ctrl.Result{}, nil
+
+	// once job is complete, for each collector in imagecollector list, get list of images
 	// store image in deduplicated list
-
 	// create imagecollector-shared crd
-
 	// delete individual imagecollector CRs
 
 	return ctrl.Result{}, nil
