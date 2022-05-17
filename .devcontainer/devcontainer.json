@@ -38,15 +38,15 @@
 	 	"humao.rest-client",
 		"ms-vscode.makefile-tools",
 		"golang.go"
-	]
+	],
 
-	// "waitFor": "postCreateCommand",
+	"waitFor": "postCreateCommand",
 
 	// Use 'onCreateCommand' to run commands as part of container creation.
 	// "onCreateCommand": "/bin/bash -c .devcontainer/on-create.sh",
 
 	// Use 'postCreateCommand' to run commands after the container is created.
-	// "postCreateCommand": "/bin/bash -c .devcontainer/post-create.sh"
+	"postCreateCommand": "/bin/bash -c .devcontainer/post-create.sh"
 
 	// Use 'postStartCommand' to run commands after the container starts.
 	// "postStartCommand": "/bin/bash -c .devcontainer/post-start.sh"
