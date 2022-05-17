@@ -60,10 +60,8 @@ func ParseEndpoint(endpoint string) (string, string, error) {
 		return "tcp", u.Host, nil
 	case "unix":
 		return "unix", u.Path, nil
-
 	case "":
 		return "", "", fmt.Errorf("using %q as %w", endpoint, ErrEndpointDeprecated)
-
 	default:
 		return u.Scheme, "", fmt.Errorf("%q: %w", u.Scheme, ErrProtocolNotSupported)
 	}
