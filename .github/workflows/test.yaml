@@ -104,3 +104,33 @@ jobs:
         run: make docker-build-eraser OUTPUT_TYPE=type=docker CACHE_FROM=type=gha,scope=eraser-node CACHE_TO=type=gha,scope=eraser-node,mode=max
       - name: Run e2e test
         run: make e2e-test
+
+  scan_vulnerabilities:
+    name: "[Trivy] Scan for vulnerabilities"
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - name: Check out code into the Go module directory
+        uses: actions/checkout@v3
+
+      - name: Download trivy
+        run: |
+          pushd $(mktemp -d)
+          wget https://github.com/aquasecurity/trivy/releases/download/v${{ env.TRIVY_VERSION }}/trivy_${{ env.TRIVY_VERSION }}_Linux-64bit.tar.gz
+          tar zxvf trivy_${{ env.TRIVY_VERSION }}_Linux-64bit.tar.gz
+          echo "$(pwd)" >> $GITHUB_PATH
+        env:
+          TRIVY_VERSION: "0.22.0"
+
+      - name: Build docker images
+        run: make docker-build
+
+      - name: Run trivy
+        run: |
+          for img in "openpolicyagent/gatekeeper:latest" "openpolicyagent/gatekeeper-crds:latest"; do
+            for vuln_type in "os" "library"; do
+              trivy image --ignore-unfixed --exit-code=1 --vuln-type="${vuln_type}" "${img}"
+            done
+          done

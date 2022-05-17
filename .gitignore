@@ -23,3 +23,6 @@ testbin/*
 *.swp
 *.swo
 *~
+
+# history files
+.history
