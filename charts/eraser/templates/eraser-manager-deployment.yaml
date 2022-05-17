@@ -1,0 +1,63 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    control-plane: controller-manager
+    app: '{{ template "eraser.name" . }}'
+    chart: '{{ template "eraser.name" . }}'
+    eraser.sh/system: "yes"
+    heritage: '{{ .Release.Service }}'
+    release: '{{ .Release.Name }}'
+  name: eraser-controller-manager
+  namespace: '{{ .Release.Namespace }}'
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      control-plane: controller-manager    
+      app: '{{ template "eraser.name" . }}'
+      chart: '{{ template "eraser.name" . }}'
+      eraser.sh/system: "yes"
+      heritage: '{{ .Release.Service }}'
+      release: '{{ .Release.Name }}'
+  template:
+    metadata:
+      labels:
+        control-plane: controller-manager    
+        app: '{{ template "eraser.name" . }}'
+        chart: '{{ template "eraser.name" . }}'s
+        eraser.sh/system: "yes"
+        heritage: '{{ .Release.Service }}'
+        release: '{{ .Release.Name }}'
+    spec:
+      containers:
+      - args:
+        - --leader-elect=false
+        - --eraser-image=ghcr.io/azure/eraser:v0.1.0
+        command:
+        - /manager
+        image: ghcr.io/azure/eraser-manager:v0.1.0
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8081
+          initialDelaySeconds: 15
+          periodSeconds: 20
+        name: manager
+        readinessProbe:
+          httpGet:
+            path: /readyz
+            port: 8081
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        resources:
+          limits:
+            cpu: 100m
+            memory: 30Mi
+          requests:
+            cpu: 100m
+            memory: 20Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+      serviceAccountName: eraser-controller-manager
+      terminationGracePeriodSeconds: 10
