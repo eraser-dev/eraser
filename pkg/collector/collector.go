@@ -39,7 +39,7 @@ type Client interface {
 }
 
 func (c *client) listImages(ctx context.Context) (list []*pb.Image, err error) {
-	return util.ListImages(c.images, ctx)
+	return util.ListImages(ctx, c.images)
 }
 
 func getAllImages(c Client) ([]eraserv1alpha1.Image, error) {

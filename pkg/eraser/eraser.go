@@ -44,7 +44,7 @@ func (c *client) listContainers(context.Context) (list []*pb.Container, err erro
 }
 
 func (c *client) listImages(ctx context.Context) (list []*pb.Image, err error) {
-	return util.ListImages(c.images, ctx)
+	return util.ListImages(ctx, c.images)
 }
 
 func (c *client) deleteImage(ctx context.Context, image string) (err error) {
