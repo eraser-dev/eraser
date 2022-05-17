@@ -25,7 +25,7 @@ spec:
       labels:
         control-plane: controller-manager    
         app: '{{ template "eraser.name" . }}'
-        chart: '{{ template "eraser.name" . }}'s
+        chart: '{{ template "eraser.name" . }}'
         eraser.sh/system: "yes"
         heritage: '{{ .Release.Service }}'
         release: '{{ .Release.Name }}'
