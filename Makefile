@@ -83,9 +83,13 @@ manifests: __controller-gen
 		output:crd:artifacts:config=config/crd/bases
 	rm -rf manifest_staging
 	mkdir -p manifest_staging/deploy
+	mkdir -p manifest_staging/charts/eraser
 	docker run --rm -v $(shell pwd):/eraser \
 		k8s.gcr.io/kustomize/kustomize:v${KUSTOMIZE_VERSION} build \
 		/eraser/config/default -o /eraser/manifest_staging/deploy/eraser.yaml
+	docker run --rm -v $(shell pwd):/eraser \
+		k8s.gcr.io/kustomize/kustomize:v${KUSTOMIZE_VERSION} build \
+		third_party/open-policy-agent/gatekeeper/helmify | go run third_party/open-policy-agent/gatekeeper/helmify/*.go
 
 ## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations.
 generate: __controller-gen
@@ -159,7 +163,8 @@ release-manifest:
 promote-staging-manifest:
 	@rm -rf deploy
 	@cp -r manifest_staging/deploy .
-
+	@rm -rf charts
+	@cp -r manifest_staging/charts .
 
 ENVTEST = $(shell pwd)/bin/setup-envtest
 .PHONY: envtest
