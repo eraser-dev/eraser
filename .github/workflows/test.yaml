@@ -8,6 +8,8 @@ on:
     paths-ignore:
       - "**.md"
       - "hack/**"
+env:
+  REGISTRY: ghcr.io
 
 permissions:
   contents: read
@@ -115,6 +117,11 @@ jobs:
       - name: Check out code into the Go module directory
         uses: actions/checkout@v3
 
+      - name: Get tag and repo
+        run: |
+          echo "TAG=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
+          echo "REPO=$(echo $GITHUB_REPOSITORY | awk '{print tolower($0)}')" >> $GITHUB_ENV
+
       - name: Download trivy
         run: |
           pushd $(mktemp -d)
@@ -122,14 +129,22 @@ jobs:
           tar zxvf trivy_${{ env.TRIVY_VERSION }}_Linux-64bit.tar.gz
           echo "$(pwd)" >> $GITHUB_PATH
         env:
-          TRIVY_VERSION: "0.22.0"
+          TRIVY_VERSION: "0.28.0"
 
       - name: Build docker images
         run: make docker-build
 
-      - name: Run trivy
+      - name: Run trivy for eraser 
         run: |
-          for img in "openpolicyagent/gatekeeper:latest" "openpolicyagent/gatekeeper-crds:latest"; do
+          for img in "${{ env.REGISTRY }}/${REPO}:${TAG}" "${{ env.REGISTRY }}/${REPO}:${TAG}"; do
+            for vuln_type in "os" "library"; do
+              trivy image --ignore-unfixed --exit-code=1 --vuln-type="${vuln_type}" "${img}"
+            done
+          done
+
+      - name: Run trivy for eraser-manager 
+        run: |
+          for img in "${{ env.REGISTRY }}/${REPO}-manager:${TAG}" "${{ env.REGISTRY }}/${REPO}-manager:${TAG}"; do
             for vuln_type in "os" "library"; do
               trivy image --ignore-unfixed --exit-code=1 --vuln-type="${vuln_type}" "${img}"
             done
