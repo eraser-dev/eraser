@@ -27,19 +27,20 @@ spec:
         release: '{{ .Release.Name }}'
     spec:
       containers:
-      - args:
+      - name: manager
+        args:
         - --leader-elect=false
         - --eraser-image=ghcr.io/azure/eraser:v0.1.0
         command:
         - /manager
-        image: ghcr.io/azure/eraser-manager:v0.1.0
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
         livenessProbe:
           httpGet:
             path: /healthz
             port: 8081
           initialDelaySeconds: 15
           periodSeconds: 20
-        name: manager
         readinessProbe:
           httpGet:
             path: /readyz
@@ -56,4 +57,8 @@ spec:
         securityContext:
           allowPrivilegeEscalation: false
       serviceAccountName: eraser-controller-manager
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       terminationGracePeriodSeconds: 10
