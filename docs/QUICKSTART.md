@@ -1,26 +1,32 @@
 # Quickstart Tutorial
 
-1. Clone or create a new Codespace from the Eraser repo
+This tutorial demonstrates the functionality of Eraser and validates that non-running images are removed after applying an `ImageList` with the declared images.
 
-    ```shell
-    git clone https://github.com/Azure/eraser.git
-    cd eraser
-    ```
-    
-2. Create a cluster
+1. Create a cluster
 
-    This will install and create a Kind cluster with a control-plane and two worker nodes.
+  Eraser can be deployed to any Kubernetes cluster, however, for the purposes of this tutorial a `Kind` cluster will be created with a control-plane and two worker nodes.
 
     ``` shell
+    # get kind
     curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.13.0/kind-linux-amd64
     chmod +x ./kind
     sudo mv ./kind /usr/bin
-    kind create cluster --config test/e2e/kind-config.yaml
     ```
     
-    Verify your cluster is running.
+    ```shell 
+    # create a cluster
+    cat <<EOF | kind create cluster --config -
+    kind: Cluster
+    apiVersion: kind.x-k8s.io/v1alpha4
+    nodes:
+    - role: control-plane
+    - role: worker
+    - role: worker
+    EOF
+    ``` 
   
     ```shell
+    # Verify your cluster is running.
     $ kubectl cluster-info --context kind-kind
     Kubernetes control plane is running at https://127.0.0.1:40989
     CoreDNS is running at https://127.0.0.1:40989/api/v1/namespaces/kube-system/services/kube-dns:dns/proxy
@@ -28,8 +34,7 @@
     To further debug and diagnose cluster problems, use 'kubectl cluster-info dump'.
     ``` 
 
-
-3. Deploy Eraser to the Cluster
+2. Deploy Eraser to the Cluster
 
     ```bash
     $ kubectl apply -f https://raw.githubusercontent.com/Azure/eraser/v0.1.0/deploy/eraser.yaml
@@ -51,7 +56,7 @@
     eraser-controller-manager-759c7c8794-q8qqg   1/1     Running   0          22s
     ```
 
-4. Apply and delete a deployment
+3. Apply and delete a deployment
 
     Applying and deleting a deployment will leave unused images on the nodes where it was deployed. For this example, an `ngnix` deployment will be used. In following steps, these images will be used to verify that Eraser is removing the correct images.
 
@@ -98,9 +103,9 @@
     No resources found in default namespace.
     ```
 
-5. List images on a worker node
+4. List images on a worker node
 
-    To verify that the `nginx` images are still on the nodes, exec into one of the worker nodes and list the images.
+    To verify that the `nginx` images are still on the nodes, exec into one of the worker nodes and list the images. If you are not using a Kind cluster or Docker for your container nodes, you will need to adjust the exec command accordingly. 
 
   ```shell
   # get a list of the nodes
@@ -118,7 +123,7 @@
   docker.io/library/nginx@sha256:f7988fb6c02e0ce69257d9bd9cf37ae20a60f1df7563c3a2a6abe24160306b8d application/vnd.docker.distribution.manifest.list.v2+json sha256:f7988fb6c02e0ce69257d9bd9cf37ae20a60f1df7563c3a2a6abe24160306b8d 42.6 MiB  linux/386,linux/amd64,linux/arm/v7,linux/arm64/v8,linux/ppc64le,linux/s390x  io.cri-containerd.image=managed 
   ```
 
-6. Create an ImageList
+5. Create an ImageList
     Create an [ImageList](../test/e2e/test-data/eraser_v1alpha1_imagelist.yaml) and specify the images you would like to remove. In this case, the image `docker.io/library/nginx:1.14.2` will be removed.
 
       ```bash
@@ -175,7 +180,7 @@
   - `--job-success-ratio`: Ratio of successful/total runs to consider a job successful. 1.0 means all runs must succeed. Defaults to `1.0`.
 
 
-7. Verify the unused images are removed
+6. Verify the unused images are removed
 
     ``` shell
     docker exec <nodeName> ctr -n k8s.io images list | grep nginx
@@ -183,7 +188,7 @@
 
     If the image has been successfully removed, there will be no output. 
 
-8. Tear down your cluster
+7. Tear down your cluster
 
     ```shell
     kind delete cluster kind
