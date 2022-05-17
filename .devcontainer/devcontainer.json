@@ -36,7 +36,8 @@
 	 	"davidanson.vscode-markdownlint",
 	 	"gruntfuggly.todo-tree",
 	 	"humao.rest-client",
-		"ms-vscode.makefile-tools"
+		"ms-vscode.makefile-tools",
+		"golang.go"
 	]
 
 	// "waitFor": "postCreateCommand",
