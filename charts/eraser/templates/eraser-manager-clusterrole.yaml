@@ -6,7 +6,6 @@ metadata:
   labels:
     app: '{{ template "eraser.name" . }}'
     chart: '{{ template "eraser.name" . }}'
-    eraser.sh/system: "yes"
     heritage: '{{ .Release.Service }}'
     release: '{{ .Release.Name }}'
 rules:

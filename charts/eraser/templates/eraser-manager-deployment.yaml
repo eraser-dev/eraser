@@ -5,11 +5,9 @@ metadata:
     control-plane: controller-manager
     app: '{{ template "eraser.name" . }}'
     chart: '{{ template "eraser.name" . }}'
-    eraser.sh/system: "yes"
     heritage: '{{ .Release.Service }}'
     release: '{{ .Release.Name }}'
   name: eraser-controller-manager
-  namespace: '{{ .Release.Namespace }}'
 spec:
   replicas: 1
   selector:
@@ -17,7 +15,6 @@ spec:
       control-plane: controller-manager    
       app: '{{ template "eraser.name" . }}'
       chart: '{{ template "eraser.name" . }}'
-      eraser.sh/system: "yes"
       heritage: '{{ .Release.Service }}'
       release: '{{ .Release.Name }}'
   template:
@@ -26,7 +23,6 @@ spec:
         control-plane: controller-manager    
         app: '{{ template "eraser.name" . }}'
         chart: '{{ template "eraser.name" . }}'
-        eraser.sh/system: "yes"
         heritage: '{{ .Release.Service }}'
         release: '{{ .Release.Name }}'
     spec:
