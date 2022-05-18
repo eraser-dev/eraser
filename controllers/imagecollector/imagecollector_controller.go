@@ -128,8 +128,6 @@ func (r *ImageCollectorReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	// store image in deduplicated list
 	// create imagecollector-shared crd
 	// delete individual imagecollector CRs
-
-	return ctrl.Result{}, nil
 }
 
 // SetupWithManager sets up the controller with the Manager.
