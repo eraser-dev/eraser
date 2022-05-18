@@ -1,7 +1,5 @@
 # Eraser: Cleaning up Images from Kubernetes Nodes
 
-[![GitHub go.mod Go version of a Go module](https://img.shields.io/github/go-mod/go-version/azure/eraser)](https://github.com/azure/eraser)
-
 Eraser helps Kubernetes admins remove a list of non-running images from all Kubernetes nodes in a cluster.
 
 > 🚨 This project is currently in early alpha stage. Do NOT use for production.
