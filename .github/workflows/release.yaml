@@ -76,4 +76,5 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           charts_dir: charts
+          target_dir: charts
           linting: off
