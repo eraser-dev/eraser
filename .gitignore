@@ -26,3 +26,5 @@ testbin/*
 
 # history files
 .history
+
+.vscode/
