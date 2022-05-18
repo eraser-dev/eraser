@@ -70,3 +70,10 @@ jobs:
         with:
           repo_token: "${{ secrets.GITHUB_TOKEN }}"
           prerelease: false
+
+      - name: Publish Helm chart
+        uses: stefanprodan/helm-gh-pages@v1.5.0
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          charts_dir: manifest_staging/charts
+          linting: off
