@@ -8,7 +8,6 @@ ARG TARGETOS
 ARG TARGETARCH
 
 ARG LDFLAGS
-
 # Build the manager binary
 FROM --platform=$BUILDPLATFORM $BUILDERIMAGE AS builder
 WORKDIR /workspace
@@ -69,7 +68,7 @@ COPY --from=manager-build /workspace/out/manager .
 USER 65532:65532
 ENTRYPOINT ["/manager"]
 
-FROM --platform=$BUILDPLATFORM $STATICNONROOTBASEIMAGE as scanner
-COPY --from=scanner-build /workspace/out/scanner /
+FROM --platform=$BUILDPLATFORM $STATICNONROOTBASEIMAGE as trivy-scanner
+COPY --from=trivy-scanner-build /workspace/out/trivy-scanner /
 USER 65532:65532
 ENTRYPOINT ["/trivy-scanner"]
