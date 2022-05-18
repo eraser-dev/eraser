@@ -105,7 +105,7 @@ jobs:
       - name: Build eraser
         run: make docker-build-eraser CACHE_FROM=type=gha,scope=eraser-node CACHE_TO=type=gha,scope=eraser-node,mode=max
       - name: Build eraser for Windows
-        run: make docker-build-eraser-windows CACHE_FROM=type=gha,scope=eraser-node CACHE_TO=type=gha,scope=eraser-node,mode=max
+        run: make docker-build-windows-all CACHE_FROM=type=gha,scope=eraser-node CACHE_TO=type=gha,scope=eraser-node,mode=max
       - name: Run e2e test
         run: make e2e-test
 

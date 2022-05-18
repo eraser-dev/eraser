@@ -54,7 +54,7 @@ jobs:
           ERASER_IMG=${{ env.REGISTRY }}/${REPO}:${TAG}
 
       - name: Build eraser for Windows
-        run: make docker-build-eraser-windows \
+        run: make docker-build-windows-all \
           CACHE_FROM=type=gha,scope=eraser-node \
           CACHE_TO=type=gha,scope=eraser-node,mode=max \
           OSVERSION=1809 \

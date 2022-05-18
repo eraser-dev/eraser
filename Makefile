@@ -16,6 +16,8 @@ GOLANGCI_LINT_VERSION := 1.43.0
 
 PLATFORM ?= linux
 
+ALL_OSVERSIONS.windows := 1809 1903 1909 2004 ltsc2022
+
 # Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
 ifeq (,$(shell go env GOBIN))
 GOBIN=$(shell go env GOPATH)/bin
@@ -31,7 +33,7 @@ ifdef CACHE_FROM
 _CACHE_FROM := --cache-from $(CACHE_FROM)
 endif
 
-BUILDX_BUILDER_NAME ?= img-builder-win
+BUILDX_BUILDER_NAME ?= img-builder
 
 OUTPUT_TYPE ?= type=docker
 TOOLS_DIR := hack/tools
@@ -127,7 +129,7 @@ run: manifests generate fmt vet ## Run a controller from your host.
 .PHONY: docker-buildx-builder
 docker-buildx-builder:
 	@if ! docker buildx ls | grep $(BUILDX_BUILDER_NAME); then \
-		docker buildx create --name $(BUILDX_BUILDER_NAME) --platform windows/amd64 --use; \
+		docker buildx create --name $(BUILDX_BUILDER_NAME) --use; \
 		docker buildx inspect $(BUILDX_BUILDER_NAME) --bootstrap; \
 	fi
 
@@ -148,8 +150,14 @@ docker-build-collector:
 
 docker-push-collector:
 	docker push ${COLLECTOR_IMG}
-docker-build-eraser-windows: docker-buildx-builder
-	docker buildx build $(_CACHE_FROM) $(_CACHE_TO) --platform="windows/amd64" --output=$(OUTPUT_TYPE) --build-arg OSVERSION=${OSVERSION} -t ${ERASER_WIN_IMG} -f windows.Dockerfile .
+
+docker-build-eraser-windows:
+		docker buildx build $(_CACHE_FROM) $(_CACHE_TO) --platform="windows/amd64" --output=type=docker --build-arg OSVERSION=${OSVERSION} -t ${ERASER_WIN_IMG} -f windows.Dockerfile .
+
+docker-build-windows-all: docker-buildx-builder
+	for osversion in $(ALL_OSVERSIONS.windows); do \
+		OSVERSION=$${osversion} $(MAKE) docker-build-eraser-windows; \
+	done
 
 ##@ Deployment
 

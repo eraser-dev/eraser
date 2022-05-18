@@ -1,5 +1,5 @@
 # syntax=mcr.microsoft.com/oss/moby/dockerfile:1.3.1
-ARG BUILDERIMAGE="golang:1.17"
+ARG BUILDERIMAGE="golang:1.18-bullseye"
 
 ARG TARGETOS=windows
 ARG TARGETARCH=amd64
