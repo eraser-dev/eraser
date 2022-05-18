@@ -297,10 +297,10 @@ func kindLoadImage(clusterName, image string) (string, error) {
 }
 
 func deleteImageListsAndJobs(kubeConfig string) error {
-	if err := KubectlDelete(kubeConfig, "eraser-system", append([]string{"imagejob", "--all"})); err != nil {
+	if err := KubectlDelete(kubeConfig, "eraser-system", []string{"imagejob", "--all"}); err != nil {
 		return err
 	}
-	if err := KubectlDelete(kubeConfig, "eraser-system", append([]string{"imagelist", "--all"})); err != nil {
+	if err := KubectlDelete(kubeConfig, "eraser-system", []string{"imagelist", "--all"}); err != nil {
 		return err
 	}
 	return nil
