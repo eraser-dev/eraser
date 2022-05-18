@@ -2,6 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: eraser-controller-manager
+  namespace: eraser-system
 spec:
   template:
     spec:
@@ -11,10 +12,10 @@ spec:
         image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
         imagePullPolicy: "{{ .Values.image.pullPolicy }}"
         resources:
-          {{- toYaml .Values.resources | nindent 10 }}
+          HELMSUBST_DEPLOYMENT_CONTROLLER_MANAGER_CONTAINER_RESOURCES: ""
       nodeSelector:
-        {{- toYaml .Values.nodeSelector | nindent 8 }}
+        HELMSUBST_DEPLOYMENT_CONTROLLER_MANAGER_NODESELECTOR: ""
       tolerations:
-        {{- toYaml .Values.tolerations | nindent 8 }}
+        HELMSUBST_DEPLOYMENT_CONTROLLER_MANAGER_TOLERATIONS: ""
       affinity:
-        {{- toYaml .Values.affinity | nindent 8 }}
+        HELMSUBST_DEPLOYMENT_CONTROLLER_MANAGER_AFFINITY: ""

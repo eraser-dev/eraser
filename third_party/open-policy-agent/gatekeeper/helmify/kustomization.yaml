@@ -8,15 +8,15 @@ bases:
   - "../../../../config/default"
 patchesStrategicMerge:
   - kustomize-for-helm.yaml
-patchesJson6902:
-  # these are defined in the chart values rather than hard-coded
-  - target:
-      kind: Deployment
-      name: azure-wi-webhook-controller-manager
-    patch: |-
-      - op: remove
-        path: /spec/template/spec/containers/0/resources/limits
-      - op: remove
-        path: /spec/template/spec/containers/0/resources/requests
-      - op: remove
-        path: /spec/template/spec/nodeSelector/kubernetes.io~1os
+# patchesJson6902:
+#   # these are defined in the chart values rather than hard-coded
+#   - target:
+#       kind: Deployment
+#       name: eraser-controller-manager
+#     patch: |-
+#       - op: remove
+#         path: /spec/template/spec/containers/0/resources/limits
+#       - op: remove
+#         path: /spec/template/spec/containers/0/resources/requests
+#       - op: remove
+#         path: /spec/template/spec/nodeSelector/kubernetes.io~1os

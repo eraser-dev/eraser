@@ -89,7 +89,7 @@ manifests: __controller-gen
 		/eraser/config/default -o /eraser/manifest_staging/deploy/eraser.yaml
 	docker run --rm -v $(shell pwd):/eraser \
 		k8s.gcr.io/kustomize/kustomize:v${KUSTOMIZE_VERSION} build \
-		third_party/open-policy-agent/gatekeeper/helmify | go run third_party/open-policy-agent/gatekeeper/helmify/*.go
+		--load_restrictor LoadRestrictionsNone /eraser/third_party/open-policy-agent/gatekeeper/helmify | go run third_party/open-policy-agent/gatekeeper/helmify/*.go
 
 ## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations.
 generate: __controller-gen
