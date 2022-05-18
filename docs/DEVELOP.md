@@ -1,0 +1,1 @@
+Developing this project requires access to a Kubernetes cluster and Go version 1.16 or later.
