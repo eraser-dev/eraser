@@ -119,8 +119,9 @@ type (
 
 func main() {
 	flag.Parse()
+	ctx := context.Background()
 
-	allCommaSeparatedOptions = []optionSet{
+	allCommaSeparatedOptions := []optionSet{
 		{
 			input: *severity,
 			m:     severityMap,
@@ -143,7 +144,6 @@ func main() {
 			os.Exit(generalErr)
 		}
 	}
-	ctx := context.Background()
 
 	cfg, err := rest.InClusterConfig()
 	if err != nil {
@@ -170,6 +170,7 @@ func main() {
 		os.Exit(generalErr)
 	}
 
+	// deduplicate, which may not be necessary
 	scanList := make(map[string]string)
 	for _, img := range result.Spec.Images {
 		scanList[img.Digest] = img.Name
