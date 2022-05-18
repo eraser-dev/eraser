@@ -1,5 +1,11 @@
 VERSION := v0.1.0
 
+ORG_PATH := github.com/Azure
+PROJECT_NAME := eraser
+REPO_PATH := $(ORG_PATH)/$(PROJECT_NAME)
+BUILD_COMMIT := $(shell git rev-parse --short HEAD)
+BUILD_TIMESTAMP := $$(date +%Y-%m-%d-%H:%M)
+
 # Image URL to use all building/pushing image targets
 MANAGER_IMG ?= ghcr.io/azure/eraser-manager:${VERSION}
 ERASER_IMG ?= ghcr.io/azure/eraser:${VERSION}
@@ -11,6 +17,12 @@ ENVTEST_K8S_VERSION ?= 1.23
 GOLANGCI_LINT_VERSION := 1.43.0
 
 PLATFORM ?= linux
+
+# build variables
+BUILD_TIME_VAR := $(REPO_PATH)/version.BuildTime
+BUILD_VERSION_VAR := $(REPO_PATH)/version.BuildVersion
+BUILD_VCS_VAR := $(REPO_PATH)/version.Vcs
+LDFLAGS ?= "-X $(BUILD_TIME_VAR)=$(BUILD_TIMESTAMP) -X $(BUILD_VERSION_VAR)=$(VERSION) -X $(BUILD_VCS_VAR)=$(BUILD_COMMIT)"
 
 # Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
 ifeq (,$(shell go env GOBIN))
@@ -109,25 +121,43 @@ e2e-test:
 ##@ Build
 
 build: generate fmt vet ## Build manager binary.
-	go build -o bin/manager main.go
+	go build -o bin/manager -ldflags $(LDFLAGS) main.go
 
 run: manifests generate fmt vet ## Run a controller from your host.
 	go run ./main.go
 
 docker-build-manager: ## Build docker image with the manager.
-	docker buildx build $(_CACHE_FROM) $(_CACHE_TO) --platform="$(PLATFORM)" --output=$(OUTPUT_TYPE) --target manager -t ${MANAGER_IMG} .
+	docker buildx build \ 
+		$(_CACHE_FROM) $(_CACHE_TO) \
+		--build-arg LDFLAGS=$(LDFLAGS) \
+		--platform="$(PLATFORM)" \
+		--output=$(OUTPUT_TYPE) \
+		-t ${MANAGER_IMG} \
+		--target manager .
 
 docker-push-manager: ## Push docker image with the manager.
 	docker push ${MANAGER_IMG}
 
 docker-build-eraser:
-	docker buildx build $(_CACHE_FROM) $(_CACHE_TO) --platform="$(PLATFORM)" --output=$(OUTPUT_TYPE) -t ${ERASER_IMG} --target eraser .
+	docker buildx build \
+		$(_CACHE_FROM) $(_CACHE_TO) \
+		--build-arg LDFLAGS=$(LDFLAGS) \
+		--platform="$(PLATFORM)" \
+		--output=$(OUTPUT_TYPE) \
+		-t ${ERASER_IMG} \
+		--target eraser .
 
 docker-push-eraser:
 	docker push ${ERASER_IMG}
 
 docker-build-collector:
-	docker buildx build $(_CACHE_FROM) $(_CACHE_TO) --platform="$(PLATFORM)" --output=$(OUTPUT_TYPE) -t ${COLLECTOR_IMG} --target collector .
+	docker buildx build \
+		$(_CACHE_FROM) $(_CACHE_TO) \
+		--build-arg LDFLAGS=$(LDFLAGS) \
+		--platform="$(PLATFORM)" \
+		--output=$(OUTPUT_TYPE) \
+		-t ${COLLECTOR_IMG} \
+		--target collector .
 
 docker-push-collector:
 	docker push ${COLLECTOR_IMG}
