@@ -155,7 +155,7 @@ This tutorial demonstrates the functionality of Eraser and validates that non-ru
 
     > ImageList is a cluster-scoped resource and must be called `imagelist`. You can specify `"*"` for all non-running images.
 
-    Creating an imagelist should trigger an [ImageJob](api/v1alpha1/imagejob_types.go) that will deploy [eraser](../pkg/eraser/eraser.go) pods on every node to perform the removal given the list of images.
+    Creating an `imagelist` should trigger an [ImageJob](api/v1alpha1/imagejob_types.go) that will deploy Eraser pods on every node to perform the removal given the list of images.
 
     ```bash
     $ kubectl get pods -n eraser-system
