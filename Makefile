@@ -3,6 +3,7 @@ VERSION := v0.1.0
 # Image URL to use all building/pushing image targets
 MANAGER_IMG ?= ghcr.io/azure/eraser-manager:${VERSION}
 ERASER_IMG ?= ghcr.io/azure/eraser:${VERSION}
+COLLECTOR_IMG ?= ghrc.io/azure/collector:${VERSION}
 
 KUSTOMIZE_VERSION ?= 3.8.9
 KUBERNETES_VERSION ?= 1.23.0
@@ -26,7 +27,7 @@ ifdef CACHE_FROM
 _CACHE_FROM := --cache-from $(CACHE_FROM)
 endif
 
-OUTPUT_TYPE ?= type=registry
+OUTPUT_TYPE ?= type=docker
 TOOLS_DIR := hack/tools
 TOOLS_BIN_DIR := $(abspath $(TOOLS_DIR)/bin)
 GO_INSTALL := ./hack/go-install.sh
@@ -124,6 +125,12 @@ docker-build-eraser:
 
 docker-push-eraser:
 	docker push ${ERASER_IMG}
+
+docker-build-collector:
+	docker buildx build $(_CACHE_FROM) $(_CACHE_TO) --platform="$(PLATFORM)" --output=$(OUTPUT_TYPE) -t ${COLLECTOR_IMG} --target collector .
+
+docker-push-collector:
+	docker push ${COLLECTOR_IMG}
 
 ##@ Deployment
 

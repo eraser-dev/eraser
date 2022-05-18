@@ -3,35 +3,25 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"flag"
 	"fmt"
-	"net"
-	"net/url"
 	"os"
 	"time"
 
-	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 
 	"github.com/Azure/eraser/pkg/logger"
-)
 
-const (
-	// unixProtocol is the network protocol of unix socket.
-	unixProtocol = "unix"
+	util "github.com/Azure/eraser/pkg/utils"
 )
 
 var (
 	// Timeout  of connecting to server (default: 5m).
-	timeout                  = 5 * time.Minute
-	errProtocolNotSupported  = errors.New("protocol not supported")
-	errEndpointDeprecated    = errors.New("endpoint is deprecated, please consider using full url format")
-	errOnlySupportUnixSocket = errors.New("only support unix socket endpoint")
-	log                      = logf.Log.WithName("eraser")
+	timeout = 5 * time.Minute
+	log     = logf.Log.WithName("eraser")
 )
 
 type client struct {
@@ -54,14 +44,7 @@ func (c *client) listContainers(context.Context) (list []*pb.Container, err erro
 }
 
 func (c *client) listImages(ctx context.Context) (list []*pb.Image, err error) {
-	request := &pb.ListImagesRequest{Filter: nil}
-
-	resp, err := c.images.ListImages(ctx, request)
-	if err != nil {
-		return nil, err
-	}
-
-	return resp.Images, nil
+	return util.ListImages(ctx, c.images)
 }
 
 func (c *client) deleteImage(ctx context.Context, image string) (err error) {
@@ -80,69 +63,6 @@ func (c *client) deleteImage(ctx context.Context, image string) (err error) {
 	}
 
 	return nil
-}
-
-func GetAddressAndDialer(endpoint string) (string, func(ctx context.Context, addr string) (net.Conn, error), error) {
-	protocol, addr, err := parseEndpointWithFallbackProtocol(endpoint, unixProtocol)
-	if err != nil {
-		return "", nil, err
-	}
-	if protocol != unixProtocol {
-		return "", nil, errOnlySupportUnixSocket
-	}
-
-	return addr, dial, nil
-}
-
-func dial(ctx context.Context, addr string) (net.Conn, error) {
-	return (&net.Dialer{}).DialContext(ctx, unixProtocol, addr)
-}
-
-func parseEndpointWithFallbackProtocol(endpoint string, fallbackProtocol string) (protocol string, addr string, err error) {
-	if protocol, addr, err = parseEndpoint(endpoint); err != nil && protocol == "" {
-		fallbackEndpoint := fallbackProtocol + "://" + endpoint
-		protocol, addr, err = parseEndpoint(fallbackEndpoint)
-		if err != nil {
-			return "", "", err
-		}
-	}
-	return protocol, addr, err
-}
-
-func parseEndpoint(endpoint string) (string, string, error) {
-	u, err := url.Parse(endpoint)
-	if err != nil {
-		return "", "", fmt.Errorf("error while parsing: %w", err)
-	}
-
-	switch u.Scheme {
-	case "tcp":
-		return "tcp", u.Host, nil
-	case "unix":
-		return "unix", u.Path, nil
-
-	case "":
-		return "", "", fmt.Errorf("using %q as %w", endpoint, errEndpointDeprecated)
-
-	default:
-		return u.Scheme, "", fmt.Errorf("%q: %w", u.Scheme, errProtocolNotSupported)
-	}
-}
-
-func getImageClient(ctx context.Context, socketPath string) (pb.ImageServiceClient, *grpc.ClientConn, error) {
-	addr, dialer, err := GetAddressAndDialer(socketPath)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	conn, err := grpc.DialContext(ctx, addr, grpc.WithBlock(), grpc.WithInsecure(), grpc.WithContextDialer(dialer))
-	if err != nil {
-		return nil, nil, err
-	}
-
-	imageClient := pb.NewImageServiceClient(conn)
-
-	return imageClient, conn, nil
 }
 
 func removeImages(c Client, targetImages []string) error {
@@ -278,7 +198,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	imageclient, conn, err := getImageClient(context.Background(), socketPath)
+	imageclient, conn, err := util.GetImageClient(context.Background(), socketPath)
 	if err != nil {
 		log.Error(err, "failed to get image client")
 		os.Exit(1)
