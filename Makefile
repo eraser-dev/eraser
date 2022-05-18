@@ -3,10 +3,12 @@ VERSION := v0.1.0
 # Windows OS Version
 OSVERSION ?= 1809
 
+REGISTRY ?= ghcr.io/azure
+REPO ?= eraser
+
 # Image URL to use all building/pushing image targets
 MANAGER_IMG ?= ghcr.io/azure/eraser-manager:${VERSION}
 ERASER_IMG ?= ghcr.io/azure/eraser:${VERSION}
-ERASER_WIN_IMG ?= ghcr.io/azure/eraser-windows-${OSVERSION}-amd64:${VERSION}
 COLLECTOR_IMG ?= ghrc.io/azure/collector:${VERSION}
 
 KUSTOMIZE_VERSION ?= 3.8.9
@@ -152,7 +154,15 @@ docker-push-collector:
 	docker push ${COLLECTOR_IMG}
 
 docker-build-eraser-windows:
-		docker buildx build $(_CACHE_FROM) $(_CACHE_TO) --platform="windows/amd64" --output=type=docker --build-arg OSVERSION=${OSVERSION} -t ${ERASER_WIN_IMG} -f windows.Dockerfile .
+	docker buildx build $(_CACHE_FROM) $(_CACHE_TO) --platform="windows/amd64" --output=type=docker --build-arg OSVERSION=${OSVERSION} -t ${REGISTRY}/${REPO}-windows-${OSVERSION}-amd64:${VERSION} -f windows.Dockerfile .
+
+docker-push-windows:
+	docker push ${REGISTRY}/${REPO}-windows-${OSVERSION}-amd64:${VERSION}
+
+docker-push-windows-all: docker-buildx-builder
+	for osversion in $(ALL_OSVERSIONS.windows); do \
+		OSVERSION=$${osversion} $(MAKE) docker-push-windows; \
+	done
 
 docker-build-windows-all: docker-buildx-builder
 	for osversion in $(ALL_OSVERSIONS.windows); do \
