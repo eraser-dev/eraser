@@ -117,9 +117,8 @@ jobs:
       - name: Check out code into the Go module directory
         uses: actions/checkout@v3
 
-      - name: Get tag and repo
+      - name: Get repo
         run: |
-          echo "TAG=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
           echo "REPO=$(echo $GITHUB_REPOSITORY | awk '{print tolower($0)}')" >> $GITHUB_ENV
 
       - name: Download trivy
@@ -136,19 +135,18 @@ jobs:
           OUTPUT_TYPE=type=docker \
           CACHE_FROM=type=gha,scope=eraser-manager \
           CACHE_TO=type=gha,scope=eraser-manager,mode=max \
-          MANAGER_IMG=${{ env.REGISTRY }}/${REPO}-manager:${TAG}
+          MANAGER_IMG=${{ env.REGISTRY }}/${REPO}-manager:test
 
       - name: Build eraser
         run: make docker-build-eraser \
-          OUTPUT_TYPE=type=docker \
-          CACHE_FROM=type=gha,scope=eraser-node \
-          CACHE_TO=type=gha,scope=eraser-node,mode=max \
-          ERASER_IMG=${{ env.REGISTRY }}/${REPO}:${TAG}
+          ERASER_IMG=${{ env.REGISTRY }}/${REPO}:test
 
       - name: Run trivy for eraser 
         run: 
-          trivy image --ignore-unfixed --exit-code=1 --vuln-type=os,library ${{ env.REGISTRY }}/${REPO}:${TAG}
+          trivy image --ignore-unfixed --exit-code=1 \
+          --vuln-type=os,library ${{ env.REGISTRY }}/${REPO}:test
           
       - name: Run trivy for eraser-manager 
         run: 
-          trivy image --ignore-unfixed --exit-code=1 --vuln-type=os,library ${{ env.REGISTRY }}/${REPO}-manager:${TAG}
+          trivy image --ignore-unfixed --exit-code=1 \
+          --vuln-type=os,library ${{ env.REGISTRY }}/${REPO}-manager:test
