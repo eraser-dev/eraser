@@ -44,6 +44,9 @@ func TestRemoveImagesFromAllNodes(t *testing.T) {
 			if err := cfg.Client().Resources().Create(ctx, nginxDep); err != nil {
 				t.Error("Failed to create the dep", err)
 			}
+			if err := deleteImageListsAndJobs(cfg.KubeconfigFile()); err != nil {
+				t.Error("Failed to clean eraser obejcts ", err)
+			}
 			return ctx
 		}).
 		Assess("deployment successfully deployed", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
@@ -128,14 +131,12 @@ func TestRemoveImagesFromAllNodes(t *testing.T) {
 			if err := deleteEraserConfig(cfg.KubeconfigFile(), "eraser-system", "test-data", "eraser_v1alpha1_imagelist.yaml"); err != nil {
 				t.Error("Failed to delete image list config ", err)
 			}
-			if err := KubectlDelete(cfg.KubeconfigFile(), "eraser-system", append([]string{"imagejob", "--all"})); err != nil {
-				t.Error("Failed to delete image job(s) config ", err)
-			}
-			if err := KubectlDelete(cfg.KubeconfigFile(), "eraser-system", append([]string{"imagelist", "--all"})); err != nil {
-				t.Error("Failed to delete image job(s) config ", err)
+			if err := deleteImageListsAndJobs(cfg.KubeconfigFile()); err != nil {
+				t.Error("Failed to clean eraser obejcts ", err)
 			}
 			return ctx
-		}).Feature()
+		}).
+		Feature()
 
 	pruneImagesFeat := features.New("Remove all non-running images from cluster").
 		// Deploy 3 deployments with different images
@@ -287,11 +288,8 @@ func TestRemoveImagesFromAllNodes(t *testing.T) {
 				cfg.Client().Resources().Delete(ctx, i.(*eraserv1alpha1.ImageList))
 			}
 
-			if err := KubectlDelete(cfg.KubeconfigFile(), "eraser-system", append([]string{"imagejob", "--all"})); err != nil {
-				t.Error("Failed to delete image job(s) config ", err)
-			}
-			if err := KubectlDelete(cfg.KubeconfigFile(), "eraser-system", append([]string{"imagelist", "--all"})); err != nil {
-				t.Error("Failed to delete image job(s) config ", err)
+			if err := deleteImageListsAndJobs(cfg.KubeconfigFile()); err != nil {
+				t.Error("Failed to clean eraser obejcts ", err)
 			}
 
 			// make sure nginx containers are cleaned up before proceeding
@@ -435,11 +433,8 @@ func TestRemoveImagesFromAllNodes(t *testing.T) {
 				cfg.Client().Resources().Delete(ctx, i.(*eraserv1alpha1.ImageList))
 			}
 
-			if err := KubectlDelete(cfg.KubeconfigFile(), "eraser-system", append([]string{"imagejob", "--all"})); err != nil {
-				t.Error("Failed to delete image job(s) config ", err)
-			}
-			if err := KubectlDelete(cfg.KubeconfigFile(), "eraser-system", append([]string{"imagelist", "--all"})); err != nil {
-				t.Error("Failed to delete image job(s) config ", err)
+			if err := deleteImageListsAndJobs(cfg.KubeconfigFile()); err != nil {
+				t.Error("Failed to clean eraser obejcts ", err)
 			}
 
 			return ctx
@@ -567,11 +562,8 @@ func TestRemoveImagesFromAllNodes(t *testing.T) {
 			return ctx
 		}).
 		Teardown(func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
-			if err := KubectlDelete(cfg.KubeconfigFile(), "eraser-system", append([]string{"imagejob", "--all"})); err != nil {
-				t.Error("Failed to delete image job(s) config ", err)
-			}
-			if err := KubectlDelete(cfg.KubeconfigFile(), "eraser-system", append([]string{"imagelist", "--all"})); err != nil {
-				t.Error("Failed to delete image job(s) config ", err)
+			if err := deleteImageListsAndJobs(cfg.KubeconfigFile()); err != nil {
+				t.Error("Failed to clean eraser obejcts ", err)
 			}
 
 			// make sure nginx containers are cleaned up before proceeding
