@@ -7,12 +7,30 @@ spec:
   template:
     spec:
       containers:
-      - args:
+      - name: manager
+        args:
+        - --leader-elect=false
         - --eraser-image={{ .Values.workerImage.repository }}:{{ .Values.workerImage.tag | default .Chart.AppVersion }}
+        command:
+        - /manager
         image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
         imagePullPolicy: "{{ .Values.image.pullPolicy }}"
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8081
+          initialDelaySeconds: 15
+          periodSeconds: 20
+        readinessProbe:
+          httpGet:
+            path: /readyz
+            port: 8081
+          initialDelaySeconds: 5
+          periodSeconds: 10
         resources:
           HELMSUBST_DEPLOYMENT_CONTROLLER_MANAGER_CONTAINER_RESOURCES: ""
+        securityContext:
+          allowPrivilegeEscalation: false
       nodeSelector:
         HELMSUBST_DEPLOYMENT_CONTROLLER_MANAGER_NODESELECTOR: ""
       tolerations:
