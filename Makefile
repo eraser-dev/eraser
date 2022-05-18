@@ -149,7 +149,7 @@ docker-build-collector:
 docker-push-collector:
 	docker push ${COLLECTOR_IMG}
 docker-build-eraser-windows: docker-buildx-builder
-	docker buildx build $(_CACHE_FROM) $(_CACHE_TO) --platform="windows/amd64" --output=type=$(OUTPUT_TYPE) --build-arg OSVERSION=${OSVERSION} -t ${ERASER_WIN_IMG} -f windows.Dockerfile .
+	docker buildx build $(_CACHE_FROM) $(_CACHE_TO) --platform="windows/amd64" --output=$(OUTPUT_TYPE) --build-arg OSVERSION=${OSVERSION} -t ${ERASER_WIN_IMG} -f windows.Dockerfile .
 
 ##@ Deployment
 
