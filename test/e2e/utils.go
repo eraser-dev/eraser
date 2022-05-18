@@ -223,7 +223,6 @@ func checkImageRemoved(ctx context.Context, t *testing.T, nodes []string, images
 			}
 
 			nodeImages, err := listNodeImages(node)
-			t.Log(nodeImages)
 			if err != nil {
 				t.Error("Cannot list images", err)
 			}
@@ -284,4 +283,14 @@ func kindLoadImage(clusterName, image string) (string, error) {
 	}
 
 	return output, err
+}
+
+func deleteImageListsAndJobs(kubeConfig string) error {
+	if err := KubectlDelete(kubeConfig, "eraser-system", append([]string{"imagejob", "--all"})); err != nil {
+		return err
+	}
+	if err := KubectlDelete(kubeConfig, "eraser-system", append([]string{"imagelist", "--all"})); err != nil {
+		return err
+	}
+	return nil
 }
