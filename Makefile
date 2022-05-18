@@ -27,7 +27,7 @@ ifdef CACHE_FROM
 _CACHE_FROM := --cache-from $(CACHE_FROM)
 endif
 
-OUTPUT_TYPE ?= type=registry
+OUTPUT_TYPE ?= type=docker
 TOOLS_DIR := hack/tools
 TOOLS_BIN_DIR := $(abspath $(TOOLS_DIR)/bin)
 GO_INSTALL := ./hack/go-install.sh
