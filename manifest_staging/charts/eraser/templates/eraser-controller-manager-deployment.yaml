@@ -1,0 +1,62 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: '{{ template "eraser.name" . }}'
+    chart: '{{ template "eraser.name" . }}'
+    control-plane: controller-manager
+    heritage: '{{ .Release.Service }}'
+    release: '{{ .Release.Name }}'
+  name: eraser-controller-manager
+  namespace: '{{ .Release.Namespace }}'
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: '{{ template "eraser.name" . }}'
+      chart: '{{ template "eraser.name" . }}'
+      control-plane: controller-manager
+      heritage: '{{ .Release.Service }}'
+      release: '{{ .Release.Name }}'
+  template:
+    metadata:
+      labels:
+        app: '{{ template "eraser.name" . }}'
+        chart: '{{ template "eraser.name" . }}'
+        control-plane: controller-manager
+        heritage: '{{ .Release.Service }}'
+        release: '{{ .Release.Name }}'
+    spec:
+      affinity:
+        {{- toYaml .Values.affinity | nindent 8 }}
+      containers:
+      - args:
+        - --leader-elect=false
+        - --eraser-image={{ .Values.workerImage.repository }}:{{ .Values.workerImage.tag | default .Chart.AppVersion }}
+        command:
+        - /manager
+        image: '{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}'
+        imagePullPolicy: '{{ .Values.image.pullPolicy }}'
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8081
+          initialDelaySeconds: 15
+          periodSeconds: 20
+        name: manager
+        readinessProbe:
+          httpGet:
+            path: /readyz
+            port: 8081
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        resources:
+          {{- toYaml .Values.resources | nindent 10 }}
+        securityContext:
+          allowPrivilegeEscalation: false
+      nodeSelector:
+        {{- toYaml .Values.nodeSelector | nindent 8 }}
+      serviceAccountName: eraser-controller-manager
+      terminationGracePeriodSeconds: 10
+      tolerations:
+        {{- toYaml .Values.tolerations | nindent 8 }}
