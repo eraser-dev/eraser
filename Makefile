@@ -6,6 +6,7 @@ OSVERSION ?= 1809
 # Image URL to use all building/pushing image targets
 MANAGER_IMG ?= ghcr.io/azure/eraser-manager:${VERSION}
 ERASER_IMG ?= ghcr.io/azure/eraser:${VERSION}
+ERASER_WIN_IMG ?= ghcr.io/azure/eraser-windows-${OSVERSION}-amd64:${VERSION}
 COLLECTOR_IMG ?= ghrc.io/azure/collector:${VERSION}
 
 KUSTOMIZE_VERSION ?= 3.8.9
@@ -30,7 +31,7 @@ ifdef CACHE_FROM
 _CACHE_FROM := --cache-from $(CACHE_FROM)
 endif
 
-BUILDX_BUILDER_NAME ?= img-builder
+BUILDX_BUILDER_NAME ?= img-builder-win
 
 OUTPUT_TYPE ?= type=docker
 TOOLS_DIR := hack/tools
@@ -126,7 +127,7 @@ run: manifests generate fmt vet ## Run a controller from your host.
 .PHONY: docker-buildx-builder
 docker-buildx-builder:
 	@if ! docker buildx ls | grep $(BUILDX_BUILDER_NAME); then \
-		docker buildx create --name $(BUILDX_BUILDER_NAME) --use; \
+		docker buildx create --name $(BUILDX_BUILDER_NAME) --platform windows/amd64 --use; \
 		docker buildx inspect $(BUILDX_BUILDER_NAME) --bootstrap; \
 	fi
 
@@ -148,7 +149,7 @@ docker-build-collector:
 docker-push-collector:
 	docker push ${COLLECTOR_IMG}
 docker-build-eraser-windows: docker-buildx-builder
-	docker buildx build $(_CACHE_FROM) $(_CACHE_TO) --platform="$(PLATFORM)" --output=$(OUTPUT_TYPE) --build-arg OSVERSION=${OSVERSION} -t ${ERASER_IMG} --target windows .
+	docker buildx build $(_CACHE_FROM) $(_CACHE_TO) --platform="windows/amd64" --output=type=$(OUTPUT_TYPE) --build-arg OSVERSION=${OSVERSION} -t ${ERASER_WIN_IMG} -f windows.Dockerfile .
 
 ##@ Deployment
 
