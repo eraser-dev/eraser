@@ -7,6 +7,8 @@ ARG STATICNONROOTBASEIMAGE="gcr.io/distroless/static:nonroot"
 ARG TARGETOS
 ARG TARGETARCH
 
+ARG LDFLAGS
+
 # Build the manager binary
 FROM --platform=$BUILDPLATFORM $BUILDERIMAGE AS builder
 WORKDIR /workspace
@@ -28,14 +30,14 @@ FROM builder AS manager-build
 RUN \
     --mount=type=cache,target=${GOCACHE} \
     --mount=type=cache,target=/go/pkg/mod \
-    GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -o out/manager main.go
+    GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -ldflags ${LDFLAGS} -o out/manager main.go
 
 FROM builder AS eraser-build
 
 RUN \
     --mount=type=cache,target=${GOCACHE} \
     --mount=type=cache,target=/go/pkg/mod \
-    GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -ldflags '-w -extldflags "-static"' -o out/eraser ./pkg/eraser
+    GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -ldflags "${LDFLAGS:-w -extldflags '-static'}" -o out/eraser ./pkg/eraser
 
 FROM --platform=$BUILDPLATFORM $STATICBASEIMAGE as eraser
 COPY --from=eraser-build /workspace/out/eraser /
@@ -46,7 +48,7 @@ FROM builder AS collector-build
 RUN \
     --mount=type=cache,target=${GOCACHE} \
     --mount=type=cache,target=/go/pkg/mod \
-    GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -o out/collector ./pkg/collector
+    GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -ldflags ${LDFLAGS} -o out/collector ./pkg/collector
 
 FROM --platform=$BUILDPLATFORM $STATICBASEIMAGE as collector
 COPY --from=collector-build /workspace/out/collector /
