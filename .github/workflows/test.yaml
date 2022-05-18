@@ -34,6 +34,29 @@ jobs:
           working-directory: pkg/eraser
           skip-pkg-cache: true
 
+
+  codeql:
+    name: "CodeQL"
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v2
+        with:
+          languages: go
+
+      - uses: actions/cache@v3.0.2
+        with:
+          key: ${{ runner.OS }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+          path: |
+            ~/go/pkg/mod
+            ~/.cache/go-build
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v2
+
   unit-test:
     name: "Unit Tests"
     runs-on: ubuntu-latest
