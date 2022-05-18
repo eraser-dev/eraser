@@ -35,7 +35,7 @@ func TestRemoveImagesFromAllNodes(t *testing.T) {
 	rmImageFeat := features.New("Test Remove Image From All Nodes").
 		Setup(func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
 			podSelectorLabels := map[string]string{"app": nginx}
-			nginxDep := newDeployment(cfg.Namespace(), nginx, 2, podSelectorLabels, corev1.Container{Image: nginx, Name: nginx})	
+			nginxDep := newDeployment(cfg.Namespace(), nginx, 2, podSelectorLabels, corev1.Container{Image: nginx, Name: nginx})
 			if err := cfg.Client().Resources().Create(ctx, nginxDep); err != nil {
 				t.Error("Failed to create the dep", err)
 			}
@@ -80,7 +80,6 @@ func TestRemoveImagesFromAllNodes(t *testing.T) {
 			if err := client.Resources().Delete(ctx, dep); err != nil {
 				t.Error("Failed to delete the dep", err)
 			}
-			t.Log("Deleted resources")
 
 			for _, nodeName := range getClusterNodes(t) {
 				err := wait.For(containerNotPresentOnNode(nodeName, nginx), wait.WithTimeout(time.Minute*2))
@@ -90,8 +89,6 @@ func TestRemoveImagesFromAllNodes(t *testing.T) {
 					t.Logf("error while waiting for deployment deletion: %v", err)
 				}
 			}
-
-			t.Log("Pods are deleted")
 
 			// deploy imageJob config
 			if err := deployEraserConfig(cfg.KubeconfigFile(), "eraser-system", "test-data", "eraser_v1alpha1_imagelist.yaml"); err != nil {

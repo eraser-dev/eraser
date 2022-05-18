@@ -39,12 +39,9 @@ var (
 func TestMain(m *testing.M) {
 	utilruntime.Must(eraserv1alpha1.AddToScheme(scheme.Scheme))
 
-	cfg := envconf.New()
-	testenv = env.NewWithConfig(cfg)
+	testenv = env.NewWithConfig(envconf.New())
 	// Create KinD Cluster
 	namespace := envconf.RandomName("eraser-ns", 16)
-	// namespace := "eraser-ns-e7b64b"
-	// cfg.WithNamespace(namespace)
 	testenv.Setup(
 		envfuncs.CreateKindClusterWithConfig(kindClusterName, nodeVersion, "kind-config.yaml"),
 		envfuncs.CreateNamespace(namespace),
