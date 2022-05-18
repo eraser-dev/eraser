@@ -4,7 +4,7 @@ ORG_PATH := github.com/Azure
 PROJECT_NAME := eraser
 REPO_PATH := $(ORG_PATH)/$(PROJECT_NAME)
 BUILD_COMMIT := $(shell git rev-parse --short HEAD)
-BUILD_TIMESTAMP := $$(date +%Y-%m-%d-%H:%M)
+SOURCE_DATE_EPOCH ?= $$(shell date -u --date=$(git show -s --format=%cI HEAD) +%s)
 
 # Image URL to use all building/pushing image targets
 MANAGER_IMG ?= ghcr.io/azure/eraser-manager:${VERSION}
@@ -21,8 +21,7 @@ PLATFORM ?= linux
 # build variables
 BUILD_TIME_VAR := $(REPO_PATH)/version.BuildTime
 BUILD_VERSION_VAR := $(REPO_PATH)/version.BuildVersion
-BUILD_VCS_VAR := $(REPO_PATH)/version.Vcs
-LDFLAGS ?= "-X $(BUILD_TIME_VAR)=$(BUILD_TIMESTAMP) -X $(BUILD_VERSION_VAR)=$(VERSION) -X $(BUILD_VCS_VAR)=$(BUILD_COMMIT)"
+LDFLAGS ?= "-X $(SOURCE_DATE_EPOCH:+$(BUILD_TIME_VAR)=$(SOURCE_DATE_EPOCH)) -X $(BUILD_VERSION_VAR)=$(VERSION)"
 
 # Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
 ifeq (,$(shell go env GOBIN))
