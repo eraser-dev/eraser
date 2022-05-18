@@ -32,10 +32,10 @@ spec:
       containers:
       - args:
         - --leader-elect=false
-        - --eraser-image={{ .Values.workerImage.repository }}:{{ .Values.workerImage.tag | default .Chart.AppVersion }}
+        - --eraser-image={{ .Values.workerImage.repository }}:v{{ .Values.workerImage.tag | default .Chart.AppVersion }}
         command:
         - /manager
-        image: '{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}'
+        image: '{{ .Values.image.repository }}:v{{ .Values.image.tag | default .Chart.AppVersion }}'
         imagePullPolicy: '{{ .Values.image.pullPolicy }}'
         livenessProbe:
           httpGet:
