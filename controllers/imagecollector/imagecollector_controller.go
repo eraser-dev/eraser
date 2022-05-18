@@ -19,6 +19,7 @@ package imagecollector
 import (
 	"context"
 	"flag"
+	"time"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/cri-api/pkg/errors"
@@ -74,6 +75,13 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	if err != nil {
 		return err
 	}
+
+	// Watch for changes to ImageCollector
+	err = c.Watch(&source.Kind{Type: &eraserv1alpha1.ImageCollector{}}, &handler.EnqueueRequestForObject{})
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -122,7 +130,7 @@ func (r *ImageCollectorReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		return reconcile.Result{}, err
 	}
 
-	return ctrl.Result{}, nil
+	return ctrl.Result{RequeueAfter: time.Second * 5}, nil
 
 	// once job is complete, for each collector in imagecollector list, get list of images
 	// store image in deduplicated list
