@@ -4050,6 +4050,9 @@ spec:
               phase:
                 description: job running, successfully completed, or failed
                 type: string
+              skipped:
+                description: number of nodes that were skipped e.g. because they are not a linux node
+                type: integer
               succeeded:
                 description: number of pods that completed successfully
                 type: integer
@@ -4057,6 +4060,7 @@ spec:
             - desired
             - failed
             - phase
+            - skipped
             - succeeded
             type: object
         type: object
@@ -4118,6 +4122,10 @@ spec:
                 description: Number of nodes that failed to run the job
                 format: int64
                 type: integer
+              skipped:
+                description: Number of nodes that were skipped due to a skip selector
+                format: int64
+                type: integer
               success:
                 description: Number of nodes that successfully ran the job
                 format: int64
@@ -4128,6 +4136,7 @@ spec:
                 type: string
             required:
             - failed
+            - skipped
             - success
             - timestamp
             type: object
@@ -4213,6 +4222,32 @@ rules:
   - list
   - update
   - watch
+- apiGroups:
+  - eraser.sh
+  resources:
+  - imagecollectors
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - eraser.sh
+  resources:
+  - imagecollectors/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - eraser.sh
+  resources:
+  - imagecollectors/status
+  verbs:
+  - get
+  - patch
+  - update
 - apiGroups:
   - eraser.sh
   resources:
@@ -4358,5 +4393,7 @@ spec:
             memory: 20Mi
         securityContext:
           allowPrivilegeEscalation: false
+      nodeSelector:
+        kubernetes.io/os: linux
       serviceAccountName: eraser-controller-manager
       terminationGracePeriodSeconds: 10
