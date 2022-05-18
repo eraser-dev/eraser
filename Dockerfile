@@ -7,6 +7,9 @@ ARG STATICNONROOTBASEIMAGE="gcr.io/distroless/static:nonroot"
 ARG TARGETOS
 ARG TARGETARCH
 
+# Windows OS Version
+ARG OSVERSION=1809
+
 # Build the manager binary
 FROM --platform=$BUILDPLATFORM $BUILDERIMAGE AS builder
 WORKDIR /workspace
@@ -59,3 +62,18 @@ WORKDIR /
 COPY --from=manager-build /workspace/out/manager .
 USER 65532:65532
 ENTRYPOINT ["/manager"]
+
+FROM builder AS windows-eraser-build
+
+RUN \
+    --mount=type=cache,target=${GOCACHE} \
+    --mount=type=cache,target=/go/pkg/mod \
+    GOOS=windows GOARCH=amd64 go build -ldflags '-w -extldflags "-static"' -o out/eraser.exe ./pkg/eraser
+
+FROM --platform=$BUILDPLATFORM gcr.io/k8s-staging-e2e-test-images/windows-servercore-cache:1.0-linux-amd64-${OSVERSION} as core
+
+FROM --platform=windows/amd64 mcr.microsoft.com/windows/nanoserver:${OSVERSION} as windows
+COPY --from=windows-eraser-build /workspace/out/eraser.exe /eraser.exe
+COPY --from=core /Windows/System32/netapi32.dll /Windows/System32/netapi32.dll
+
+ENTRYPOINT ["/eraser.exe"]
