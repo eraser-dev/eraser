@@ -21,7 +21,7 @@ PLATFORM ?= linux
 # build variables
 BUILD_TIME_VAR := $(REPO_PATH)/version.BuildTime
 BUILD_VERSION_VAR := $(REPO_PATH)/version.BuildVersion
-LDFLAGS ?= "-X $(SOURCE_DATE_EPOCH:+$(BUILD_TIME_VAR)=$(SOURCE_DATE_EPOCH)) -X $(BUILD_VERSION_VAR)=$(VERSION)"
+LDFLAGS ?= "$(SOURCE_DATE_EPOCH:+-X $(BUILD_TIME_VAR)=$(SOURCE_DATE_EPOCH)) -X $(BUILD_VERSION_VAR)=$(VERSION)"
 
 # Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
 ifeq (,$(shell go env GOBIN))
