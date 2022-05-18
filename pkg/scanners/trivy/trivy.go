@@ -117,10 +117,10 @@ type (
 	}
 )
 
-func init() {
+func main() {
 	flag.Parse()
 
-	allCommaSeparatedOptions := []optionSet{
+	allCommaSeparatedOptions = []optionSet{
 		{
 			input: *severity,
 			m:     severityMap,
@@ -143,9 +143,6 @@ func init() {
 			os.Exit(generalErr)
 		}
 	}
-}
-
-func main() {
 	ctx := context.Background()
 
 	cfg, err := rest.InClusterConfig()
