@@ -1,0 +1,18 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  labels:
+    app.kubernetes.io/instance: '{{ .Release.Name }}'
+    app.kubernetes.io/managed-by: '{{ .Release.Service }}'
+    app.kubernetes.io/name: '{{ template "eraser.name" . }}'
+    helm.sh/chart: '{{ template "eraser.name" . }}'
+  name: eraser-leader-election-rolebinding
+  namespace: '{{ .Release.Namespace }}'
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: eraser-leader-election-role
+subjects:
+- kind: ServiceAccount
+  name: eraser-controller-manager
+  namespace: '{{ .Release.Namespace }}'
