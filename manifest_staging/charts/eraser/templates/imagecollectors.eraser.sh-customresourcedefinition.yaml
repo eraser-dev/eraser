@@ -5,10 +5,10 @@ metadata:
     controller-gen.kubebuilder.io/version: v0.5.0
   creationTimestamp: null
   labels:
-    app: '{{ template "eraser.name" . }}'
-    chart: '{{ template "eraser.name" . }}'
-    heritage: '{{ .Release.Service }}'
-    release: '{{ .Release.Name }}'
+    app.kubernetes.io/instance: '{{ .Release.Name }}'
+    app.kubernetes.io/managed-by: '{{ .Release.Service }}'
+    app.kubernetes.io/name: '{{ template "eraser.name" . }}'
+    helm.sh/chart: '{{ template "eraser.name" . }}'
   name: imagecollectors.eraser.sh
 spec:
   group: eraser.sh

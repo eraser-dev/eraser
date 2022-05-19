@@ -2,30 +2,30 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   labels:
-    app: '{{ template "eraser.name" . }}'
-    chart: '{{ template "eraser.name" . }}'
+    app.kubernetes.io/instance: '{{ .Release.Name }}'
+    app.kubernetes.io/managed-by: '{{ .Release.Service }}'
+    app.kubernetes.io/name: '{{ template "eraser.name" . }}'
     control-plane: controller-manager
-    heritage: '{{ .Release.Service }}'
-    release: '{{ .Release.Name }}'
+    helm.sh/chart: '{{ template "eraser.name" . }}'
   name: eraser-controller-manager
   namespace: '{{ .Release.Namespace }}'
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: '{{ template "eraser.name" . }}'
-      chart: '{{ template "eraser.name" . }}'
+      app.kubernetes.io/instance: '{{ .Release.Name }}'
+      app.kubernetes.io/managed-by: '{{ .Release.Service }}'
+      app.kubernetes.io/name: '{{ template "eraser.name" . }}'
       control-plane: controller-manager
-      heritage: '{{ .Release.Service }}'
-      release: '{{ .Release.Name }}'
+      helm.sh/chart: '{{ template "eraser.name" . }}'
   template:
     metadata:
       labels:
-        app: '{{ template "eraser.name" . }}'
-        chart: '{{ template "eraser.name" . }}'
+        app.kubernetes.io/instance: '{{ .Release.Name }}'
+        app.kubernetes.io/managed-by: '{{ .Release.Service }}'
+        app.kubernetes.io/name: '{{ template "eraser.name" . }}'
         control-plane: controller-manager
-        heritage: '{{ .Release.Service }}'
-        release: '{{ .Release.Name }}'
+        helm.sh/chart: '{{ template "eraser.name" . }}'
     spec:
       affinity:
         {{- toYaml .Values.controllerManager.affinity | nindent 8 }}
