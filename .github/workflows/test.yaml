@@ -139,9 +139,7 @@ jobs:
           make docker-build-eraser ERASER_IMG=${{ env.REGISTRY }}/${REPO}:test
 
       - name: Run trivy for eraser 
-        run: 
-          trivy image --ignore-unfixed --exit-code=1 --vuln-type=os,library ${{ env.REGISTRY }}/${REPO}:test
+        run: trivy image --ignore-unfixed --exit-code=1 --vuln-type=os,library ${{ env.REGISTRY }}/${REPO}:test
           
       - name: Run trivy for eraser-manager 
-        run: 
-          trivy image --ignore-unfixed --exit-code=1 --vuln-type=os,library ${{ env.REGISTRY }}/${REPO}-manager:test
+        run: trivy image --ignore-unfixed --exit-code=1 --vuln-type=os,library ${{ env.REGISTRY }}/${REPO}-manager:test
