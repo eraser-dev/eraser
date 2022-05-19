@@ -70,7 +70,7 @@ This tutorial demonstrates the functionality of Eraser and validates that non-ru
 
 3. Apply and delete a DaemonSet
 
-    To demonstrate the functionality of Eraser, a DaemonSet is applied and deleted so the images and stored on all nodes. This is for illustrative purposes only, and is not the recommended way to deploy `nginx`.
+    To demonstrate the functionality of Eraser, a DaemonSet is applied and deleted so the images remain on all nodes. This is for illustrative purposes only, and is not the recommended way to deploy `nginx`.
 
     In the following steps, these images will be used to verify that Eraser is removing the correct images.
 
