@@ -868,7 +868,7 @@ func TestRemoveImagesFromAllNodes(t *testing.T) {
 			err = wait.For(imagejobNotInCluster(cfg.KubeconfigFile()), wait.WithTimeout(time.Minute))
 			if err != nil {
 				// Note!!!!
-				// There is an issue: you will see this message in the logs becasue imagejob for nginx is not deleted for some reason
+				// There is an issue (#203): you will see this message in the logs becasue imagejob for nginx is not deleted for some reason				
 				// It will be cleaned in Teardown though  
 				t.Logf("error while waiting for imagejob cleanup: %v", err)
 			}
