@@ -1,0 +1,109 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  creationTimestamp: null
+  labels:
+    app.kubernetes.io/instance: '{{ .Release.Name }}'
+    app.kubernetes.io/managed-by: '{{ .Release.Service }}'
+    app.kubernetes.io/name: '{{ template "eraser.name" . }}'
+    helm.sh/chart: '{{ template "eraser.name" . }}'
+  name: eraser-manager-role
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - nodes
+  verbs:
+  - get
+  - list
+  - update
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - pods
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - update
+  - watch
+- apiGroups:
+  - eraser.sh
+  resources:
+  - imagecollectors
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - eraser.sh
+  resources:
+  - imagecollectors/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - eraser.sh
+  resources:
+  - imagecollectors/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - eraser.sh
+  resources:
+  - imagejobs
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - eraser.sh
+  resources:
+  - imagejobs/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - eraser.sh
+  resources:
+  - imagejobs/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - eraser.sh
+  resources:
+  - imagelists
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - eraser.sh
+  resources:
+  - imagelists/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - eraser.sh
+  resources:
+  - imagelists/status
+  verbs:
+  - get
+  - patch
+  - update
