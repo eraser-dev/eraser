@@ -70,12 +70,6 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		return err
 	}
 
-	// Watch for changes to ImageJob
-	err = c.Watch(&source.Kind{Type: &eraserv1alpha1.ImageJob{}}, &handler.EnqueueRequestForObject{})
-	if err != nil {
-		return err
-	}
-
 	// Watch for changes to ImageCollector
 	err = c.Watch(&source.Kind{Type: &eraserv1alpha1.ImageCollector{}}, &handler.EnqueueRequestForObject{})
 	if err != nil {
@@ -101,6 +95,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 func (r *ImageCollectorReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log.Info("ImageCollector Reconcile")
 	// periodically create imageJob with collector pods
+	// add a label to let imagejob controller know that we dont want to delete the ImageJob so that we can check the status of the job later in reconcile
 	job := &eraserv1alpha1.ImageJob{
 		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: "imagejob-",
@@ -121,6 +116,14 @@ func (r *ImageCollectorReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 			},
 		},
 	}
+
+	// ask for feedback on label, also on how to initiate the imagecollector controller process
+
+	/*
+		ImageCollector controller reads from each imageCollector CR, deduplicates, and removes excluded images/registries (by reading from configmap)
+		ToDo - image collector controller decides what to do with images that have digests but no names associated with them
+		Image collector controller creates shared imageCollector CR using deduplicated list in spec
+	*/
 
 	err := r.Create(ctx, job)
 	log.Info("creating imagejob", "job", job.Name)
