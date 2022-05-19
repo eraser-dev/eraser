@@ -46,6 +46,8 @@ This tutorial demonstrates the functionality of Eraser and validates that non-ru
 
 2. Deploy Eraser to the Cluster
 
+    Eraser can be deployed by applying the mainifest file at `https://raw.githubusercontent.com/Azure/eraser/v0.1.0/deploy/eraser.yaml`. If you prefer using [Helm](https://helm.sh/) for your deployments, see the [Eraser Helm Chart README](../manifest_staging/charts/eraser/README.md) for usage.
+
     ```bash
     $ kubectl apply -f https://raw.githubusercontent.com/Azure/eraser/v0.1.0/deploy/eraser.yaml
     namespace/eraser-system created
