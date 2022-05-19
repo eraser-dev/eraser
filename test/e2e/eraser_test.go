@@ -28,6 +28,7 @@ func TestRemoveImagesFromAllNodes(t *testing.T) {
 		nginxAliasOne = "docker.io/library/nginx:one"
 		nginxAliasTwo = "docker.io/library/nginx:two"
 		redis         = "redis"
+		redisLatest   = "docker.io/library/redis:latest"
 		caddy         = "caddy"
 
 		prune               = "imagelist"
@@ -752,9 +753,142 @@ func TestRemoveImagesFromAllNodes(t *testing.T) {
 		}).
 		Feature()
 
+	deleteImagesParallel := features.New("Remove two lists of images in parallel").
+		// Deploy 2 deployments with different images
+		Setup(func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
+			nginxDep := newDeployment(cfg.Namespace(), nginx, 1, map[string]string{"app": nginx}, corev1.Container{Image: nginx, Name: nginx})
+			if err := cfg.Client().Resources().Create(ctx, nginxDep); err != nil {
+				t.Error("Failed to create the nginx dep", err)
+			}
+
+			redisDep := newDeployment(cfg.Namespace(), redis, 1, map[string]string{"app": redis}, corev1.Container{Image: redis, Name: redis})
+			if err := cfg.Client().Resources().Create(ctx, redisDep); err != nil {
+				t.Error("Failed to create the redis dep", err)
+			}
+
+			if err := deleteImageListsAndJobs(cfg.KubeconfigFile()); err != nil {
+				t.Error("Failed to clean eraser obejcts ", err)
+			}
+
+
+			return ctx
+		}).
+		Assess("Deployments successfully deployed", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
+			client, err := cfg.NewClient()
+			if err != nil {
+				t.Error("Failed to create new client", err)
+			}
+
+			nginxDep := appsv1.Deployment{
+				ObjectMeta: metav1.ObjectMeta{Name: nginx, Namespace: cfg.Namespace()},
+			}
+
+			if err = wait.For(conditions.New(client.Resources()).DeploymentConditionMatch(&nginxDep, appsv1.DeploymentAvailable, corev1.ConditionTrue),
+				wait.WithTimeout(time.Minute*3)); err != nil {
+				t.Fatal("nginx deployment not found", err)
+			}
+			ctx = context.WithValue(ctx, nginx, &nginxDep)
+
+			redisDep := appsv1.Deployment{
+				ObjectMeta: metav1.ObjectMeta{Name: redis, Namespace: cfg.Namespace()},
+			}
+			if err = wait.For(conditions.New(client.Resources()).DeploymentConditionMatch(&redisDep, appsv1.DeploymentAvailable, corev1.ConditionTrue),
+				wait.WithTimeout(time.Minute*3)); err != nil {
+				t.Fatal("redis deployment not found", err)
+			}
+			ctx = context.WithValue(ctx, redis, &redisDep)
+
+			return ctx
+		}).
+		Assess("Remove all deployments so the images aren't running", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
+			
+			err := cfg.Client().Resources().Delete(ctx, ctx.Value(nginx).(*appsv1.Deployment))
+			if err != nil {
+				t.Fatal(err)
+			}
+			err = waitForContainersStopped(t, nginx)
+			if err != nil {
+				t.Fatal("error while waiting for deployment deletion", err)
+			}
+
+			err = cfg.Client().Resources().Delete(ctx, ctx.Value(redis).(*appsv1.Deployment))
+			if err != nil {
+				t.Fatal(err)
+			}
+			err = waitForContainersStopped(t, redis)
+			if err != nil {
+				t.Fatal("error while waiting for deployment deletion", err)
+			}
+
+			return ctx
+		}).
+		Assess("All non-running images are removed from the cluster", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
+			// Apply Nginx imagelist
+			imgList := &eraserv1alpha1.ImageList{
+				ObjectMeta: metav1.ObjectMeta{Name: prune},
+				Spec: eraserv1alpha1.ImageListSpec{
+					Images: []string{nginxLatest},
+				},
+			}
+
+			if err := cfg.Client().Resources().Create(ctx, imgList); err != nil {
+				t.Fatal(err)
+			}
+
+			// Wait until 1 imagejob is created 
+			jobs := &eraserv1alpha1.ImageJobList{}
+			err := wait.For(conditions.New(cfg.Client().Resources()).ResourceListN(
+				jobs,
+				1, 
+			))			
+			if err != nil {
+				t.Fatal("Imnage job has not been created ", err)
+			}				
+			
+			imgList.Spec = eraserv1alpha1.ImageListSpec{
+						Images: []string{redisLatest},
+				}
+
+			if err := cfg.Client().Resources().Update(ctx, imgList); err != nil {
+				t.Fatal(err)
+			}
+
+
+			// Check Redis image removed
+			ctxT, cancel := context.WithTimeout(ctx, time.Minute)
+			defer cancel()
+			checkImageRemoved(ctxT, t, getClusterNodes(t), redis)
+
+			// Check Nginx image removed
+			ctx, cancel = context.WithTimeout(ctx, time.Minute)
+			defer cancel()
+			checkImageRemoved(ctx, t, getClusterNodes(t), nginx)
+
+			// Wait for the imagejob to be completed by checking for its nonexistence in the cluster
+			err = wait.For(imagejobNotInCluster(cfg.KubeconfigFile()), wait.WithTimeout(time.Minute))
+			if err != nil {
+				// Note!!!!
+				// There is an issue: you will see this message in the logs becasue imagejob for nginx is not deleted for some reason
+				// It will be cleaned in Teardown though  
+				t.Logf("error while waiting for imagejob cleanup: %v", err)
+			}
+
+		
+			return ctx
+		}).
+		Teardown(func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
+			if err := deleteImageListsAndJobs(cfg.KubeconfigFile()); err != nil {
+				t.Error("Failed to clean eraser obejcts ", err)
+			}
+
+			return ctx
+		}).
+		Feature()	
+
 	testenv.Test(t, rmImageFeat)
 	testenv.Test(t, pruneImagesFeat)
 	testenv.Test(t, imglistChangeFeat)
 	testenv.Test(t, aliasFix)
 	testenv.Test(t, skipNodesFeat)
+	testenv.Test(t, deleteImagesParallel)
 }

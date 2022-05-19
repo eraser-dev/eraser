@@ -17,6 +17,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/kind/pkg/cluster"
+	"sigs.k8s.io/e2e-framework/klient/wait"
 )
 
 func newDeployment(namespace, name string, replicas int32, labels map[string]string, containers ...corev1.Container) *appsv1.Deployment {
@@ -322,4 +323,14 @@ func deleteStringFromSlice(strings []string, s string) []string {
 	}
 
 	return strings
+}
+
+func waitForContainersStopped(t *testing.T, containerName string) error {
+	for _, nodeName := range getClusterNodes(t) {
+		err := wait.For(containerNotPresentOnNode(nodeName, containerName), wait.WithTimeout(time.Minute*2))
+		if err != nil {
+			return err
+		}
+	}	
+	return nil
 }
