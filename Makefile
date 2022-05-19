@@ -164,8 +164,13 @@ undeploy: ## Undeploy controller from the K8s cluster specified in ~/.kube/confi
 
 release-manifest:
 	@sed -i -e 's/^VERSION := .*/VERSION := ${NEWVERSION}/' ./Makefile
+	@sed -i'' -e 's@image: $(REPOSITORY):.*@image: $(REPOSITORY):'"$(NEWVERSION)"'@' ./config/manager/manager.yaml
+	@sed -i "s/appVersion: .*/appVersion: ${NEWVERSION}/" ./third_party/open-policy-agent/gatekeeper/helmify/static/Chart.yaml
+	@sed -i "s/version: .*/version: $$(echo ${NEWVERSION} | cut -c2-)/" ./third_party/open-policy-agent/gatekeeper/helmify/static/Chart.yaml
+	@sed -i 's/Current release version: `.*`/Current release version: `'"${NEWVERSION}"'`/' ./third_party/open-policy-agent/gatekeeper/helmify/static/README.md
 	export
 	$(MAKE) manifests
+
 
 promote-staging-manifest:
 	@rm -rf deploy

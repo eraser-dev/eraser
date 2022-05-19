@@ -10,10 +10,10 @@ spec:
       - name: manager
         args:
         - --leader-elect=false
-        - --eraser-image={{ .Values.eraser.image.repository }}:v{{ .Values.eraser.image.tag | default .Chart.AppVersion }}
+        - --eraser-image={{ .Values.eraser.image.repository }}:{{ .Values.eraser.image.tag | default .Chart.AppVersion }}
         command:
         - /manager
-        image: "{{ .Values.controllerManager.image.repository }}:v{{ .Values.controllerManager.image.tag | default .Chart.AppVersion }}"
+        image: "{{ .Values.controllerManager.image.repository }}:{{ .Values.controllerManager.image.tag | default .Chart.AppVersion }}"
         imagePullPolicy: "{{ .Values.controllerManager.image.pullPolicy }}"
         livenessProbe:
           httpGet:
