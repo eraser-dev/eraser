@@ -284,13 +284,9 @@ func (r *Reconciler) handleNewJob(ctx context.Context, imageJob *eraserv1alpha1.
 	imageJob.Status = eraserv1alpha1.ImageJobStatus{
 		Desired:   len(nodes.Items),
 		Succeeded: 0,
-		Skipped:   0,
+		Skipped:   0, // placeholder, updated below
 		Failed:    0,
 		Phase:     eraserv1alpha1.PhaseRunning,
-	}
-
-	if err := r.updateJobStatus(ctx, imageJob); err != nil {
-		return err
 	}
 
 	skipped := 0
@@ -326,33 +322,22 @@ func (r *Reconciler) handleNewJob(ctx context.Context, imageJob *eraserv1alpha1.
 		return fmt.Errorf("create configmap: %w", err)
 	}
 
-nodes:
-	for i := range nodes.Items {
-		log := log.WithValues("node", nodes.Items[i].Name)
+	nodeList, skipped, err := filterOutSkippedNodes(nodes, skipNodesSelectors)
+	if err != nil {
+		return err
+	}
 
-		nodeName := nodes.Items[i].Name
-		for _, skipNodesSelector := range skipNodesSelectors {
-			skipLabels, err := labels.Parse(skipNodesSelector)
-			if err != nil {
-				return err
-			}
+	imageJob.Status.Skipped = skipped
+	if err := r.updateJobStatus(ctx, imageJob); err != nil {
+		return err
+	}
 
-			log.V(1).Info("skipLabels", "skipLabels", skipLabels)
-			log.V(1).Info("nodeLabels", "nodeLabels", nodes.Items[i].ObjectMeta.Labels)
-			if skipLabels.Matches(labels.Set(nodes.Items[i].ObjectMeta.Labels)) {
-				log.Info("node will be skipped because it matched the specified labels",
-					"nodeName", nodeName,
-					"labels", nodes.Items[i].ObjectMeta.Labels,
-					"specifiedSelectors", skipNodesSelectors,
-				)
-
-				skipped++
-				continue nodes
-			}
-		}
-
-		runtime := nodes.Items[i].Status.NodeInfo.ContainerRuntimeVersion
+	for i := range nodeList {
+		log := log.WithValues("node", nodeList[i].Name)
+		nodeName := nodeList[i].Name
+		runtime := nodeList[i].Status.NodeInfo.ContainerRuntimeVersion
 		runtimeName := strings.Split(runtime, ":")[0]
+
 		mountPath := getMountPath(runtimeName)
 		if mountPath == "" {
 			log.Error(fmt.Errorf("incompatible runtime on node"), "incompatible runtime")
@@ -411,7 +396,7 @@ nodes:
 			},
 		}
 
-		fitness := checkNodeFitness(pod, &nodes.Items[i])
+		fitness := checkNodeFitness(pod, &nodeList[i])
 
 		if !fitness {
 			log.Info("Eraser pod does not fit on node, skipping")
@@ -469,4 +454,39 @@ func (r *Reconciler) updateJobStatus(ctx context.Context, imageJob *eraserv1alph
 		}
 	}
 	return nil
+}
+
+func filterOutSkippedNodes(nodes *corev1.NodeList, skipNodesSelectors []string) ([]corev1.Node, int, error) {
+	skipped := 0
+	nodeList := make([]corev1.Node, 0, len(nodes.Items))
+
+nodes:
+	for i := range nodes.Items {
+		log := log.WithValues("node", nodes.Items[i].Name)
+
+		nodeName := nodes.Items[i].Name
+		for _, skipNodesSelector := range skipNodesSelectors {
+			skipLabels, err := labels.Parse(skipNodesSelector)
+			if err != nil {
+				return nil, -1, err
+			}
+
+			log.V(1).Info("skipLabels", "skipLabels", skipLabels)
+			log.V(1).Info("nodeLabels", "nodeLabels", nodes.Items[i].ObjectMeta.Labels)
+			if skipLabels.Matches(labels.Set(nodes.Items[i].ObjectMeta.Labels)) {
+				log.Info("node will be skipped because it matched the specified labels",
+					"nodeName", nodeName,
+					"labels", nodes.Items[i].ObjectMeta.Labels,
+					"specifiedSelectors", skipNodesSelectors,
+				)
+
+				skipped++
+				continue nodes
+			}
+		}
+
+		nodeList = append(nodeList, nodes.Items[i])
+	}
+
+	return nodeList, skipped, nil
 }
