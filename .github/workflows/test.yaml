@@ -8,6 +8,8 @@ on:
     paths-ignore:
       - "**.md"
       - "hack/**"
+env:
+  REGISTRY: ghcr.io
 
 permissions:
   contents: read
@@ -104,3 +106,40 @@ jobs:
         run: make docker-build-eraser CACHE_FROM=type=gha,scope=eraser-node CACHE_TO=type=gha,scope=eraser-node,mode=max
       - name: Run e2e test
         run: make e2e-test
+
+  scan_vulnerabilities:
+    name: "[Trivy] Scan for vulnerabilities"
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - name: Check out code into the Go module directory
+        uses: actions/checkout@v3
+
+      - name: Get repo
+        run: |
+          echo "REPO=$(echo $GITHUB_REPOSITORY | awk '{print tolower($0)}')" >> $GITHUB_ENV
+
+      - name: Download trivy
+        run: |
+          pushd $(mktemp -d)
+          wget https://github.com/aquasecurity/trivy/releases/download/v${{ env.TRIVY_VERSION }}/trivy_${{ env.TRIVY_VERSION }}_Linux-64bit.tar.gz
+          tar zxvf trivy_${{ env.TRIVY_VERSION }}_Linux-64bit.tar.gz
+          echo "$(pwd)" >> $GITHUB_PATH
+        env:
+          TRIVY_VERSION: "0.28.0"
+
+      - name: Build eraser-manager
+        run: |
+          make docker-build-manager MANAGER_IMG=${{ env.REGISTRY }}/${REPO}-manager:test
+
+      - name: Build eraser
+        run: |
+          make docker-build-eraser ERASER_IMG=${{ env.REGISTRY }}/${REPO}:test
+
+      - name: Run trivy for eraser 
+        run: trivy image --ignore-unfixed --exit-code=1 --vuln-type=os,library ${{ env.REGISTRY }}/${REPO}:test
+          
+      - name: Run trivy for eraser-manager 
+        run: trivy image --ignore-unfixed --exit-code=1 --vuln-type=os,library ${{ env.REGISTRY }}/${REPO}-manager:test
