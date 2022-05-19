@@ -28,7 +28,7 @@ This tutorial demonstrates the functionality of Eraser and validates that non-ru
 
     A successful cluster creation should produce an output similar to the one below.
 
-    ```shell
+    ```bash
     Creating cluster "kind" ...
     ✓ Ensuring node image (kindest/node:v1.24.0) 🖼
     ✓ Preparing nodes 📦 📦 📦  
@@ -95,7 +95,7 @@ This tutorial demonstrates the functionality of Eraser and validates that non-ru
 
     Verify the pods are running:
 
-    ```shell
+    ```bash
     $ kubectl get pods
     NAME             READY   STATUS    RESTARTS   AGE
     nginx-ds-g94gr   1/1     Running   0          15s
@@ -104,14 +104,14 @@ This tutorial demonstrates the functionality of Eraser and validates that non-ru
 
     Delete the DaemonSet:
 
-    ```shell
+    ```bash
     $ kubectl delete daemonset nginx-ds
     deployment.apps "nginx-ds" deleted
     ```
 
     Verify the pods have been deleted:
 
-    ```shell
+    ```bash
     $ kubectl get pods
     No resources found in default namespace.
     ```
@@ -121,7 +121,7 @@ This tutorial demonstrates the functionality of Eraser and validates that non-ru
     To verify that the `nginx` images are still on the nodes, exec into one of the worker nodes and list the images. If you are not using a `kind` cluster or `Docker` for your container nodes, you will need to adjust the exec command accordingly. 
 
     List the nodes:
-    ```shell
+    ```bash
     $ kubectl get nodes
     NAME                 STATUS   ROLES           AGE   VERSION
     kind-control-plane   Ready    control-plane   45m   v1.24.0
@@ -131,7 +131,7 @@ This tutorial demonstrates the functionality of Eraser and validates that non-ru
 
     List the images then filter for nginx:
 
-    ``` shell
+    ``` bash
     $ docker exec kind-worker ctr -n k8s.io images list | grep nginx
     docker.io/library/nginx:1.14.2                                                                  application/vnd.docker.distribution.manifest.list.v2+json sha256:f7988fb6c02e0ce69257d9bd9cf37ae20a60f1df7563c3a2a6abe24160306b8d 42.6 MiB  linux/386,linux/amd64,linux/arm/v7,linux/arm64/v8,linux/ppc64le,linux/s390x  io.cri-containerd.image=managed 
     docker.io/library/nginx@sha256:f7988fb6c02e0ce69257d9bd9cf37ae20a60f1df7563c3a2a6abe24160306b8d application/vnd.docker.distribution.manifest.list.v2+json sha256:f7988fb6c02e0ce69257d9bd9cf37ae20a60f1df7563c3a2a6abe24160306b8d 42.6 MiB  linux/386,linux/amd64,linux/arm/v7,linux/arm64/v8,linux/ppc64le,linux/s390x  io.cri-containerd.image=managed 
@@ -175,14 +175,14 @@ This tutorial demonstrates the functionality of Eraser and validates that non-ru
     eraser-system        eraser-kind-worker2                          0/1     Completed   0          22s
     ```
 
-    The `imagelist` custom resource status field will contain the status of the last job.
+    The `imagelist` custom resource status field will contain the status of the last job. The success and failure counts indicate the number of nodes the Eraser agent was run on.
 
     ```bash
     $ kubectl describe ImageList imagelist
     ...
     Status:
       Failed:     0
-      Success:    3
+      Success:    3 
       Timestamp:  2022-02-25T23:41:55Z
     ...
     ```
@@ -195,7 +195,7 @@ This tutorial demonstrates the functionality of Eraser and validates that non-ru
 
 6. Verify the unused images are removed
 
-    ``` shell
+    ``` bash
     docker exec kind-worker ctr -n k8s.io images list | grep nginx
     ```
 
@@ -203,6 +203,6 @@ This tutorial demonstrates the functionality of Eraser and validates that non-ru
 
 7. Tear down your cluster
 
-    ```shell
+    ```bash
     kind delete cluster
     ```
