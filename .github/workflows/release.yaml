@@ -53,14 +53,6 @@ jobs:
           CACHE_TO=type=gha,scope=eraser-node,mode=max \
           ERASER_IMG=${{ env.REGISTRY }}/${REPO}:${TAG}
 
-      - name: Build eraser for Windows
-        run: make docker-build-windows-all \
-          CACHE_FROM=type=gha,scope=eraser-node \
-          CACHE_TO=type=gha,scope=eraser-node,mode=max \
-          REGISTRY=${{ env.REGISTRY }} \
-          REPO=${REPO} \
-          VERSION=${TAG}
-
       - name: Log in to the GHCR
         uses: docker/login-action@v2
         with:
@@ -72,7 +64,6 @@ jobs:
         run: |
           make docker-push-manager MANAGER_IMG=${{ env.REGISTRY }}/${REPO}-manager:${TAG}
           make docker-push-eraser ERASER_IMG=${{ env.REGISTRY }}/${REPO}:${TAG}
-          make docker-push-windows-all REGISTRY=${{ env.REGISTRY }} REPO=${REPO} VERSION=${TAG}
 
       - name: Create GitHub release
         uses: "marvinpinto/action-automatic-releases@v1.2.1"

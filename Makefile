@@ -18,7 +18,7 @@ GOLANGCI_LINT_VERSION := 1.43.0
 
 PLATFORM ?= linux
 
-ALL_OSVERSIONS.windows := 1809 1903 1909 2004 ltsc2022
+ALL_OSVERSIONS.windows := 1809 ltsc2022
 
 # Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
 ifeq (,$(shell go env GOBIN))
