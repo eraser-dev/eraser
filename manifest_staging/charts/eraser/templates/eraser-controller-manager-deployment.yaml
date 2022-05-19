@@ -28,15 +28,15 @@ spec:
         release: '{{ .Release.Name }}'
     spec:
       affinity:
-        {{- toYaml .Values.affinity | nindent 8 }}
+        {{- toYaml .Values.controllerManager.affinity | nindent 8 }}
       containers:
       - args:
         - --leader-elect=false
-        - --eraser-image={{ .Values.workerImage.repository }}:v{{ .Values.workerImage.tag | default .Chart.AppVersion }}
+        - --eraser-image={{ .Values.eraser.image.repository }}:v{{ .Values.eraser.image.tag | default .Chart.AppVersion }}
         command:
         - /manager
-        image: '{{ .Values.image.repository }}:v{{ .Values.image.tag | default .Chart.AppVersion }}'
-        imagePullPolicy: '{{ .Values.image.pullPolicy }}'
+        image: '{{ .Values.controllerManager.image.repository }}:v{{ .Values.controllerManager.image.tag | default .Chart.AppVersion }}'
+        imagePullPolicy: '{{ .Values.controllerManager.image.pullPolicy }}'
         livenessProbe:
           httpGet:
             path: /healthz
@@ -51,12 +51,12 @@ spec:
           initialDelaySeconds: 5
           periodSeconds: 10
         resources:
-          {{- toYaml .Values.resources | nindent 10 }}
+          {{- toYaml .Values.controllerManager.resources | nindent 10 }}
         securityContext:
           allowPrivilegeEscalation: false
       nodeSelector:
-        {{- toYaml .Values.nodeSelector | nindent 8 }}
+        {{- toYaml .Values.controllerManager.nodeSelector | nindent 8 }}
       serviceAccountName: eraser-controller-manager
       terminationGracePeriodSeconds: 10
       tolerations:
-        {{- toYaml .Values.tolerations | nindent 8 }}
+        {{- toYaml .Values.controllerManager.tolerations | nindent 8 }}
