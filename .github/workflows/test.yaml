@@ -131,22 +131,17 @@ jobs:
           TRIVY_VERSION: "0.28.0"
 
       - name: Build eraser-manager
-        run: make docker-build-manager \
-          OUTPUT_TYPE=type=docker \
-          CACHE_FROM=type=gha,scope=eraser-manager \
-          CACHE_TO=type=gha,scope=eraser-manager,mode=max \
-          MANAGER_IMG=${{ env.REGISTRY }}/${REPO}-manager:test
+        run: |
+          make docker-build-manager MANAGER_IMG=${{ env.REGISTRY }}/${REPO}-manager:test
 
       - name: Build eraser
-        run: make docker-build-eraser \
-          ERASER_IMG=${{ env.REGISTRY }}/${REPO}:test
+        run: |
+          make docker-build-eraser ERASER_IMG=${{ env.REGISTRY }}/${REPO}:test
 
       - name: Run trivy for eraser 
         run: 
-          trivy image --ignore-unfixed --exit-code=1 \
-          --vuln-type=os,library ${{ env.REGISTRY }}/${REPO}:test
+          trivy image --ignore-unfixed --exit-code=1 --vuln-type=os,library ${{ env.REGISTRY }}/${REPO}:test
           
       - name: Run trivy for eraser-manager 
         run: 
-          trivy image --ignore-unfixed --exit-code=1 \
-          --vuln-type=os,library ${{ env.REGISTRY }}/${REPO}-manager:test
+          trivy image --ignore-unfixed --exit-code=1 --vuln-type=os,library ${{ env.REGISTRY }}/${REPO}-manager:test
