@@ -68,7 +68,7 @@ This tutorial demonstrates the functionality of Eraser and validates that non-ru
 
 3. Apply and delete a DaemonSet
 
-    Applying and deleting a DaemonSet will leave unused images on the nodes where it was deployed. For this example, an `ngnix` DaemonSet will be used. In following steps, these images will be used to verify that Eraser is removing the correct images.
+    Applying and deleting a DaemonSet will leave unused images on the nodes where it was deployed. For this example, an `nginx` DaemonSet will be used. In the following steps, these images will be used to verify that Eraser is removing the correct images.
 
     ```bash
     cat <<EOF | kubectl apply -f -
