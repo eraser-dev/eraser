@@ -70,7 +70,7 @@ This tutorial demonstrates the functionality of Eraser and validates that non-ru
 
 3. Apply and delete a DaemonSet
 
-    To demonstrate the functionality of Eraser, a DaemonSet is applied and deleted so the images remain on all nodes. This is for illustrative purposes only, and is not the recommended way to deploy `nginx`.
+    For illustrative purposes, a DaemonSet is applied and deleted so the non-running images remain on all nodes. The [Docker official hello-world image](https://hub.docker.com/_/hello-world) with the `latest` tag will be used in this example. However, it is not recommended to use `latest` in a production environment and is only used to demonstrate the Eraser functionality.
 
     In the following steps, these images will be used to verify that Eraser is removing the correct images.
 
@@ -79,38 +79,36 @@ This tutorial demonstrates the functionality of Eraser and validates that non-ru
     apiVersion: apps/v1
     kind: DaemonSet
     metadata:
-      name: nginx-ds
+      name: hello-world
     spec:
       selector:
         matchLabels:
-          app: nginx
+          app: hello-world
       template:
         metadata:
           labels:
-            app: nginx
+            app: hello-world
         spec:
           containers:
-          - name: nginx
-            image: nginx:1.14.2
-            ports:
-            - containerPort: 80
+          - name: hello-world
+            image: hello-world:latest
     EOF
     ```
 
-    Verify the pods are running:
+    Verify the pods are running or completed. After the `hello-world` pods complete, you may see a `CrashLoopBackOff` status. This is expected behavior from the `hello-world` image and can be ignored for the purposes of this tutorial.
 
     ```bash
     $ kubectl get pods
-    NAME             READY   STATUS    RESTARTS   AGE
-    nginx-ds-g94gr   1/1     Running   0          15s
-    nginx-ds-s92q5   1/1     Running   0          15s
+    NAME                READY   STATUS      RESTARTS     AGE
+    hello-world-2gh9c   1/1     Running     1 (3s ago)   6s
+    hello-world-hljp9   0/1     Completed   1 (3s ago)   6s
     ```
 
     Delete the DaemonSet:
 
     ```bash
-    $ kubectl delete daemonset nginx-ds
-    deployment.apps "nginx-ds" deleted
+    $ kubectl delete daemonset hello-world
+    daemonset.apps "hello-world" deleted
     ```
 
     Verify the pods have been deleted:
@@ -122,7 +120,7 @@ This tutorial demonstrates the functionality of Eraser and validates that non-ru
 
 4. List images on a worker node
 
-    To verify that the `nginx` images are still on the nodes, exec into one of the worker nodes and list the images. If you are not using a `kind` cluster or `Docker` for your container nodes, you will need to adjust the exec command accordingly. 
+    To verify that the `hello-world` images are still on the nodes, exec into one of the worker nodes and list the images. If you are not using a `kind` cluster or `Docker` for your container nodes, you will need to adjust the exec command accordingly. 
 
     List the nodes:
     ```bash
@@ -136,14 +134,14 @@ This tutorial demonstrates the functionality of Eraser and validates that non-ru
     List the images then filter for nginx:
 
     ``` bash
-    $ docker exec kind-worker ctr -n k8s.io images list | grep nginx
-    docker.io/library/nginx:1.14.2                                                                  application/vnd.docker.distribution.manifest.list.v2+json sha256:f7988fb6c02e0ce69257d9bd9cf37ae20a60f1df7563c3a2a6abe24160306b8d 42.6 MiB  linux/386,linux/amd64,linux/arm/v7,linux/arm64/v8,linux/ppc64le,linux/s390x  io.cri-containerd.image=managed 
-    docker.io/library/nginx@sha256:f7988fb6c02e0ce69257d9bd9cf37ae20a60f1df7563c3a2a6abe24160306b8d application/vnd.docker.distribution.manifest.list.v2+json sha256:f7988fb6c02e0ce69257d9bd9cf37ae20a60f1df7563c3a2a6abe24160306b8d 42.6 MiB  linux/386,linux/amd64,linux/arm/v7,linux/arm64/v8,linux/ppc64le,linux/s390x  io.cri-containerd.image=managed 
+    $ docker exec kind-worker ctr -n k8s.io images list | grep hello-world
+    docker.io/library/hello-world:latest                                                                  application/vnd.docker.distribution.manifest.list.v2+json sha256:80f31da1ac7b312ba29d65080fddf797dd76acfb870e677f390d5acba9741b17 6.9 KiB   linux/386,linux/amd64,linux/arm/v5,linux/arm/v7,linux/arm64/v8,linux/mips64le,linux/ppc64le,linux/riscv64,linux/s390x,windows/amd64 io.cri-containerd.image=managed 
+    docker.io/library/hello-world@sha256:80f31da1ac7b312ba29d65080fddf797dd76acfb870e677f390d5acba9741b17 application/vnd.docker.distribution.manifest.list.v2+json sha256:80f31da1ac7b312ba29d65080fddf797dd76acfb870e677f390d5acba9741b17 6.9 KiB   linux/386,linux/amd64,linux/arm/v5,linux/arm/v7,linux/arm64/v8,linux/mips64le,linux/ppc64le,linux/riscv64,linux/s390x,windows/amd64 io.cri-containerd.image=managed 
     ```
 
 5. Create an ImageList
 
-    Create an [ImageList](../test/e2e/test-data/eraser_v1alpha1_imagelist.yaml) and specify the images you would like to remove. In this case, the image `docker.io/library/nginx:1.14.2` will be removed.
+    Create an [ImageList](../test/e2e/test-data/eraser_v1alpha1_imagelist.yaml) and specify the images you would like to remove. In this case, the image `docker.io/library/nginx:latest` will be removed.
 
       ```bash
       cat <<EOF | kubectl apply -f -
@@ -153,7 +151,7 @@ This tutorial demonstrates the functionality of Eraser and validates that non-ru
         name: imagelist
       spec:
         images:
-          - docker.io/library/nginx:1.14.2
+          - docker.io/library/hello-world:latest
       EOF
       ```
 
@@ -200,7 +198,7 @@ This tutorial demonstrates the functionality of Eraser and validates that non-ru
 6. Verify the unused images are removed
 
     ``` bash
-    docker exec kind-worker ctr -n k8s.io images list | grep nginx
+    docker exec kind-worker ctr -n k8s.io images list | grep hello-world
     ```
 
     If the image has been successfully removed, there will be no output. 
