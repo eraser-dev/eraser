@@ -84,9 +84,13 @@ manifests: __controller-gen
 		output:crd:artifacts:config=config/crd/bases
 	rm -rf manifest_staging
 	mkdir -p manifest_staging/deploy
+	mkdir -p manifest_staging/charts/eraser
 	docker run --rm -v $(shell pwd):/eraser \
 		k8s.gcr.io/kustomize/kustomize:v${KUSTOMIZE_VERSION} build \
 		/eraser/config/default -o /eraser/manifest_staging/deploy/eraser.yaml
+	docker run --rm -v $(shell pwd):/eraser \
+		k8s.gcr.io/kustomize/kustomize:v${KUSTOMIZE_VERSION} build \
+		--load_restrictor LoadRestrictionsNone /eraser/third_party/open-policy-agent/gatekeeper/helmify | go run third_party/open-policy-agent/gatekeeper/helmify/*.go
 
 ## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations.
 generate: __controller-gen
@@ -160,13 +164,19 @@ undeploy: ## Undeploy controller from the K8s cluster specified in ~/.kube/confi
 
 release-manifest:
 	@sed -i -e 's/^VERSION := .*/VERSION := ${NEWVERSION}/' ./Makefile
+	@sed -i'' -e 's@image: $(REPOSITORY):.*@image: $(REPOSITORY):'"$(NEWVERSION)"'@' ./config/manager/manager.yaml
+	@sed -i "s/appVersion: .*/appVersion: ${NEWVERSION}/" ./third_party/open-policy-agent/gatekeeper/helmify/static/Chart.yaml
+	@sed -i "s/version: .*/version: $$(echo ${NEWVERSION} | cut -c2-)/" ./third_party/open-policy-agent/gatekeeper/helmify/static/Chart.yaml
+	@sed -i 's/Current release version: `.*`/Current release version: `'"${NEWVERSION}"'`/' ./third_party/open-policy-agent/gatekeeper/helmify/static/README.md
 	export
 	$(MAKE) manifests
+
 
 promote-staging-manifest:
 	@rm -rf deploy
 	@cp -r manifest_staging/deploy .
-
+	@rm -rf charts
+	@cp -r manifest_staging/charts .
 
 ENVTEST = $(shell pwd)/bin/setup-envtest
 .PHONY: envtest
