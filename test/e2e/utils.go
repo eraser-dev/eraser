@@ -296,6 +296,16 @@ func kindLoadImage(clusterName, image string) (string, error) {
 	return output, err
 }
 
+func deleteImageListsAndJobs(kubeConfig string) error {
+	if err := KubectlDelete(kubeConfig, "eraser-system", []string{"imagejob", "--all"}); err != nil {
+		return err
+	}
+	if err := KubectlDelete(kubeConfig, "eraser-system", []string{"imagelist", "--all"}); err != nil {
+		return err
+	}
+	return nil
+}
+
 func deleteStringFromSlice(strings []string, s string) []string {
 	idx := -1
 	for i, cmp := range strings {
