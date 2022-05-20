@@ -133,7 +133,7 @@ run: manifests generate fmt vet ## Run a controller from your host.
 	go run ./main.go
 
 docker-build-manager: ## Build docker image with the manager.
-	docker buildx build \ 
+	docker buildx build \
 		$(_CACHE_FROM) $(_CACHE_TO) \
 		--build-arg LDFLAGS=$(LDFLAGS) \
 		--platform="$(PLATFORM)" \
