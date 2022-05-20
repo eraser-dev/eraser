@@ -36,13 +36,16 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
+	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
+	"github.com/Azure/eraser/controllers/util"
 	"github.com/Azure/eraser/pkg/logger"
 )
 
@@ -107,7 +110,20 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	}
 
 	// Watch for changes to ImageJob
-	err = c.Watch(&source.Kind{Type: &eraserv1alpha1.ImageJob{}}, &handler.EnqueueRequestForObject{})
+	err = c.Watch(&source.Kind{Type: &eraserv1alpha1.ImageJob{}}, &handler.EnqueueRequestForObject{}, predicate.Funcs{
+		UpdateFunc: func(e event.UpdateEvent) bool {
+			if job, ok := e.ObjectNew.(*eraserv1alpha1.ImageJob); ok &&
+				job.Status.Phase == eraserv1alpha1.PhaseCompleted ||
+				job.Status.Phase == eraserv1alpha1.PhaseFailed {
+				return false // handled by Owning controller
+			}
+
+			return true
+		},
+		CreateFunc:  util.AlwaysOnCreate,
+		GenericFunc: util.NeverOnGeneric,
+		DeleteFunc:  util.NeverOnDelete,
+	})
 	if err != nil {
 		return err
 	}
@@ -174,27 +190,12 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 			return ctrl.Result{}, fmt.Errorf("reconcile running: %w", err)
 		}
 	case eraserv1alpha1.PhaseCompleted, eraserv1alpha1.PhaseFailed:
-		return r.handleCompletedJob(ctx, imageJob)
+		break // this is handled by the Owning controller
 	default:
 		return ctrl.Result{}, fmt.Errorf("reconcile: unexpected imagejob phase: %s", imageJob.Status.Phase)
 	}
 
 	return ctrl.Result{}, nil
-}
-
-func (r *Reconciler) handleCompletedJob(ctx context.Context, j *eraserv1alpha1.ImageJob) (ctrl.Result, error) {
-	if j.Status.DeleteAfter == nil {
-		return ctrl.Result{}, nil
-	}
-
-	until := time.Until(j.Status.DeleteAfter.Time)
-	if until > 0 {
-		log.Info("Delaying imagejob delete", "job", j.Name, "deleteAter", j.Status.DeleteAfter)
-		return ctrl.Result{RequeueAfter: until}, nil
-	}
-
-	log.Info("Deleting imagejob", "job", j.Name)
-	return ctrl.Result{}, r.Delete(ctx, j)
 }
 
 func podListOptions(j *eraserv1alpha1.ImageJob) client.ListOptions {
@@ -251,19 +252,7 @@ func (r *Reconciler) handleRunningJob(ctx context.Context, imageJob *eraserv1alp
 		return err
 	}
 
-	imageList := &eraserv1alpha1.ImageList{}
-	err = r.Get(ctx, types.NamespacedName{Name: imageJob.OwnerReferences[0].Name}, imageList)
-	if err != nil {
-		return err
-	}
-
-	now := metav1.Now()
-	imageList.Status.Timestamp = &now
-	imageList.Status.Skipped = int64(skipped)
-	imageList.Status.Success = int64(success)
-	imageList.Status.Failed = int64(failed)
-
-	return r.Status().Update(ctx, imageList)
+	return nil
 }
 
 func after(t time.Time, seconds int64) *metav1.Time {
