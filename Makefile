@@ -5,7 +5,7 @@ PROJECT_NAME := eraser
 REPO_PATH := $(ORG_PATH)/$(PROJECT_NAME)
 BUILD_COMMIT := $(shell git rev-parse --short HEAD)
 COMMIT_STATUS ?= $(shell test -n "$(git status --porcelain)")
-BUILD_COMMIT_STATUS ?= $(if $(COMMIT_STATUS), $(BUILD_COMMIT), "$(BUILD_COMMIT)-dirty")
+BUILD_COMMIT_STATUS ?= $(if $(COMMIT_STATUS),$(BUILD_COMMIT),$(BUILD_COMMIT)-dirty)
 
 # Image URL to use all building/pushing image targets
 MANAGER_IMG ?= ghcr.io/azure/eraser-manager:${VERSION}
