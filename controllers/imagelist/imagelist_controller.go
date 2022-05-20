@@ -16,10 +16,12 @@ package imagelist
 import (
 	"context"
 	"flag"
+	"fmt"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -33,6 +35,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
+	"github.com/Azure/eraser/controllers/consts"
 )
 
 var (
@@ -92,13 +95,45 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
-	// If there is a change in ImageList, start ImageJob to trigger removal
+	// If there is already an imageJob that we own, do not create a new one.
+	jobList := eraserv1alpha1.ImageJobList{}
+	err = r.List(ctx, &jobList, &client.ListOptions{LabelSelector: labels.SelectorFromSet(
+		map[string]string{
+			consts.ImageJobOwnerLabelKey: imageList.Name,
+		},
+	)})
+	if client.IgnoreNotFound(err) != nil {
+		return ctrl.Result{}, err
+	}
+
+	// TODO: if there has been a jobList update, handle it, skip creating a new job,
+	// and terminate this reconciliation.
+	switch len(jobList.Items) {
+	case 0:
+		// create an ImageJob
+		break
+	case 1:
+		job := jobList.Items[0]
+		if job.Status.Phase != eraserv1alpha1.PhaseCompleted {
+			return ctrl.Result{}, nil
+		}
+		// TODO: Extract succeeded, skipped, failed, from status and update
+		// ImageList status
+
+		// TODO: Clean up ImageJob
+		return ctrl.Result{}, nil
+	default:
+		return ctrl.Result{}, fmt.Errorf("there are multiple child imagejobs running")
+	}
+
+	// By this point, the predicate has filtered out status updates.
 	job := &eraserv1alpha1.ImageJob{
 		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: "imagejob-",
 			OwnerReferences: []metav1.OwnerReference{
 				*metav1.NewControllerRef(imageList, imageList.GroupVersionKind()),
 			},
+			Labels: map[string]string{consts.ImageJobOwnerLabelKey: imageList.Name},
 		},
 		Spec: eraserv1alpha1.ImageJobSpec{
 			JobTemplate: corev1.PodTemplateSpec{
@@ -141,6 +176,16 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	err = c.Watch(
 		&source.Kind{Type: &eraserv1alpha1.ImageList{}},
 		&handler.EnqueueRequestForObject{}, predicate.GenerationChangedPredicate{})
+	if err != nil {
+		return err
+	}
+	err = c.Watch(
+		&source.Kind{Type: &eraserv1alpha1.ImageJob{}},
+		&handler.EnqueueRequestForOwner{OwnerType: &eraserv1alpha1.ImageList{}, IsController: true},
+		predicate.NewPredicateFuncs(func(o client.Object) bool {
+			return false
+		}),
+	)
 	if err != nil {
 		return err
 	}
