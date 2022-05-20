@@ -37,7 +37,7 @@ FROM builder AS eraser-build
 RUN \
     --mount=type=cache,target=${GOCACHE} \
     --mount=type=cache,target=/go/pkg/mod \
-    GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -ldflags '${LDFLAGS:+"$LDFLAGS"} -w -extldflags "-static"' -o out/eraser ./pkg/eraser
+    GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build ${LDFLAGS:+-ldflags "$LDFLAGS"} -o out/eraser ./pkg/eraser
 
 FROM --platform=$BUILDPLATFORM $STATICBASEIMAGE as eraser
 COPY --from=eraser-build /workspace/out/eraser /
