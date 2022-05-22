@@ -1,25 +1,30 @@
 # Eraser Tiltfile.
-## https://docs.tilt.dev/install.html
-### This is a python file. Change Text editor file association for Syntax highlighting.
 
 print("""
 -----------------------------------------------------------------
-ERASER(📒 ✏️) Assumes docker installed, a kind cluster instantiated and kubectl in the right context. More on Tilt: https://docs.tilt.dev/install.html
+ERASER(📒 ✏️) Assumes docker installed, a kind cluster instantiated and kubectl in the right context.
 -----------------------------------------------------------------
 """.strip())
 
-docker_build('eraser-build', context='.')
+# build image and push into local registry.
+docker_build('localhost:5001/eraser-local', context='.')
 
-k8s_yaml('./deploy/eraser.yaml')
+objects = read_yaml_stream('./deploy/eraser.yaml')
 
-# add further deployments above.
+## point deployment yaml at local image in registry.
+for o in objects:
+    if o['kind'] == 'Deployment':
+        o['spec']['template']['spec']['containers'][0]['args'][1]= "--eraser-image=localhost:5001/eraser-local"
+        o['spec']['template']['spec']['containers'][0]['image'] = 'localhost:5001/eraser-local'
+
+## deploy
+k8s_yaml(encode_yaml_stream(objects))
+
+# add further deployments above. Reference sample tilt file. or https://docs.tilt.dev/install.html
 
 local_resource('Kubectl get pods',cmd='kubectl get pods -A')
-local_resource('Kubectl get imageList',cmd='kubectl get ImageList -A')
-local_resource('Kubectl describe imageList',cmd='kubectl describe ImageList imagelist -A')
 
-# Extensions are open-source, pre-packaged functions that extend Tilt
-#
-#   More info: https://github.com/tilt-dev/tilt-extensions
+## This should be a failure until you have applied imageList to your cluster.
+local_resource('Kubectl get imageList',cmd='kubectl get ImageList')
 
-load('ext://git_resource', 'git_checkout')
+local_resource('Kubectl describe imageList',cmd='kubectl describe ImageList imagelist')
