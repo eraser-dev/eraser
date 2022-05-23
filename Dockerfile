@@ -37,10 +37,6 @@ RUN \
     --mount=type=cache,target=/go/pkg/mod \
     GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -ldflags '-w -extldflags "-static"' -o out/eraser ./pkg/eraser
 
-FROM --platform=$BUILDPLATFORM $STATICBASEIMAGE as eraser
-COPY --from=eraser-build /workspace/out/eraser /
-ENTRYPOINT ["/eraser"]
-
 FROM builder AS collector-build
 
 RUN \
@@ -48,13 +44,17 @@ RUN \
     --mount=type=cache,target=/go/pkg/mod \
     GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -o out/collector ./pkg/collector
 
-FROM --platform=$BUILDPLATFORM $STATICBASEIMAGE as collector
+FROM --platform=$TARGETPLATFORM $STATICBASEIMAGE as collector
 COPY --from=collector-build /workspace/out/collector /
 ENTRYPOINT ["/collector"]
 
+FROM --platform=$TARGETPLATFORM $STATICBASEIMAGE as eraser
+COPY --from=eraser-build /workspace/out/eraser /
+ENTRYPOINT ["/eraser"]
+
 # Use distroless as minimal base image to package the manager binary
 # Refer to https://github.com/GoogleContainerTools/distroless for more details
-FROM --platform=$BUILDPLATFORM $STATICNONROOTBASEIMAGE AS manager
+FROM --platform=$TARGETPLATFORM $STATICNONROOTBASEIMAGE AS manager
 WORKDIR /
 COPY --from=manager-build /workspace/out/manager .
 USER 65532:65532
