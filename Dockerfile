@@ -55,6 +55,7 @@ ENTRYPOINT ["/eraser"]
 # Use distroless as minimal base image to package the manager binary
 # Refer to https://github.com/GoogleContainerTools/distroless for more details
 FROM --platform=$TARGETPLATFORM $STATICNONROOTBASEIMAGE AS manager
+WORKDIR /
 COPY --from=manager-build /workspace/out/manager .
 USER 65532:65532
 ENTRYPOINT ["/manager"]
