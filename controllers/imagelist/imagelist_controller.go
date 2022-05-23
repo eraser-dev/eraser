@@ -22,7 +22,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -99,20 +98,18 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	}
 
 	jobList := eraserv1alpha1.ImageJobList{}
-	err = r.List(ctx, &jobList, &client.ListOptions{LabelSelector: labels.SelectorFromSet(
-		map[string]string{
-			consts.ImageJobOwnerLabelKey: imageList.Name,
-		},
-	)})
+	err = r.List(ctx, &jobList)
 	if client.IgnoreNotFound(err) != nil {
 		return ctrl.Result{}, err
 	}
 
-	switch len(jobList.Items) {
+	items := util.FilterJobListByOwner(jobList.Items, *metav1.NewControllerRef(&imageList, imageList.GroupVersionKind()))
+
+	switch len(items) {
 	case 0:
 		return r.handleImageListEvent(ctx, &req, &imageList)
 	case 1:
-		job := jobList.Items[0]
+		job := items[0]
 
 		// If we got here because of a completed ImageJob:
 		if util.IsCompletedOrFailed(job.Status.Phase) {
