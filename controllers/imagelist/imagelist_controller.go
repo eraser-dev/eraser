@@ -103,7 +103,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		return ctrl.Result{}, err
 	}
 
-	items := util.FilterJobListByOwner(jobList.Items, *metav1.NewControllerRef(&imageList, imageList.GroupVersionKind()))
+	items := util.FilterJobListByOwner(jobList.Items, metav1.NewControllerRef(&imageList, imageList.GroupVersionKind()))
 
 	switch len(items) {
 	case 0:
