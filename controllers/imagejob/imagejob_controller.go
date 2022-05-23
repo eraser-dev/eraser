@@ -111,9 +111,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	// Watch for changes to ImageJob
 	err = c.Watch(&source.Kind{Type: &eraserv1alpha1.ImageJob{}}, &handler.EnqueueRequestForObject{}, predicate.Funcs{
 		UpdateFunc: func(e event.UpdateEvent) bool {
-			if job, ok := e.ObjectNew.(*eraserv1alpha1.ImageJob); ok &&
-				job.Status.Phase == eraserv1alpha1.PhaseCompleted ||
-				job.Status.Phase == eraserv1alpha1.PhaseFailed {
+			if job, ok := e.ObjectNew.(*eraserv1alpha1.ImageJob); ok && util.IsCompletedOrFailed(job.Status.Phase) {
 				return false // handled by Owning controller
 			}
 
