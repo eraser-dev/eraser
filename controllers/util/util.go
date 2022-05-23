@@ -42,7 +42,7 @@ func IsCompletedOrFailed(p eraserv1alpha1.JobPhase) bool {
 	return (p == eraserv1alpha1.PhaseCompleted || p == eraserv1alpha1.PhaseFailed)
 }
 
-func FilterJobListByOwner(jobs []eraserv1alpha1.ImageJob, owner metav1.OwnerReference) []eraserv1alpha1.ImageJob {
+func FilterJobListByOwner(jobs []eraserv1alpha1.ImageJob, owner *metav1.OwnerReference) []eraserv1alpha1.ImageJob {
 	ret := []eraserv1alpha1.ImageJob{}
 
 	for i := range jobs {
