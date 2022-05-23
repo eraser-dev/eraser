@@ -112,7 +112,16 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	case 0:
 		return r.handleImageListEvent(ctx, &req, &imageList)
 	case 1:
-		return r.handleJobListEvent(ctx, &imageList, &jobList.Items[0])
+		job := jobList.Items[0]
+
+		// If we got here because of a completed ImageJob:
+		if util.IsCompletedOrFailed(job.Status.Phase) {
+			return r.handleJobListEvent(ctx, &imageList, &job)
+		}
+
+		// If we got here due to an update to the ImageList, and there is an ImageJob already running,
+		// keep requeueing it until that job is completed.
+		return ctrl.Result{RequeueAfter: time.Minute}, nil
 	default:
 		return ctrl.Result{}, fmt.Errorf("there are multiple child imagejobs running")
 	}
@@ -225,7 +234,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 			DeleteFunc:  util.NeverOnDelete,
 			GenericFunc: util.NeverOnGeneric,
 			UpdateFunc: func(e event.UpdateEvent) bool {
-				if job, ok := e.ObjectNew.(*eraserv1alpha1.ImageJob); ok && job.Status.Phase == eraserv1alpha1.PhaseCompleted {
+				if job, ok := e.ObjectNew.(*eraserv1alpha1.ImageJob); ok && util.IsCompletedOrFailed(job.Status.Phase) {
 					return true
 				}
 

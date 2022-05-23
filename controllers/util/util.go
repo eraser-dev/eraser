@@ -1,6 +1,7 @@
 package util
 
 import (
+	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 )
 
@@ -34,4 +35,8 @@ func AlwaysOnGeneric(_ event.GenericEvent) bool {
 
 func AlwaysOnUpdate(_ event.UpdateEvent) bool {
 	return true
+}
+
+func IsCompletedOrFailed(p eraserv1alpha1.JobPhase) bool {
+	return (p == eraserv1alpha1.PhaseCompleted || p == eraserv1alpha1.PhaseFailed)
 }
