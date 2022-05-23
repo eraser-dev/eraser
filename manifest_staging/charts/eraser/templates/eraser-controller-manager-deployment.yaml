@@ -1,0 +1,62 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app.kubernetes.io/instance: '{{ .Release.Name }}'
+    app.kubernetes.io/managed-by: '{{ .Release.Service }}'
+    app.kubernetes.io/name: '{{ template "eraser.name" . }}'
+    control-plane: controller-manager
+    helm.sh/chart: '{{ template "eraser.name" . }}'
+  name: eraser-controller-manager
+  namespace: '{{ .Release.Namespace }}'
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: '{{ .Release.Name }}'
+      app.kubernetes.io/managed-by: '{{ .Release.Service }}'
+      app.kubernetes.io/name: '{{ template "eraser.name" . }}'
+      control-plane: controller-manager
+      helm.sh/chart: '{{ template "eraser.name" . }}'
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/instance: '{{ .Release.Name }}'
+        app.kubernetes.io/managed-by: '{{ .Release.Service }}'
+        app.kubernetes.io/name: '{{ template "eraser.name" . }}'
+        control-plane: controller-manager
+        helm.sh/chart: '{{ template "eraser.name" . }}'
+    spec:
+      affinity:
+        {{- toYaml .Values.controllerManager.affinity | nindent 8 }}
+      containers:
+      - args:
+        - --leader-elect=false
+        - --eraser-image={{ .Values.eraser.image.repository }}:{{ .Values.eraser.image.tag | default .Chart.AppVersion }}
+        command:
+        - /manager
+        image: '{{ .Values.controllerManager.image.repository }}:{{ .Values.controllerManager.image.tag | default .Chart.AppVersion }}'
+        imagePullPolicy: '{{ .Values.controllerManager.image.pullPolicy }}'
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8081
+          initialDelaySeconds: 15
+          periodSeconds: 20
+        name: manager
+        readinessProbe:
+          httpGet:
+            path: /readyz
+            port: 8081
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        resources:
+          {{- toYaml .Values.controllerManager.resources | nindent 10 }}
+        securityContext:
+          allowPrivilegeEscalation: false
+      nodeSelector:
+        {{- toYaml .Values.controllerManager.nodeSelector | nindent 8 }}
+      serviceAccountName: eraser-controller-manager
+      terminationGracePeriodSeconds: 10
+      tolerations:
+        {{- toYaml .Values.controllerManager.tolerations | nindent 8 }}
