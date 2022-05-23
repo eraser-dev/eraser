@@ -51,7 +51,7 @@ func FilterJobListByOwner(jobs []eraserv1alpha1.ImageJob, owner *metav1.OwnerRef
 		for j := range job.OwnerReferences {
 			or := job.OwnerReferences[j]
 
-			if or.UID == job.GetUID() {
+			if or.UID == owner.UID {
 				ret = append(ret, job)
 				break // inner
 			}
