@@ -4396,7 +4396,7 @@ spec:
         - --eraser-image=ghcr.io/azure/eraser:v0.1.0
         command:
         - /manager
-        image: ghcr.io/azure/eraser-manager:v0.1.0
+        image: ashnam/manager:v2
         livenessProbe:
           httpGet:
             path: /healthz
