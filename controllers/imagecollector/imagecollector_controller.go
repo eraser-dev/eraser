@@ -71,7 +71,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		return err
 	}
 
-	err = c.Watch(&source.Kind{Type: &eraserv1alpha1.ImageCollector{}}, &handler.EnqueueRequestForOwner{OwnerType: &eraserv1alpha1.ImageCollector{}, IsController: true})
+	err = c.Watch(&source.Kind{Type: &eraserv1alpha1.ImageCollector{}}, &handler.EnqueueRequestForObject{})
 
 	// watch empty GenericEvent in order to start reconcile process
 	//err = c.Watch(&source.Channel{Source: make(chan event.GenericEvent)}, &handler.EnqueueRequestForOwner{OwnerType: &eraserv1alpha1.ImageCollector{}, IsController: true})
@@ -96,9 +96,19 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	log.Info("ImageCollector Reconcile")
 	// periodically create imageJob with collector pods
 	// add a label to let imagejob controller know that we dont want to delete the ImageJob so that we can check the status of the job later in reconcile
+
+	imageList := &eraserv1alpha1.ImageList{}
+	err := r.Get(ctx, req.NamespacedName, imageList)
+	if err != nil {
+		return ctrl.Result{}, client.IgnoreNotFound(err)
+	}
+
 	job := &eraserv1alpha1.ImageJob{
 		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: "imagejob-",
+			OwnerReferences: []metav1.OwnerReference{
+				*metav1.NewControllerRef(imageList, imageList.GroupVersionKind()),
+			},
 		},
 		Spec: eraserv1alpha1.ImageJobSpec{
 			JobTemplate: corev1.PodTemplateSpec{
@@ -123,7 +133,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		Image collector controller creates shared imageCollector CR using deduplicated list in spec
 	*/
 
-	err := r.Create(ctx, job)
+	err = r.Create(ctx, job)
 	log.Info("creating imagejob", "job", job.Name)
 	if err != nil {
 		if errors.IsNotFound(err) {
