@@ -131,7 +131,7 @@ This tutorial demonstrates the functionality of Eraser and validates that non-ru
     kind-worker2         Ready    <none>          44m   v1.24.0
     ```
 
-    List the images then filter for nginx:
+    List the images then filter for hello-world:
 
     ``` bash
     $ docker exec kind-worker ctr -n k8s.io images list | grep hello-world
@@ -141,7 +141,7 @@ This tutorial demonstrates the functionality of Eraser and validates that non-ru
 
 5. Create an ImageList
 
-    Create an [ImageList](../test/e2e/test-data/eraser_v1alpha1_imagelist.yaml) and specify the images you would like to remove. In this case, the image `docker.io/library/nginx:latest` will be removed.
+    Create an [ImageList](../test/e2e/test-data/eraser_v1alpha1_imagelist.yaml) and specify the images you would like to remove. In this case, the image `docker.io/library/hello-world:latest` will be removed.
 
       ```bash
       cat <<EOF | kubectl apply -f -
