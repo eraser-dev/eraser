@@ -71,6 +71,7 @@ func init() {
 }
 
 func Add(mgr manager.Manager) error {
+	log.Info("imagejob Add")
 	return add(mgr, newReconciler(mgr))
 }
 
@@ -420,6 +421,7 @@ func (r *Reconciler) handleNewJob(ctx context.Context, imageJob *eraserv1alpha1.
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
+	log.Info("imagejob set up w manager")
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&eraserv1alpha1.ImageJob{}).
 		Complete(r)

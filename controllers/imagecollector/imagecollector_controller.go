@@ -25,6 +25,7 @@ import (
 	"k8s.io/cri-api/pkg/errors"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
@@ -33,7 +34,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"sigs.k8s.io/controller-runtime/pkg/controller"
-	"sigs.k8s.io/controller-runtime/pkg/handler"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
@@ -44,7 +44,7 @@ var (
 )
 
 // ImageCollectorReconciler reconciles a ImageCollector object
-type ImageCollectorReconciler struct {
+type Reconciler struct {
 	client.Client
 	Scheme *runtime.Scheme
 }
@@ -55,26 +55,26 @@ func Add(mgr manager.Manager) error {
 
 // newReconciler returns a new reconcile.Reconciler.
 func newReconciler(mgr manager.Manager) reconcile.Reconciler {
-	return &ImageCollectorReconciler{
+	return &Reconciler{
 		Client: mgr.GetClient(),
 		Scheme: mgr.GetScheme(),
 	}
 }
 
 func add(mgr manager.Manager, r reconcile.Reconciler) error {
+	log.Info("add collector controller")
 	// Create a new controller
-	c, err := controller.New("imagejob-controller", mgr, controller.Options{
+	c, err := controller.New("imagecollector-controller", mgr, controller.Options{
 		Reconciler: r,
 	})
 	if err != nil {
 		return err
 	}
 
-	// Watch for changes to ImageCollector
-	err = c.Watch(&source.Kind{Type: &eraserv1alpha1.ImageCollector{}}, &handler.EnqueueRequestForObject{})
-	if err != nil {
-		return err
-	}
+	err = c.Watch(&source.Kind{Type: &eraserv1alpha1.ImageCollector{}}, &handler.EnqueueRequestForOwner{OwnerType: &eraserv1alpha1.ImageCollector{}, IsController: true})
+
+	// watch empty GenericEvent in order to start reconcile process
+	//err = c.Watch(&source.Channel{Source: make(chan event.GenericEvent)}, &handler.EnqueueRequestForOwner{OwnerType: &eraserv1alpha1.ImageCollector{}, IsController: true})
 
 	return nil
 }
@@ -92,7 +92,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 //
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.11.2/pkg/reconcile
-func (r *ImageCollectorReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log.Info("ImageCollector Reconcile")
 	// periodically create imageJob with collector pods
 	// add a label to let imagejob controller know that we dont want to delete the ImageJob so that we can check the status of the job later in reconcile
@@ -116,8 +116,6 @@ func (r *ImageCollectorReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 			},
 		},
 	}
-
-	// ask for feedback on label, also on how to initiate the imagecollector controller process
 
 	/*
 		ImageCollector controller reads from each imageCollector CR, deduplicates, and removes excluded images/registries (by reading from configmap)
@@ -143,9 +141,8 @@ func (r *ImageCollectorReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 }
 
 // SetupWithManager sets up the controller with the Manager.
-func (r *ImageCollectorReconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		// Uncomment the following line adding a pointer to an instance of the controlled resource as an argument
-		// For().
+		For(&eraserv1alpha1.ImageCollector{}).
 		Complete(r)
 }
