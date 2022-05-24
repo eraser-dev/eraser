@@ -67,7 +67,7 @@ COPY --from=manager-build /workspace/out/manager .
 USER 65532:65532
 ENTRYPOINT ["/manager"]
 
-FROM --platform=$BUILDPLATFORM $STATICNONROOTBASEIMAGE as trivy-scanner
+FROM --platform=$TARGETPLATFORM $STATICNONROOTBASEIMAGE as trivy-scanner
 COPY --from=trivy-scanner-build /workspace/out/trivy-scanner /
 USER 65532:65532
 ENTRYPOINT ["/trivy-scanner"]
