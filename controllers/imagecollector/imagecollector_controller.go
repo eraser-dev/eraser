@@ -22,16 +22,14 @@ import (
 	"time"
 
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/cri-api/pkg/errors"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
-	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
@@ -71,10 +69,18 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		return err
 	}
 
-	err = c.Watch(&source.Kind{Type: &eraserv1alpha1.ImageCollector{}}, &handler.EnqueueRequestForObject{})
+	ch := make(chan event.GenericEvent)
+	err = c.Watch(&source.Channel{
+		Source: ch,
+	}, &handler.EnqueueRequestForObject{})
 
-	// watch empty GenericEvent in order to start reconcile process
-	//err = c.Watch(&source.Channel{Source: make(chan event.GenericEvent)}, &handler.EnqueueRequestForOwner{OwnerType: &eraserv1alpha1.ImageCollector{}, IsController: true})
+	go func() {
+		log.Info("Queueing first ImageCollector reconcile...")
+		ch <- event.GenericEvent{
+			Object: &eraserv1alpha1.ImageCollector{},
+		}
+		log.Info("Queued first ImageCollector reconcile")
+	}()
 
 	return nil
 }
@@ -97,35 +103,35 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	// periodically create imageJob with collector pods
 	// add a label to let imagejob controller know that we dont want to delete the ImageJob so that we can check the status of the job later in reconcile
 
-	imageList := &eraserv1alpha1.ImageList{}
-	err := r.Get(ctx, req.NamespacedName, imageList)
-	if err != nil {
-		return ctrl.Result{}, client.IgnoreNotFound(err)
-	}
+	// imageList := &eraserv1alpha1.ImageList{}
+	// err := r.Get(ctx, req.NamespacedName, imageList)
+	// if err != nil {
+	// 	return ctrl.Result{}, client.IgnoreNotFound(err)
+	// }
 
-	job := &eraserv1alpha1.ImageJob{
-		ObjectMeta: metav1.ObjectMeta{
-			GenerateName: "imagejob-",
-			OwnerReferences: []metav1.OwnerReference{
-				*metav1.NewControllerRef(imageList, imageList.GroupVersionKind()),
-			},
-		},
-		Spec: eraserv1alpha1.ImageJobSpec{
-			JobTemplate: corev1.PodTemplateSpec{
-				Spec: corev1.PodSpec{
-					RestartPolicy: corev1.RestartPolicyNever,
-					Containers: []corev1.Container{
-						{
-							Name:            "collector",
-							Image:           *collectorImage,
-							ImagePullPolicy: corev1.PullIfNotPresent,
-						},
-					},
-					ServiceAccountName: "eraser-controller-manager",
-				},
-			},
-		},
-	}
+	// job := &eraserv1alpha1.ImageJob{
+	// 	ObjectMeta: metav1.ObjectMeta{
+	// 		GenerateName: "imagejob-",
+	// 		OwnerReferences: []metav1.OwnerReference{
+	// 			*metav1.NewControllerRef(imageList, imageList.GroupVersionKind()),
+	// 		},
+	// 	},
+	// 	Spec: eraserv1alpha1.ImageJobSpec{
+	// 		JobTemplate: corev1.PodTemplateSpec{
+	// 			Spec: corev1.PodSpec{
+	// 				RestartPolicy: corev1.RestartPolicyNever,
+	// 				Containers: []corev1.Container{
+	// 					{
+	// 						Name:            "collector",
+	// 						Image:           *collectorImage,
+	// 						ImagePullPolicy: corev1.PullIfNotPresent,
+	// 					},
+	// 				},
+	// 				ServiceAccountName: "eraser-controller-manager",
+	// 			},
+	// 		},
+	// 	},
+	// }
 
 	/*
 		ImageCollector controller reads from each imageCollector CR, deduplicates, and removes excluded images/registries (by reading from configmap)
@@ -133,14 +139,14 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		Image collector controller creates shared imageCollector CR using deduplicated list in spec
 	*/
 
-	err = r.Create(ctx, job)
-	log.Info("creating imagejob", "job", job.Name)
-	if err != nil {
-		if errors.IsNotFound(err) {
-			return reconcile.Result{}, nil
-		}
-		return reconcile.Result{}, err
-	}
+	// err = r.Create(ctx, job)
+	// log.Info("creating imagejob", "job", job.Name)
+	// if err != nil {
+	// 	if errors.IsNotFound(err) {
+	// 		return reconcile.Result{}, nil
+	// 	}
+	// 	return reconcile.Result{}, err
+	// }
 
 	return ctrl.Result{RequeueAfter: time.Second * 5}, nil
 
