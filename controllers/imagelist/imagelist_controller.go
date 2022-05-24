@@ -36,7 +36,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
-	"github.com/Azure/eraser/controllers/consts"
 	"github.com/Azure/eraser/controllers/util"
 )
 
@@ -145,7 +144,6 @@ func (r *Reconciler) handleImageListEvent(ctx context.Context, req *ctrl.Request
 			OwnerReferences: []metav1.OwnerReference{
 				*metav1.NewControllerRef(imageList, imageList.GroupVersionKind()),
 			},
-			Labels: map[string]string{consts.ImageJobOwnerLabelKey: imageList.Name},
 		},
 		Spec: eraserv1alpha1.ImageJobSpec{
 			JobTemplate: corev1.PodTemplateSpec{
