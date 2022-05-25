@@ -25,8 +25,8 @@ SOURCE_DATE_EPOCH ?= $(shell date -u --date "$(SOURCE_DATE)" +%s)
 BUILD_TIME_VAR ?= $(REPO_PATH)/version.BuildTime
 BUILD_VERSION_VAR ?= $(REPO_PATH)/version.BuildVersion
 BUILD_COMMIT_VAR ?= $(REPO_PATH)/version.Vcs
-LDFLAGS ?= -X $(BUILD_TIME_VAR)=$(SOURCE_DATE_EPOCH) -X $(BUILD_VERSION_VAR)=$(VERSION) -X $(BUILD_COMMIT_VAR)=$(BUILD_COMMIT_STATUS)
-ERASER_LDFLAGS ?= $(LDFLAGS) -w -extldflags "-static"
+LDFLAGS ?= -X '$(BUILD_TIME_VAR)=$(SOURCE_DATE_EPOCH)' -X '$(BUILD_VERSION_VAR)=$(VERSION)' -X '$(BUILD_COMMIT_VAR)=$(BUILD_COMMIT_STATUS)'
+ERASER_LDFLAGS ?= $(LDFLAGS) -w '-extldflags "-static"'
 
 # Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
 ifeq (,$(shell go env GOBIN))
