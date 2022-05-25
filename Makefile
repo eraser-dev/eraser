@@ -129,7 +129,7 @@ e2e-test:
 ##@ Build
 
 build: generate fmt vet ## Build manager binary.
-	go build -o bin/manager -ldflags $(LDFLAGS) main.go
+	go build -o bin/manager -ldflags "$(LDFLAGS)" main.go
 
 run: manifests generate fmt vet ## Run a controller from your host.
 	go run ./main.go
