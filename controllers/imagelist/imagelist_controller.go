@@ -289,6 +289,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	if err != nil {
 		return err
 	}
+
 	err = c.Watch(
 		&source.Kind{Type: &eraserv1alpha1.ImageJob{}},
 		&handler.EnqueueRequestForOwner{OwnerType: &eraserv1alpha1.ImageList{}, IsController: true},
