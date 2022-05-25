@@ -15,10 +15,8 @@ package imagejob
 
 import (
 	"context"
-	"encoding/json"
 	"flag"
 	"fmt"
-	"path/filepath"
 	"strings"
 	"time"
 
@@ -29,10 +27,8 @@ import (
 	"k8s.io/kubernetes/pkg/scheduler/framework"
 	"k8s.io/kubernetes/pkg/scheduler/framework/plugins/noderesources"
 
-	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -46,7 +42,6 @@ import (
 
 	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
 	"github.com/Azure/eraser/controllers/util"
-	"github.com/Azure/eraser/pkg/logger"
 )
 
 const (
@@ -57,7 +52,6 @@ const (
 	containerd     = "containerd"
 	crio           = "cri-o"
 	namespace      = "eraser-system"
-	imgListPath    = "/run/eraser.sh/imagelist"
 )
 
 var log = logf.Log.WithName("controller").WithValues("process", "imagejob-controller")
@@ -257,10 +251,6 @@ func after(t time.Time, seconds int64) *metav1.Time {
 	return &newT
 }
 
-func boolPtr(b bool) *bool {
-	return &b
-}
-
 func (r *Reconciler) handleNewJob(ctx context.Context, imageJob *eraserv1alpha1.ImageJob) error {
 	nodes := &corev1.NodeList{}
 	err := r.List(ctx, nodes)
@@ -284,31 +274,6 @@ func (r *Reconciler) handleNewJob(ctx context.Context, imageJob *eraserv1alpha1.
 		{Name: "NODE_NAME", ValueFrom: &corev1.EnvVarSource{FieldRef: &corev1.ObjectFieldSelector{FieldPath: "spec.nodeName"}}},
 	}
 
-	var imgList eraserv1alpha1.ImageList
-	if err := r.Get(ctx, types.NamespacedName{Name: imageJob.OwnerReferences[0].Name}, &imgList); err != nil {
-		return fmt.Errorf("get image list %s: %w", imageJob.OwnerReferences[0].Name, err)
-	}
-
-	imgListJSON, err := json.Marshal(imgList.Spec.Images)
-	if err != nil {
-		return fmt.Errorf("marshal image list: %w", err)
-	}
-
-	configName := imageJob.Name + "-imagelist"
-	if err := r.Create(ctx, &corev1.ConfigMap{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      configName,
-			Namespace: namespace,
-			OwnerReferences: []metav1.OwnerReference{
-				*metav1.NewControllerRef(imageJob, imageJob.GroupVersionKind()),
-			},
-		},
-		Immutable: boolPtr(true),
-		Data:      map[string]string{"images": string(imgListJSON)},
-	}); err != nil {
-		return fmt.Errorf("create configmap: %w", err)
-	}
-
 	nodeList, skipped, err := filterOutSkippedNodes(nodes, skipNodesSelectors)
 	if err != nil {
 		return err
@@ -319,64 +284,24 @@ func (r *Reconciler) handleNewJob(ctx context.Context, imageJob *eraserv1alpha1.
 		return err
 	}
 
+	podSpecTemplate := imageJob.Spec.JobTemplate.Spec
 	for i := range nodeList {
 		log := log.WithValues("node", nodeList[i].Name)
+		podSpec, err := copyAndFillTemplateSpec(&podSpecTemplate, env, &nodeList[i])
+		if err != nil {
+			return err
+		}
+
+		containerName := podSpec.Containers[0].Name
 		nodeName := nodeList[i].Name
-		runtime := nodeList[i].Status.NodeInfo.ContainerRuntimeVersion
-		runtimeName := strings.Split(runtime, ":")[0]
-
-		mountPath := getMountPath(runtimeName)
-		if mountPath == "" {
-			log.Error(fmt.Errorf("incompatible runtime on node"), "incompatible runtime")
-			continue
-		}
-
-		givenImage := imageJob.Spec.JobTemplate.Spec.Containers[0]
-		args := []string{
-			"--imagelist=" + filepath.Join(imgListPath, "images"),
-			"--runtime=" + runtimeName,
-			"--log-level=" + logger.GetLevel(),
-		}
-		image := corev1.Container{
-			Args: append(givenImage.Args, args...),
-			VolumeMounts: []corev1.VolumeMount{
-				{MountPath: mountPath, Name: runtimeName + "-sock-volume"},
-				{MountPath: imgListPath, Name: configName},
-			},
-			Image:           givenImage.Image,
-			Name:            givenImage.Name,
-			ImagePullPolicy: givenImage.ImagePullPolicy,
-			Env:             env,
-			Resources: corev1.ResourceRequirements{
-				Requests: corev1.ResourceList{
-					"cpu":    resource.MustParse("7m"),
-					"memory": resource.MustParse("25Mi"),
-				},
-				Limits: corev1.ResourceList{
-					"cpu":    resource.MustParse("8m"),
-					"memory": resource.MustParse("30Mi"),
-				},
-			},
-		}
-
-		givenPodSpec := imageJob.Spec.JobTemplate.Spec
-		podSpec := corev1.PodSpec{
-			RestartPolicy: givenPodSpec.RestartPolicy,
-			Containers:    []corev1.Container{image},
-			NodeName:      nodeName,
-			Volumes: []corev1.Volume{
-				{Name: runtimeName + "-sock-volume", VolumeSource: corev1.VolumeSource{HostPath: &corev1.HostPathVolumeSource{Path: mountPath}}},
-				{Name: configName, VolumeSource: corev1.VolumeSource{ConfigMap: &corev1.ConfigMapVolumeSource{LocalObjectReference: corev1.LocalObjectReference{Name: configName}}}},
-			},
-		}
 
 		pod := &corev1.Pod{
 			TypeMeta: metav1.TypeMeta{},
-			Spec:     podSpec,
+			Spec:     *podSpec,
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace:    "eraser-system",
-				GenerateName: image.Name + "-" + nodeName + "-",
-				Labels:       map[string]string{"name": image.Name},
+				GenerateName: containerName + "-" + nodeName + "-",
+				Labels:       map[string]string{"name": containerName},
 				OwnerReferences: []metav1.OwnerReference{
 					*metav1.NewControllerRef(imageJob, imageJob.GroupVersionKind()),
 				},
@@ -384,7 +309,6 @@ func (r *Reconciler) handleNewJob(ctx context.Context, imageJob *eraserv1alpha1.
 		}
 
 		fitness := checkNodeFitness(pod, &nodeList[i])
-
 		if !fitness {
 			log.Info("Eraser pod does not fit on node, skipping")
 			continue
@@ -394,7 +318,7 @@ func (r *Reconciler) handleNewJob(ctx context.Context, imageJob *eraserv1alpha1.
 		if err != nil {
 			return err
 		}
-		log.Info("Started eraser pod on node", "images", imgList.Spec.Images)
+		log.Info("Started eraser pod on node", "nodeName", nodeName)
 	}
 
 	imageJob.Status.Skipped = skipped
@@ -476,4 +400,35 @@ nodes:
 	}
 
 	return nodeList, skipped, nil
+}
+
+func copyAndFillTemplateSpec(templateSpecTemplate *corev1.PodSpec, env []corev1.EnvVar, node *corev1.Node) (*corev1.PodSpec, error) {
+	nodeName := node.Name
+	runtime := node.Status.NodeInfo.ContainerRuntimeVersion
+	runtimeName := strings.Split(runtime, ":")[0]
+
+	mountPath := getMountPath(runtimeName)
+	if mountPath == "" {
+		return nil, fmt.Errorf("incompatible runtime on node")
+	}
+
+	args := []string{"--runtime=" + runtimeName}
+	volumes := []corev1.Volume{
+		{Name: runtimeName + "-sock-volume", VolumeSource: corev1.VolumeSource{HostPath: &corev1.HostPathVolumeSource{Path: mountPath}}},
+	}
+
+	volumeMounts := []corev1.VolumeMount{
+		{MountPath: mountPath, Name: runtimeName + "-sock-volume"},
+	}
+
+	templateSpec := templateSpecTemplate.DeepCopy()
+	image := &templateSpec.Containers[0]
+
+	image.Args = append(args, image.Args...)
+	image.VolumeMounts = append(volumeMounts, image.VolumeMounts...)
+	image.Env = append(env, image.Env...)
+	templateSpec.Volumes = append(volumes, templateSpec.Volumes...)
+	templateSpec.NodeName = nodeName
+
+	return templateSpec, nil
 }

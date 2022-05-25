@@ -15,14 +15,18 @@ package imagelist
 
 import (
 	"context"
+	"encoding/json"
 	"flag"
 	"fmt"
+	"path/filepath"
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -37,6 +41,12 @@ import (
 
 	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
 	"github.com/Azure/eraser/controllers/util"
+	"github.com/Azure/eraser/pkg/logger"
+)
+
+const (
+	namespace   = "eraser-system"
+	imgListPath = "/run/eraser.sh/imagelist"
 )
 
 var (
@@ -138,6 +148,29 @@ func (r *Reconciler) handleJobListEvent(ctx context.Context, imageList *eraserv1
 }
 
 func (r *Reconciler) handleImageListEvent(ctx context.Context, req *ctrl.Request, imageList *eraserv1alpha1.ImageList) (ctrl.Result, error) {
+	imgListJSON, err := json.Marshal(imageList.Spec.Images)
+	if err != nil {
+		return ctrl.Result{}, fmt.Errorf("marshal image list: %w", err)
+	}
+
+	configMap := corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			GenerateName: "imagelist-",
+			Namespace:    namespace,
+		},
+		Immutable: boolPtr(true),
+		Data:      map[string]string{"images": string(imgListJSON)},
+	}
+	if err := r.Create(ctx, &configMap); err != nil {
+		return ctrl.Result{}, fmt.Errorf("create configmap: %w", err)
+	}
+
+	configName := configMap.Name
+	args := []string{
+		"--imagelist=" + filepath.Join(imgListPath, "images"),
+		"--log-level=" + logger.GetLevel(),
+	}
+
 	job := &eraserv1alpha1.ImageJob{
 		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: "imagejob-",
@@ -148,13 +181,34 @@ func (r *Reconciler) handleImageListEvent(ctx context.Context, req *ctrl.Request
 		Spec: eraserv1alpha1.ImageJobSpec{
 			JobTemplate: corev1.PodTemplateSpec{
 				Spec: corev1.PodSpec{
+					Volumes: []corev1.Volume{
+						{
+							Name: configName,
+							VolumeSource: corev1.VolumeSource{
+								ConfigMap: &corev1.ConfigMapVolumeSource{LocalObjectReference: corev1.LocalObjectReference{Name: configName}},
+							},
+						},
+					},
 					RestartPolicy: corev1.RestartPolicyNever,
 					Containers: []corev1.Container{
 						{
 							Name:            "eraser",
 							Image:           *eraserImage,
 							ImagePullPolicy: corev1.PullIfNotPresent,
-							Args:            []string{"--imagelist=" + req.Name},
+							Args:            args,
+							VolumeMounts: []corev1.VolumeMount{
+								{MountPath: imgListPath, Name: configName},
+							},
+							Resources: corev1.ResourceRequirements{
+								Requests: corev1.ResourceList{
+									"cpu":    resource.MustParse("7m"),
+									"memory": resource.MustParse("25Mi"),
+								},
+								Limits: corev1.ResourceList{
+									"cpu":    resource.MustParse("8m"),
+									"memory": resource.MustParse("30Mi"),
+								},
+							},
 						},
 					},
 					ServiceAccountName: "eraser-controller-manager",
@@ -163,12 +217,22 @@ func (r *Reconciler) handleImageListEvent(ctx context.Context, req *ctrl.Request
 		},
 	}
 
-	err := r.Create(ctx, job)
+	err = r.Create(ctx, job)
 	log.Info("creating imagejob", "job", job.Name)
 	if err != nil {
 		if errors.IsNotFound(err) {
 			return reconcile.Result{}, nil
 		}
+		return reconcile.Result{}, err
+	}
+
+	configMap.ObjectMeta.OwnerReferences = []metav1.OwnerReference{*metav1.NewControllerRef(job, schema.GroupVersionKind{
+		Group:   "eraser.sh",
+		Version: "v1alpha1",
+		Kind:    "ImageJob",
+	})}
+	err = r.Update(ctx, &configMap)
+	if err != nil {
 		return reconcile.Result{}, err
 	}
 
@@ -203,7 +267,12 @@ func (r *Reconciler) handleJobDeletion(ctx context.Context, job *eraserv1alpha1.
 	}
 
 	log.Info("Deleting imagejob", "job", job.Name)
-	return ctrl.Result{}, r.Delete(ctx, job)
+	err := r.Delete(ctx, job)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
+	return ctrl.Result{}, nil
 }
 
 func add(mgr manager.Manager, r reconcile.Reconciler) error {
@@ -242,4 +311,8 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	}
 
 	return nil
+}
+
+func boolPtr(b bool) *bool {
+	return &b
 }
