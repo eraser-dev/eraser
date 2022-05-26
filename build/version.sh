@@ -2,7 +2,6 @@
 # borrowed from sigs.k8s.io/cluster-api-provider-azure/hack/version.sh and modified
 
 set -o errexit
-set -o nounset
 set -o pipefail
 
 version::get_version_vars() {
@@ -80,6 +79,10 @@ version::ldflags() {
         )
     }
 
+    if [[ ! -z $1 ]]; then
+        add_ldflag "buildVersion" "$1"
+    fi
+
     add_ldflag "buildTime" "${SOURCE_DATE_EPOCH}"
     add_ldflag "vcsCommit" "${GIT_COMMIT}"
     add_ldflag "vcsState" "${GIT_TREE_STATE}"
@@ -90,12 +93,8 @@ version::ldflags() {
         add_ldflag "vcsMinor" "${GIT_MINOR}"
     fi
 
-    if [[ ! -z ${VERSION} ]]; then
-        add_ldflag "buildVersion" "${VERSION}"
-    fi
-
     # The -ldflags parameter takes a single string, so join the output.
     echo "${ldflags[*]-}"
 }
 
-version::ldflags
+version::ldflags $1

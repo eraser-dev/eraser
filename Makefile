@@ -13,8 +13,8 @@ GOLANGCI_LINT_VERSION := 1.43.0
 PLATFORM ?= linux
 
 # build variables
-LDFLAGS ?= $(shell build/version.sh) 
-ERASER_LDFLAGS ?= $(LDFLAGS) -w '-extldflags "-static"'
+LDFLAGS ?= $(shell build/version.sh "${VERSION}") 
+ERASER_LDFLAGS ?= $(LDFLAGS)-w '-extldflags "-static"'
 
 # Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
 ifeq (,$(shell go env GOBIN))
