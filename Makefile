@@ -67,12 +67,12 @@ help: ## Display this help.
 
 ##@ Linting
 .PHONY: lint
-lint: $(GOLANGCI_LINT)
+lint: $(GOLANGCI_LINT) ## Runs go linting.
 	$(GOLANGCI_LINT) run -v
 
 ##@ Development
 
-manifests: __controller-gen
+manifests: __controller-gen ## Generates k8s yaml for eraser deployment.
 	@sed -e "s~ERASER_IMG~${ERASER_IMG}~g" config/manager/kustomization.template.yaml > config/manager/kustomization.yaml
 	docker run -v $(shell pwd)/config:/config -w /config/manager \
 		k8s.gcr.io/kustomize/kustomize:v${KUSTOMIZE_VERSION} edit set image controller=${MANAGER_IMG}
@@ -92,8 +92,7 @@ manifests: __controller-gen
 		k8s.gcr.io/kustomize/kustomize:v${KUSTOMIZE_VERSION} build \
 		--load_restrictor LoadRestrictionsNone /eraser/third_party/open-policy-agent/gatekeeper/helmify | go run third_party/open-policy-agent/gatekeeper/helmify/*.go
 
-## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations.
-generate: __controller-gen
+generate: __controller-gen ## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations.
 	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./..."
 
 fmt: ## Run go fmt against code.
@@ -102,12 +101,10 @@ fmt: ## Run go fmt against code.
 vet: ## Run go vet against code.
 	go vet ./...
 
-test: manifests generate fmt vet envtest ## Run tests.
+test: manifests generate fmt vet envtest ## Run unit tests.
 	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) -p path)" go test ./... -coverprofile cover.out
 
-# Run e2e tests
-.PHONY: e2e-test
-e2e-test:
+e2e-test: ## Run e2e tests on a cluster.
 	CGO_ENABLED=0 IMAGE=${ERASER_IMG} MANAGER_IMAGE=${MANAGER_IMG} NODE_VERSION=kindest/node:v${KUBERNETES_VERSION} go test -count=$(TEST_COUNT) -timeout=$(TIMEOUT) $(TESTFLAGS) -tags=e2e -v ./test/e2e
 
 ##@ Build
@@ -118,16 +115,16 @@ build: generate fmt vet ## Build manager binary.
 run: manifests generate fmt vet ## Run a controller from your host.
 	go run ./main.go
 
-docker-build-manager: ## Build docker image with the manager.
+docker-build-manager: ## Build docker image for the eraser manager.
 	docker buildx build $(_CACHE_FROM) $(_CACHE_TO) --platform="$(PLATFORM)" --output=$(OUTPUT_TYPE) --target manager -t ${MANAGER_IMG} .
 
-docker-push-manager: ## Push docker image with the manager.
+docker-push-manager: ## Push docker image for the eraser manager.
 	docker push ${MANAGER_IMG}
 
-docker-build-eraser:
+docker-build-eraser: ## Build docker image for eraser image.
 	docker buildx build $(_CACHE_FROM) $(_CACHE_TO) --platform="$(PLATFORM)" --output=$(OUTPUT_TYPE) -t ${ERASER_IMG} --target eraser .
 
-docker-push-eraser:
+docker-push-eraser: ## Push docker image for eraser.
 	docker push ${ERASER_IMG}
 
 docker-build-collector:
@@ -162,7 +159,7 @@ undeploy: ## Undeploy controller from the K8s cluster specified in ~/.kube/confi
 
 ##@ Release
 
-release-manifest:
+release-manifest: ## Generates manifests for a release.
 	@sed -i -e 's/^VERSION := .*/VERSION := ${NEWVERSION}/' ./Makefile
 	@sed -i'' -e 's@image: $(REPOSITORY):.*@image: $(REPOSITORY):'"$(NEWVERSION)"'@' ./config/manager/manager.yaml
 	@sed -i "s/appVersion: .*/appVersion: ${NEWVERSION}/" ./third_party/open-policy-agent/gatekeeper/helmify/static/Chart.yaml
@@ -171,8 +168,7 @@ release-manifest:
 	export
 	$(MAKE) manifests
 
-
-promote-staging-manifest:
+promote-staging-manifest: ## Promotes the k8s deployment yaml files to release.
 	@rm -rf deploy
 	@cp -r manifest_staging/deploy .
 	@rm -rf charts
