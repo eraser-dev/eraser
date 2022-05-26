@@ -33,7 +33,6 @@ rules:
   verbs:
   - create
   - delete
-  - deletecollection
   - get
   - list
   - patch
@@ -101,6 +100,32 @@ rules:
   - eraser.sh
   resources:
   - imagelists/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - eraser.sh.tutorial.kubebuilder.io
+  resources:
+  - imagecollectors
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - eraser.sh.tutorial.kubebuilder.io
+  resources:
+  - imagecollectors/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - eraser.sh.tutorial.kubebuilder.io
+  resources:
+  - imagecollectors/status
   verbs:
   - get
   - patch
