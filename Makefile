@@ -1,12 +1,5 @@
 VERSION := v0.1.0
 
-ORG_PATH := github.com/Azure
-PROJECT_NAME := eraser
-REPO_PATH := $(ORG_PATH)/$(PROJECT_NAME)
-BUILD_COMMIT := $(shell git rev-parse --short HEAD)
-COMMIT_STATUS ?= $(shell test -n "$(git status --porcelain)")
-BUILD_COMMIT_STATUS ?= $(if $(COMMIT_STATUS),$(BUILD_COMMIT),$(BUILD_COMMIT)-dirty)
-
 # Image URL to use all building/pushing image targets
 MANAGER_IMG ?= ghcr.io/azure/eraser-manager:${VERSION}
 ERASER_IMG ?= ghcr.io/azure/eraser:${VERSION}
@@ -20,12 +13,7 @@ GOLANGCI_LINT_VERSION := 1.43.0
 PLATFORM ?= linux
 
 # build variables
-SOURCE_DATE ?= $(shell git show -s --format=%cI HEAD)
-SOURCE_DATE_EPOCH ?= $(shell date -u --date "$(SOURCE_DATE)" +%s)
-BUILD_TIME_VAR ?= $(REPO_PATH)/version.BuildTime
-BUILD_VERSION_VAR ?= $(REPO_PATH)/version.BuildVersion
-BUILD_COMMIT_VAR ?= $(REPO_PATH)/version.Vcs
-LDFLAGS ?= -X '$(BUILD_TIME_VAR)=$(SOURCE_DATE_EPOCH)' -X '$(BUILD_VERSION_VAR)=$(VERSION)' -X '$(BUILD_COMMIT_VAR)=$(BUILD_COMMIT_STATUS)'
+LDFLAGS ?= $(shell build/version.sh) 
 ERASER_LDFLAGS ?= $(LDFLAGS) -w '-extldflags "-static"'
 
 # Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
