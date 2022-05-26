@@ -322,11 +322,6 @@ func (r *Reconciler) handleNewJob(ctx context.Context, imageJob *eraserv1alpha1.
 		log.Info("Started eraser pod on node", "nodeName", nodeName)
 	}
 
-	imageJob.Status.Skipped = skipped
-	if err := r.updateJobStatus(ctx, imageJob); err != nil {
-		return err
-	}
-
 	return nil
 }
 
