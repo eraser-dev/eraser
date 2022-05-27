@@ -13,7 +13,7 @@ kind: Kustomization
 images:
 - name: controller
   newName: ashnam/manager
-  newTag: v11
+  newTag: v1
 
 patches:
 - patch: |-

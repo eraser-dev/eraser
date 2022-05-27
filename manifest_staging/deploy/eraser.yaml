@@ -4370,7 +4370,7 @@ spec:
         - --eraser-image=ghcr.io/azure/eraser:v0.1.0
         command:
         - /manager
-        image: ashnam/manager:v11
+        image: ashnam/manager:v1
         livenessProbe:
           httpGet:
             path: /healthz
