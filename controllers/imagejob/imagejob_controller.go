@@ -57,7 +57,7 @@ const (
 var log = logf.Log.WithName("controller").WithValues("process", "imagejob-controller")
 
 var (
-	successDelDelaySeconds = flag.Int64("job-cleanup-on-success-delay", 0, "Seconds to delay job deletion after successful runs. 0 means no delay")
+	successDelDelaySeconds = flag.Int64("job-cleanup-on-success-delay", 60, "Seconds to delay job deletion after successful runs. 0 means no delay")
 	errDelDelaySeconds     = flag.Int64("job-cleanup-on-error-delay", 86400, "Seconds to delay job deletion after errored runs. 0 means no delay")
 	successRatio           = flag.Float64("job-success-ratio", 1.0, "Ratio of successful/total runs to consider a job successful. 1.0 means all runs must succeed.")
 	skipNodesSelectors     = nodeSkipSelectors([]string{"kubernetes.io/os=windows", "eraser.sh/cleanup.skip"})
@@ -68,7 +68,6 @@ func init() {
 }
 
 func Add(mgr manager.Manager) error {
-	log.Info("imagejob Add")
 	return add(mgr, newReconciler(mgr))
 }
 
@@ -426,6 +425,7 @@ func copyAndFillTemplateSpec(templateSpecTemplate *corev1.PodSpec, env []corev1.
 	image.Env = append(env, image.Env...)
 	templateSpec.Volumes = append(volumes, templateSpec.Volumes...)
 	templateSpec.NodeName = nodeName
+	templateSpec.ServiceAccountName = "eraser-controller-manager"
 
 	return templateSpec, nil
 }
