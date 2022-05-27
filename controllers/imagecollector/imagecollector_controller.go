@@ -50,7 +50,7 @@ var (
 	log            = logf.Log.WithName("controller").WithValues("process", "imagecollector-controller")
 )
 
-// ImageCollectorReconciler reconciles a ImageCollector object
+// ImageCollectorReconciler reconciles a ImageCollector object.
 type Reconciler struct {
 	client.Client
 	Scheme *runtime.Scheme
@@ -103,6 +103,9 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	err = c.Watch(&source.Channel{
 		Source: ch,
 	}, &handler.EnqueueRequestForObject{})
+	if err != nil {
+		return err
+	}
 
 	go func() {
 		log.Info("Queueing first ImageCollector reconcile...")
@@ -170,28 +173,28 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		return reconcile.Result{}, fmt.Errorf("More than one collector ImageJob scheduled")
 	}
 	if len(relevantJobs) == 0 {
-		if res, err := r.createImageJob(ctx, req, *imageCollector); err != nil {
+		if res, err := r.createImageJob(ctx, req, imageCollector); err != nil {
 			return res, err
 		}
 		return ctrl.Result{RequeueAfter: time.Second * 30}, nil
 	}
 
-	// change to switch statement
-	// length is 1 so check job phase
-	if relevantJobs[0].Status.Phase == eraserv1alpha1.PhaseCompleted {
+	// else length is 1, so check job phase
+	switch phase := relevantJobs[0].Status.Phase; phase {
+	case eraserv1alpha1.PhaseCompleted:
 		log.Info("completed phase")
-		if res, err := r.updateSharedCRD(ctx, req, *imageCollector); err != nil {
+		if res, err := r.updateSharedCRD(ctx, req, imageCollector); err != nil {
 			return res, err
 		}
 		if _, err := r.handleJobDeletion(ctx, &relevantJobs[0]); err != nil {
 			return reconcile.Result{}, fmt.Errorf("Could not delete completed imagejob")
 		}
-	} else if relevantJobs[0].Status.Phase == eraserv1alpha1.PhaseFailed {
+	case eraserv1alpha1.PhaseFailed:
 		log.Info("failed phase")
 		if _, err := r.handleJobDeletion(ctx, &relevantJobs[0]); err != nil {
 			return reconcile.Result{}, fmt.Errorf("Could not delete failed imagejob")
 		}
-	} else {
+	default:
 		log.Info("should not reach this point for imagejob", relevantJobs[0])
 	}
 
@@ -225,12 +228,12 @@ func (r *Reconciler) handleJobDeletion(ctx context.Context, job *eraserv1alpha1.
 	return ctrl.Result{}, nil
 }
 
-func (r *Reconciler) createImageJob(ctx context.Context, req ctrl.Request, imageCollector eraserv1alpha1.ImageCollector) (ctrl.Result, error) {
+func (r *Reconciler) createImageJob(ctx context.Context, req ctrl.Request, imageCollector *eraserv1alpha1.ImageCollector) (ctrl.Result, error) {
 	job := &eraserv1alpha1.ImageJob{
 		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: "imagejob-",
 			OwnerReferences: []metav1.OwnerReference{
-				*metav1.NewControllerRef(&imageCollector, schema.GroupVersionKind{Group: "eraser.sh", Version: "v1alpha1", Kind: "ImageCollector"}),
+				*metav1.NewControllerRef(imageCollector, schema.GroupVersionKind{Group: "eraser.sh", Version: "v1alpha1", Kind: "ImageCollector"}),
 			},
 		},
 		Spec: eraserv1alpha1.ImageJobSpec{
@@ -270,7 +273,7 @@ func (r *Reconciler) createImageJob(ctx context.Context, req ctrl.Request, image
 	return reconcile.Result{}, nil
 }
 
-func (r *Reconciler) updateSharedCRD(ctx context.Context, req ctrl.Request, imageCollector eraserv1alpha1.ImageCollector) (ctrl.Result, error) {
+func (r *Reconciler) updateSharedCRD(ctx context.Context, req ctrl.Request, imageCollector *eraserv1alpha1.ImageCollector) (ctrl.Result, error) {
 	imageCollectorList := &eraserv1alpha1.ImageCollectorList{}
 	if err := r.List(ctx, imageCollectorList); err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
@@ -279,8 +282,8 @@ func (r *Reconciler) updateSharedCRD(ctx context.Context, req ctrl.Request, imag
 
 	var list []eraserv1alpha1.Image
 
-	for _, collector := range items {
-		temp := collector.Spec.Images
+	for i := range items {
+		temp := items[i].Spec.Images
 		for _, img := range temp {
 			list = append(list, eraserv1alpha1.Image{Name: img.Name, Digest: img.Digest})
 		}
@@ -302,15 +305,15 @@ func (r *Reconciler) updateSharedCRD(ctx context.Context, req ctrl.Request, imag
 
 	imageCollector.Spec = eraserv1alpha1.ImageCollectorSpec{Images: combined}
 
-	if err := r.Update(ctx, &imageCollector); err != nil {
+	if err := r.Update(ctx, imageCollector); err != nil {
 		log.Info("Could not update imageCollector spec")
 		return reconcile.Result{}, err
 	}
 
 	// delete individual image collector CRs
-	for _, collector := range items {
-		if collector.Name != "imagecollector-shared" {
-			if err := r.Delete(ctx, &collector); err != nil {
+	for i := range items {
+		if items[i].Name != "imagecollector-shared" {
+			if err := r.Delete(ctx, &items[i]); err != nil {
 				log.Info("Delete", "Could not delete image collector", imageCollector.Name)
 				return reconcile.Result{}, err
 			}
