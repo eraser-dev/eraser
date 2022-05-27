@@ -10,7 +10,7 @@ You can find a [quick start guide / tutorial here](docs/QUICKSTART.md).
 
 ## Developer Setup
 
-You can find [developer environment setup requirements here](docs/DEVELOP.md).
+If you like to contribute to Eraser you need to setup your development environment. You can find [developer environment setup requirements here](docs/DEVELOP.md).
 
 ## Design and Future Work
 * [Design Documentation](https://docs.google.com/document/d/1Rz1bkZKZSLVMjC_w8WLASPDUjfU80tjV-XWUXZ8vq3I/edit?usp=sharing)
