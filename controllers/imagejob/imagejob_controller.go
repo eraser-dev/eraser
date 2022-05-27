@@ -310,7 +310,7 @@ func (r *Reconciler) handleNewJob(ctx context.Context, imageJob *eraserv1alpha1.
 
 		fitness := checkNodeFitness(pod, &nodeList[i])
 		if !fitness {
-			log.Info("Eraser pod does not fit on node, skipping")
+			log.Info(containerName + " pod does not fit on node, skipping")
 			continue
 		}
 
@@ -318,7 +318,7 @@ func (r *Reconciler) handleNewJob(ctx context.Context, imageJob *eraserv1alpha1.
 		if err != nil {
 			return err
 		}
-		log.Info("Started eraser pod on node", "nodeName", nodeName)
+		log.Info("Started "+containerName+" pod on node", "nodeName", nodeName)
 	}
 
 	return nil
