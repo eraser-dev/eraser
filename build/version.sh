@@ -49,14 +49,11 @@ version::get_version_vars() {
             GIT_MINOR=${BASH_REMATCH[2]}
         fi
 
-        # If GIT_VERSION is not a valid Semantic Version, then unset variable. When/if semantic versioning is implemented, delete `unset` and uncomment `exit 1`
+        # If GIT_VERSION is not a valid Semantic Version, then exit with error
         if ! [[ "${GIT_VERSION}" =~ ^v([0-9]+)\.([0-9]+)(\.[0-9]+)?(-[0-9A-Za-z.-]+)?(\+[0-9A-Za-z.-]+)?$ ]]; then
             echo "GIT_VERSION should be a valid Semantic Version. Current value: ${GIT_VERSION}"
             echo "Please see more details here: https://semver.org"
-
-            unset GIT_VERSION
-            
-            # exit 1
+            exit 1
         fi
     fi
 
