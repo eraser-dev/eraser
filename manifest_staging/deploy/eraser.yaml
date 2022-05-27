@@ -4300,32 +4300,6 @@ rules:
   - get
   - patch
   - update
-- apiGroups:
-  - eraser.sh.tutorial.kubebuilder.io
-  resources:
-  - imagecollectors
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - eraser.sh.tutorial.kubebuilder.io
-  resources:
-  - imagecollectors/finalizers
-  verbs:
-  - update
-- apiGroups:
-  - eraser.sh.tutorial.kubebuilder.io
-  resources:
-  - imagecollectors/status
-  verbs:
-  - get
-  - patch
-  - update
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
@@ -4396,7 +4370,7 @@ spec:
         - --eraser-image=ghcr.io/azure/eraser:v0.1.0
         command:
         - /manager
-        image: ghcr.io/azure/eraser-manager:v0.1.0
+        image: ashnam/manager:v11
         livenessProbe:
           httpGet:
             path: /healthz
