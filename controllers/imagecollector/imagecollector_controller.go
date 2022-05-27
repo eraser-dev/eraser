@@ -99,6 +99,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		return err
 	}
 
+	// to trigger first reconcile
 	ch := make(chan event.GenericEvent)
 	err = c.Watch(&source.Channel{
 		Source: ch,
@@ -143,6 +144,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 
 	if err := r.Get(ctx, types.NamespacedName{Name: "imagecollector-shared", Namespace: "default"}, imageCollector); err != nil {
 		if isNotFound(err) {
+			// this shared image collector will act as the owner for the imagejobs created w collector pods
 			if err := r.Create(ctx, imageCollector); err != nil {
 				log.Info("could not create shared image collector")
 				return reconcile.Result{}, err
@@ -152,8 +154,6 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 			return reconcile.Result{}, err
 		}
 	}
-
-	log.Info("xyz", "imageCollector", imageCollector)
 
 	imageJobList := &eraserv1alpha1.ImageJobList{}
 	if err := r.List(ctx, imageJobList); err != nil {
@@ -179,7 +179,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		return ctrl.Result{RequeueAfter: time.Second * 30}, nil
 	}
 
-	// else length is 1, so check job phase
+	// else length is 1, so check the current job's phase
 	switch phase := relevantJobs[0].Status.Phase; phase {
 	case eraserv1alpha1.PhaseCompleted:
 		log.Info("completed phase")
@@ -189,6 +189,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		if _, err := r.handleJobDeletion(ctx, &relevantJobs[0]); err != nil {
 			return reconcile.Result{}, fmt.Errorf("Could not delete completed imagejob")
 		}
+		// TODO: once shared CRD is updated, scanner portion begins here
 	case eraserv1alpha1.PhaseFailed:
 		log.Info("failed phase")
 		if _, err := r.handleJobDeletion(ctx, &relevantJobs[0]); err != nil {
