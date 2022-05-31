@@ -291,9 +291,11 @@ func (r *Reconciler) updateSharedCRD(ctx context.Context, req ctrl.Request, imag
 	idToTagListMap := make(map[string]string)
 
 	for i := range items {
-		temp := items[i].Spec.Images
-		for _, img := range temp {
-			idToTagListMap[img.Digest] = img.Name
+		if items[i].Name != collectorShared {
+			temp := items[i].Spec.Images
+			for _, img := range temp {
+				idToTagListMap[img.Digest] = img.Name
+			}
 		}
 	}
 
