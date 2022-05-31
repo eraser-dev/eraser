@@ -99,7 +99,7 @@ jobs:
           path: |
             ~/go/pkg/mod
             ~/.cache/go-build
-      - uses: crazy-max/ghaction-github-runtime@v1
+      - uses: crazy-max/ghaction-github-runtime@v2
       - name: Build eraser-manager
         run: make docker-build-manager CACHE_FROM=type=gha,scope=eraser-manager CACHE_TO=type=gha,scope=eraser-manager,mode=max
       - name: Build eraser
