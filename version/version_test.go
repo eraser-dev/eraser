@@ -3,8 +3,8 @@ package version
 import (
 	"fmt"
 	"runtime"
-	"testing"
 	"strings"
+	"testing"
 )
 
 func TestGetUserAgent(t *testing.T) {
