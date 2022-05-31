@@ -153,8 +153,6 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		}
 	}
 
-	log.Info("xyz", "imageCollector", imageCollector)
-
 	imageJobList := &eraserv1alpha1.ImageJobList{}
 	if err := r.List(ctx, imageJobList); err != nil {
 		log.Info("could not list imagejobs")
