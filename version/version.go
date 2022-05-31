@@ -3,7 +3,6 @@ package version
 import (
 	"fmt"
 	"runtime"
-	"strings"
 )
 
 var (
