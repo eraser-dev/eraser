@@ -18,6 +18,7 @@ package imagecollector
 
 import (
 	"context"
+	"errors"
 	"flag"
 	"fmt"
 	"time"
@@ -193,7 +194,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 			return reconcile.Result{}, fmt.Errorf("Could not delete failed imagejob")
 		}
 	default:
-		log.Info("should not reach this point for imagejob", relevantJobs[0])
+		log.Error(errors.New("should not reach this point for imagejob"), "imagejob: ", relevantJobs[0])
 	}
 
 	return ctrl.Result{RequeueAfter: time.Second * 30}, nil
