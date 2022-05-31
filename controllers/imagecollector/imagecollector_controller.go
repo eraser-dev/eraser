@@ -191,14 +191,10 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		if res, err := r.updateSharedCRD(ctx, req, imageCollector); err != nil {
 			return res, err
 		}
-		if _, err := r.handleJobDeletion(ctx, &relevantJobs[0]); err != nil {
-			return reconcile.Result{}, fmt.Errorf("Could not delete completed imagejob")
-		}
+		return r.handleJobDeletion(ctx, &relevantJobs[0])
 	case eraserv1alpha1.PhaseFailed:
 		log.Info("failed phase")
-		if _, err := r.handleJobDeletion(ctx, &relevantJobs[0]); err != nil {
-			return reconcile.Result{}, fmt.Errorf("Could not delete failed imagejob")
-		}
+		return r.handleJobDeletion(ctx, &relevantJobs[0])
 	default:
 		log.Error(errors.New("should not reach this point for imagejob"), "imagejob: ", relevantJobs[0])
 	}
