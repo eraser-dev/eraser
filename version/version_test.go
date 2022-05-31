@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"runtime"
 	"testing"
+	"strings"
 )
 
 func TestGetUserAgent(t *testing.T) {
