@@ -54,6 +54,7 @@ var (
 const (
 	repeatPeriod    = time.Minute * 10
 	collectorShared = "imagecollector-shared"
+	apiVersion      = "eraser.sh/v1alpha1"
 )
 
 // ImageCollectorReconciler reconciles a ImageCollector object.
@@ -141,7 +142,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	log.Info("ImageCollector Reconcile")
 
 	imageCollector := &eraserv1alpha1.ImageCollector{
-		TypeMeta:   metav1.TypeMeta{Kind: "ImageCollector", APIVersion: "eraser.sh/v1alpha1"},
+		TypeMeta:   metav1.TypeMeta{Kind: "ImageCollector", APIVersion: apiVersion},
 		ObjectMeta: metav1.ObjectMeta{Name: collectorShared},
 
 		Spec: eraserv1alpha1.ImageCollectorSpec{Images: []eraserv1alpha1.Image{}},
