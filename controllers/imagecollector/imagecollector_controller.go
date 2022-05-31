@@ -51,6 +51,10 @@ var (
 	log            = logf.Log.WithName("controller").WithValues("process", "imagecollector-controller")
 )
 
+const (
+	repeatPeriod = time.Minute * 10
+)
+
 // ImageCollectorReconciler reconciles a ImageCollector object.
 type Reconciler struct {
 	client.Client
@@ -175,7 +179,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		if res, err := r.createImageJob(ctx, req, imageCollector); err != nil {
 			return res, err
 		}
-		return ctrl.Result{RequeueAfter: time.Second * 30}, nil
+		return ctrl.Result{RequeueAfter: repeatPeriod}, nil
 	}
 
 	// else length is 1, so check job phase
@@ -197,7 +201,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		log.Error(errors.New("should not reach this point for imagejob"), "imagejob: ", relevantJobs[0])
 	}
 
-	return ctrl.Result{RequeueAfter: time.Second * 30}, nil
+	return ctrl.Result{RequeueAfter: repeatPeriod}, nil
 }
 
 func isNotFound(err error) bool {
