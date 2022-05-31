@@ -281,23 +281,18 @@ func (r *Reconciler) updateSharedCRD(ctx context.Context, req ctrl.Request, imag
 	if err := r.List(ctx, imageCollectorList); err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
+
 	items := imageCollectorList.Items
-
-	var list []eraserv1alpha1.Image
-
-	for i := range items {
-		temp := items[i].Spec.Images
-		for _, img := range temp {
-			list = append(list, eraserv1alpha1.Image{Name: img.Name, Digest: img.Digest})
-		}
-	}
 
 	// store images in map to remove duplicates
 	// map with key: sha id, value: name of image
 	idToTagListMap := make(map[string]string)
 
-	for _, img := range list {
-		idToTagListMap[img.Digest] = img.Name
+	for i := range items {
+		temp := items[i].Spec.Images
+		for _, img := range temp {
+			idToTagListMap[img.Digest] = img.Name
+		}
 	}
 
 	var combined []eraserv1alpha1.Image
