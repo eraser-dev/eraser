@@ -33,7 +33,7 @@ jobs:
           path: |
             ~/go/pkg/mod
             ~/.cache/go-build
-      - uses: crazy-max/ghaction-github-runtime@v1
+      - uses: crazy-max/ghaction-github-runtime@v2
 
       # need to convert repo name to lowercase for Docker
       - name: Get tag and repo
