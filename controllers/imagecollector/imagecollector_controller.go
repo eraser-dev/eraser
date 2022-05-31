@@ -52,7 +52,8 @@ var (
 )
 
 const (
-	repeatPeriod = time.Minute * 10
+	repeatPeriod    = time.Minute * 10
+	collectorShared = "imagecollector-shared"
 )
 
 // ImageCollectorReconciler reconciles a ImageCollector object.
@@ -141,12 +142,12 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 
 	imageCollector := &eraserv1alpha1.ImageCollector{
 		TypeMeta:   metav1.TypeMeta{Kind: "ImageCollector", APIVersion: "eraser.sh/v1alpha1"},
-		ObjectMeta: metav1.ObjectMeta{Name: "imagecollector-shared"},
+		ObjectMeta: metav1.ObjectMeta{Name: collectorShared},
 
 		Spec: eraserv1alpha1.ImageCollectorSpec{Images: []eraserv1alpha1.Image{}},
 	}
 
-	if err := r.Get(ctx, types.NamespacedName{Name: "imagecollector-shared", Namespace: "default"}, imageCollector); err != nil {
+	if err := r.Get(ctx, types.NamespacedName{Name: collectorShared, Namespace: "default"}, imageCollector); err != nil {
 		if isNotFound(err) {
 			if err := r.Create(ctx, imageCollector); err != nil {
 				log.Info("could not create shared image collector")
@@ -310,7 +311,7 @@ func (r *Reconciler) updateSharedCRD(ctx context.Context, req ctrl.Request, imag
 
 	// delete individual image collector CRs
 	for i := range items {
-		if items[i].Name != "imagecollector-shared" {
+		if items[i].Name != collectorShared {
 			if err := r.Delete(ctx, &items[i]); err != nil {
 				log.Info("Delete", "Could not delete image collector", imageCollector.Name)
 				return reconcile.Result{}, err
