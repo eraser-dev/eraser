@@ -326,7 +326,7 @@ func (r *Reconciler) handleNewJob(ctx context.Context, imageJob *eraserv1alpha1.
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
-	log.Info("imagejob set up w manager")
+	log.Info("imagejob set up with manager")
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&eraserv1alpha1.ImageJob{}).
 		Complete(r)
@@ -425,7 +425,6 @@ func copyAndFillTemplateSpec(templateSpecTemplate *corev1.PodSpec, env []corev1.
 	image.Env = append(env, image.Env...)
 	templateSpec.Volumes = append(volumes, templateSpec.Volumes...)
 	templateSpec.NodeName = nodeName
-	templateSpec.ServiceAccountName = "eraser-controller-manager"
 
 	return templateSpec, nil
 }
