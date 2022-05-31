@@ -75,19 +75,17 @@ version::ldflags() {
             "-X 'github.com/Azure/eraser/version.${key}=${val}'"
         )
     }
-
-    if [[ ! -z $1 ]]; then
-        add_ldflag "buildVersion" "$1"
-    fi
-
+    
     add_ldflag "buildTime" "${SOURCE_DATE_EPOCH}"
     add_ldflag "vcsCommit" "${GIT_COMMIT}"
     add_ldflag "vcsState" "${GIT_TREE_STATE}"
 
     if [[ ! -z ${GIT_VERSION} ]]; then
-        add_ldflag "vcsVersion" "${GIT_VERSION}"
+        add_ldflag "buildVersion" "${GIT_VERSION}"
         add_ldflag "vcsMajor" "${GIT_MAJOR}"
         add_ldflag "vcsMinor" "${GIT_MINOR}"
+    elif [[ ! -z $1 ]]; then 
+        add_ldflag "buildVersion" "$1"
     fi
 
     # The -ldflags parameter takes a single string, so join the output.
