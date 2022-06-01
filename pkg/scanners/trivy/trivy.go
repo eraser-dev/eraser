@@ -175,12 +175,6 @@ func main() {
 		os.Exit(generalErr)
 	}
 
-	// deduplicate, which may not be necessary
-	scanList := make(map[string]string)
-	for _, img := range result.Spec.Images {
-		scanList[img.Digest] = img.Name
-	}
-
 	err = downloadAndInitDB(*cacheDir)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -197,16 +191,16 @@ func main() {
 	}
 
 	resultClient := initializeResultClient()
-	resultClientMutex := sync.Mutex{}
+	dbMutex := sync.Mutex{}
 	imgChan := make(chan imageErr)
 	var wg sync.WaitGroup
 
 	for k := range result.Spec.Images {
 		img := result.Spec.Images[k]
-		imageName := img.Name
 		wg.Add(1)
 
-		go func(imageRef string, img eraserv1alpha1.Image, resultClientMutex *sync.Mutex) {
+		go func(img eraserv1alpha1.Image) {
+			imageRef := img.Name
 			if imageRef == "" {
 				imgChan <- imageErr{Image: img, err: fmt.Errorf("no name")}
 				wg.Done()
@@ -214,10 +208,12 @@ func main() {
 			}
 
 			fmt.Printf("scanning: %s\n", imageRef)
-			resultClientMutex.Lock()
+
+			dbMutex.Lock()
 			dockerImage, cleanup, err := fanalImage.NewDockerImage(ctx, imageRef, scanConfig.dockerOptions)
-			resultClientMutex.Unlock()
 			defer cleanup()
+			dbMutex.Unlock()
+
 			if err != nil {
 				imgChan <- imageErr{Image: img, err: err}
 				fmt.Fprintln(os.Stderr, err)
@@ -263,7 +259,7 @@ func main() {
 			}
 
 			wg.Done()
-		}(imageName, img, &resultClientMutex)
+		}(img)
 	}
 
 	go func() {
