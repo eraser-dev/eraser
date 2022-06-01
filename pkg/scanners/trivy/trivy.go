@@ -273,6 +273,10 @@ func main() {
 
 	vulnerableImages := make([]eraserv1alpha1.Image, 0, len(result.Spec.Images))
 	for img := range imgChan {
+		img.ScanSucceeded = boolPtr(true)
+		if img.err != nil {
+			img.ScanSucceeded = boolPtr(false)
+		}
 		vulnerableImages = append(vulnerableImages, img.Image)
 	}
 
@@ -293,6 +297,10 @@ func main() {
 	for _, imageRef := range vulnerableImages {
 		fmt.Println(imageRef)
 	}
+}
+
+func boolPtr(b bool) *bool {
+	return &b
 }
 
 // side effects: map `m` will be modified according to the values in `commaSeparatedList`.
