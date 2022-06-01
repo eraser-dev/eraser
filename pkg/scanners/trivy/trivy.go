@@ -115,6 +115,11 @@ type (
 		subResourceName string
 		images          []eraserv1alpha1.Image
 	}
+
+	imageErr struct {
+		eraserv1alpha1.Image
+		err error
+	}
 )
 
 func main() {
@@ -192,34 +197,49 @@ func main() {
 	}
 
 	resultClient := initializeResultClient()
-
-	imgChan := make(chan string)
+	resultClientMutex := sync.Mutex{}
+	imgChan := make(chan imageErr)
 	var wg sync.WaitGroup
 
-	for _, imageName := range scanList {
+	for k := range result.Spec.Images {
+		img := result.Spec.Images[k]
+		imageName := img.Name
 		wg.Add(1)
 
-		go func(imageRef string) {
-			fmt.Printf("scanning: %s\n", imageRef)
-			dockerImage, cleanup, err := fanalImage.NewDockerImage(ctx, imageRef, scanConfig.dockerOptions)
-			if err != nil {
-				fmt.Fprintln(os.Stderr, err)
-				os.Exit(generalErr)
+		go func(imageRef string, img eraserv1alpha1.Image, resultClientMutex *sync.Mutex) {
+			if imageRef == "" {
+				imgChan <- imageErr{Image: img, err: fmt.Errorf("no name")}
+				wg.Done()
+				return
 			}
+
+			fmt.Printf("scanning: %s\n", imageRef)
+			resultClientMutex.Lock()
+			dockerImage, cleanup, err := fanalImage.NewDockerImage(ctx, imageRef, scanConfig.dockerOptions)
+			resultClientMutex.Unlock()
 			defer cleanup()
+			if err != nil {
+				imgChan <- imageErr{Image: img, err: err}
+				fmt.Fprintln(os.Stderr, err)
+				wg.Done()
+				return
+			}
 
 			artifactToScan, err := artifactImage.NewArtifact(dockerImage, scanConfig.fscache, artifact.Option{}, config.ScannerOption{})
 			if err != nil {
+				imgChan <- imageErr{Image: img, err: err}
 				fmt.Fprintln(os.Stderr, err)
-				os.Exit(generalErr)
+				wg.Done()
+				return
 			}
 
 			scanner := scanner.NewScanner(scanConfig.localScanner, artifactToScan)
-
 			report, err := scanner.ScanArtifact(ctx, scanConfig.scanOptions)
 			if err != nil {
+				imgChan <- imageErr{Image: img, err: err}
 				fmt.Fprintln(os.Stderr, err)
-				os.Exit(generalErr)
+				wg.Done()
+				return
 			}
 
 		outer:
@@ -236,14 +256,14 @@ func main() {
 					}
 
 					if severityMap[report.Results[i].Vulnerabilities[j].Severity] {
-						imgChan <- report.ArtifactName
+						imgChan <- imageErr{Image: img, err: nil}
 						break outer
 					}
 				}
 			}
 
 			wg.Done()
-		}(imageName)
+		}(imageName, img, &resultClientMutex)
 	}
 
 	go func() {
@@ -251,10 +271,9 @@ func main() {
 		close(imgChan)
 	}()
 
-	vulnerableImages := make([]eraserv1alpha1.Image, 0, len(scanList))
-	for imageRef := range imgChan {
-		image := eraserv1alpha1.Image{Digest: "abc123", Name: imageRef}
-		vulnerableImages = append(vulnerableImages, image)
+	vulnerableImages := make([]eraserv1alpha1.Image, 0, len(result.Spec.Images))
+	for img := range imgChan {
+		vulnerableImages = append(vulnerableImages, img.Image)
 	}
 
 	err = updateStatus(&statusUpdate{
