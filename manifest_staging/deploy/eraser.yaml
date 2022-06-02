@@ -4367,11 +4367,10 @@ spec:
       containers:
       - args:
         - --leader-elect=false
-        - --job-cleanup-on-success-delay=10
         - --eraser-image=ghcr.io/azure/eraser:v0.1.0
         command:
         - /manager
-        image: ghcr.io/azure/eraser-manager:v0.1.0
+        image: ashnam/manager:v15
         livenessProbe:
           httpGet:
             path: /healthz
