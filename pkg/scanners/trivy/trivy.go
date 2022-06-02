@@ -303,7 +303,7 @@ func main() {
 		images:          vulnerableImages,
 	})
 	if err != nil {
-		log.Error(err, "error updating")
+		log.Error(err, "error updating ImageCollectorStatus", "images", vulnerableImages)
 		os.Exit(generalErr)
 	}
 
