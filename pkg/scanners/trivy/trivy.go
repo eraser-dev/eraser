@@ -116,7 +116,7 @@ type (
 		images          []eraserv1alpha1.Image
 	}
 
-	imageErr struct {
+	imageReport struct {
 		eraserv1alpha1.Image
 		err error
 	}
@@ -192,7 +192,7 @@ func main() {
 
 	resultClient := initializeResultClient()
 	dbMutex := sync.Mutex{}
-	imgChan := make(chan imageErr)
+	imgChan := make(chan imageReport)
 	var wg sync.WaitGroup
 
 	for k := range result.Spec.Images {
@@ -202,7 +202,7 @@ func main() {
 		go func(img eraserv1alpha1.Image) {
 			imageRef := img.Name
 			if imageRef == "" {
-				imgChan <- imageErr{Image: img, err: fmt.Errorf("no name")}
+				imgChan <- imageReport{Image: img, err: fmt.Errorf("no name")}
 				wg.Done()
 				return
 			}
@@ -215,7 +215,7 @@ func main() {
 			dbMutex.Unlock()
 
 			if err != nil {
-				imgChan <- imageErr{Image: img, err: err}
+				imgChan <- imageReport{Image: img, err: err}
 				fmt.Fprintln(os.Stderr, err)
 				wg.Done()
 				return
@@ -223,7 +223,7 @@ func main() {
 
 			artifactToScan, err := artifactImage.NewArtifact(dockerImage, scanConfig.fscache, artifact.Option{}, config.ScannerOption{})
 			if err != nil {
-				imgChan <- imageErr{Image: img, err: err}
+				imgChan <- imageReport{Image: img, err: err}
 				fmt.Fprintln(os.Stderr, err)
 				wg.Done()
 				return
@@ -232,7 +232,7 @@ func main() {
 			scanner := scanner.NewScanner(scanConfig.localScanner, artifactToScan)
 			report, err := scanner.ScanArtifact(ctx, scanConfig.scanOptions)
 			if err != nil {
-				imgChan <- imageErr{Image: img, err: err}
+				imgChan <- imageReport{Image: img, err: err}
 				fmt.Fprintln(os.Stderr, err)
 				wg.Done()
 				return
@@ -252,7 +252,7 @@ func main() {
 					}
 
 					if severityMap[report.Results[i].Vulnerabilities[j].Severity] {
-						imgChan <- imageErr{Image: img, err: nil}
+						imgChan <- imageReport{Image: img, err: nil}
 						break outer
 					}
 				}
