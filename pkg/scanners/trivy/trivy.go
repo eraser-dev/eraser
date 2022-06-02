@@ -16,6 +16,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 
+	"github.com/Azure/eraser/pkg/logger"
 	"github.com/aquasecurity/fanal/analyzer/config"
 	"github.com/aquasecurity/fanal/applier"
 	"github.com/aquasecurity/fanal/artifact"
@@ -23,15 +24,14 @@ import (
 	"github.com/aquasecurity/fanal/cache"
 	fanalImage "github.com/aquasecurity/fanal/image"
 	fanalTypes "github.com/aquasecurity/fanal/types"
-
 	"github.com/aquasecurity/trivy-db/pkg/db"
-
 	dlDb "github.com/aquasecurity/trivy/pkg/db"
 	"github.com/aquasecurity/trivy/pkg/detector/ospkg"
 	pkgResult "github.com/aquasecurity/trivy/pkg/result"
 	"github.com/aquasecurity/trivy/pkg/scanner"
 	"github.com/aquasecurity/trivy/pkg/scanner/local"
 	trivyTypes "github.com/aquasecurity/trivy/pkg/types"
+	logf "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 const (
@@ -87,6 +87,8 @@ var (
 		vulnTypeOs:      false,
 		vulnTypeLibrary: false,
 	}
+
+	log = logf.Log.WithName("eraser")
 )
 
 type (
@@ -126,6 +128,11 @@ func main() {
 	flag.Parse()
 	ctx := context.Background()
 
+	if err := logger.Configure(); err != nil {
+		fmt.Fprintln(os.Stderr, "Error setting up logger:", err)
+		os.Exit(generalErr)
+	}
+
 	allCommaSeparatedOptions := []optionSet{
 		{
 			input: *severity,
@@ -145,20 +152,20 @@ func main() {
 		// note: this function has side effects and will modify the map supplied as the first argument
 		err := parseCommaSeparatedOptions(oSet.m, oSet.input)
 		if err != nil {
-			fmt.Fprintln(os.Stderr, err)
+			log.Error(err, "unable to parse options")
 			os.Exit(generalErr)
 		}
 	}
 
 	cfg, err := rest.InClusterConfig()
 	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
+		log.Error(err, "unable to get in-cluster config")
 		os.Exit(generalErr)
 	}
 
 	clientset, err := kubernetes.NewForConfig(cfg)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
+		log.Error(err, "unable to get REST client")
 		os.Exit(generalErr)
 	}
 
@@ -171,13 +178,13 @@ func main() {
 		Do(context.Background()).
 		Into(&result)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
+		log.Error(err, "RESTClient GET request failed", "apiPath", apiPath, "recourceName", resourceName, "collectorCRName", *collectorCRName)
 		os.Exit(generalErr)
 	}
 
 	err = downloadAndInitDB(*cacheDir)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
+		log.Error(err, "unable to initialize trivy db", "cacheDir", *cacheDir)
 		os.Exit(generalErr)
 	}
 
@@ -186,7 +193,7 @@ func main() {
 
 	scanConfig, err := setupScanner(*cacheDir, vulnTypeList, securityCheckList)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
+		log.Error(err, "unable to set up scanner configuration", "cacheDir", *cacheDir, "vulnTypeList", vulnTypeList, "securityCheckList", securityCheckList)
 		os.Exit(generalErr)
 	}
 
@@ -202,6 +209,7 @@ func main() {
 		go func(img eraserv1alpha1.Image) {
 			imageRef := img.Name
 			if imageRef == "" {
+				log.Info("found image with no name", "img", img)
 				imgChan <- imageReport{Image: img, err: fmt.Errorf("no name")}
 				wg.Done()
 				return
@@ -209,6 +217,8 @@ func main() {
 
 			fmt.Printf("scanning: %s\n", imageRef)
 
+			// Reads db and cache and potentially modifies them, so lock all
+			// other threads during this operation
 			dbMutex.Lock()
 			dockerImage, cleanup, err := fanalImage.NewDockerImage(ctx, imageRef, scanConfig.dockerOptions)
 			defer cleanup()
@@ -216,7 +226,7 @@ func main() {
 
 			if err != nil {
 				imgChan <- imageReport{Image: img, err: err}
-				fmt.Fprintln(os.Stderr, err)
+				log.Error(err, "error fetching manifest for image", "img", img)
 				wg.Done()
 				return
 			}
@@ -224,7 +234,7 @@ func main() {
 			artifactToScan, err := artifactImage.NewArtifact(dockerImage, scanConfig.fscache, artifact.Option{}, config.ScannerOption{})
 			if err != nil {
 				imgChan <- imageReport{Image: img, err: err}
-				fmt.Fprintln(os.Stderr, err)
+				log.Error(err, "error registering config for artifact", "img", img)
 				wg.Done()
 				return
 			}
@@ -233,7 +243,7 @@ func main() {
 			report, err := scanner.ScanArtifact(ctx, scanConfig.scanOptions)
 			if err != nil {
 				imgChan <- imageReport{Image: img, err: err}
-				fmt.Fprintln(os.Stderr, err)
+				log.Error(err, "error scanning image", "img", img)
 				wg.Done()
 				return
 			}
@@ -270,9 +280,15 @@ func main() {
 	vulnerableImages := make([]eraserv1alpha1.Image, 0, len(result.Spec.Images))
 	for img := range imgChan {
 		img.ScanSucceeded = boolPtr(true)
+		logMsg := "image has vulnerabilities"
+
 		if img.err != nil {
+			log.V(1).Error(img.err, "error scanning image") // debug only
 			img.ScanSucceeded = boolPtr(false)
+			logMsg = "unable to scan image"
 		}
+
+		log.Info(logMsg, "img", img)
 		vulnerableImages = append(vulnerableImages, img.Image)
 	}
 
@@ -286,13 +302,11 @@ func main() {
 		images:          vulnerableImages,
 	})
 	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
+		log.Error(err, "error updating")
 		os.Exit(generalErr)
 	}
 
-	for _, imageRef := range vulnerableImages {
-		fmt.Println(imageRef)
-	}
+	log.Info("scanning complete, exiting")
 }
 
 func boolPtr(b bool) *bool {
