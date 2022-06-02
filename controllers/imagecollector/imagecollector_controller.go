@@ -304,20 +304,20 @@ func (r *Reconciler) updateSharedCRD(ctx context.Context, req ctrl.Request, imag
 
 	// store images in map to remove duplicates
 	// map with key: sha id, value: name of image
-	idToTagListMap := make(map[string]string)
+	idToNameMap := make(map[string]string)
 
 	for i := range items {
 		if items[i].Name != collectorShared {
 			temp := items[i].Spec.Images
 			for _, img := range temp {
-				idToTagListMap[img.Digest] = img.Name
+				idToNameMap[img.Digest] = img.Name
 			}
 		}
 	}
 
 	var combined []eraserv1alpha1.Image
 
-	for key, value := range idToTagListMap {
+	for key, value := range idToNameMap {
 		combined = append(combined, eraserv1alpha1.Image{Digest: key, Name: value})
 	}
 
