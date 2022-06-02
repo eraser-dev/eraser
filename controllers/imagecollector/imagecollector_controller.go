@@ -47,8 +47,7 @@ import (
 )
 
 var (
-	//collectorImage         = flag.String("collector-image", "ghcr.io/azure/collector:latest", "collector image")
-	collectorImage = flag.String("collector-image", "ashnam/collector:new", "collector image")
+	collectorImage = flag.String("collector-image", "ghcr.io/azure/collector:latest", "collector image")
 	log            = logf.Log.WithName("controller").WithValues("process", "imagecollector-controller")
 )
 
