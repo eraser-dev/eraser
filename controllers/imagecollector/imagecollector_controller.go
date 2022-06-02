@@ -48,10 +48,8 @@ import (
 
 var (
 	//collectorImage         = flag.String("collector-image", "ghcr.io/azure/collector:latest", "collector image")
-	collectorImage         = flag.String("collector-image", "ashnam/collector:new", "collector image")
-	log                    = logf.Log.WithName("controller").WithValues("process", "imagecollector-controller")
-	successDelDelaySeconds = flag.Int64("job-cleanup-on-success-delay", 0, "Seconds to delay job deletion after successful runs. 0 means no delay")
-	errDelDelaySeconds     = flag.Int64("job-cleanup-on-error-delay", 86400, "Seconds to delay job deletion after errored runs. 0 means no delay")
+	collectorImage = flag.String("collector-image", "ashnam/collector:new", "collector image")
+	log            = logf.Log.WithName("controller").WithValues("process", "imagecollector-controller")
 )
 
 const (
@@ -195,7 +193,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 			if res, err := r.updateSharedCRD(ctx, req, imageCollector); err != nil {
 				return res, err
 			}
-			relevantJobs[0].Status.DeleteAfter = after(time.Now(), *successDelDelaySeconds)
+			relevantJobs[0].Status.DeleteAfter = after(time.Now(), *util.SuccessDelDelaySeconds)
 			if err := r.Status().Update(ctx, &relevantJobs[0]); err != nil {
 				log.Info("Could not update Delete After for job " + relevantJobs[0].Name)
 			}
@@ -206,7 +204,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	case eraserv1alpha1.PhaseFailed:
 		log.Info("failed phase")
 		if relevantJobs[0].Status.DeleteAfter == nil {
-			relevantJobs[0].Status.DeleteAfter = after(time.Now(), *errDelDelaySeconds)
+			relevantJobs[0].Status.DeleteAfter = after(time.Now(), *util.ErrDelDelaySeconds)
 			if err := r.Update(ctx, &relevantJobs[0]); err != nil {
 				log.Info("Could not update Delete After for job " + relevantJobs[0].Name)
 			}
