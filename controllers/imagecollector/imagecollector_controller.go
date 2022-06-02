@@ -141,16 +141,16 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log.Info("ImageCollector Reconcile")
 
-	imageCollector := &eraserv1alpha1.ImageCollector{
+	imageCollectorShared := &eraserv1alpha1.ImageCollector{
 		TypeMeta:   metav1.TypeMeta{Kind: "ImageCollector", APIVersion: apiVersion},
 		ObjectMeta: metav1.ObjectMeta{Name: collectorShared},
 
 		Spec: eraserv1alpha1.ImageCollectorSpec{Images: []eraserv1alpha1.Image{}},
 	}
 
-	if err := r.Get(ctx, types.NamespacedName{Name: collectorShared, Namespace: "default"}, imageCollector); err != nil {
+	if err := r.Get(ctx, types.NamespacedName{Name: collectorShared, Namespace: "default"}, imageCollectorShared); err != nil {
 		if isNotFound(err) {
-			if err := r.Create(ctx, imageCollector); err != nil {
+			if err := r.Create(ctx, imageCollectorShared); err != nil {
 				log.Info("could not create shared image collector")
 				return reconcile.Result{}, err
 			}
@@ -167,7 +167,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	}
 
 	relevantJobs := util.FilterJobListByOwner(
-		imageJobList.Items, metav1.NewControllerRef(imageCollector, schema.GroupVersionKind{
+		imageJobList.Items, metav1.NewControllerRef(imageCollectorShared, schema.GroupVersionKind{
 			Group:   "eraser.sh",
 			Version: "v1alpha1",
 			Kind:    "ImageCollector",
@@ -178,7 +178,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		return reconcile.Result{}, fmt.Errorf("More than one collector ImageJob scheduled")
 	}
 	if len(relevantJobs) == 0 {
-		if res, err := r.createImageJob(ctx, req, imageCollector); err != nil {
+		if res, err := r.createImageJob(ctx, req, imageCollectorShared); err != nil {
 			return res, err
 		}
 		return ctrl.Result{RequeueAfter: repeatPeriod}, nil
@@ -189,7 +189,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	case eraserv1alpha1.PhaseCompleted:
 		log.Info("completed phase")
 		if relevantJobs[0].Status.DeleteAfter == nil {
-			if res, err := r.updateSharedCRD(ctx, req, imageCollector); err != nil {
+			if res, err := r.updateSharedCRD(ctx, req, imageCollectorShared); err != nil {
 				return res, err
 			}
 			relevantJobs[0].Status.DeleteAfter = util.After(time.Now(), *util.SuccessDelDelaySeconds)
@@ -328,15 +328,22 @@ func (r *Reconciler) updateSharedCRD(ctx context.Context, req ctrl.Request, imag
 		return reconcile.Result{}, err
 	}
 
+	if res, err := r.deleteNodeCRS(ctx, items); err != nil {
+		return res, err
+	}
+
+	return reconcile.Result{}, nil
+}
+
+func (r *Reconciler) deleteNodeCRS(ctx context.Context, items []eraserv1alpha1.ImageCollector) (ctrl.Result, error) {
 	// delete individual image collector CRs
 	for i := range items {
 		if items[i].Name != collectorShared {
 			if err := r.Delete(ctx, &items[i]); err != nil {
-				log.Info("Delete", "Could not delete image collector", imageCollector.Name)
+				log.Info("Delete", "Could not delete image collector", items[i].Name)
 				return reconcile.Result{}, err
 			}
 		}
 	}
-
 	return reconcile.Result{}, nil
 }
