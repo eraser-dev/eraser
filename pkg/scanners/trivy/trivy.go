@@ -53,6 +53,7 @@ const (
 	apiPath         = "apis/eraser.sh/v1alpha1"
 	resourceName    = "imagecollectors"
 	subResourceName = "status"
+	trivyVersion    = "v0.24.4"
 )
 
 var (
@@ -345,7 +346,7 @@ func downloadAndInitDB(cacheDir string) error {
 func downloadDB(cacheDir string) error {
 	client := dlDb.NewClient(cacheDir, true)
 	ctx := context.Background()
-	needsUpdate, err := client.NeedsUpdate("dev", false)
+	needsUpdate, err := client.NeedsUpdate(trivyVersion, false)
 	if err != nil {
 		return err
 	}
