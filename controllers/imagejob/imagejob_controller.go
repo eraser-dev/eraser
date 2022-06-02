@@ -71,10 +71,8 @@ func Add(mgr manager.Manager) error {
 // newReconciler returns a new reconcile.Reconciler.
 func newReconciler(mgr manager.Manager) reconcile.Reconciler {
 	return &Reconciler{
-		Client: mgr.GetClient(),
-		scheme: mgr.GetScheme(),
-		//successDelay: *successDelDelaySeconds,
-		//errDelay:     *errDelDelaySeconds,
+		Client:       mgr.GetClient(),
+		scheme:       mgr.GetScheme(),
 		successRatio: *successRatio,
 	}
 }
@@ -84,8 +82,6 @@ type Reconciler struct {
 	client.Client
 	scheme *runtime.Scheme
 
-	successDelay int64
-	errDelay     int64
 	successRatio float64
 }
 
