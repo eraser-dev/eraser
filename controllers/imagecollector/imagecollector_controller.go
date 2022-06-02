@@ -192,7 +192,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 			if res, err := r.updateSharedCRD(ctx, req, imageCollector); err != nil {
 				return res, err
 			}
-			relevantJobs[0].Status.DeleteAfter = after(time.Now(), *util.SuccessDelDelaySeconds)
+			relevantJobs[0].Status.DeleteAfter = util.After(time.Now(), *util.SuccessDelDelaySeconds)
 			if err := r.Status().Update(ctx, &relevantJobs[0]); err != nil {
 				log.Info("Could not update Delete After for job " + relevantJobs[0].Name)
 			}
@@ -203,7 +203,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	case eraserv1alpha1.PhaseFailed:
 		log.Info("failed phase")
 		if relevantJobs[0].Status.DeleteAfter == nil {
-			relevantJobs[0].Status.DeleteAfter = after(time.Now(), *util.ErrDelDelaySeconds)
+			relevantJobs[0].Status.DeleteAfter = util.After(time.Now(), *util.ErrDelDelaySeconds)
 			if err := r.Update(ctx, &relevantJobs[0]); err != nil {
 				log.Info("Could not update Delete After for job " + relevantJobs[0].Name)
 			}
@@ -225,11 +225,6 @@ func isNotFound(err error) bool {
 		return true
 	}
 	return false
-}
-
-func after(t time.Time, seconds int64) *metav1.Time {
-	newT := metav1.NewTime(t.Add(time.Duration(seconds) * time.Second))
-	return &newT
 }
 
 func (r *Reconciler) handleJobDeletion(ctx context.Context, job *eraserv1alpha1.ImageJob) (ctrl.Result, error) {

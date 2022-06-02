@@ -2,6 +2,7 @@ package util
 
 import (
 	"flag"
+	"time"
 
 	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -66,4 +67,9 @@ func FilterJobListByOwner(jobs []eraserv1alpha1.ImageJob, owner *metav1.OwnerRef
 	}
 
 	return ret
+}
+
+func After(t time.Time, seconds int64) *metav1.Time {
+	newT := metav1.NewTime(t.Add(time.Duration(seconds) * time.Second))
+	return &newT
 }

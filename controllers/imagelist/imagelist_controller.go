@@ -147,6 +147,26 @@ func (r *Reconciler) handleJobListEvent(ctx context.Context, imageList *eraserv1
 	return ctrl.Result{}, fmt.Errorf("unexpected job phase: '%s'", job.Status.Phase)
 }
 
+func (r *Reconciler) handleJobDeletion(ctx context.Context, job *eraserv1alpha1.ImageJob) (ctrl.Result, error) {
+	if job.Status.DeleteAfter == nil {
+		return ctrl.Result{}, nil
+	}
+
+	until := time.Until(job.Status.DeleteAfter.Time)
+	if until > 0 {
+		log.Info("Delaying imagejob delete", "job", job.Name, "deleteAter", job.Status.DeleteAfter)
+		return ctrl.Result{RequeueAfter: until}, nil
+	}
+
+	log.Info("Deleting imagejob", "job", job.Name)
+	err := r.Delete(ctx, job)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
+	return ctrl.Result{}, nil
+}
+
 func (r *Reconciler) handleImageListEvent(ctx context.Context, req *ctrl.Request, imageList *eraserv1alpha1.ImageList) (ctrl.Result, error) {
 	imgListJSON, err := json.Marshal(imageList.Spec.Images)
 	if err != nil {
@@ -253,9 +273,9 @@ func (r *Reconciler) handleJobCompletion(ctx context.Context, imageList *eraserv
 	}
 
 	if job.Status.Phase == eraserv1alpha1.PhaseCompleted {
-		job.Status.DeleteAfter = after(time.Now(), *util.SuccessDelDelaySeconds)
+		job.Status.DeleteAfter = util.After(time.Now(), *util.SuccessDelDelaySeconds)
 	} else if job.Status.Phase == eraserv1alpha1.PhaseFailed {
-		job.Status.DeleteAfter = after(time.Now(), *util.ErrDelDelaySeconds)
+		job.Status.DeleteAfter = util.After(time.Now(), *util.ErrDelDelaySeconds)
 	}
 
 	if err := r.Status().Update(ctx, job); err != nil {
@@ -263,31 +283,6 @@ func (r *Reconciler) handleJobCompletion(ctx context.Context, imageList *eraserv
 	}
 
 	return nil
-}
-
-func after(t time.Time, seconds int64) *metav1.Time {
-	newT := metav1.NewTime(t.Add(time.Duration(seconds) * time.Second))
-	return &newT
-}
-
-func (r *Reconciler) handleJobDeletion(ctx context.Context, job *eraserv1alpha1.ImageJob) (ctrl.Result, error) {
-	if job.Status.DeleteAfter == nil {
-		return ctrl.Result{}, nil
-	}
-
-	until := time.Until(job.Status.DeleteAfter.Time)
-	if until > 0 {
-		log.Info("Delaying imagejob delete", "job", job.Name, "deleteAter", job.Status.DeleteAfter)
-		return ctrl.Result{RequeueAfter: until}, nil
-	}
-
-	log.Info("Deleting imagejob", "job", job.Name)
-	err := r.Delete(ctx, job)
-	if err != nil {
-		return ctrl.Result{}, err
-	}
-
-	return ctrl.Result{}, nil
 }
 
 func add(mgr manager.Manager, r reconcile.Reconciler) error {
