@@ -18,7 +18,6 @@ import (
 	"flag"
 	"fmt"
 	"strings"
-	"time"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -227,14 +226,12 @@ func (r *Reconciler) handleRunningJob(ctx context.Context, imageJob *eraserv1alp
 		Skipped:   skipped,
 		Failed:    failed,
 		Phase:     eraserv1alpha1.PhaseCompleted,
-		//DeleteAfter: after(time.Now(), r.successDelay),
 	}
 
 	successAndSkipped := success + skipped
 	if float64(successAndSkipped/imageJob.Status.Desired) < r.successRatio {
 		log.Info("Marking job as failed", "success ratio", r.successRatio, "actual ratio", success/imageJob.Status.Desired)
 		imageJob.Status.Phase = eraserv1alpha1.PhaseFailed
-		//imageJob.Status.DeleteAfter = after(time.Now(), r.errDelay)
 	}
 
 	if err := r.updateJobStatus(ctx, imageJob); err != nil {
@@ -242,11 +239,6 @@ func (r *Reconciler) handleRunningJob(ctx context.Context, imageJob *eraserv1alp
 	}
 
 	return nil
-}
-
-func after(t time.Time, seconds int64) *metav1.Time {
-	newT := metav1.NewTime(t.Add(time.Duration(seconds) * time.Second))
-	return &newT
 }
 
 func (r *Reconciler) handleNewJob(ctx context.Context, imageJob *eraserv1alpha1.ImageJob) error {
