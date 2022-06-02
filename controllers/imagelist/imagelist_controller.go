@@ -50,9 +50,11 @@ const (
 )
 
 var (
-	log         = logf.Log.WithName("controller").WithValues("process", "imagelist-controller")
-	eraserImage = flag.String("eraser-image", "ghcr.io/azure/eraser:latest", "eraser image")
-	imageList   = types.NamespacedName{Name: "imagelist"}
+	log                    = logf.Log.WithName("controller").WithValues("process", "imagelist-controller")
+	eraserImage            = flag.String("eraser-image", "ghcr.io/azure/eraser:latest", "eraser image")
+	imageList              = types.NamespacedName{Name: "imagelist"}
+	successDelDelaySeconds = flag.Int64("job-cleanup-on-success-delay", 0, "Seconds to delay job deletion after successful runs. 0 means no delay")
+	errDelDelaySeconds     = flag.Int64("job-cleanup-on-error-delay", 86400, "Seconds to delay job deletion after errored runs. 0 means no delay")
 )
 
 func Add(mgr manager.Manager) error {
@@ -252,7 +254,22 @@ func (r *Reconciler) handleJobCompletion(ctx context.Context, imageList *eraserv
 		return err
 	}
 
+	if job.Status.Phase == eraserv1alpha1.PhaseCompleted {
+		job.Status.DeleteAfter = after(time.Now(), *successDelDelaySeconds)
+	} else if job.Status.Phase == eraserv1alpha1.PhaseFailed {
+		job.Status.DeleteAfter = after(time.Now(), *errDelDelaySeconds)
+	}
+
+	if err := r.Status().Update(ctx, job); err != nil {
+		log.Info("Could not update Delete After for job " + job.Name)
+	}
+
 	return nil
+}
+
+func after(t time.Time, seconds int64) *metav1.Time {
+	newT := metav1.NewTime(t.Add(time.Duration(seconds) * time.Second))
+	return &newT
 }
 
 func (r *Reconciler) handleJobDeletion(ctx context.Context, job *eraserv1alpha1.ImageJob) (ctrl.Result, error) {

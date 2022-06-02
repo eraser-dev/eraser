@@ -47,8 +47,11 @@ import (
 )
 
 var (
-	collectorImage = flag.String("collector-image", "ghcr.io/azure/collector:latest", "collector image")
-	log            = logf.Log.WithName("controller").WithValues("process", "imagecollector-controller")
+	//collectorImage         = flag.String("collector-image", "ghcr.io/azure/collector:latest", "collector image")
+	collectorImage         = flag.String("collector-image", "ashnam/collector:new", "collector image")
+	log                    = logf.Log.WithName("controller").WithValues("process", "imagecollector-controller")
+	successDelDelaySeconds = flag.Int64("job-cleanup-on-success-delay", 0, "Seconds to delay job deletion after successful runs. 0 means no delay")
+	errDelDelaySeconds     = flag.Int64("job-cleanup-on-error-delay", 86400, "Seconds to delay job deletion after errored runs. 0 means no delay")
 )
 
 const (
@@ -188,16 +191,34 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	switch phase := relevantJobs[0].Status.Phase; phase {
 	case eraserv1alpha1.PhaseCompleted:
 		log.Info("completed phase")
-		if res, err := r.updateSharedCRD(ctx, req, imageCollector); err != nil {
+		if relevantJobs[0].Status.DeleteAfter == nil {
+			if res, err := r.updateSharedCRD(ctx, req, imageCollector); err != nil {
+				return res, err
+			}
+			relevantJobs[0].Status.DeleteAfter = after(time.Now(), *successDelDelaySeconds)
+			if err := r.Status().Update(ctx, &relevantJobs[0]); err != nil {
+				log.Info("Could not update Delete After for job " + relevantJobs[0].Name)
+			}
+		}
+		if res, err := r.handleJobDeletion(ctx, &relevantJobs[0]); err != nil || res.RequeueAfter > 0 {
 			return res, err
 		}
-		return r.handleJobDeletion(ctx, &relevantJobs[0])
 	case eraserv1alpha1.PhaseFailed:
 		log.Info("failed phase")
-		return r.handleJobDeletion(ctx, &relevantJobs[0])
+		if relevantJobs[0].Status.DeleteAfter == nil {
+			relevantJobs[0].Status.DeleteAfter = after(time.Now(), *errDelDelaySeconds)
+			if err := r.Update(ctx, &relevantJobs[0]); err != nil {
+				log.Info("Could not update Delete After for job " + relevantJobs[0].Name)
+			}
+		}
+		if res, err := r.handleJobDeletion(ctx, &relevantJobs[0]); err != nil || res.RequeueAfter > 0 {
+			return res, err
+		}
 	default:
 		log.Error(errors.New("should not reach this point for imagejob"), "imagejob: ", relevantJobs[0])
 	}
+
+	log.Info("done reconcile")
 
 	return ctrl.Result{RequeueAfter: repeatPeriod}, nil
 }
@@ -209,8 +230,15 @@ func isNotFound(err error) bool {
 	return false
 }
 
+func after(t time.Time, seconds int64) *metav1.Time {
+	newT := metav1.NewTime(t.Add(time.Duration(seconds) * time.Second))
+	return &newT
+}
+
 func (r *Reconciler) handleJobDeletion(ctx context.Context, job *eraserv1alpha1.ImageJob) (ctrl.Result, error) {
+	log.Info("start job deletion")
 	if job.Status.DeleteAfter == nil {
+		log.Info("delete after is nil")
 		return ctrl.Result{}, nil
 	}
 
@@ -225,7 +253,7 @@ func (r *Reconciler) handleJobDeletion(ctx context.Context, job *eraserv1alpha1.
 	if err != nil {
 		return ctrl.Result{}, err
 	}
-
+	log.Info("end job deletion")
 	return ctrl.Result{}, nil
 }
 

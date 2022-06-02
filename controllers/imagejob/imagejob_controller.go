@@ -57,10 +57,10 @@ const (
 var log = logf.Log.WithName("controller").WithValues("process", "imagejob-controller")
 
 var (
-	successDelDelaySeconds = flag.Int64("job-cleanup-on-success-delay", 0, "Seconds to delay job deletion after successful runs. 0 means no delay")
-	errDelDelaySeconds     = flag.Int64("job-cleanup-on-error-delay", 86400, "Seconds to delay job deletion after errored runs. 0 means no delay")
-	successRatio           = flag.Float64("job-success-ratio", 1.0, "Ratio of successful/total runs to consider a job successful. 1.0 means all runs must succeed.")
-	skipNodesSelectors     = nodeSkipSelectors([]string{"kubernetes.io/os=windows", "eraser.sh/cleanup.skip"})
+	//successDelDelaySeconds = flag.Int64("job-cleanup-on-success-delay", 0, "Seconds to delay job deletion after successful runs. 0 means no delay")
+	//errDelDelaySeconds     = flag.Int64("job-cleanup-on-error-delay", 86400, "Seconds to delay job deletion after errored runs. 0 means no delay")
+	successRatio       = flag.Float64("job-success-ratio", 1.0, "Ratio of successful/total runs to consider a job successful. 1.0 means all runs must succeed.")
+	skipNodesSelectors = nodeSkipSelectors([]string{"kubernetes.io/os=windows", "eraser.sh/cleanup.skip"})
 )
 
 func init() {
@@ -74,10 +74,10 @@ func Add(mgr manager.Manager) error {
 // newReconciler returns a new reconcile.Reconciler.
 func newReconciler(mgr manager.Manager) reconcile.Reconciler {
 	return &Reconciler{
-		Client:       mgr.GetClient(),
-		scheme:       mgr.GetScheme(),
-		successDelay: *successDelDelaySeconds,
-		errDelay:     *errDelDelaySeconds,
+		Client: mgr.GetClient(),
+		scheme: mgr.GetScheme(),
+		//successDelay: *successDelDelaySeconds,
+		//errDelay:     *errDelDelaySeconds,
 		successRatio: *successRatio,
 	}
 }
@@ -224,19 +224,19 @@ func (r *Reconciler) handleRunningJob(ctx context.Context, imageJob *eraserv1alp
 	}
 
 	imageJob.Status = eraserv1alpha1.ImageJobStatus{
-		Desired:     imageJob.Status.Desired,
-		Succeeded:   success,
-		Skipped:     skipped,
-		Failed:      failed,
-		Phase:       eraserv1alpha1.PhaseCompleted,
-		DeleteAfter: after(time.Now(), r.successDelay),
+		Desired:   imageJob.Status.Desired,
+		Succeeded: success,
+		Skipped:   skipped,
+		Failed:    failed,
+		Phase:     eraserv1alpha1.PhaseCompleted,
+		//DeleteAfter: after(time.Now(), r.successDelay),
 	}
 
 	successAndSkipped := success + skipped
 	if float64(successAndSkipped/imageJob.Status.Desired) < r.successRatio {
 		log.Info("Marking job as failed", "success ratio", r.successRatio, "actual ratio", success/imageJob.Status.Desired)
 		imageJob.Status.Phase = eraserv1alpha1.PhaseFailed
-		imageJob.Status.DeleteAfter = after(time.Now(), r.errDelay)
+		//imageJob.Status.DeleteAfter = after(time.Now(), r.errDelay)
 	}
 
 	if err := r.updateJobStatus(ctx, imageJob); err != nil {
