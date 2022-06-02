@@ -228,12 +228,6 @@ func isNotFound(err error) bool {
 }
 
 func (r *Reconciler) handleJobDeletion(ctx context.Context, job *eraserv1alpha1.ImageJob) (ctrl.Result, error) {
-	log.Info("start job deletion")
-	if job.Status.DeleteAfter == nil {
-		log.Info("delete after is nil")
-		return ctrl.Result{}, nil
-	}
-
 	until := time.Until(job.Status.DeleteAfter.Time)
 	if until > 0 {
 		log.Info("Delaying imagejob delete", "job", job.Name, "deleteAter", job.Status.DeleteAfter)

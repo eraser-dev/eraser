@@ -148,10 +148,6 @@ func (r *Reconciler) handleJobListEvent(ctx context.Context, imageList *eraserv1
 }
 
 func (r *Reconciler) handleJobDeletion(ctx context.Context, job *eraserv1alpha1.ImageJob) (ctrl.Result, error) {
-	if job.Status.DeleteAfter == nil {
-		return ctrl.Result{}, nil
-	}
-
 	until := time.Until(job.Status.DeleteAfter.Time)
 	if until > 0 {
 		log.Info("Delaying imagejob delete", "job", job.Name, "deleteAter", job.Status.DeleteAfter)
