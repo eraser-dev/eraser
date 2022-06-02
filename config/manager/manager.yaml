@@ -29,7 +29,6 @@ spec:
         - /manager
         args:
         - --leader-elect=false
-        - --job-cleanup-on-success-delay=10
         image: controller:latest
         name: manager
         securityContext:
