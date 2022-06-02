@@ -204,7 +204,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		log.Info("failed phase")
 		if relevantJobs[0].Status.DeleteAfter == nil {
 			relevantJobs[0].Status.DeleteAfter = util.After(time.Now(), *util.ErrDelDelaySeconds)
-			if err := r.Update(ctx, &relevantJobs[0]); err != nil {
+			if err := r.Status().Update(ctx, &relevantJobs[0]); err != nil {
 				log.Info("Could not update Delete After for job " + relevantJobs[0].Name)
 			}
 		}
