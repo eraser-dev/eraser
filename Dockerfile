@@ -25,6 +25,9 @@ RUN \
 COPY . .
 
 FROM builder AS manager-build
+ARG LDFLAGS
+ARG TARGETOS
+ARG TARGETARCH
 
 RUN \
     --mount=type=cache,target=${GOCACHE} \
@@ -32,6 +35,9 @@ RUN \
     GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build ${LDFLAGS:+-ldflags "$LDFLAGS"} -o out/manager main.go
 
 FROM builder AS trivy-scanner-build
+ARG LDFLAGS
+ARG TARGETOS
+ARG TARGETARCH
 
 RUN \
     --mount=type=cache,target=${GOCACHE} \
@@ -39,6 +45,9 @@ RUN \
     GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build ${LDFLAGS:+-ldflags "$LDFLAGS"} -o out/trivy-scanner ./pkg/scanners/trivy
 
 FROM builder AS eraser-build
+ARG LDFLAGS
+ARG TARGETOS
+ARG TARGETARCH
 
 RUN \
     --mount=type=cache,target=${GOCACHE} \
@@ -46,6 +55,9 @@ RUN \
     GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build ${LDFLAGS:+-ldflags "$LDFLAGS"} -o out/eraser ./pkg/eraser
 
 FROM builder AS collector-build
+ARG LDFLAGS
+ARG TARGETOS
+ARG TARGETARCH
 
 RUN \
     --mount=type=cache,target=${GOCACHE} \

@@ -10,12 +10,14 @@ KUSTOMIZE_VERSION ?= 3.8.9
 KUBERNETES_VERSION ?= 1.23.0
 ENVTEST_K8S_VERSION ?= 1.23
 GOLANGCI_LINT_VERSION := 1.43.0
+TRIVY_VERSION ?= $(shell go list -f '{{ .Version }}' -m github.com/aquasecurity/trivy)
 
 PLATFORM ?= linux
 
 # build variables
-LDFLAGS ?= $(shell build/version.sh "${VERSION}")
+LDFLAGS ?= $(shell build/version.sh "${VERSION}") 
 ERASER_LDFLAGS ?= $(LDFLAGS)-w '-extldflags "-static"'
+TRIVY_SCANNER_LDFLAGS ?= $(LDFLAGS)-X 'main.trivyVersion=$(TRIVY_VERSION)'
 
 # Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
 ifeq (,$(shell go env GOBIN))
@@ -132,7 +134,7 @@ docker-build-manager: ## Build docker image with the manager.
 docker-build-trivy-scanner: ## Build docker image for trivy-scanner image.
 	docker buildx build \
 		$(_CACHE_FROM) $(_CACHE_TO) \
-		--build-arg LDFLAGS="$(ERASER_LDFLAGS)" \
+		--build-arg LDFLAGS="$(TRIVY_SCANNER_LDFLAGS)" \
 		--platform="$(PLATFORM)" \
 		--output=$(OUTPUT_TYPE) \
 		-t ${TRIVY_SCANNER_IMG} \
