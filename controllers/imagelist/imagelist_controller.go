@@ -122,10 +122,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 
 		// If we got here because of a completed ImageJob:
 		if util.IsCompletedOrFailed(job.Status.Phase) {
-			if job.Status.DeleteAfter == nil {
-				return r.handleJobListEvent(ctx, &imageList, &job)
-			}
-			return ctrl.Result{}, nil
+			return r.handleJobListEvent(ctx, &imageList, &job)
 		}
 
 		// If we got here due to an update to the ImageList, and there is an ImageJob already running,
@@ -142,6 +139,19 @@ func (r *Reconciler) handleJobListEvent(ctx context.Context, imageList *eraserv1
 		err := r.handleJobCompletion(ctx, imageList, job)
 		if err != nil {
 			return ctrl.Result{}, err
+		}
+
+		if job.Status.DeleteAfter == nil {
+			if job.Status.Phase == eraserv1alpha1.PhaseCompleted {
+				job.Status.DeleteAfter = util.After(time.Now(), *util.SuccessDelDelaySeconds)
+			} else if job.Status.Phase == eraserv1alpha1.PhaseFailed {
+				job.Status.DeleteAfter = util.After(time.Now(), *util.ErrDelDelaySeconds)
+			}
+
+			if err := r.Status().Update(ctx, job); err != nil {
+				log.Info("Could not update Delete After for job " + job.Name)
+			}
+			return ctrl.Result{}, nil
 		}
 
 		return r.handleJobDeletion(ctx, job)
@@ -269,16 +279,6 @@ func (r *Reconciler) handleJobCompletion(ctx context.Context, imageList *eraserv
 	err := r.Status().Update(ctx, imageList)
 	if err != nil {
 		return err
-	}
-
-	if job.Status.Phase == eraserv1alpha1.PhaseCompleted {
-		job.Status.DeleteAfter = util.After(time.Now(), *util.SuccessDelDelaySeconds)
-	} else if job.Status.Phase == eraserv1alpha1.PhaseFailed {
-		job.Status.DeleteAfter = util.After(time.Now(), *util.ErrDelDelaySeconds)
-	}
-
-	if err := r.Status().Update(ctx, job); err != nil {
-		log.Info("Could not update Delete After for job " + job.Name)
 	}
 
 	return nil
