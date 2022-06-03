@@ -14,7 +14,7 @@ GOLANGCI_LINT_VERSION := 1.43.0
 PLATFORM ?= linux
 
 # build variables
-LDFLAGS ?= $(shell build/version.sh "${VERSION}") 
+LDFLAGS ?= $(shell build/version.sh "${VERSION}")
 ERASER_LDFLAGS ?= $(LDFLAGS)-w '-extldflags "-static"'
 
 # Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
@@ -129,8 +129,14 @@ docker-build-manager: ## Build docker image with the manager.
 		-t ${MANAGER_IMG} \
 		--target manager .
 
-docker-build-trivy-scanner: ## Build docker image with the manager.
-	docker buildx build $(_CACHE_FROM) $(_CACHE_TO) --platform="$(PLATFORM)" --output=$(OUTPUT_TYPE) --target trivy-scanner -t ${TRIVY_SCANNER_IMG} .
+docker-build-trivy-scanner: ## Build docker image for trivy-scanner image.
+	docker buildx build \
+		$(_CACHE_FROM) $(_CACHE_TO) \
+		--build-arg LDFLAGS="$(ERASER_LDFLAGS)" \
+		--platform="$(PLATFORM)" \
+		--output=$(OUTPUT_TYPE) \
+		-t ${TRIVY_SCANNER_IMG} \
+		--target trivy-scanner .
 
 docker-push-trivy-scanner: ## Push docker image with the manager.
 	docker push ${TRIVY_SCANNER_IMG}
