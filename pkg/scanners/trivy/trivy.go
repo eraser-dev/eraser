@@ -53,7 +53,6 @@ const (
 	apiPath         = "apis/eraser.sh/v1alpha1"
 	resourceName    = "imagecollectors"
 	subResourceName = "status"
-	trivyVersion    = "v0.24.4"
 )
 
 var (
@@ -90,6 +89,8 @@ var (
 	}
 
 	log = logf.Log.WithName("scanner").WithValues("provider", "trivy")
+
+	trivyVersion = "dev"
 )
 
 type (
