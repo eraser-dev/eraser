@@ -175,7 +175,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	)
 
 	if len(relevantJobs) > 1 {
-		return reconcile.Result{}, fmt.Errorf("More than one collector ImageJob scheduled")
+		return reconcile.Result{}, fmt.Errorf("more than one collector ImageJobs are scheduled")
 	}
 	if len(relevantJobs) == 0 {
 		if res, err := r.createImageJob(ctx, req, imageCollectorShared); err != nil {
