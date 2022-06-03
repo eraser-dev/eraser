@@ -42,6 +42,8 @@ spec:
                       type: string
                     name:
                       type: string
+                    scanSucceeded:
+                      type: boolean
                   required:
                   - digest
                   type: object
@@ -58,6 +60,8 @@ spec:
                       type: string
                     name:
                       type: string
+                    scanSucceeded:
+                      type: boolean
                   required:
                   - digest
                   type: object

@@ -39,7 +39,7 @@ jobs:
   unit-test:
     name: "Unit Tests"
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 10
     steps:
       - name: Set up Go 1.18
         uses: actions/setup-go@v3

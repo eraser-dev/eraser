@@ -22,8 +22,9 @@ type ImageCollectorSpec struct {
 }
 
 type Image struct {
-	Digest string `json:"digest"`
-	Name   string `json:"name,omitempty"`
+	Digest        string `json:"digest"`
+	Name          string `json:"name,omitempty"`
+	ScanSucceeded *bool  `json:"scanSucceeded,omitempty"`
 }
 
 type ImageCollectorStatus struct {

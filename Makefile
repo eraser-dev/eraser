@@ -1,6 +1,7 @@
 VERSION := v0.1.0
 
 # Image URL to use all building/pushing image targets
+TRIVY_SCANNER_IMG ?= ghcr.io/azure/eraser-trivy-scanner:${VERSION}
 MANAGER_IMG ?= ghcr.io/azure/eraser-manager:${VERSION}
 ERASER_IMG ?= ghcr.io/azure/eraser:${VERSION}
 COLLECTOR_IMG ?= ghcr.io/azure/collector:${VERSION}
@@ -9,12 +10,14 @@ KUSTOMIZE_VERSION ?= 3.8.9
 KUBERNETES_VERSION ?= 1.23.0
 ENVTEST_K8S_VERSION ?= 1.23
 GOLANGCI_LINT_VERSION := 1.43.0
+TRIVY_VERSION ?= $(shell go list -f '{{ .Version }}' -m github.com/aquasecurity/trivy)
 
 PLATFORM ?= linux
 
 # build variables
-LDFLAGS ?= $(shell build/version.sh "${VERSION}") 
-ERASER_LDFLAGS ?= $(LDFLAGS)-w '-extldflags "-static"'
+LDFLAGS ?= $(shell build/version.sh "${VERSION}")
+ERASER_LDFLAGS ?= -extldflags=-static $(LDFLAGS) -w
+TRIVY_SCANNER_LDFLAGS ?= $(ERASER_LDFLAGS) -X 'main.trivyVersion=$(TRIVY_VERSION)'
 
 # Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
 ifeq (,$(shell go env GOBIN))
@@ -127,6 +130,18 @@ docker-build-manager: ## Build docker image with the manager.
 		--output=$(OUTPUT_TYPE) \
 		-t ${MANAGER_IMG} \
 		--target manager .
+
+docker-build-trivy-scanner: ## Build docker image for trivy-scanner image.
+	docker buildx build \
+		$(_CACHE_FROM) $(_CACHE_TO) \
+		--build-arg LDFLAGS="$(TRIVY_SCANNER_LDFLAGS)" \
+		--platform="$(PLATFORM)" \
+		--output=$(OUTPUT_TYPE) \
+		-t ${TRIVY_SCANNER_IMG} \
+		--target trivy-scanner .
+
+docker-push-trivy-scanner: ## Push docker image with the manager.
+	docker push ${TRIVY_SCANNER_IMG}
 
 docker-push-manager: ## Push docker image for the eraser manager.
 	docker push ${MANAGER_IMG}
