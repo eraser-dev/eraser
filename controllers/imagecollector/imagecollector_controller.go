@@ -50,6 +50,7 @@ var (
 	collectorImage = flag.String("collector-image", "ghcr.io/azure/collector:latest", "collector image")
 	log            = logf.Log.WithName("controller").WithValues("process", "imagecollector-controller")
 	repeatPeriod   = flag.Duration("repeat-period", time.Hour*24, "repeat period for collec/scan process")
+	scannerImage   = flag.String("scanner-image", "ghcr.io/azure/scanner:latest", "scanner image")
 )
 
 const (
