@@ -1,11 +1,13 @@
 # syntax=mcr.microsoft.com/oss/moby/dockerfile:1.3.1
-ARG BUILDERIMAGE="golang:1.17"
+ARG BUILDERIMAGE="golang:1.18-bullseye"
 
 ARG STATICBASEIMAGE="gcr.io/distroless/static:latest"
 ARG STATICNONROOTBASEIMAGE="gcr.io/distroless/static:nonroot"
 
 ARG TARGETOS
 ARG TARGETARCH
+
+ARG LDFLAGS
 
 # Build the manager binary
 FROM --platform=$BUILDPLATFORM $BUILDERIMAGE AS builder
@@ -28,33 +30,33 @@ FROM builder AS manager-build
 RUN \
     --mount=type=cache,target=${GOCACHE} \
     --mount=type=cache,target=/go/pkg/mod \
-    GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -o out/manager main.go
+    GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build ${LDFLAGS:+-ldflags "$LDFLAGS"} -o out/manager main.go
 
 FROM builder AS eraser-build
 
 RUN \
     --mount=type=cache,target=${GOCACHE} \
     --mount=type=cache,target=/go/pkg/mod \
-    GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -ldflags '-w -extldflags "-static"' -o out/eraser ./pkg/eraser
-
-FROM --platform=$BUILDPLATFORM $STATICBASEIMAGE as eraser
-COPY --from=eraser-build /workspace/out/eraser /
-ENTRYPOINT ["/eraser"]
+    GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build ${LDFLAGS:+-ldflags "$LDFLAGS"} -o out/eraser ./pkg/eraser
 
 FROM builder AS collector-build
 
 RUN \
     --mount=type=cache,target=${GOCACHE} \
     --mount=type=cache,target=/go/pkg/mod \
-    GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -o out/collector ./pkg/collector
+    GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build ${LDFLAGS:+-ldflags "$LDFLAGS"} -o out/collector ./pkg/collector
 
-FROM --platform=$BUILDPLATFORM $STATICBASEIMAGE as collector
+FROM --platform=$TARGETPLATFORM $STATICBASEIMAGE as collector
 COPY --from=collector-build /workspace/out/collector /
 ENTRYPOINT ["/collector"]
 
+FROM --platform=$TARGETPLATFORM $STATICBASEIMAGE as eraser
+COPY --from=eraser-build /workspace/out/eraser /
+ENTRYPOINT ["/eraser"]
+
 # Use distroless as minimal base image to package the manager binary
 # Refer to https://github.com/GoogleContainerTools/distroless for more details
-FROM --platform=$BUILDPLATFORM $STATICNONROOTBASEIMAGE AS manager
+FROM --platform=$TARGETPLATFORM $STATICNONROOTBASEIMAGE AS manager
 WORKDIR /
 COPY --from=manager-build /workspace/out/manager .
 USER 65532:65532

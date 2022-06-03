@@ -3,6 +3,7 @@ package controllers
 import (
 	"errors"
 
+	"github.com/Azure/eraser/controllers/imagecollector"
 	"github.com/Azure/eraser/controllers/imagejob"
 	"github.com/Azure/eraser/controllers/imagelist"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -16,10 +17,11 @@ var (
 )
 
 func init() {
-	controllerAddFuncs = append(controllerAddFuncs, imagelist.Add, imagejob.Add)
+	controllerAddFuncs = append(controllerAddFuncs, imagelist.Add, imagejob.Add, imagecollector.Add)
 }
 
 func SetupWithManager(m manager.Manager) error {
+	controllerLog.Info("set up with manager")
 	for _, f := range controllerAddFuncs {
 		if err := f(m); err != nil {
 			var kindMatchErr *meta.NoKindMatchError

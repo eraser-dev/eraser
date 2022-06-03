@@ -15,12 +15,9 @@ package imagejob
 
 import (
 	"context"
-	"encoding/json"
 	"flag"
 	"fmt"
-	"path/filepath"
 	"strings"
-	"time"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -29,21 +26,21 @@ import (
 	"k8s.io/kubernetes/pkg/scheduler/framework"
 	"k8s.io/kubernetes/pkg/scheduler/framework/plugins/noderesources"
 
-	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
+	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
-	"github.com/Azure/eraser/pkg/logger"
+	"github.com/Azure/eraser/controllers/util"
 )
 
 const (
@@ -54,16 +51,13 @@ const (
 	containerd     = "containerd"
 	crio           = "cri-o"
 	namespace      = "eraser-system"
-	imgListPath    = "/run/eraser.sh/imagelist"
 )
 
 var log = logf.Log.WithName("controller").WithValues("process", "imagejob-controller")
 
 var (
-	successDelDelaySeconds = flag.Int64("job-cleanup-on-success-delay", 0, "Seconds to delay job deletion after successful runs. 0 means no delay")
-	errDelDelaySeconds     = flag.Int64("job-cleanup-on-error-delay", 86400, "Seconds to delay job deletion after errored runs. 0 means no delay")
-	successRatio           = flag.Float64("job-success-ratio", 1.0, "Ratio of successful/total runs to consider a job successful. 1.0 means all runs must succeed.")
-	skipNodesSelectors     = nodeSkipSelectors([]string{"kubernetes.io/os=windows", "eraser.sh/cleanup.skip"})
+	successRatio       = flag.Float64("job-success-ratio", 1.0, "Ratio of successful/total runs to consider a job successful. 1.0 means all runs must succeed.")
+	skipNodesSelectors = nodeSkipSelectors([]string{"kubernetes.io/os=windows", "eraser.sh/cleanup.skip"})
 )
 
 func init() {
@@ -79,8 +73,6 @@ func newReconciler(mgr manager.Manager) reconcile.Reconciler {
 	return &Reconciler{
 		Client:       mgr.GetClient(),
 		scheme:       mgr.GetScheme(),
-		successDelay: *successDelDelaySeconds,
-		errDelay:     *errDelDelaySeconds,
 		successRatio: *successRatio,
 	}
 }
@@ -90,8 +82,6 @@ type Reconciler struct {
 	client.Client
 	scheme *runtime.Scheme
 
-	successDelay int64
-	errDelay     int64
 	successRatio float64
 }
 
@@ -106,7 +96,18 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	}
 
 	// Watch for changes to ImageJob
-	err = c.Watch(&source.Kind{Type: &eraserv1alpha1.ImageJob{}}, &handler.EnqueueRequestForObject{})
+	err = c.Watch(&source.Kind{Type: &eraserv1alpha1.ImageJob{}}, &handler.EnqueueRequestForObject{}, predicate.Funcs{
+		UpdateFunc: func(e event.UpdateEvent) bool {
+			if job, ok := e.ObjectNew.(*eraserv1alpha1.ImageJob); ok && util.IsCompletedOrFailed(job.Status.Phase) {
+				return false // handled by Owning controller
+			}
+
+			return true
+		},
+		CreateFunc:  util.AlwaysOnCreate,
+		GenericFunc: util.NeverOnGeneric,
+		DeleteFunc:  util.NeverOnDelete,
+	})
 	if err != nil {
 		return err
 	}
@@ -173,27 +174,12 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 			return ctrl.Result{}, fmt.Errorf("reconcile running: %w", err)
 		}
 	case eraserv1alpha1.PhaseCompleted, eraserv1alpha1.PhaseFailed:
-		return r.handleCompletedJob(ctx, imageJob)
+		break // this is handled by the Owning controller
 	default:
 		return ctrl.Result{}, fmt.Errorf("reconcile: unexpected imagejob phase: %s", imageJob.Status.Phase)
 	}
 
 	return ctrl.Result{}, nil
-}
-
-func (r *Reconciler) handleCompletedJob(ctx context.Context, j *eraserv1alpha1.ImageJob) (ctrl.Result, error) {
-	if j.Status.DeleteAfter == nil {
-		return ctrl.Result{}, nil
-	}
-
-	until := time.Until(j.Status.DeleteAfter.Time)
-	if until > 0 {
-		log.Info("Delaying imagejob delete", "job", j.Name, "deleteAter", j.Status.DeleteAfter)
-		return ctrl.Result{RequeueAfter: until}, nil
-	}
-
-	log.Info("Deleting imagejob", "job", j.Name)
-	return ctrl.Result{}, r.Delete(ctx, j)
 }
 
 func podListOptions(j *eraserv1alpha1.ImageJob) client.ListOptions {
@@ -231,47 +217,24 @@ func (r *Reconciler) handleRunningJob(ctx context.Context, imageJob *eraserv1alp
 	}
 
 	imageJob.Status = eraserv1alpha1.ImageJobStatus{
-		Desired:     imageJob.Status.Desired,
-		Succeeded:   success,
-		Skipped:     skipped,
-		Failed:      failed,
-		Phase:       eraserv1alpha1.PhaseCompleted,
-		DeleteAfter: after(time.Now(), r.successDelay),
+		Desired:   imageJob.Status.Desired,
+		Succeeded: success,
+		Skipped:   skipped,
+		Failed:    failed,
+		Phase:     eraserv1alpha1.PhaseCompleted,
 	}
 
 	successAndSkipped := success + skipped
 	if float64(successAndSkipped/imageJob.Status.Desired) < r.successRatio {
 		log.Info("Marking job as failed", "success ratio", r.successRatio, "actual ratio", success/imageJob.Status.Desired)
 		imageJob.Status.Phase = eraserv1alpha1.PhaseFailed
-		imageJob.Status.DeleteAfter = after(time.Now(), r.errDelay)
 	}
 
 	if err := r.updateJobStatus(ctx, imageJob); err != nil {
 		return err
 	}
 
-	imageList := &eraserv1alpha1.ImageList{}
-	err = r.Get(ctx, types.NamespacedName{Name: imageJob.OwnerReferences[0].Name}, imageList)
-	if err != nil {
-		return err
-	}
-
-	now := metav1.Now()
-	imageList.Status.Timestamp = &now
-	imageList.Status.Skipped = int64(skipped)
-	imageList.Status.Success = int64(success)
-	imageList.Status.Failed = int64(failed)
-
-	return r.Status().Update(ctx, imageList)
-}
-
-func after(t time.Time, seconds int64) *metav1.Time {
-	newT := metav1.NewTime(t.Add(time.Duration(seconds) * time.Second))
-	return &newT
-}
-
-func boolPtr(b bool) *bool {
-	return &b
+	return nil
 }
 
 func (r *Reconciler) handleNewJob(ctx context.Context, imageJob *eraserv1alpha1.ImageJob) error {
@@ -284,13 +247,9 @@ func (r *Reconciler) handleNewJob(ctx context.Context, imageJob *eraserv1alpha1.
 	imageJob.Status = eraserv1alpha1.ImageJobStatus{
 		Desired:   len(nodes.Items),
 		Succeeded: 0,
-		Skipped:   0,
+		Skipped:   0, // placeholder, updated below
 		Failed:    0,
 		Phase:     eraserv1alpha1.PhaseRunning,
-	}
-
-	if err := r.updateJobStatus(ctx, imageJob); err != nil {
-		return err
 	}
 
 	skipped := 0
@@ -301,128 +260,9 @@ func (r *Reconciler) handleNewJob(ctx context.Context, imageJob *eraserv1alpha1.
 		{Name: "NODE_NAME", ValueFrom: &corev1.EnvVarSource{FieldRef: &corev1.ObjectFieldSelector{FieldPath: "spec.nodeName"}}},
 	}
 
-	var imgList eraserv1alpha1.ImageList
-	if err := r.Get(ctx, types.NamespacedName{Name: imageJob.OwnerReferences[0].Name}, &imgList); err != nil {
-		return fmt.Errorf("get image list %s: %w", imageJob.OwnerReferences[0].Name, err)
-	}
-
-	imgListJSON, err := json.Marshal(imgList.Spec.Images)
+	nodeList, skipped, err := filterOutSkippedNodes(nodes, skipNodesSelectors)
 	if err != nil {
-		return fmt.Errorf("marshal image list: %w", err)
-	}
-
-	configName := imageJob.Name + "-imagelist"
-	if err := r.Create(ctx, &corev1.ConfigMap{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      configName,
-			Namespace: namespace,
-			OwnerReferences: []metav1.OwnerReference{
-				*metav1.NewControllerRef(imageJob, imageJob.GroupVersionKind()),
-			},
-		},
-		Immutable: boolPtr(true),
-		Data:      map[string]string{"images": string(imgListJSON)},
-	}); err != nil {
-		return fmt.Errorf("create configmap: %w", err)
-	}
-
-nodes:
-	for i := range nodes.Items {
-		log := log.WithValues("node", nodes.Items[i].Name)
-
-		nodeName := nodes.Items[i].Name
-		for _, skipNodesSelector := range skipNodesSelectors {
-			skipLabels, err := labels.Parse(skipNodesSelector)
-			if err != nil {
-				return err
-			}
-
-			log.V(1).Info("skipLabels", "skipLabels", skipLabels)
-			log.V(1).Info("nodeLabels", "nodeLabels", nodes.Items[i].ObjectMeta.Labels)
-			if skipLabels.Matches(labels.Set(nodes.Items[i].ObjectMeta.Labels)) {
-				log.Info("node will be skipped because it matched the specified labels",
-					"nodeName", nodeName,
-					"labels", nodes.Items[i].ObjectMeta.Labels,
-					"specifiedSelectors", skipNodesSelectors,
-				)
-
-				skipped++
-				continue nodes
-			}
-		}
-
-		runtime := nodes.Items[i].Status.NodeInfo.ContainerRuntimeVersion
-		runtimeName := strings.Split(runtime, ":")[0]
-		mountPath := getMountPath(runtimeName)
-		if mountPath == "" {
-			log.Error(fmt.Errorf("incompatible runtime on node"), "incompatible runtime")
-			continue
-		}
-
-		givenImage := imageJob.Spec.JobTemplate.Spec.Containers[0]
-		args := []string{
-			"--imagelist=" + filepath.Join(imgListPath, "images"),
-			"--runtime=" + runtimeName,
-			"--log-level=" + logger.GetLevel(),
-		}
-		image := corev1.Container{
-			Args: append(givenImage.Args, args...),
-			VolumeMounts: []corev1.VolumeMount{
-				{MountPath: mountPath, Name: runtimeName + "-sock-volume"},
-				{MountPath: imgListPath, Name: configName},
-			},
-			Image:           givenImage.Image,
-			Name:            givenImage.Name,
-			ImagePullPolicy: givenImage.ImagePullPolicy,
-			Env:             env,
-			Resources: corev1.ResourceRequirements{
-				Requests: corev1.ResourceList{
-					"cpu":    resource.MustParse("7m"),
-					"memory": resource.MustParse("25Mi"),
-				},
-				Limits: corev1.ResourceList{
-					"cpu":    resource.MustParse("8m"),
-					"memory": resource.MustParse("30Mi"),
-				},
-			},
-		}
-
-		givenPodSpec := imageJob.Spec.JobTemplate.Spec
-		podSpec := corev1.PodSpec{
-			RestartPolicy: givenPodSpec.RestartPolicy,
-			Containers:    []corev1.Container{image},
-			NodeName:      nodeName,
-			Volumes: []corev1.Volume{
-				{Name: runtimeName + "-sock-volume", VolumeSource: corev1.VolumeSource{HostPath: &corev1.HostPathVolumeSource{Path: mountPath}}},
-				{Name: configName, VolumeSource: corev1.VolumeSource{ConfigMap: &corev1.ConfigMapVolumeSource{LocalObjectReference: corev1.LocalObjectReference{Name: configName}}}},
-			},
-		}
-
-		pod := &corev1.Pod{
-			TypeMeta: metav1.TypeMeta{},
-			Spec:     podSpec,
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace:    "eraser-system",
-				GenerateName: image.Name + "-" + nodeName + "-",
-				Labels:       map[string]string{"name": image.Name},
-				OwnerReferences: []metav1.OwnerReference{
-					*metav1.NewControllerRef(imageJob, imageJob.GroupVersionKind()),
-				},
-			},
-		}
-
-		fitness := checkNodeFitness(pod, &nodes.Items[i])
-
-		if !fitness {
-			log.Info("Eraser pod does not fit on node, skipping")
-			continue
-		}
-
-		err = r.Create(ctx, pod)
-		if err != nil {
-			return err
-		}
-		log.Info("Started eraser pod on node", "images", imgList.Spec.Images)
+		return err
 	}
 
 	imageJob.Status.Skipped = skipped
@@ -430,11 +270,49 @@ nodes:
 		return err
 	}
 
+	podSpecTemplate := imageJob.Spec.JobTemplate.Spec
+	for i := range nodeList {
+		log := log.WithValues("node", nodeList[i].Name)
+		podSpec, err := copyAndFillTemplateSpec(&podSpecTemplate, env, &nodeList[i])
+		if err != nil {
+			return err
+		}
+
+		containerName := podSpec.Containers[0].Name
+		nodeName := nodeList[i].Name
+
+		pod := &corev1.Pod{
+			TypeMeta: metav1.TypeMeta{},
+			Spec:     *podSpec,
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace:    "eraser-system",
+				GenerateName: containerName + "-" + nodeName + "-",
+				Labels:       map[string]string{"name": containerName},
+				OwnerReferences: []metav1.OwnerReference{
+					*metav1.NewControllerRef(imageJob, imageJob.GroupVersionKind()),
+				},
+			},
+		}
+
+		fitness := checkNodeFitness(pod, &nodeList[i])
+		if !fitness {
+			log.Info(containerName + " pod does not fit on node, skipping")
+			continue
+		}
+
+		err = r.Create(ctx, pod)
+		if err != nil {
+			return err
+		}
+		log.Info("Started "+containerName+" pod on node", "nodeName", nodeName)
+	}
+
 	return nil
 }
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
+	log.Info("imagejob set up with manager")
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&eraserv1alpha1.ImageJob{}).
 		Complete(r)
@@ -469,4 +347,70 @@ func (r *Reconciler) updateJobStatus(ctx context.Context, imageJob *eraserv1alph
 		}
 	}
 	return nil
+}
+
+func filterOutSkippedNodes(nodes *corev1.NodeList, skipNodesSelectors []string) ([]corev1.Node, int, error) {
+	skipped := 0
+	nodeList := make([]corev1.Node, 0, len(nodes.Items))
+
+nodes:
+	for i := range nodes.Items {
+		log := log.WithValues("node", nodes.Items[i].Name)
+
+		nodeName := nodes.Items[i].Name
+		for _, skipNodesSelector := range skipNodesSelectors {
+			skipLabels, err := labels.Parse(skipNodesSelector)
+			if err != nil {
+				return nil, -1, err
+			}
+
+			log.V(1).Info("skipLabels", "skipLabels", skipLabels)
+			log.V(1).Info("nodeLabels", "nodeLabels", nodes.Items[i].ObjectMeta.Labels)
+			if skipLabels.Matches(labels.Set(nodes.Items[i].ObjectMeta.Labels)) {
+				log.Info("node will be skipped because it matched the specified labels",
+					"nodeName", nodeName,
+					"labels", nodes.Items[i].ObjectMeta.Labels,
+					"specifiedSelectors", skipNodesSelectors,
+				)
+
+				skipped++
+				continue nodes
+			}
+		}
+
+		nodeList = append(nodeList, nodes.Items[i])
+	}
+
+	return nodeList, skipped, nil
+}
+
+func copyAndFillTemplateSpec(templateSpecTemplate *corev1.PodSpec, env []corev1.EnvVar, node *corev1.Node) (*corev1.PodSpec, error) {
+	nodeName := node.Name
+	runtime := node.Status.NodeInfo.ContainerRuntimeVersion
+	runtimeName := strings.Split(runtime, ":")[0]
+
+	mountPath := getMountPath(runtimeName)
+	if mountPath == "" {
+		return nil, fmt.Errorf("incompatible runtime on node")
+	}
+
+	args := []string{"--runtime=" + runtimeName}
+	volumes := []corev1.Volume{
+		{Name: runtimeName + "-sock-volume", VolumeSource: corev1.VolumeSource{HostPath: &corev1.HostPathVolumeSource{Path: mountPath}}},
+	}
+
+	volumeMounts := []corev1.VolumeMount{
+		{MountPath: mountPath, Name: runtimeName + "-sock-volume"},
+	}
+
+	templateSpec := templateSpecTemplate.DeepCopy()
+	image := &templateSpec.Containers[0]
+
+	image.Args = append(args, image.Args...)
+	image.VolumeMounts = append(volumeMounts, image.VolumeMounts...)
+	image.Env = append(env, image.Env...)
+	templateSpec.Volumes = append(volumes, templateSpec.Volumes...)
+	templateSpec.NodeName = nodeName
+
+	return templateSpec, nil
 }

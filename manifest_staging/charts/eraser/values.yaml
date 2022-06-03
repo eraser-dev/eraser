@@ -1,0 +1,33 @@
+controllerManager:
+
+  image:
+    repository: ghcr.io/azure/eraser-manager
+    pullPolicy: Always
+    # Overrides the image tag whose default is the chart appVersion.
+    tag: ""
+
+  securityContext:
+    allowPrivilegeEscalation: false
+
+  resources:
+    limits:
+      cpu: 100m
+      memory: 30Mi
+    requests:
+      cpu: 100m
+      memory: 20Mi
+
+  nodeSelector: 
+    kubernetes.io/os: linux
+
+  tolerations: []
+
+  affinity: {}
+
+
+eraser:
+  image:
+    repository: ghcr.io/azure/eraser
+    tag: ""
+
+nameOverride: ""

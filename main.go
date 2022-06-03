@@ -34,6 +34,7 @@ import (
 
 	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
 	"github.com/Azure/eraser/controllers"
+	"github.com/Azure/eraser/version"
 	//+kubebuilder:scaffold:imports
 )
 
@@ -62,7 +63,12 @@ func main() {
 		os.Exit(1)
 	}
 
-	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
+	config := ctrl.GetConfigOrDie()
+	config.UserAgent = version.GetUserAgent("manager")
+
+	setupLog.Info("setting up manager", "userAgent", config.UserAgent)
+
+	mgr, err := ctrl.NewManager(config, ctrl.Options{
 		Scheme:                 scheme,
 		MetricsBindAddress:     *metricsAddr,
 		Port:                   9443,

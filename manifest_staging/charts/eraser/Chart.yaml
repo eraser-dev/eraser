@@ -1,0 +1,9 @@
+apiVersion: v2
+name: eraser
+description: A Helm chart for Eraser
+type: application
+version: 0.1.0
+appVersion: v0.1.0
+home: https://github.com/Azure/eraser
+sources:
+  - https://github.com/Azure/eraser.git
