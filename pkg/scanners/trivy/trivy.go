@@ -89,7 +89,7 @@ var (
 		vulnTypeLibrary: false,
 	}
 
-	log = logf.Log.WithName("eraser")
+	log = logf.Log.WithName("scanner").WithValues("provider", "trivy")
 )
 
 type (
@@ -216,7 +216,7 @@ func main() {
 				return
 			}
 
-			fmt.Printf("scanning: %s\n", imageRef)
+			log.Info("scanning image", "imageRef", imageRef)
 
 			// Reads db and cache and potentially modifies them, so lock all
 			// other threads during this operation
