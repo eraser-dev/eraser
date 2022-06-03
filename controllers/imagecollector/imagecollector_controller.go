@@ -49,10 +49,10 @@ import (
 var (
 	collectorImage = flag.String("collector-image", "ghcr.io/azure/collector:latest", "collector image")
 	log            = logf.Log.WithName("controller").WithValues("process", "imagecollector-controller")
+	repeatPeriod   = flag.Duration("repeat-period", time.Hour*24, "repeat period for collec/scan process")
 )
 
 const (
-	repeatPeriod    = time.Minute * 10
 	collectorShared = "imagecollector-shared"
 	apiVersion      = "eraser.sh/v1alpha1"
 )
@@ -181,7 +181,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		if res, err := r.createImageJob(ctx, req, imageCollectorShared); err != nil {
 			return res, err
 		}
-		return ctrl.Result{RequeueAfter: repeatPeriod}, nil
+		return ctrl.Result{RequeueAfter: *repeatPeriod}, nil
 	}
 
 	// else length is 1, so check job phase
@@ -219,7 +219,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 
 	log.Info("done reconcile")
 
-	return ctrl.Result{RequeueAfter: repeatPeriod}, nil
+	return ctrl.Result{RequeueAfter: *repeatPeriod}, nil
 }
 
 func isNotFound(err error) bool {
