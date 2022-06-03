@@ -122,7 +122,10 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 
 		// If we got here because of a completed ImageJob:
 		if util.IsCompletedOrFailed(job.Status.Phase) {
-			return r.handleJobListEvent(ctx, &imageList, &job)
+			if job.Status.DeleteAfter == nil {
+				return r.handleJobListEvent(ctx, &imageList, &job)
+			}
+			return ctrl.Result{}, nil
 		}
 
 		// If we got here due to an update to the ImageList, and there is an ImageJob already running,
