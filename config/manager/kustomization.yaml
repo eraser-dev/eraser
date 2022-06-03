@@ -22,3 +22,9 @@ patches:
       value: --eraser-image=ghcr.io/azure/eraser:v0.1.0
   target:
     kind: Deployment
+- patch: |-
+    - op: add
+      path: /spec/template/spec/containers/0/args/-
+      value: --collector-image=ghcr.io/azure/collector:v0.1.0
+  target:
+    kind: Deployment
