@@ -20,9 +20,6 @@ patches:
     - op: add
       path: /spec/template/spec/containers/0/args/-
       value: --eraser-image=ERASER_IMG
-  target:
-    kind: Deployment
-- patch: |-
     - op: add
       path: /spec/template/spec/containers/0/args/-
       value: --collector-image=COLLECTOR_IMG
