@@ -196,6 +196,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 			if err := r.Status().Update(ctx, &relevantJobs[0]); err != nil {
 				log.Info("Could not update Delete After for job " + relevantJobs[0].Name)
 			}
+			return ctrl.Result{}, nil
 		}
 		if res, err := r.handleJobDeletion(ctx, &relevantJobs[0]); err != nil || res.RequeueAfter > 0 {
 			return res, err
@@ -207,6 +208,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 			if err := r.Status().Update(ctx, &relevantJobs[0]); err != nil {
 				log.Info("Could not update Delete After for job " + relevantJobs[0].Name)
 			}
+			return ctrl.Result{}, nil
 		}
 		if res, err := r.handleJobDeletion(ctx, &relevantJobs[0]); err != nil || res.RequeueAfter > 0 {
 			return res, err
