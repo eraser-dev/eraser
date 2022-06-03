@@ -18,7 +18,6 @@ import (
 	"flag"
 	"fmt"
 	"strings"
-	"time"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -57,10 +56,8 @@ const (
 var log = logf.Log.WithName("controller").WithValues("process", "imagejob-controller")
 
 var (
-	successDelDelaySeconds = flag.Int64("job-cleanup-on-success-delay", 0, "Seconds to delay job deletion after successful runs. 0 means no delay")
-	errDelDelaySeconds     = flag.Int64("job-cleanup-on-error-delay", 86400, "Seconds to delay job deletion after errored runs. 0 means no delay")
-	successRatio           = flag.Float64("job-success-ratio", 1.0, "Ratio of successful/total runs to consider a job successful. 1.0 means all runs must succeed.")
-	skipNodesSelectors     = nodeSkipSelectors([]string{"kubernetes.io/os=windows", "eraser.sh/cleanup.skip"})
+	successRatio       = flag.Float64("job-success-ratio", 1.0, "Ratio of successful/total runs to consider a job successful. 1.0 means all runs must succeed.")
+	skipNodesSelectors = nodeSkipSelectors([]string{"kubernetes.io/os=windows", "eraser.sh/cleanup.skip"})
 )
 
 func init() {
@@ -76,8 +73,6 @@ func newReconciler(mgr manager.Manager) reconcile.Reconciler {
 	return &Reconciler{
 		Client:       mgr.GetClient(),
 		scheme:       mgr.GetScheme(),
-		successDelay: *successDelDelaySeconds,
-		errDelay:     *errDelDelaySeconds,
 		successRatio: *successRatio,
 	}
 }
@@ -87,8 +82,6 @@ type Reconciler struct {
 	client.Client
 	scheme *runtime.Scheme
 
-	successDelay int64
-	errDelay     int64
 	successRatio float64
 }
 
@@ -224,19 +217,17 @@ func (r *Reconciler) handleRunningJob(ctx context.Context, imageJob *eraserv1alp
 	}
 
 	imageJob.Status = eraserv1alpha1.ImageJobStatus{
-		Desired:     imageJob.Status.Desired,
-		Succeeded:   success,
-		Skipped:     skipped,
-		Failed:      failed,
-		Phase:       eraserv1alpha1.PhaseCompleted,
-		DeleteAfter: after(time.Now(), r.successDelay),
+		Desired:   imageJob.Status.Desired,
+		Succeeded: success,
+		Skipped:   skipped,
+		Failed:    failed,
+		Phase:     eraserv1alpha1.PhaseCompleted,
 	}
 
 	successAndSkipped := success + skipped
 	if float64(successAndSkipped/imageJob.Status.Desired) < r.successRatio {
 		log.Info("Marking job as failed", "success ratio", r.successRatio, "actual ratio", success/imageJob.Status.Desired)
 		imageJob.Status.Phase = eraserv1alpha1.PhaseFailed
-		imageJob.Status.DeleteAfter = after(time.Now(), r.errDelay)
 	}
 
 	if err := r.updateJobStatus(ctx, imageJob); err != nil {
@@ -244,11 +235,6 @@ func (r *Reconciler) handleRunningJob(ctx context.Context, imageJob *eraserv1alp
 	}
 
 	return nil
-}
-
-func after(t time.Time, seconds int64) *metav1.Time {
-	newT := metav1.NewTime(t.Add(time.Duration(seconds) * time.Second))
-	return &newT
 }
 
 func (r *Reconciler) handleNewJob(ctx context.Context, imageJob *eraserv1alpha1.ImageJob) error {
@@ -310,7 +296,7 @@ func (r *Reconciler) handleNewJob(ctx context.Context, imageJob *eraserv1alpha1.
 
 		fitness := checkNodeFitness(pod, &nodeList[i])
 		if !fitness {
-			log.Info("Eraser pod does not fit on node, skipping")
+			log.Info(containerName + " pod does not fit on node, skipping")
 			continue
 		}
 
@@ -318,7 +304,7 @@ func (r *Reconciler) handleNewJob(ctx context.Context, imageJob *eraserv1alpha1.
 		if err != nil {
 			return err
 		}
-		log.Info("Started eraser pod on node", "nodeName", nodeName)
+		log.Info("Started "+containerName+" pod on node", "nodeName", nodeName)
 	}
 
 	return nil
@@ -326,6 +312,7 @@ func (r *Reconciler) handleNewJob(ctx context.Context, imageJob *eraserv1alpha1.
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
+	log.Info("imagejob set up with manager")
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&eraserv1alpha1.ImageJob{}).
 		Complete(r)

@@ -77,7 +77,7 @@ lint: $(GOLANGCI_LINT) ## Runs go linting.
 ##@ Development
 
 manifests: __controller-gen ## Generates k8s yaml for eraser deployment.
-	@sed -e "s~ERASER_IMG~${ERASER_IMG}~g" config/manager/kustomization.template.yaml > config/manager/kustomization.yaml
+	@sed -e "s~ERASER_IMG~${ERASER_IMG}~g" -e "s~COLLECTOR_IMG~${COLLECTOR_IMG}~g" config/manager/kustomization.template.yaml > config/manager/kustomization.yaml
 	docker run -v $(shell pwd)/config:/config -w /config/manager \
 		k8s.gcr.io/kustomize/kustomize:v${KUSTOMIZE_VERSION} edit set image controller=${MANAGER_IMG}
 	$(CONTROLLER_GEN) \

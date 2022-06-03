@@ -1,9 +1,17 @@
 package util
 
 import (
+	"flag"
+	"time"
+
 	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/event"
+)
+
+var (
+	SuccessDelDelaySeconds = flag.Int64("job-cleanup-on-success-delay", 0, "Seconds to delay job deletion after successful runs. 0 means no delay")
+	ErrDelDelaySeconds     = flag.Int64("job-cleanup-on-error-delay", 86400, "Seconds to delay job deletion after errored runs. 0 means no delay")
 )
 
 func NeverOnCreate(_ event.CreateEvent) bool {
@@ -59,4 +67,9 @@ func FilterJobListByOwner(jobs []eraserv1alpha1.ImageJob, owner *metav1.OwnerRef
 	}
 
 	return ret
+}
+
+func After(t time.Time, seconds int64) *metav1.Time {
+	newT := metav1.NewTime(t.Add(time.Duration(seconds) * time.Second))
+	return &newT
 }
