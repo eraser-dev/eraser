@@ -8,7 +8,6 @@ ARG TARGETOS
 ARG TARGETARCH
 
 ARG LDFLAGS
-
 # Build the manager binary
 FROM --platform=$BUILDPLATFORM $BUILDERIMAGE AS builder
 WORKDIR /workspace
@@ -26,13 +25,29 @@ RUN \
 COPY . .
 
 FROM builder AS manager-build
+ARG LDFLAGS
+ARG TARGETOS
+ARG TARGETARCH
 
 RUN \
     --mount=type=cache,target=${GOCACHE} \
     --mount=type=cache,target=/go/pkg/mod \
     GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build ${LDFLAGS:+-ldflags "$LDFLAGS"} -o out/manager main.go
 
+FROM builder AS trivy-scanner-build
+ARG LDFLAGS
+ARG TARGETOS
+ARG TARGETARCH
+
+RUN \
+    --mount=type=cache,target=${GOCACHE} \
+    --mount=type=cache,target=/go/pkg/mod \
+    GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build ${LDFLAGS:+-ldflags "$LDFLAGS"} -o out/trivy-scanner ./pkg/scanners/trivy
+
 FROM builder AS eraser-build
+ARG LDFLAGS
+ARG TARGETOS
+ARG TARGETARCH
 
 RUN \
     --mount=type=cache,target=${GOCACHE} \
@@ -40,6 +55,9 @@ RUN \
     GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build ${LDFLAGS:+-ldflags "$LDFLAGS"} -o out/eraser ./pkg/eraser
 
 FROM builder AS collector-build
+ARG LDFLAGS
+ARG TARGETOS
+ARG TARGETARCH
 
 RUN \
     --mount=type=cache,target=${GOCACHE} \
@@ -61,3 +79,8 @@ WORKDIR /
 COPY --from=manager-build /workspace/out/manager .
 USER 65532:65532
 ENTRYPOINT ["/manager"]
+
+FROM --platform=$TARGETPLATFORM $STATICNONROOTBASEIMAGE as trivy-scanner
+COPY --from=trivy-scanner-build /workspace/out/trivy-scanner /
+USER 65532:65532
+ENTRYPOINT ["/trivy-scanner"]

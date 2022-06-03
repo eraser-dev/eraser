@@ -8,6 +8,7 @@ import (
 	"net/url"
 
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 )
 
@@ -73,7 +74,7 @@ func GetImageClient(ctx context.Context, socketPath string) (pb.ImageServiceClie
 		return nil, nil, err
 	}
 
-	conn, err := grpc.DialContext(ctx, addr, grpc.WithBlock(), grpc.WithInsecure(), grpc.WithContextDialer(dialer))
+	conn, err := grpc.DialContext(ctx, addr, grpc.WithBlock(), grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithContextDialer(dialer))
 	if err != nil {
 		return nil, nil, err
 	}
