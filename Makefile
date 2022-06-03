@@ -12,6 +12,10 @@ GOLANGCI_LINT_VERSION := 1.43.0
 
 PLATFORM ?= linux
 
+# build variables
+LDFLAGS ?= $(shell build/version.sh "${VERSION}") 
+ERASER_LDFLAGS ?= $(LDFLAGS)-w '-extldflags "-static"'
+
 # Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
 ifeq (,$(shell go env GOBIN))
 GOBIN=$(shell go env GOPATH)/bin
@@ -110,25 +114,43 @@ e2e-test: ## Run e2e tests on a cluster.
 ##@ Build
 
 build: generate fmt vet ## Build manager binary.
-	go build -o bin/manager main.go
+	go build -o bin/manager -ldflags "$(LDFLAGS)" main.go
 
 run: manifests generate fmt vet ## Run a controller from your host.
 	go run ./main.go
 
-docker-build-manager: ## Build docker image for the eraser manager.
-	docker buildx build $(_CACHE_FROM) $(_CACHE_TO) --platform="$(PLATFORM)" --output=$(OUTPUT_TYPE) --target manager -t ${MANAGER_IMG} .
+docker-build-manager: ## Build docker image with the manager.
+	docker buildx build \
+		$(_CACHE_FROM) $(_CACHE_TO) \
+		--build-arg LDFLAGS="$(LDFLAGS)" \
+		--platform="$(PLATFORM)" \
+		--output=$(OUTPUT_TYPE) \
+		-t ${MANAGER_IMG} \
+		--target manager .
 
 docker-push-manager: ## Push docker image for the eraser manager.
 	docker push ${MANAGER_IMG}
 
 docker-build-eraser: ## Build docker image for eraser image.
-	docker buildx build $(_CACHE_FROM) $(_CACHE_TO) --platform="$(PLATFORM)" --output=$(OUTPUT_TYPE) -t ${ERASER_IMG} --target eraser .
+	docker buildx build \
+		$(_CACHE_FROM) $(_CACHE_TO) \
+		--build-arg LDFLAGS="$(ERASER_LDFLAGS)" \
+		--platform="$(PLATFORM)" \
+		--output=$(OUTPUT_TYPE) \
+		-t ${ERASER_IMG} \
+		--target eraser .
 
 docker-push-eraser: ## Push docker image for eraser.
 	docker push ${ERASER_IMG}
 
 docker-build-collector:
-	docker buildx build $(_CACHE_FROM) $(_CACHE_TO) --platform="$(PLATFORM)" --output=$(OUTPUT_TYPE) -t ${COLLECTOR_IMG} --target collector .
+	docker buildx build \
+		$(_CACHE_FROM) $(_CACHE_TO) \
+		--build-arg LDFLAGS="$(LDFLAGS)" \
+		--platform="$(PLATFORM)" \
+		--output=$(OUTPUT_TYPE) \
+		-t ${COLLECTOR_IMG} \
+		--target collector .
 
 docker-push-collector:
 	docker push ${COLLECTOR_IMG}
