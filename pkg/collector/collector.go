@@ -36,6 +36,11 @@ type client struct {
 
 type Client interface {
 	listImages(context.Context) ([]*pb.Image, error)
+	listContainers(context.Context) ([]*pb.Container, error)
+}
+
+func (c *client) listContainers(ctx context.Context) (list []*pb.Container, err error) {
+	return util.ListContainers(ctx, c.runtime)
 }
 
 func (c *client) listImages(ctx context.Context) (list []*pb.Image, err error) {
