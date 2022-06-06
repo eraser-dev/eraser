@@ -25,7 +25,7 @@ jobs:
         with:
           use: true
 
-      - uses: actions/cache@v3.0.2
+      - uses: actions/cache@v3.0.3
         with:
           key: ${{ runner.OS }}-go-${{ hashFiles('**/go.sum') }}
           restore-keys: |
