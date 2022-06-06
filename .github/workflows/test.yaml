@@ -81,6 +81,8 @@ jobs:
         uses: github/codeql-action/init@v2
         with:
           languages: go
+      - name: Autobuild
+        uses: github/codeql-action/autobuild@27ea8f8fe5977c00f5b37e076ab846c5bd783b96 # v2.1.6
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v2
 
