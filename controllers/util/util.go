@@ -5,6 +5,7 @@ import (
 	"time"
 
 	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
+	batchv1 "k8s.io/api/batch/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 )
@@ -52,6 +53,25 @@ func IsCompletedOrFailed(p eraserv1alpha1.JobPhase) bool {
 
 func FilterJobListByOwner(jobs []eraserv1alpha1.ImageJob, owner *metav1.OwnerReference) []eraserv1alpha1.ImageJob {
 	ret := []eraserv1alpha1.ImageJob{}
+
+	for i := range jobs {
+		job := jobs[i]
+
+		for j := range job.OwnerReferences {
+			or := job.OwnerReferences[j]
+
+			if or.UID == owner.UID {
+				ret = append(ret, job)
+				break // inner
+			}
+		}
+	}
+
+	return ret
+}
+
+func FilterBatchJobListByOwner(jobs []batchv1.Job, owner *metav1.OwnerReference) []batchv1.Job {
+	ret := []batchv1.Job{}
 
 	for i := range jobs {
 		job := jobs[i]
