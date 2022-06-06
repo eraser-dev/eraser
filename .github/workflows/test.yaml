@@ -37,6 +37,7 @@ jobs:
   unit-test:
     name: "Unit Tests"
     runs-on: ubuntu-latest
+    permissions: write-all
     timeout-minutes: 10
     steps:
       - name: Set up Go 1.18
@@ -62,7 +63,7 @@ jobs:
     permissions: write-all
     timeout-minutes: 15      
     steps:
-     - name: Set up Go 1.18
+      - name: Set up Go 1.18
         uses: actions/setup-go@v3
         with:
           go-version: 1.18
