@@ -383,7 +383,6 @@ func (r *Reconciler) createScanJob(ctx context.Context, collector *eraserv1alpha
 							Name:  "trivy-scanner",
 							Image: scannerImage,
 							Args: []string{
-								"--cache-dir=/home/nonroot/",
 								"--collector-cr-name=" + collector.Name,
 								"--severity=CRITICAL,HIGH",
 								"--ignore-unfixed=false",
