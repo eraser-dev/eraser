@@ -63,7 +63,7 @@ jobs:
     name: "CodeQL"
     runs-on: ubuntu-latest
     permissions: write-all
-    timeout-minutes: 15      
+    timeout-minutes: 20      
     steps:
       - name: Set up Go 1.17
         uses: actions/setup-go@v3
@@ -128,7 +128,7 @@ jobs:
         run: make docker-build-eraser CACHE_FROM=type=gha,scope=eraser-node CACHE_TO=type=gha,scope=eraser-node,mode=max
       - name: Run e2e test
         run: make e2e-test
-        
+
   scan_vulnerabilities:
     name: "[Trivy] Scan for vulnerabilities"
     runs-on: ubuntu-latest
