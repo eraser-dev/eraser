@@ -92,7 +92,7 @@ func getImages(c Client) ([]eraserv1alpha1.Image, error) {
 				Digest: digest,
 			}
 
-			if len(idToTagListMap[digest][0]) > 0 {
+			if len(idToTagListMap[digest]) > 0 {
 				currImage.Name = idToTagListMap[digest][0]
 			}
 
