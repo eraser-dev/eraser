@@ -53,6 +53,7 @@ var (
 	log                    = logf.Log.WithName("controller").WithValues("process", "imagecollector-controller")
 	repeatPeriod           = flag.Duration("repeat-period", time.Hour*24, "repeat period for collect/scan process")
 	deleteScanFailedImages = flag.Bool("delete-scan-failed-images", true, "whether or not to delete images for which scanning has failed")
+	enableCollection       = flag.Bool("enable-collection", true, "if set to false, will disable the imagecollector controller entirely")
 )
 
 const (
@@ -68,6 +69,9 @@ type Reconciler struct {
 }
 
 func Add(mgr manager.Manager) error {
+	if !*enableCollection {
+		return nil
+	}
 	return add(mgr, newReconciler(mgr))
 }
 
