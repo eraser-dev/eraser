@@ -128,8 +128,8 @@ jobs:
         run: make docker-build-eraser CACHE_FROM=type=gha,scope=eraser-node CACHE_TO=type=gha,scope=eraser-node,mode=max
       - name: Run e2e test
         run: make e2e-test
-
- scan_vulnerabilities:
+        
+  scan_vulnerabilities:
     name: "[Trivy] Scan for vulnerabilities"
     runs-on: ubuntu-latest
     timeout-minutes: 15
