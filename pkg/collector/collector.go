@@ -87,9 +87,13 @@ func getImages(c Client) ([]eraserv1alpha1.Image, error) {
 	for _, digest := range nonRunningImages {
 		if _, exists := checked[digest]; !exists {
 			checked[digest] = struct{}{}
+
 			currImage := eraserv1alpha1.Image{
 				Digest: digest,
-				Name:   idToTagListMap[digest][0],
+			}
+
+			if len(idToTagListMap[digest][0]) > 0 {
+				currImage.Name = idToTagListMap[digest][0]
 			}
 
 			finalImages = append(finalImages, currImage)
