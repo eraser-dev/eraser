@@ -48,6 +48,7 @@ import (
 )
 
 var (
+	scannerImage   = flag.String("scanner-image", "ghcr.io/azure/eraser-trivy-scanner:latest", "scanner image")
 	collectorImage = flag.String("collector-image", "ghcr.io/azure/collector:latest", "collector image")
 	log            = logf.Log.WithName("controller").WithValues("process", "imagecollector-controller")
 	repeatPeriod   = flag.Duration("repeat-period", time.Hour*24, "repeat period for collect/scan process")
@@ -240,7 +241,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 			return ctrl.Result{}, nil
 		}
 
-		err := r.createScanJob(ctx, imageCollectorShared)
+		err := r.createScanJob(ctx, imageCollectorShared, *scannerImage)
 		if err != nil {
 			return ctrl.Result{}, err
 		}
@@ -352,7 +353,7 @@ func (r *Reconciler) getChildScanJobs(ctx context.Context, collector *eraserv1al
 	return relevantBatchJobs, nil
 }
 
-func (r *Reconciler) createScanJob(ctx context.Context, collector *eraserv1alpha1.ImageCollector) error {
+func (r *Reconciler) createScanJob(ctx context.Context, collector *eraserv1alpha1.ImageCollector, scannerImage string) error {
 	one := int32(1)
 	scanJob := batchv1.Job{
 		ObjectMeta: metav1.ObjectMeta{
@@ -379,8 +380,8 @@ func (r *Reconciler) createScanJob(ctx context.Context, collector *eraserv1alpha
 					RestartPolicy:      corev1.RestartPolicyNever,
 					Containers: []corev1.Container{
 						{
-							Name:  "bill",
-							Image: "ghcr.io/azure/eraser-trivy-scanner:v0.1.0",
+							Name:  "trivy-scanner",
+							Image: scannerImage,
 							Args: []string{
 								"--cache-dir=/home/nonroot/",
 								"--collector-cr-name=" + collector.Name,
