@@ -81,13 +81,19 @@ func getImages(c Client) ([]eraserv1alpha1.Image, error) {
 
 	finalImages := make([]eraserv1alpha1.Image, 0, len(images))
 
-	for digest, tag := range nonRunningImages {
-		currImage := eraserv1alpha1.Image{
-			Digest: digest,
-			Name:   tag,
-		}
+	// empty map to keep track of repeated digest values due to both name and digest being present as keys in nonRunningImages
+	checked := make(map[string]struct{})
 
-		finalImages = append(finalImages, currImage)
+	for _, digest := range nonRunningImages {
+		if _, exists := checked[digest]; !exists {
+			checked[digest] = struct{}{}
+			currImage := eraserv1alpha1.Image{
+				Digest: digest,
+				Name:   idToTagListMap[digest][0],
+			}
+
+			finalImages = append(finalImages, currImage)
+		}
 	}
 
 	return finalImages, nil
