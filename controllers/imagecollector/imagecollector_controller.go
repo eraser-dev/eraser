@@ -48,10 +48,11 @@ import (
 )
 
 var (
-	scannerImage   = flag.String("scanner-image", "ghcr.io/azure/eraser-trivy-scanner:latest", "scanner image")
-	collectorImage = flag.String("collector-image", "ghcr.io/azure/collector:latest", "collector image")
-	log            = logf.Log.WithName("controller").WithValues("process", "imagecollector-controller")
-	repeatPeriod   = flag.Duration("repeat-period", time.Hour*24, "repeat period for collect/scan process")
+	scannerImage           = flag.String("scanner-image", "ghcr.io/azure/eraser-trivy-scanner:latest", "scanner image")
+	collectorImage         = flag.String("collector-image", "ghcr.io/azure/collector:latest", "collector image")
+	log                    = logf.Log.WithName("controller").WithValues("process", "imagecollector-controller")
+	repeatPeriod           = flag.Duration("repeat-period", time.Hour*24, "repeat period for collect/scan process")
+	deleteScanFailedImages = flag.Bool("delete-scan-failed-images", true, "whether or not to delete images for which scanning has failed")
 )
 
 const (
@@ -290,8 +291,14 @@ func (r *Reconciler) getChildImageJobs(ctx context.Context, collector *eraserv1a
 
 func (r *Reconciler) upsertImageList(ctx context.Context, collector *eraserv1alpha1.ImageCollector) (ctrl.Result, error) {
 	imageListItems := make([]string, 0, len(collector.Status.Vulnerable))
-	for i := range collector.Status.Vulnerable {
-		img := collector.Status.Vulnerable[i]
+	images := collector.Status.Vulnerable
+
+	if *deleteScanFailedImages {
+		images = append(images, collector.Status.Failed...)
+	}
+
+	for i := range images {
+		img := images[i]
 		imageListItems = append(imageListItems, img.Digest)
 	}
 
