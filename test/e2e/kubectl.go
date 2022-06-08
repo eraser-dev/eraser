@@ -25,6 +25,20 @@ func KubectlApply(kubeconfigPath, namespace string, args []string) error {
 	return err
 }
 
+// HelmInstall executes "helm install" given a list of arguments.
+func HelmInstall(kubeconfigPath, namespace string, args []string) error {
+	args = append([]string{
+		"install",
+		"eraser-e2e-test",
+		"--create-namespace",
+		fmt.Sprintf("--kubeconfig=%s", kubeconfigPath),
+		fmt.Sprintf("--namespace=%s", namespace),
+	}, args...)
+
+	_, err := helm(args)
+	return err
+}
+
 // KubectlDelete executes "kubectl delete" given a list of arguments.
 func KubectlDelete(kubeconfigPath, namespace string, args []string) error {
 	args = append([]string{
@@ -94,6 +108,20 @@ func kubectl(args []string) (string, error) {
 	klog.Infof("kubectl %s", strings.Join(args, " "))
 
 	cmd := exec.Command("kubectl", args...)
+
+	stdoutStderr, err := cmd.CombinedOutput()
+	output := strings.TrimSpace(string(stdoutStderr))
+	if err != nil {
+		err = fmt.Errorf("%w: %s", err, output)
+	}
+
+	return output, err
+}
+
+func helm(args []string) (string, error) {
+	klog.Infof("helm %s", strings.Join(args, " "))
+
+	cmd := exec.Command("helm", args...)
 
 	stdoutStderr, err := cmd.CombinedOutput()
 	output := strings.TrimSpace(string(stdoutStderr))
