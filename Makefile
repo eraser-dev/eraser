@@ -115,7 +115,7 @@ test: manifests generate fmt vet envtest ## Run unit tests.
 	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) -p path)" go test ./... -coverprofile cover.out
 
 e2e-test: ## Run e2e tests on a cluster.
-	CGO_ENABLED=0 IMAGE=${ERASER_IMG} MANAGER_IMAGE=${MANAGER_IMG} NODE_VERSION=kindest/node:v${KUBERNETES_VERSION} go test -count=$(TEST_COUNT) -timeout=$(TIMEOUT) $(TESTFLAGS) -tags=e2e -v ./test/e2e
+	CGO_ENABLED=0 IMAGE=${ERASER_IMG} MANAGER_IMAGE=${MANAGER_IMG} NODE_VERSION=kindest/node:v${KUBERNETES_VERSION} go test -count=$(TEST_COUNT) -timeout=$(TIMEOUT) $(TESTFLAGS) -tags=imagelist -v ./test/e2e/imagelist
 
 ##@ Build
 
