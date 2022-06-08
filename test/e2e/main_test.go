@@ -5,7 +5,6 @@ package e2e
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -27,7 +26,7 @@ import (
 
 var (
 	kindClusterName           = "eraser-e2e-test"
-	providerResourceDirectory = "manifest_staging/deploy"
+	providerResourceDirectory = "manifest_staging/charts"
 	providerResource          = "eraser.yaml"
 	eraserNamespace           = "eraser-system"
 	testenv                   env.Environment
@@ -60,12 +59,13 @@ func deployEraserManifest(namespace string) env.Func {
 		if err != nil {
 			return ctx, err
 		}
-		providerResourceAbsolutePath, err := filepath.Abs(filepath.Join(wd, "/../../", providerResourceDirectory))
+
+		providerResourceAbsolutePath, err := filepath.Abs(filepath.Join(wd, "/../../", providerResourceDirectory, "eraser"))
 		if err != nil {
 			return ctx, err
 		}
 		// start deployment
-		if err := KubectlApply(cfg.KubeconfigFile(), namespace, []string{"-f", fmt.Sprintf("%s/%s", providerResourceAbsolutePath, providerResource)}); err != nil {
+		if err := HelmInstall(cfg.KubeconfigFile(), namespace, []string{providerResourceAbsolutePath, "--set", `collector.image.repository=`}); err != nil {
 			return ctx, err
 		}
 
