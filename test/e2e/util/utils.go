@@ -76,7 +76,7 @@ func NewPod(namespace, image, name, nodeName string) *corev1.Pod {
 	}
 }
 
-// deploy eraser config
+// deploy eraser config.
 func DeployEraserConfig(kubeConfig, namespace, resourcePath, fileName string) error {
 	wd, err := os.Getwd()
 	if err != nil {
@@ -117,7 +117,7 @@ func ImagejobNotInCluster(kubeconfigPath string) func() (bool, error) {
 	}
 }
 
-// delete eraser config
+// delete eraser config.
 func DeleteEraserConfig(kubeConfig, namespace, resourcePath, fileName string) error {
 	wd, err := os.Getwd()
 	if err != nil {
@@ -178,7 +178,7 @@ func ListNodeImages(nodeName string) (string, error) {
 	return output, err
 }
 
-// This lists nodes in the cluster, filtering out the control-plane
+// This lists nodes in the cluster, filtering out the control-plane.
 func GetClusterNodes(t *testing.T) []string {
 	t.Helper()
 	provider := cluster.NewProvider(cluster.ProviderWithDocker())
@@ -213,7 +213,6 @@ func CheckImagesExist(ctx context.Context, t *testing.T, nodes []string, images 
 				t.Errorf("image %s missing on node %s", image, node)
 			}
 		}
-
 	}
 }
 
