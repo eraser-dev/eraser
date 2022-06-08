@@ -111,13 +111,14 @@ type (
 	}
 
 	statusUpdate struct {
-		apiPath         string
-		ctx             context.Context
-		clientset       *kubernetes.Clientset
-		collectorCRName string
-		resourceName    string
-		subResourceName string
-		images          []eraserv1alpha1.Image
+		apiPath          string
+		ctx              context.Context
+		clientset        *kubernetes.Clientset
+		collectorCRName  string
+		resourceName     string
+		subResourceName  string
+		vulnerableImages []eraserv1alpha1.Image
+		failedImages     []eraserv1alpha1.Image
 	}
 
 	imageReport struct {
@@ -280,28 +281,28 @@ func main() {
 	}()
 
 	vulnerableImages := make([]eraserv1alpha1.Image, 0, len(result.Spec.Images))
+	failedImages := make([]eraserv1alpha1.Image, 0, len(result.Spec.Images))
 	for img := range imgChan {
-		img.ScanSucceeded = boolPtr(true)
-		logMsg := "image has vulnerabilities"
-
 		if img.err != nil {
 			log.V(1).Error(img.err, "error scanning image") // debug only
-			img.ScanSucceeded = boolPtr(false)
-			logMsg = "unable to scan image"
+			failedImages = append(failedImages, img.Image)
+			log.Info("unable to scan image", "img", img)
+			continue
 		}
 
-		log.Info(logMsg, "img", img)
+		log.Info("image has vulnerabilities", "img", img)
 		vulnerableImages = append(vulnerableImages, img.Image)
 	}
 
 	err = updateStatus(&statusUpdate{
-		apiPath:         apiPath,
-		ctx:             ctx,
-		clientset:       clientset,
-		collectorCRName: *collectorCRName,
-		resourceName:    resourceName,
-		subResourceName: subResourceName,
-		images:          vulnerableImages,
+		apiPath:          apiPath,
+		ctx:              ctx,
+		clientset:        clientset,
+		collectorCRName:  *collectorCRName,
+		resourceName:     resourceName,
+		subResourceName:  subResourceName,
+		vulnerableImages: vulnerableImages,
+		failedImages:     failedImages,
 	})
 	if err != nil {
 		log.Error(err, "error updating ImageCollectorStatus", "images", vulnerableImages)
@@ -309,10 +310,6 @@ func main() {
 	}
 
 	log.Info("scanning complete, exiting")
-}
-
-func boolPtr(b bool) *bool {
-	return &b
 }
 
 // side effects: map `m` will be modified according to the values in `commaSeparatedList`.
@@ -396,7 +393,8 @@ func initializeResultClient() pkgResult.Client {
 func updateStatus(opts *statusUpdate) error {
 	collectorPatch := patch{
 		Status: eraserv1alpha1.ImageCollectorStatus{
-			Result: opts.images,
+			Vulnerable: opts.vulnerableImages,
+			Failed:     opts.failedImages,
 		},
 	}
 

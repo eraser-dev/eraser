@@ -40,8 +40,6 @@ spec:
                       type: string
                     name:
                       type: string
-                    scanSucceeded:
-                      type: boolean
                   required:
                   - digest
                   type: object
@@ -51,21 +49,28 @@ spec:
             type: object
           status:
             properties:
-              result:
+              failed:
                 items:
                   properties:
                     digest:
                       type: string
                     name:
                       type: string
-                    scanSucceeded:
-                      type: boolean
                   required:
                   - digest
                   type: object
                 type: array
-            required:
-            - result
+              vulnerable:
+                items:
+                  properties:
+                    digest:
+                      type: string
+                    name:
+                      type: string
+                  required:
+                  - digest
+                  type: object
+                type: array
             type: object
         type: object
     served: true
