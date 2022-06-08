@@ -5,6 +5,7 @@ TRIVY_SCANNER_IMG ?= ghcr.io/azure/eraser-trivy-scanner:${VERSION}
 MANAGER_IMG ?= ghcr.io/azure/eraser-manager:${VERSION}
 ERASER_IMG ?= ghcr.io/azure/eraser:${VERSION}
 COLLECTOR_IMG ?= ghcr.io/azure/collector:${VERSION}
+VULNERABLE_IMG ?= docker.io/library/nginx:1.21.6
 
 KUSTOMIZE_VERSION ?= 3.8.9
 KUBERNETES_VERSION ?= 1.23.0
@@ -114,8 +115,19 @@ vet: ## Run go vet against code.
 test: manifests generate fmt vet envtest ## Run unit tests.
 	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) -p path)" go test ./... -coverprofile cover.out
 
-e2e-test: ## Run e2e tests on a cluster.
+e2e-test-imagelist: ## Run e2e tests on a cluster.
 	CGO_ENABLED=0 IMAGE=${ERASER_IMG} MANAGER_IMAGE=${MANAGER_IMG} NODE_VERSION=kindest/node:v${KUBERNETES_VERSION} go test -count=$(TEST_COUNT) -timeout=$(TIMEOUT) $(TESTFLAGS) -tags=imagelist -v ./test/e2e/imagelist
+
+e2e-test-collector: ## Run e2e tests on a cluster.
+	docker pull $(VULNERABLE_IMG)
+	CGO_ENABLED=0 \
+		IMAGE=${ERASER_IMG} \
+		MANAGER_IMAGE=${MANAGER_IMG} \
+		COLLECTOR_IMAGE=${COLLECTOR_IMG} \
+		SCANNER_IMAGE=${TRIVY_SCANNER_IMG} \
+		VULNERABLE_IMAGE=${VULNERABLE_IMG} \
+		NODE_VERSION=kindest/node:v${KUBERNETES_VERSION} \
+		go test -count=$(TEST_COUNT) -timeout=$(TIMEOUT) $(TESTFLAGS) -tags=collector -v ./test/e2e/collector
 
 ##@ Build
 
