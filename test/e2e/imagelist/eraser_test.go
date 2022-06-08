@@ -1,7 +1,7 @@
-//go:build e2e
-// +build e2e
+//go:build imagelist
+// +build imagelist
 
-package e2e
+package imagelist
 
 import (
 	"context"
@@ -9,6 +9,7 @@ import (
 	"time"
 
 	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
+	"github.com/Azure/eraser/test/e2e/util"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -40,11 +41,11 @@ func TestRemoveImagesFromAllNodes(t *testing.T) {
 	rmImageFeat := features.New("Test Remove Image From All Nodes").
 		Setup(func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
 			podSelectorLabels := map[string]string{"app": nginx}
-			nginxDep := newDeployment(cfg.Namespace(), nginx, 2, podSelectorLabels, corev1.Container{Image: nginx, Name: nginx})
+			nginxDep := util.NewDeployment(cfg.Namespace(), nginx, 2, podSelectorLabels, corev1.Container{Image: nginx, Name: nginx})
 			if err := cfg.Client().Resources().Create(ctx, nginxDep); err != nil {
 				t.Error("Failed to create the dep", err)
 			}
-			if err := deleteImageListsAndJobs(cfg.KubeconfigFile()); err != nil {
+			if err := util.DeleteImageListsAndJobs(cfg.KubeconfigFile()); err != nil {
 				t.Error("Failed to clean eraser obejcts ", err)
 			}
 			return ctx
@@ -86,8 +87,8 @@ func TestRemoveImagesFromAllNodes(t *testing.T) {
 				t.Error("Failed to delete the dep", err)
 			}
 
-			for _, nodeName := range getClusterNodes(t) {
-				err := wait.For(containerNotPresentOnNode(nodeName, nginx), wait.WithTimeout(time.Minute*2))
+			for _, nodeName := range util.GetClusterNodes(t) {
+				err := wait.For(util.ContainerNotPresentOnNode(nodeName, nginx), wait.WithTimeout(time.Minute*2))
 				if err != nil {
 					// Let's not mark this as an error
 					// We only have this to prevent race conditions with the eraser spinning up
@@ -96,13 +97,13 @@ func TestRemoveImagesFromAllNodes(t *testing.T) {
 			}
 
 			// deploy imageJob config
-			if err := deployEraserConfig(cfg.KubeconfigFile(), "eraser-system", "test-data", "eraser_v1alpha1_imagelist.yaml"); err != nil {
+			if err := util.DeployEraserConfig(cfg.KubeconfigFile(), "eraser-system", "../test-data", "eraser_v1alpha1_imagelist.yaml"); err != nil {
 				t.Error("Failed to deploy image list config", err)
 			}
 
 			ctxT, cancel := context.WithTimeout(ctx, time.Minute)
 			defer cancel()
-			checkImageRemoved(ctxT, t, getClusterNodes(t), nginx)
+			util.CheckImageRemoved(ctxT, t, util.GetClusterNodes(t), nginx)
 
 			return ctx
 		}).
@@ -128,10 +129,10 @@ func TestRemoveImagesFromAllNodes(t *testing.T) {
 			return ctx
 		}).
 		Teardown(func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
-			if err := deleteEraserConfig(cfg.KubeconfigFile(), "eraser-system", "test-data", "eraser_v1alpha1_imagelist.yaml"); err != nil {
+			if err := util.DeleteEraserConfig(cfg.KubeconfigFile(), "eraser-system", "../test-data", "eraser_v1alpha1_imagelist.yaml"); err != nil {
 				t.Error("Failed to delete image list config ", err)
 			}
-			if err := deleteImageListsAndJobs(cfg.KubeconfigFile()); err != nil {
+			if err := util.DeleteImageListsAndJobs(cfg.KubeconfigFile()); err != nil {
 				t.Error("Failed to clean eraser obejcts ", err)
 			}
 			return ctx
@@ -142,19 +143,19 @@ func TestRemoveImagesFromAllNodes(t *testing.T) {
 		// Deploy 3 deployments with different images
 		// We'll shutdown two of them, run eraser with `*`, then check that the images for the removed deployments are removed from the cluster.
 		Setup(func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
-			nginxDep := newDeployment(cfg.Namespace(), nginx, 2, map[string]string{"app": nginx}, corev1.Container{Image: nginx, Name: nginx})
+			nginxDep := util.NewDeployment(cfg.Namespace(), nginx, 2, map[string]string{"app": nginx}, corev1.Container{Image: nginx, Name: nginx})
 			if err := cfg.Client().Resources().Create(ctx, nginxDep); err != nil {
 				t.Error("Failed to create the nginx dep", err)
 			}
 
-			newDeployment(cfg.Namespace(), redis, 2, map[string]string{"app": redis}, corev1.Container{Image: redis, Name: redis})
-			err := cfg.Client().Resources().Create(ctx, newDeployment(cfg.Namespace(), redis, 2, map[string]string{"app": redis}, corev1.Container{Image: redis, Name: redis}))
+			util.NewDeployment(cfg.Namespace(), redis, 2, map[string]string{"app": redis}, corev1.Container{Image: redis, Name: redis})
+			err := cfg.Client().Resources().Create(ctx, util.NewDeployment(cfg.Namespace(), redis, 2, map[string]string{"app": redis}, corev1.Container{Image: redis, Name: redis}))
 			if err != nil {
 				t.Fatal(err)
 			}
 
-			newDeployment(cfg.Namespace(), caddy, 2, map[string]string{"app": caddy}, corev1.Container{Image: caddy, Name: caddy})
-			if err := cfg.Client().Resources().Create(ctx, newDeployment(cfg.Namespace(), caddy, 2, map[string]string{"app": caddy}, corev1.Container{Image: caddy, Name: caddy})); err != nil {
+			util.NewDeployment(cfg.Namespace(), caddy, 2, map[string]string{"app": caddy}, corev1.Container{Image: caddy, Name: caddy})
+			if err := cfg.Client().Resources().Create(ctx, util.NewDeployment(cfg.Namespace(), caddy, 2, map[string]string{"app": caddy}, corev1.Container{Image: caddy, Name: caddy})); err != nil {
 				t.Fatal(err)
 			}
 
@@ -228,16 +229,16 @@ func TestRemoveImagesFromAllNodes(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			for _, nodeName := range getClusterNodes(t) {
-				err := wait.For(containerNotPresentOnNode(nodeName, redis), wait.WithTimeout(time.Minute*2))
+			for _, nodeName := range util.GetClusterNodes(t) {
+				err := wait.For(util.ContainerNotPresentOnNode(nodeName, redis), wait.WithTimeout(time.Minute*2))
 				if err != nil {
 					// Let's not mark this as an error
 					// We only have this to prevent race conditions with the eraser spinning up
 					t.Logf("error while waiting for deployment deletion: %v", err)
 				}
 			}
-			for _, nodeName := range getClusterNodes(t) {
-				err := wait.For(containerNotPresentOnNode(nodeName, caddy), wait.WithTimeout(time.Minute*2))
+			for _, nodeName := range util.GetClusterNodes(t) {
+				err := wait.For(util.ContainerNotPresentOnNode(nodeName, caddy), wait.WithTimeout(time.Minute*2))
 				if err != nil {
 					// Let's not mark this as an error
 					// We only have this to prevent race conditions with the eraser spinning up
@@ -263,14 +264,14 @@ func TestRemoveImagesFromAllNodes(t *testing.T) {
 			// So we'll give plenty of time and fail slow here.
 			ctxT, cancel := context.WithTimeout(ctx, 5*time.Minute)
 			defer cancel()
-			checkImageRemoved(ctxT, t, getClusterNodes(t), redis)
+			util.CheckImageRemoved(ctxT, t, util.GetClusterNodes(t), redis)
 
 			ctxT, cancel = context.WithTimeout(ctx, time.Minute)
 			defer cancel()
-			checkImageRemoved(ctxT, t, getClusterNodes(t), caddy)
+			util.CheckImageRemoved(ctxT, t, util.GetClusterNodes(t), caddy)
 
 			// Make sure nginx is still there
-			checkImagesExist(ctx, t, getClusterNodes(t), nginx)
+			util.CheckImagesExist(ctx, t, util.GetClusterNodes(t), nginx)
 
 			return ctx
 		}).
@@ -288,13 +289,13 @@ func TestRemoveImagesFromAllNodes(t *testing.T) {
 				cfg.Client().Resources().Delete(ctx, i.(*eraserv1alpha1.ImageList))
 			}
 
-			if err := deleteImageListsAndJobs(cfg.KubeconfigFile()); err != nil {
+			if err := util.DeleteImageListsAndJobs(cfg.KubeconfigFile()); err != nil {
 				t.Error("Failed to clean eraser obejcts ", err)
 			}
 
 			// make sure nginx containers are cleaned up before proceeding
-			for _, nodeName := range getClusterNodes(t) {
-				err := wait.For(containerNotPresentOnNode(nodeName, nginx), wait.WithTimeout(time.Minute*2))
+			for _, nodeName := range util.GetClusterNodes(t) {
+				err := wait.For(util.ContainerNotPresentOnNode(nodeName, nginx), wait.WithTimeout(time.Minute*2))
 				if err != nil {
 					// Let's not mark this as an error
 					// We only have this to prevent race conditions with the eraser spinning up
@@ -309,13 +310,13 @@ func TestRemoveImagesFromAllNodes(t *testing.T) {
 	imglistChangeFeat := features.New("Test Updating ImageList to Reconcile").
 		Setup(func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
 			// Deploy 2 deployments with different images (nginx, redis)
-			nginxDep := newDeployment(cfg.Namespace(), nginx, 2, map[string]string{"app": nginx}, corev1.Container{Image: nginx, Name: nginx})
+			nginxDep := util.NewDeployment(cfg.Namespace(), nginx, 2, map[string]string{"app": nginx}, corev1.Container{Image: nginx, Name: nginx})
 			if err := cfg.Client().Resources().Create(ctx, nginxDep); err != nil {
 				t.Error("Failed to create the nginx dep", err)
 			}
 
-			newDeployment(cfg.Namespace(), redis, 2, map[string]string{"app": redis}, corev1.Container{Image: redis, Name: redis})
-			err := cfg.Client().Resources().Create(ctx, newDeployment(cfg.Namespace(), redis, 2, map[string]string{"app": redis}, corev1.Container{Image: redis, Name: redis}))
+			util.NewDeployment(cfg.Namespace(), redis, 2, map[string]string{"app": redis}, corev1.Container{Image: redis, Name: redis})
+			err := cfg.Client().Resources().Create(ctx, util.NewDeployment(cfg.Namespace(), redis, 2, map[string]string{"app": redis}, corev1.Container{Image: redis, Name: redis}))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -380,16 +381,16 @@ func TestRemoveImagesFromAllNodes(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			for _, nodeName := range getClusterNodes(t) {
-				err := wait.For(containerNotPresentOnNode(nodeName, redis), wait.WithTimeout(time.Minute*2))
+			for _, nodeName := range util.GetClusterNodes(t) {
+				err := wait.For(util.ContainerNotPresentOnNode(nodeName, redis), wait.WithTimeout(time.Minute*2))
 				if err != nil {
 					// Let's not mark this as an error
 					// We only have this to prevent race conditions with the eraser spinning up
 					t.Logf("error while waiting for deployment deletion: %v", err)
 				}
 			}
-			for _, nodeName := range getClusterNodes(t) {
-				err := wait.For(containerNotPresentOnNode(nodeName, nginx), wait.WithTimeout(time.Minute*2))
+			for _, nodeName := range util.GetClusterNodes(t) {
+				err := wait.For(util.ContainerNotPresentOnNode(nodeName, nginx), wait.WithTimeout(time.Minute*2))
 				if err != nil {
 					// Let's not mark this as an error
 					// We only have this to prevent race conditions with the eraser spinning up
@@ -400,25 +401,25 @@ func TestRemoveImagesFromAllNodes(t *testing.T) {
 		}).
 		Assess("Deploy imagelist to remove nginx", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
 			// deploy imageJob config
-			if err := deployEraserConfig(cfg.KubeconfigFile(), "eraser-system", "test-data", "eraser_v1alpha1_imagelist.yaml"); err != nil {
+			if err := util.DeployEraserConfig(cfg.KubeconfigFile(), "eraser-system", "../test-data", "eraser_v1alpha1_imagelist.yaml"); err != nil {
 				t.Error("Failed to deploy image list config", err)
 			}
 
 			ctxT, cancel := context.WithTimeout(ctx, 5*time.Minute)
 			defer cancel()
-			checkImageRemoved(ctxT, t, getClusterNodes(t), nginx)
+			util.CheckImageRemoved(ctxT, t, util.GetClusterNodes(t), nginx)
 
 			return ctx
 		}).
 		Assess("Update imagelist to prune rest of images", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
 			// deploy imageJob config
-			if err := deployEraserConfig(cfg.KubeconfigFile(), "eraser-system", "test-data", "eraser_v1alpha1_imagelist_updated.yaml"); err != nil {
+			if err := util.DeployEraserConfig(cfg.KubeconfigFile(), "eraser-system", "../test-data", "eraser_v1alpha1_imagelist_updated.yaml"); err != nil {
 				t.Error("Failed to deploy image list config", err)
 			}
 
 			ctxT, cancel := context.WithTimeout(ctx, 5*time.Minute)
 			defer cancel()
-			checkImageRemoved(ctxT, t, getClusterNodes(t), redis)
+			util.CheckImageRemoved(ctxT, t, util.GetClusterNodes(t), redis)
 
 			return ctx
 		}).
@@ -433,7 +434,7 @@ func TestRemoveImagesFromAllNodes(t *testing.T) {
 				cfg.Client().Resources().Delete(ctx, i.(*eraserv1alpha1.ImageList))
 			}
 
-			if err := deleteImageListsAndJobs(cfg.KubeconfigFile()); err != nil {
+			if err := util.DeleteImageListsAndJobs(cfg.KubeconfigFile()); err != nil {
 				t.Error("Failed to clean eraser obejcts ", err)
 			}
 
@@ -445,38 +446,38 @@ func TestRemoveImagesFromAllNodes(t *testing.T) {
 		// We'll shutdown two of them, run eraser with `*`, then check that the images for the removed deployments are removed from the cluster.
 		Setup(func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
 			// Ensure that both nginx:one and nginx:two are tags for the same image digest
-			_, err := dockerPullImage(nginxLatest)
+			_, err := util.DockerPullImage(nginxLatest)
 			if err != nil {
 				t.Error("failed to pull nginx image", err)
 			}
 
 			// Create the alias nginx:one
-			_, err = dockerTagImage(nginxLatest, nginxAliasOne)
+			_, err = util.DockerTagImage(nginxLatest, nginxAliasOne)
 			if err != nil {
 				t.Error("failed to tag nginx image", err)
 			}
 
 			// Create the alias nginx:two
-			_, err = dockerTagImage(nginxLatest, nginxAliasTwo)
+			_, err = util.DockerTagImage(nginxLatest, nginxAliasTwo)
 			if err != nil {
 				t.Error("failed to tag nginx image", err)
 			}
 
 			// Load the images into the cluster
-			_, err = kindLoadImage(kindClusterName, nginxAliasOne)
+			_, err = util.KindLoadImage(util.KindClusterName, nginxAliasOne)
 			if err != nil {
 				t.Error("failed to load kind image", err)
 			}
 
-			_, err = kindLoadImage(kindClusterName, nginxAliasTwo)
+			_, err = util.KindLoadImage(util.KindClusterName, nginxAliasTwo)
 			if err != nil {
 				t.Error("failed to load kind image", err)
 			}
 
 			// Schedule two pods on a single node. Both pods will create containers from the same image,
 			// but each pod refers to that same image by a different tag.
-			nodeName := getClusterNodes(t)[0]
-			nginxOnePod := newPod(cfg.Namespace(), nginxAliasOne, "nginxone", nodeName)
+			nodeName := util.GetClusterNodes(t)[0]
+			nginxOnePod := util.NewPod(cfg.Namespace(), nginxAliasOne, "nginxone", nodeName)
 			ctx = context.WithValue(ctx, "nodeName", nodeName)
 
 			if err := cfg.Client().Resources().Create(ctx, nginxOnePod); err != nil {
@@ -484,7 +485,7 @@ func TestRemoveImagesFromAllNodes(t *testing.T) {
 			}
 			ctx = context.WithValue(ctx, nginxAliasOne, nginxOnePod)
 
-			nginxTwoPod := newPod(cfg.Namespace(), nginxAliasTwo, "nginxtwo", nodeName)
+			nginxTwoPod := util.NewPod(cfg.Namespace(), nginxAliasTwo, "nginxtwo", nodeName)
 			if err := cfg.Client().Resources().Create(ctx, nginxTwoPod); err != nil {
 				t.Error("Failed to create the nginx pod", err)
 			}
@@ -523,7 +524,7 @@ func TestRemoveImagesFromAllNodes(t *testing.T) {
 			}
 
 			nodeName := ctx.Value("nodeName").(string)
-			err = wait.For(containerNotPresentOnNode(nodeName, "nginxone"), wait.WithTimeout(time.Minute*2))
+			err = wait.For(util.ContainerNotPresentOnNode(nodeName, "nginxone"), wait.WithTimeout(time.Minute*2))
 			if err != nil {
 				// Let's not mark this as an error
 				// We only have this to prevent race conditions with the eraser spinning up
@@ -534,7 +535,7 @@ func TestRemoveImagesFromAllNodes(t *testing.T) {
 			if err := client.Resources().Delete(ctx, nginxTwoPod); err != nil {
 				t.Error("Failed to delete the dep", err)
 			}
-			err = wait.For(containerNotPresentOnNode(nodeName, "nginxtwo"), wait.WithTimeout(time.Minute*2))
+			err = wait.For(util.ContainerNotPresentOnNode(nodeName, "nginxtwo"), wait.WithTimeout(time.Minute*2))
 			if err != nil {
 				// Let's not mark this as an error
 				// We only have this to prevent race conditions with the eraser spinning up
@@ -557,18 +558,18 @@ func TestRemoveImagesFromAllNodes(t *testing.T) {
 			nodeName := ctx.Value("nodeName").(string)
 			ctxT, cancel := context.WithTimeout(ctx, time.Minute)
 			defer cancel()
-			checkImageRemoved(ctxT, t, []string{nodeName}, nginx)
+			util.CheckImageRemoved(ctxT, t, []string{nodeName}, nginx)
 
 			return ctx
 		}).
 		Teardown(func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
-			if err := deleteImageListsAndJobs(cfg.KubeconfigFile()); err != nil {
+			if err := util.DeleteImageListsAndJobs(cfg.KubeconfigFile()); err != nil {
 				t.Error("Failed to clean eraser obejcts ", err)
 			}
 
 			// make sure nginx containers are cleaned up before proceeding
-			for _, nodeName := range getClusterNodes(t) {
-				err := wait.For(containerNotPresentOnNode(nodeName, nginx), wait.WithTimeout(time.Minute*2))
+			for _, nodeName := range util.GetClusterNodes(t) {
+				err := wait.For(util.ContainerNotPresentOnNode(nodeName, nginx), wait.WithTimeout(time.Minute*2))
 				if err != nil {
 					// Let's not mark this as an error
 					// We only have this to prevent race conditions with the eraser spinning up
@@ -590,7 +591,7 @@ func TestRemoveImagesFromAllNodes(t *testing.T) {
 			}
 
 			podSelectorLabels := map[string]string{"app": nginx}
-			nginxDep := newDeployment(cfg.Namespace(), nginx, 2, podSelectorLabels, corev1.Container{Image: nginx, Name: nginx})
+			nginxDep := util.NewDeployment(cfg.Namespace(), nginx, 2, podSelectorLabels, corev1.Container{Image: nginx, Name: nginx})
 			if err := cfg.Client().Resources().Create(ctx, nginxDep); err != nil {
 				t.Error("Failed to create the dep", err)
 			}
@@ -666,11 +667,11 @@ func TestRemoveImagesFromAllNodes(t *testing.T) {
 				t.Error("Failed to delete the dep", err)
 			}
 
-			clusterNodes := getClusterNodes(t)
-			clusterNodes = deleteStringFromSlice(clusterNodes, skippedNodeName)
+			clusterNodes := util.GetClusterNodes(t)
+			clusterNodes = util.DeleteStringFromSlice(clusterNodes, skippedNodeName)
 
 			for _, nodeName := range clusterNodes {
-				err := wait.For(containerNotPresentOnNode(nodeName, nginx), wait.WithTimeout(time.Minute*2))
+				err := wait.For(util.ContainerNotPresentOnNode(nodeName, nginx), wait.WithTimeout(time.Minute*2))
 				if err != nil {
 					// Let's not mark this as an error
 					// We only have this to prevent race conditions with the eraser spinning up
@@ -679,7 +680,7 @@ func TestRemoveImagesFromAllNodes(t *testing.T) {
 			}
 
 			// deploy imageJob config
-			if err := deployEraserConfig(cfg.KubeconfigFile(), "eraser-system", "test-data", "eraser_v1alpha1_imagelist.yaml"); err != nil {
+			if err := util.DeployEraserConfig(cfg.KubeconfigFile(), "eraser-system", "../test-data", "eraser_v1alpha1_imagelist.yaml"); err != nil {
 				t.Error("Failed to deploy image list config", err)
 			}
 
@@ -688,21 +689,21 @@ func TestRemoveImagesFromAllNodes(t *testing.T) {
 
 			// ensure images are removed from all nodes except the one we are skipping. remove the node we are skipping from the list of nodes.
 
-			checkImageRemoved(ctxT, t, clusterNodes, nginx)
+			util.CheckImageRemoved(ctxT, t, clusterNodes, nginx)
 
 			// Wait for the imagejob to be completed by checking for its nonexistence in the cluster
-			err = wait.For(imagejobNotInCluster(cfg.KubeconfigFile()), wait.WithTimeout(time.Minute*2))
+			err = wait.For(util.ImagejobNotInCluster(cfg.KubeconfigFile()), wait.WithTimeout(time.Minute*2))
 			if err != nil {
 				t.Logf("error while waiting for imagejob cleanup: %v", err)
 			}
 
 			// the imagejob has done its work, so now we can check the node to make sure it didn't remove the image
-			checkImagesExist(ctx, t, []string{skippedNodeName}, nginx)
+			util.CheckImagesExist(ctx, t, []string{skippedNodeName}, nginx)
 
 			return ctx
 		}).
 		Teardown(func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
-			if err := deleteEraserConfig(cfg.KubeconfigFile(), "eraser-system", "test-data", "eraser_v1alpha1_imagelist.yaml"); err != nil {
+			if err := util.DeleteEraserConfig(cfg.KubeconfigFile(), "eraser-system", "../test-data", "eraser_v1alpha1_imagelist.yaml"); err != nil {
 				t.Error("Failed to delete image list config ", err)
 			}
 
@@ -741,10 +742,10 @@ func TestRemoveImagesFromAllNodes(t *testing.T) {
 				t.Errorf("error while waiting for selector%s to be removed from node\n%#v", skippedNodeSelector, err)
 			}
 
-			if err := KubectlDelete(cfg.KubeconfigFile(), "eraser-system", append([]string{"imagejob", "--all"})); err != nil {
+			if err := util.KubectlDelete(cfg.KubeconfigFile(), "eraser-system", append([]string{"imagejob", "--all"})); err != nil {
 				t.Error("Failed to delete image job(s) config ", err)
 			}
-			if err := KubectlDelete(cfg.KubeconfigFile(), "eraser-system", append([]string{"imagelist", "--all"})); err != nil {
+			if err := util.KubectlDelete(cfg.KubeconfigFile(), "eraser-system", append([]string{"imagelist", "--all"})); err != nil {
 				t.Error("Failed to delete image job(s) config ", err)
 			}
 

@@ -1,9 +1,5 @@
-//go:build e2e
-// +build e2e
-
 // https://raw.githubusercontent.com/Azure/secrets-store-csi-driver-provider-azure/master/test/e2e/framework/exec/kubectl.go
-
-package e2e
+package util
 
 import (
 	"fmt"
@@ -21,7 +17,7 @@ func KubectlApply(kubeconfigPath, namespace string, args []string) error {
 		fmt.Sprintf("--namespace=%s", namespace),
 	}, args...)
 
-	_, err := kubectl(args)
+	_, err := Kubectl(args)
 	return err
 }
 
@@ -35,7 +31,7 @@ func HelmInstall(kubeconfigPath, namespace string, args []string) error {
 		fmt.Sprintf("--namespace=%s", namespace),
 	}, args...)
 
-	_, err := helm(args)
+	_, err := Helm(args)
 	return err
 }
 
@@ -47,7 +43,7 @@ func KubectlDelete(kubeconfigPath, namespace string, args []string) error {
 		fmt.Sprintf("--namespace=%s", namespace),
 	}, args...)
 
-	_, err := kubectl(args)
+	_, err := Kubectl(args)
 	return err
 }
 
@@ -62,7 +58,7 @@ func KubectlExec(kubeconfigPath, podName, namespace string, args []string) (stri
 		"--",
 	}, args...)
 
-	return kubectl(args)
+	return Kubectl(args)
 }
 
 // KubectlLogs executes "kubectl logs" given a list of arguments.
@@ -78,7 +74,7 @@ func KubectlLogs(kubeconfigPath, podName, containerName, namespace string) (stri
 		args = append(args, fmt.Sprintf("-c=%s", containerName))
 	}
 
-	return kubectl(args)
+	return Kubectl(args)
 }
 
 // KubectlDescribe executes "kubectl describe" given a list of arguments.
@@ -90,7 +86,7 @@ func KubectlDescribe(kubeconfigPath, podName, namespace string) (string, error) 
 		fmt.Sprintf("--kubeconfig=%s", kubeconfigPath),
 		fmt.Sprintf("--namespace=%s", namespace),
 	}
-	return kubectl(args)
+	return Kubectl(args)
 }
 
 // KubectlDescribeImagejob executes "kubectl describe imagejob"
@@ -101,10 +97,10 @@ func KubectlGet(kubeconfigPath string, otherArgs ...string) (string, error) {
 	}
 	args = append(args, otherArgs...)
 
-	return kubectl(args)
+	return Kubectl(args)
 }
 
-func kubectl(args []string) (string, error) {
+func Kubectl(args []string) (string, error) {
 	klog.Infof("kubectl %s", strings.Join(args, " "))
 
 	cmd := exec.Command("kubectl", args...)
@@ -118,7 +114,7 @@ func kubectl(args []string) (string, error) {
 	return output, err
 }
 
-func helm(args []string) (string, error) {
+func Helm(args []string) (string, error) {
 	klog.Infof("helm %s", strings.Join(args, " "))
 
 	cmd := exec.Command("helm", args...)
