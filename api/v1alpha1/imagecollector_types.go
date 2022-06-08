@@ -22,13 +22,13 @@ type ImageCollectorSpec struct {
 }
 
 type Image struct {
-	Digest        string `json:"digest"`
-	Name          string `json:"name,omitempty"`
-	ScanSucceeded *bool  `json:"scanSucceeded,omitempty"`
+	Digest string `json:"digest"`
+	Name   string `json:"name,omitempty"`
 }
 
 type ImageCollectorStatus struct {
-	Result []Image `json:"result"`
+	Vulnerable []Image `json:"vulnerable,omitempty"`
+	Failed     []Image `json:"failed,omitempty"`
 }
 
 //+kubebuilder:object:root=true

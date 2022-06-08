@@ -19,7 +19,7 @@ require (
 	k8s.io/klog/v2 v2.30.0
 	k8s.io/kubernetes v1.22.10
 	sigs.k8s.io/controller-runtime v0.11.2
-	sigs.k8s.io/e2e-framework v0.0.6
+	sigs.k8s.io/e2e-framework v0.0.7
 	sigs.k8s.io/kind v0.11.1
 )
 
@@ -96,7 +96,7 @@ require (
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/google/go-cmp v0.5.7 // indirect
 	github.com/google/go-containerregistry v0.7.1-0.20211214010025-a65b7844a475 // indirect
-	github.com/google/gofuzz v1.1.0 // indirect
+	github.com/google/gofuzz v1.2.0 // indirect
 	github.com/google/uuid v1.3.0 // indirect
 	github.com/google/wire v0.5.0 // indirect
 	github.com/googleapis/gax-go/v2 v2.1.1 // indirect

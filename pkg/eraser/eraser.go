@@ -35,12 +35,8 @@ type Client interface {
 	deleteImage(context.Context, string) error
 }
 
-func (c *client) listContainers(context.Context) (list []*pb.Container, err error) {
-	resp, err := c.runtime.ListContainers(context.Background(), new(pb.ListContainersRequest))
-	if err != nil {
-		return nil, err
-	}
-	return resp.Containers, nil
+func (c *client) listContainers(ctx context.Context) (list []*pb.Container, err error) {
+	return util.ListContainers(ctx, c.runtime)
 }
 
 func (c *client) listImages(ctx context.Context) (list []*pb.Image, err error) {
@@ -91,29 +87,11 @@ func removeImages(c Client, targetImages []string) error {
 
 	// Images that are running
 	// map of (digest | tag) -> digest
-	runningImages := make(map[string]string)
-	for _, container := range containers {
-		curr := container.Image
-		digest := curr.GetImage()
-		runningImages[digest] = digest
-
-		for _, tag := range idToTagListMap[digest] {
-			runningImages[tag] = digest
-		}
-	}
+	runningImages := util.GetRunningImages(containers, idToTagListMap)
 
 	// Images that aren't running
 	// map of (digest | tag) -> digest
-	nonRunningImages := make(map[string]string)
-	for _, digest := range allImages {
-		if _, isRunning := runningImages[digest]; !isRunning {
-			nonRunningImages[digest] = digest
-
-			for _, tag := range idToTagListMap[digest] {
-				nonRunningImages[tag] = digest
-			}
-		}
-	}
+	nonRunningImages := util.GetNonRunningImages(runningImages, allImages, idToTagListMap)
 
 	// Debug logs
 	log.V(1).Info("Map of non-running images", "nonRunningImages", nonRunningImages)
