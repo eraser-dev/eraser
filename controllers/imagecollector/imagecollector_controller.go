@@ -49,11 +49,10 @@ import (
 
 var (
 	scannerImage           = flag.String("scanner-image", "ghcr.io/azure/eraser-trivy-scanner:latest", "scanner image")
-	collectorImage         = flag.String("collector-image", "ghcr.io/azure/collector:latest", "collector image")
+	collectorImage         = flag.String("collector-image", "", "collector image")
 	log                    = logf.Log.WithName("controller").WithValues("process", "imagecollector-controller")
 	repeatPeriod           = flag.Duration("repeat-period", time.Hour*24, "repeat period for collect/scan process")
 	deleteScanFailedImages = flag.Bool("delete-scan-failed-images", true, "whether or not to delete images for which scanning has failed")
-	enableCollection       = flag.Bool("enable-collection", true, "if set to false, will disable the imagecollector controller entirely")
 )
 
 const (
@@ -69,7 +68,7 @@ type Reconciler struct {
 }
 
 func Add(mgr manager.Manager) error {
-	if !*enableCollection {
+	if *collectorImage == "" {
 		return nil
 	}
 	return add(mgr, newReconciler(mgr))
