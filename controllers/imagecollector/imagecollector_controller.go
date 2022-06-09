@@ -224,11 +224,19 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 			return r.upsertImageList(ctx, imageCollectorShared)
 		}
 
-		// else, create an ImageJob
+		// if case (b), and scan is disabled, we need to create/update imagelist before beginning another collector ImageJob
+		if *scanDisabled {
+			if res, err := r.upsertImageList(ctx, imageCollectorShared); err != nil {
+				return res, err
+			}
+		}
+
+		// create the next collector ImageJob
 		if res, err := r.createImageJob(ctx, req, imageCollectorShared); err != nil {
 			return res, err
 		}
 		return ctrl.Result{RequeueAfter: *repeatPeriod}, nil
+
 	}
 
 	// else length is 1, so check job phase
@@ -246,9 +254,11 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 			return ctrl.Result{}, nil
 		}
 
-		err := r.createScanJob(ctx, imageCollectorShared, *scannerImage)
-		if err != nil {
-			return ctrl.Result{}, err
+		if !*scanDisabled {
+			err := r.createScanJob(ctx, imageCollectorShared, *scannerImage)
+			if err != nil {
+				return ctrl.Result{}, err
+			}
 		}
 
 		if res, err := r.handleJobDeletion(ctx, &relevantJobs[0]); err != nil || res.RequeueAfter > 0 {
@@ -294,16 +304,30 @@ func (r *Reconciler) getChildImageJobs(ctx context.Context, collector *eraserv1a
 }
 
 func (r *Reconciler) upsertImageList(ctx context.Context, collector *eraserv1alpha1.ImageCollector) (ctrl.Result, error) {
-	imageListItems := make([]string, 0, len(collector.Status.Vulnerable))
-	images := collector.Status.Vulnerable
+	var imageListItems []string
 
-	if *deleteScanFailedImages {
-		images = append(images, collector.Status.Failed...)
-	}
+	// if there is a scan process, we want to remove all resulting vulnerable images
+	if !*scanDisabled {
+		imageListItems := make([]string, 0, len(collector.Status.Vulnerable))
+		images := collector.Status.Vulnerable
 
-	for i := range images {
-		img := images[i]
-		imageListItems = append(imageListItems, img.Digest)
+		if *deleteScanFailedImages {
+			images = append(images, collector.Status.Failed...)
+		}
+
+		for i := range images {
+			img := images[i]
+			imageListItems = append(imageListItems, img.Digest)
+		}
+	} else {
+		// if there is no scan process, we want to prune all images collected
+		imageListItems := make([]string, 0, len(collector.Spec.Images))
+		images := collector.Spec.Images
+
+		for i := range images {
+			img := images[i]
+			imageListItems = append(imageListItems, img.Digest)
+		}
 	}
 
 	imageList := eraserv1alpha1.ImageList{}
