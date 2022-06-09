@@ -53,6 +53,7 @@ var (
 	log                    = logf.Log.WithName("controller").WithValues("process", "imagecollector-controller")
 	repeatPeriod           = flag.Duration("repeat-period", time.Hour*24, "repeat period for collect/scan process")
 	deleteScanFailedImages = flag.Bool("delete-scan-failed-images", true, "whether or not to delete images for which scanning has failed")
+	scanDisabled           = flag.Bool("scan-disabled", false, "disables scan process following collection")
 )
 
 const (
