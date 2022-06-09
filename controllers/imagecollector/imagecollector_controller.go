@@ -312,7 +312,7 @@ func (r *Reconciler) upsertImageList(ctx context.Context, collector *eraserv1alp
 		return r.createImageList(ctx, collector, imageListItems)
 	}
 
-	//else update
+	// else update
 	imageList.Spec.Images = imageListItems
 
 	err = r.Update(ctx, &imageList)
@@ -321,7 +321,6 @@ func (r *Reconciler) upsertImageList(ctx context.Context, collector *eraserv1alp
 	}
 
 	return ctrl.Result{}, nil
-
 }
 
 func (r *Reconciler) createImageList(ctx context.Context, collector *eraserv1alpha1.ImageCollector, items []string) (ctrl.Result, error) {
