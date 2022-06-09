@@ -24,18 +24,7 @@ import (
 
 func TestRemoveImagesFromAllNodes(t *testing.T) {
 	const (
-		nginx         = "nginx"
-		nginxLatest   = "docker.io/library/nginx:latest"
-		nginxAliasOne = "docker.io/library/nginx:one"
-		nginxAliasTwo = "docker.io/library/nginx:two"
-		redis         = "redis"
-		caddy         = "caddy"
-
-		prune               = "imagelist"
-		skippedNodeName     = "eraser-e2e-test-worker"
-		skippedNodeSelector = "kubernetes.io/hostname=eraser-e2e-test-worker"
-		skipLabelKey        = "eraser.sh/cleanup.skip"
-		skipLabelValue      = "true"
+		alpine = "alpine"
 	)
 
 	collectScanErasePipelineFeat := features.New("Test Remove Image From All Nodes").
@@ -70,8 +59,12 @@ func TestRemoveImagesFromAllNodes(t *testing.T) {
 			resource := eraserv1alpha1.ImageList{}
 			wait.For(func() (bool, error) {
 				err := c.Resources().Get(ctx, "imagelist", "default", &resource)
+				if util.IsNotFound(err) {
+					return false, nil
+				}
+
 				if err != nil {
-					t.Logf("WE ARE HERE")
+					return false, err
 				}
 
 				if resource.ObjectMeta.Name == "imagelist" {
@@ -86,7 +79,7 @@ func TestRemoveImagesFromAllNodes(t *testing.T) {
 		Assess("Images successfully deleted from all nodes", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
 			ctxT, cancel := context.WithTimeout(ctx, 3*time.Minute)
 			defer cancel()
-			util.CheckImageRemoved(ctxT, t, util.GetClusterNodes(t), nginx)
+			util.CheckImageRemoved(ctxT, t, util.GetClusterNodes(t), alpine)
 
 			return ctx
 		}).

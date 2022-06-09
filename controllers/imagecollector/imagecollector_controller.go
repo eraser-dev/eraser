@@ -306,19 +306,26 @@ func (r *Reconciler) upsertImageList(ctx context.Context, collector *eraserv1alp
 	}
 
 	imageList := eraserv1alpha1.ImageList{}
-	err := r.Get(ctx, types.NamespacedName{Namespace: "", Name: "imagelist"}, &imageList)
-	if !isNotFound(err) { // if *found*, then update
-		imageList.Spec.Images = imageListItems
-		err := r.Update(ctx, &imageList)
-		if err != nil {
-			return ctrl.Result{}, err
-		}
 
-		return ctrl.Result{}, nil
+	err := r.Get(ctx, types.NamespacedName{Namespace: "", Name: "imagelist"}, &imageList)
+	if isNotFound(err) {
+		return r.createImageList(ctx, collector, imageListItems)
 	}
 
-	// else create
-	imageList = eraserv1alpha1.ImageList{
+	//else update
+	imageList.Spec.Images = imageListItems
+
+	err = r.Update(ctx, &imageList)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
+	return ctrl.Result{}, nil
+
+}
+
+func (r *Reconciler) createImageList(ctx context.Context, collector *eraserv1alpha1.ImageCollector, items []string) (ctrl.Result, error) {
+	imageList := eraserv1alpha1.ImageList{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "imagelist",
 			OwnerReferences: []metav1.OwnerReference{
@@ -333,11 +340,11 @@ func (r *Reconciler) upsertImageList(ctx context.Context, collector *eraserv1alp
 			},
 		},
 		Spec: eraserv1alpha1.ImageListSpec{
-			Images: imageListItems,
+			Images: items,
 		},
 	}
 
-	err = r.Create(ctx, &imageList)
+	err := r.Create(ctx, &imageList)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -395,7 +402,6 @@ func (r *Reconciler) createScanJob(ctx context.Context, collector *eraserv1alpha
 							Args: []string{
 								"--collector-cr-name=" + collector.Name,
 								"--severity=CRITICAL,HIGH",
-								"--ignore-unfixed=false",
 							},
 						},
 					},
@@ -408,10 +414,7 @@ func (r *Reconciler) createScanJob(ctx context.Context, collector *eraserv1alpha
 }
 
 func isNotFound(err error) bool {
-	if err != nil && client.IgnoreNotFound(err) == nil {
-		return true
-	}
-	return false
+	return err != nil && client.IgnoreNotFound(err) == nil
 }
 
 func (r *Reconciler) handleJobDeletion(ctx context.Context, job *eraserv1alpha1.ImageJob) (ctrl.Result, error) {

@@ -13,12 +13,17 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/kind/pkg/cluster"
 )
 
 const (
 	KindClusterName = "eraser-e2e-test"
 )
+
+func IsNotFound(err error) bool {
+	return err != nil && client.IgnoreNotFound(err) == nil
+}
 
 func NewDeployment(namespace, name string, replicas int32, labels map[string]string, containers ...corev1.Container) *appsv1.Deployment {
 	if len(containers) == 0 {
