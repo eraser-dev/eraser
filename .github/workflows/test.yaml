@@ -35,6 +35,18 @@ jobs:
           version: latest
           working-directory: pkg/eraser
           skip-pkg-cache: true
+      - name: lint collector
+        uses: golangci/golangci-lint-action@v3
+        with:
+          version: latest
+          working-directory: pkg/collector
+          skip-pkg-cache: true
+      - name: lint trivvy scanner
+        uses: golangci/golangci-lint-action@v3
+        with:
+          version: latest
+          working-directory: pkg/scanners/trivy
+          skip-pkg-cache: true
 
   unit-test:
     name: "Unit Tests"
