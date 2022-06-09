@@ -194,8 +194,22 @@ jobs:
         run: |
           make docker-build-eraser ERASER_IMG=${{ env.REGISTRY }}/${REPO}:test
 
+      - name: Build collector
+        run: |
+          make docker-build-collector COLLECTOR_IMG=${{ env.REGISTRY }}/collector:test
+
+      - name: Build trivy scanner
+        run: |
+          make docker-build-trivy-scanner TRIVY_SCANNER_IMG=${{ env.REGISTRY }}/${REPO}-trivy-scanner:test
+
       - name: Run trivy for eraser
         run: trivy image --ignore-unfixed --exit-code=1 --vuln-type=os,library ${{ env.REGISTRY }}/${REPO}:test
 
       - name: Run trivy for eraser-manager
         run: trivy image --ignore-unfixed --exit-code=1 --vuln-type=os,library ${{ env.REGISTRY }}/${REPO}-manager:test
+
+      - name: Run trivy for collector
+        run: trivy image --ignore-unfixed --exit-code=1 --vuln-type=os,library ${{ env.REGISTRY }}/collector:test
+
+      - name: Run trivy for trivy-scanner
+        run: trivy image --ignore-unfixed --exit-code=1 --vuln-type=os,library ${{ env.REGISTRY }}/${REPO}-trivy-scanner:test
