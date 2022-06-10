@@ -48,12 +48,12 @@ import (
 )
 
 var (
-	scannerImage           = flag.String("scanner-image", "ghcr.io/azure/eraser-trivy-scanner:latest", "scanner image")
+	scannerImage           = flag.String("scanner-image", "", "scanner image")
 	collectorImage         = flag.String("collector-image", "", "collector image")
 	log                    = logf.Log.WithName("controller").WithValues("process", "imagecollector-controller")
 	repeatPeriod           = flag.Duration("repeat-period", time.Hour*24, "repeat period for collect/scan process")
 	deleteScanFailedImages = flag.Bool("delete-scan-failed-images", true, "whether or not to delete images for which scanning has failed")
-	scanDisabled           = flag.Bool("scan-disabled", false, "disables scan process following collection")
+	scanDisabled           = true
 )
 
 const (
@@ -172,6 +172,10 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log.Info("ImageCollector Reconcile")
 
+	if *scannerImage != "" {
+		scanDisabled = false
+	}
+
 	imageCollectorShared := &eraserv1alpha1.ImageCollector{
 		TypeMeta:   metav1.TypeMeta{Kind: "ImageCollector", APIVersion: apiVersion},
 		ObjectMeta: metav1.ObjectMeta{Name: collectorShared},
@@ -248,7 +252,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		}
 
 		// if scan is disabled, create/update imagelist to prune since collector job has finished
-		if *scanDisabled {
+		if scanDisabled {
 			if res, err := r.upsertImageList(ctx, imageCollectorShared); err != nil {
 				return res, err
 			}
@@ -306,7 +310,7 @@ func (r *Reconciler) upsertImageList(ctx context.Context, collector *eraserv1alp
 	imageListItems := make([]string, 0, len(collector.Spec.Images))
 
 	// if there is a scan process, we want to remove all resulting vulnerable images
-	if !*scanDisabled {
+	if !scanDisabled {
 		images := collector.Status.Vulnerable
 
 		if *deleteScanFailedImages {
