@@ -309,26 +309,18 @@ func (r *Reconciler) getChildImageJobs(ctx context.Context, collector *eraserv1a
 func (r *Reconciler) upsertImageList(ctx context.Context, collector *eraserv1alpha1.ImageCollector) (ctrl.Result, error) {
 	imageListItems := make([]string, 0, len(collector.Spec.Images))
 
-	// if there is a scan process, we want to remove all resulting vulnerable images
+	images := collector.Spec.Images
 	if !scanDisabled {
-		images := collector.Status.Vulnerable
+		images = collector.Status.Vulnerable
 
 		if *deleteScanFailedImages {
 			images = append(images, collector.Status.Failed...)
 		}
+	}
 
-		for i := range images {
-			img := images[i]
-			imageListItems = append(imageListItems, img.Digest)
-		}
-	} else {
-		// if there is no scan process, we want to prune all images collected in spec
-		images := collector.Spec.Images
-
-		for i := range images {
-			img := images[i]
-			imageListItems = append(imageListItems, img.Digest)
-		}
+	for i := range images {
+		img := images[i]
+		imageListItems = append(imageListItems, img.Digest)
 	}
 
 	imageList := eraserv1alpha1.ImageList{}
