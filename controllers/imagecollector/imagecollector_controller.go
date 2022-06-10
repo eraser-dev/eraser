@@ -227,7 +227,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		if res, err := r.createImageJob(ctx, req, imageCollectorShared); err != nil {
 			return res, err
 		}
-		return ctrl.Result{RequeueAfter: *repeatPeriod}, nil
+		return ctrl.Result{}, nil
 	}
 
 	// else length is 1, so check job phase
