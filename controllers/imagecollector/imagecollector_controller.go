@@ -171,6 +171,8 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log.Info("ImageCollector Reconcile")
 
+	log.Info("SCAN DISABLED", scanDisabled(), "true or false")
+
 	imageCollectorShared := &eraserv1alpha1.ImageCollector{
 		TypeMeta:   metav1.TypeMeta{Kind: "ImageCollector", APIVersion: apiVersion},
 		ObjectMeta: metav1.ObjectMeta{Name: collectorShared},

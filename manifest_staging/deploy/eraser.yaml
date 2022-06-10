@@ -4389,7 +4389,6 @@ spec:
         - --leader-elect=false
         - --eraser-image=ghcr.io/azure/eraser:v0.1.0
         - --collector-image=ghcr.io/azure/collector:v0.1.0
-        - --scanner-image=ghcr.io/azure/eraser-trivy-scanner:v0.1.0
         command:
         - /manager
         image: ghcr.io/azure/eraser-manager:v0.1.0
