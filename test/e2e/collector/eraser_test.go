@@ -29,7 +29,7 @@ func TestRemoveImagesFromAllNodes(t *testing.T) {
 		Assess("ImageCollector CR is generated", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
 			c, err := cfg.NewClient()
 			if err != nil {
-				t.Error("Failed to create new client", err)
+				t.Fatal("Failed to create new client", err)
 			}
 
 			resource := eraserv1alpha1.ImageCollector{}
@@ -51,7 +51,7 @@ func TestRemoveImagesFromAllNodes(t *testing.T) {
 		Assess("ImageList CR is generated", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
 			c, err := cfg.NewClient()
 			if err != nil {
-				t.Error("Failed to create new client", err)
+				t.Fatal("Failed to create new client", err)
 			}
 
 			resource := eraserv1alpha1.ImageList{}
@@ -84,7 +84,7 @@ func TestRemoveImagesFromAllNodes(t *testing.T) {
 		Assess("Pods from imagejobs are cleaned up", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
 			c, err := cfg.NewClient()
 			if err != nil {
-				t.Error("Failed to create new client", err)
+				t.Fatal("Failed to create new client", err)
 			}
 
 			var ls corev1.PodList
