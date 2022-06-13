@@ -109,8 +109,93 @@ func TestRemoveImagesFromAllNodes(t *testing.T) {
 				t.Error("Failed to clean eraser obejcts ", err)
 			}
 			return ctx
+			// check manager no longer exists before exiting
 		}).
 		Feature()
 
+	disableScanFeat := features.New("Test Scanner Disabled Prune").
+		Setup(func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
+			err := util.HelmUninstall(cfg.KubeconfigFile(), "eraser-system", []string{})
+			if err != nil {
+				t.Error("Unable to uninstall previous deployment", err)
+			}
+
+			err = util.HelmInstall(cfg.KubeconfigFile(), "eraser-system", []string{"--set scanner.image.repository="})
+			if err != nil {
+				t.Error("Unable to install deployment with scanner disabled")
+			}
+
+			return ctx
+		}).
+		Assess("ImageCollector CR is generated", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
+			c, err := cfg.NewClient()
+			if err != nil {
+				t.Error("Failed to create new client", err)
+			}
+
+			imagecollector := eraserv1alpha1.ImageCollector{}
+			wait.For(func() (bool, error) {
+				err := c.Resources().Get(ctx, "imagecollector-shared", "default", &imagecollector)
+				if err != nil {
+					t.Error("Could not get imagecollector-shared")
+				}
+
+				if imagecollector.ObjectMeta.Name == "imagecollector-shared" {
+					return true, nil
+				}
+
+				return false, nil
+			}, wait.WithTimeout(time.Minute*3))
+
+			return ctx
+		}).Feature()
+
+	/*
+		Assess("ImageList Spec Contains Same Images As ImageCollecotor Shared", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
+			c, err := cfg.NewClient()
+			if err != nil {
+				t.Error("Failed to create new client", err)
+			}
+
+			// how do we know this is updated?
+			imagelist := eraserv1alpha1.ImageList{}
+			wait.For(func() (bool, error) {
+				err := c.Resources().Get(ctx, "imagelist", "default", &imagelist)
+				if util.IsNotFound(err) {
+					return false, nil
+				}
+
+				if err != nil {
+					return false, err
+				}
+
+				if imagelist.ObjectMeta.Name == "imagelist" {
+					return true, nil
+				}
+
+				// verify imagelist created
+				// verify imagecollector-shared status fields are empty (vulnerable and failed)
+				// verify the images in both lists match
+
+				return false, nil
+			}, wait.WithTimeout(time.Minute*3))
+
+			imagecollectorShared := eraserv1alpha1.ImageCollector{}
+			err = c.Resources().Get(ctx, "imagecollector-shared", "default", &imagecollectorShared)
+			if err != nil {
+				t.Error("Could not get imagecollector-shared")
+			}
+
+			for i := range imagecollectorShared.Spec.Images {
+				// we add to imagelist by digest when prune without scanner
+				if !util.Contains(imagelist.Spec.Images, img.Digest) {
+					t.Error("imagelist spec does not match imagecollector-shared")
+				}
+			}
+
+			return ctx
+		}). */
+
+	testenv.Test(t, disableScanFeat)
 	testenv.Test(t, collectScanErasePipelineFeat)
 }
