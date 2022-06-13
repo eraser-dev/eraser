@@ -23,5 +23,8 @@ patches:
     - op: add
       path: /spec/template/spec/containers/0/args/-
       value: --collector-image=COLLECTOR_IMG
+    - op: add
+      path: /spec/template/spec/containers/0/args/-
+      value: --scanner-image=SCANNER_IMG
   target:
     kind: Deployment

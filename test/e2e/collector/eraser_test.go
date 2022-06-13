@@ -10,11 +10,9 @@ import (
 
 	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
 	"github.com/Azure/eraser/test/e2e/util"
-	// appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
-	// clientgo "k8s.io/client-go/kubernetes"
 
 	"sigs.k8s.io/e2e-framework/klient/wait"
 	"sigs.k8s.io/e2e-framework/klient/wait/conditions"
@@ -31,14 +29,14 @@ func TestRemoveImagesFromAllNodes(t *testing.T) {
 		Assess("ImageCollector CR is generated", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
 			c, err := cfg.NewClient()
 			if err != nil {
-				t.Error("Failed to create new client", err)
+				t.Fatal("Failed to create new client", err)
 			}
 
 			resource := eraserv1alpha1.ImageCollector{}
 			wait.For(func() (bool, error) {
 				err := c.Resources().Get(ctx, "imagecollector-shared", "default", &resource)
 				if err != nil {
-					t.Logf("WE ARE HERE")
+					return false, err
 				}
 
 				if resource.ObjectMeta.Name == "imagecollector-shared" {
@@ -53,7 +51,7 @@ func TestRemoveImagesFromAllNodes(t *testing.T) {
 		Assess("ImageList CR is generated", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
 			c, err := cfg.NewClient()
 			if err != nil {
-				t.Error("Failed to create new client", err)
+				t.Fatal("Failed to create new client", err)
 			}
 
 			resource := eraserv1alpha1.ImageList{}
@@ -86,7 +84,7 @@ func TestRemoveImagesFromAllNodes(t *testing.T) {
 		Assess("Pods from imagejobs are cleaned up", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
 			c, err := cfg.NewClient()
 			if err != nil {
-				t.Error("Failed to create new client", err)
+				t.Fatal("Failed to create new client", err)
 			}
 
 			var ls corev1.PodList

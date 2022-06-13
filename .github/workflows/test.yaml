@@ -11,14 +11,13 @@ on:
 env:
   REGISTRY: ghcr.io
 
-permissions:
-  contents: read
+permissions: read-all
 
 jobs:
   lint:
     name: "Lint"
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v3
       - name: Set up Go 1.18
@@ -69,6 +68,30 @@ jobs:
         uses: actions/checkout@v3
       - name: Unit test
         run: make test
+
+  codeql:
+    name: "CodeQL"
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+    timeout-minutes: 20
+    steps:
+      - name: Set up Go 1.18
+        uses: actions/setup-go@v3
+        with:
+          go-version: 1.18
+      - name: Check out code into the Go module directory
+        uses: actions/checkout@v3
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v2
+        with:
+          languages: go
+      - name: Autobuild
+        uses: github/codeql-action/autobuild@27ea8f8fe5977c00f5b37e076ab846c5bd783b96
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v2
 
   check-manifest:
     name: "Check Manifest"
@@ -167,7 +190,6 @@ jobs:
       - name: Get repo
         run: |
           echo "REPO=$(echo $GITHUB_REPOSITORY | awk '{print tolower($0)}')" >> $GITHUB_ENV
-
       - name: Download trivy
         run: |
           pushd $(mktemp -d)
@@ -180,7 +202,6 @@ jobs:
       - name: Build eraser-manager
         run: |
           make docker-build-manager MANAGER_IMG=${{ env.REGISTRY }}/${REPO}-manager:test
-
       - name: Build eraser
         run: |
           make docker-build-eraser ERASER_IMG=${{ env.REGISTRY }}/${REPO}:test
