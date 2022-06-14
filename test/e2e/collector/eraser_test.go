@@ -10,14 +10,17 @@ import (
 
 	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
 	"github.com/Azure/eraser/test/e2e/util"
-	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/labels"
+	//corev1 "k8s.io/api/core/v1"
+	//metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	//"k8s.io/apimachinery/pkg/labels"
 
 	"sigs.k8s.io/e2e-framework/klient/wait"
-	"sigs.k8s.io/e2e-framework/klient/wait/conditions"
+	//"sigs.k8s.io/e2e-framework/klient/wait/conditions"
 	"sigs.k8s.io/e2e-framework/pkg/envconf"
 	"sigs.k8s.io/e2e-framework/pkg/features"
+
+	"os"
+	"path/filepath"
 )
 
 func TestRemoveImagesFromAllNodes(t *testing.T) {
@@ -107,7 +110,6 @@ func TestRemoveImagesFromAllNodes(t *testing.T) {
 				t.Error("Failed to clean eraser obejcts ", err)
 			}
 			return ctx
-			// check manager no longer exists before exiting
 		}).
 		Feature()
 
@@ -118,9 +120,19 @@ func TestRemoveImagesFromAllNodes(t *testing.T) {
 				t.Error("Unable to uninstall previous deployment", err)
 			}
 
-			err = util.HelmInstall(cfg.KubeconfigFile(), "eraser-system", []string{"--set scanner.image.repository="})
+			wd, err := os.Getwd()
 			if err != nil {
-				t.Error("Unable to install deployment with scanner disabled")
+				t.Error("Could not get working directory", err)
+			}
+
+			providerResourceAbsolutePath, err := filepath.Abs(filepath.Join(wd, "/../../../", providerResourceDirectory, "eraser"))
+			if err != nil {
+				t.Error("Unable to get provider resource absolute path", err)
+			}
+
+			err = util.HelmInstall(cfg.KubeconfigFile(), "eraser-system", []string{providerResourceAbsolutePath, "--set", "scanner.image.repository="})
+			if err != nil {
+				t.Error("Unable to install deployment with scanner disabled", err)
 			}
 
 			return ctx
@@ -146,16 +158,14 @@ func TestRemoveImagesFromAllNodes(t *testing.T) {
 			}, wait.WithTimeout(time.Minute*3))
 
 			return ctx
-		}).Feature()
-
-	/*
+		}).
 		Assess("ImageList Spec Contains Same Images As ImageCollecotor Shared", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
 			c, err := cfg.NewClient()
 			if err != nil {
 				t.Error("Failed to create new client", err)
 			}
 
-			// how do we know this is updated?
+			// verify imagelist created
 			imagelist := eraserv1alpha1.ImageList{}
 			wait.For(func() (bool, error) {
 				err := c.Resources().Get(ctx, "imagelist", "default", &imagelist)
@@ -171,10 +181,6 @@ func TestRemoveImagesFromAllNodes(t *testing.T) {
 					return true, nil
 				}
 
-				// verify imagelist created
-				// verify imagecollector-shared status fields are empty (vulnerable and failed)
-				// verify the images in both lists match
-
 				return false, nil
 			}, wait.WithTimeout(time.Minute*3))
 
@@ -184,15 +190,29 @@ func TestRemoveImagesFromAllNodes(t *testing.T) {
 				t.Error("Could not get imagecollector-shared")
 			}
 
-			for i := range imagecollectorShared.Spec.Images {
+			// verify imagecollector-shared status fields are empty
+			if imagecollectorShared.Status.Vulnerable != nil || imagecollectorShared.Status.Failed != nil {
+				t.Error("Scan job has run, should be disabled")
+			}
+
+			// verify the images in both lists match
+			for _, img := range imagecollectorShared.Spec.Images {
 				// we add to imagelist by digest when prune without scanner
 				if !util.Contains(imagelist.Spec.Images, img.Digest) {
-					t.Error("imagelist spec does not match imagecollector-shared")
+					t.Error("imagelist spec does not match imagecollector-shared: ", img.Digest)
 				}
 			}
 
 			return ctx
-		}). */
+		}).
+		Teardown(func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
+			err := util.HelmUninstall(cfg.KubeconfigFile(), "eraser-system", []string{})
+			if err != nil {
+				t.Error("Unable to uninstall deployment for teardown", err)
+			}
+			return ctx
+		}).
+		Feature()
 
 	testenv.Test(t, disableScanFeat)
 	testenv.Test(t, collectScanErasePipelineFeat)
