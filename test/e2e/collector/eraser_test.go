@@ -10,12 +10,12 @@ import (
 
 	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
 	"github.com/Azure/eraser/test/e2e/util"
-	//corev1 "k8s.io/api/core/v1"
-	//metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	//"k8s.io/apimachinery/pkg/labels"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 
 	"sigs.k8s.io/e2e-framework/klient/wait"
-	//"sigs.k8s.io/e2e-framework/klient/wait/conditions"
+	"sigs.k8s.io/e2e-framework/klient/wait/conditions"
 	"sigs.k8s.io/e2e-framework/pkg/envconf"
 	"sigs.k8s.io/e2e-framework/pkg/features"
 
@@ -29,6 +29,23 @@ func TestRemoveImagesFromAllNodes(t *testing.T) {
 	)
 
 	collectScanErasePipelineFeat := features.New("Test Remove Image From All Nodes").
+		Setup(func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
+			wd, err := os.Getwd()
+			if err != nil {
+				t.Error("Could not get wd")
+			}
+
+			providerResourceAbsolutePath, err := filepath.Abs(filepath.Join(wd, "/../../../", providerResourceDirectory, "eraser"))
+			if err != nil {
+				t.Error("Could not get provider resource absolute pathy")
+			}
+			// start deployment
+			if err := util.HelmInstall(cfg.KubeconfigFile(), "eraser-system", []string{providerResourceAbsolutePath}); err != nil {
+				t.Error("Unable to helm install deployment")
+			}
+
+			return ctx
+		}).
 		Assess("ImageCollector CR is generated", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
 			c, err := cfg.NewClient()
 			if err != nil {
@@ -106,8 +123,9 @@ func TestRemoveImagesFromAllNodes(t *testing.T) {
 			return ctx
 		}).
 		Teardown(func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
-			if err := util.DeleteImageListsAndJobs(cfg.KubeconfigFile()); err != nil {
-				t.Error("Failed to clean eraser obejcts ", err)
+			err := util.HelmUninstall(cfg.KubeconfigFile(), "eraser-system", []string{})
+			if err != nil {
+				t.Error("Unable to uninstall deployment for teardown", err)
 			}
 			return ctx
 		}).
@@ -115,11 +133,6 @@ func TestRemoveImagesFromAllNodes(t *testing.T) {
 
 	disableScanFeat := features.New("Test Scanner Disabled Prune").
 		Setup(func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
-			err := util.HelmUninstall(cfg.KubeconfigFile(), "eraser-system", []string{})
-			if err != nil {
-				t.Error("Unable to uninstall previous deployment", err)
-			}
-
 			wd, err := os.Getwd()
 			if err != nil {
 				t.Error("Could not get working directory", err)
