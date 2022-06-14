@@ -81,7 +81,23 @@ func (km *keyMutex) TryLock(key string) bool {
 	l.ref++
 	km.mu.Unlock()
 
-	return l.TryAcquire(1)
+	gotLock := l.TryAcquire(1)
+	if !gotLock {
+		km.mu.Lock()
+		defer km.mu.Unlock()
+
+		l.ref--
+
+		if l.ref < 0 {
+			panic(fmt.Errorf("kmutex: release of unlocked key %v", key))
+		}
+
+		if l.ref == 0 {
+			delete(km.locks, key)
+		}
+	}
+
+	return gotLock
 }
 
 func (km *keyMutex) Unlock(key string) {
