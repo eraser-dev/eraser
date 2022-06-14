@@ -16,12 +16,11 @@ var (
 	controllerLog      = ctrl.Log.WithName("controllerRuntimeLogger")
 	controllerAddFuncs []func(manager.Manager, util.KeyedLocker) error
 
-	keyMutex util.KeyedLocker
+	keyMutex = util.NewKeyedLocker()
 )
 
 func init() {
 	controllerAddFuncs = append(controllerAddFuncs, imagelist.Add, imagejob.Add, imagecollector.Add)
-	keyMutex = util.NewKeyedLocker()
 }
 
 func SetupWithManager(m manager.Manager) error {
