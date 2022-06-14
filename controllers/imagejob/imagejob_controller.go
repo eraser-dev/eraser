@@ -173,7 +173,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	switch imageJob.Status.Phase {
 	case "":
 		gotLock := r.keyMutex.TryLock(imageJobLockKey)
-		log.Info("Attempting to acquire ImageJob lock", "gotLock", gotLock)
+		log.Info("Attempting to acquire ImageJob lock", "request", req, "gotLock", gotLock)
 
 		if !gotLock {
 			return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
@@ -188,7 +188,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		}
 
 		if jobFinished {
-			log.Info("Releasing ImageJob lock")
+			log.Info("Releasing ImageJob lock", "request", req)
 			r.keyMutex.Unlock(imageJobLockKey)
 		}
 	case eraserv1alpha1.PhaseCompleted, eraserv1alpha1.PhaseFailed:
