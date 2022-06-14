@@ -55,15 +55,16 @@ var (
 	imageList   = types.NamespacedName{Name: "imagelist"}
 )
 
-func Add(mgr manager.Manager) error {
-	return add(mgr, newReconciler(mgr))
+func Add(mgr manager.Manager, keyMutex util.KeyedLocker) error {
+	return add(mgr, newReconciler(mgr, keyMutex))
 }
 
 // newReconciler returns a new reconcile.Reconciler.
-func newReconciler(mgr manager.Manager) reconcile.Reconciler {
+func newReconciler(mgr manager.Manager, keyMutex util.KeyedLocker) reconcile.Reconciler {
 	return &Reconciler{
-		Client: mgr.GetClient(),
-		scheme: mgr.GetScheme(),
+		Client:   mgr.GetClient(),
+		scheme:   mgr.GetScheme(),
+		keyMutex: keyMutex,
 	}
 }
 
@@ -75,7 +76,8 @@ type ImageJobReconciler struct {
 // ImageListReconciler reconciles a ImageList object.
 type Reconciler struct {
 	client.Client
-	scheme *runtime.Scheme
+	scheme   *runtime.Scheme
+	keyMutex util.KeyedLocker
 }
 
 //+kubebuilder:rbac:groups=eraser.sh,resources=imagelists,verbs=get;list;watch;create;update;patch;delete

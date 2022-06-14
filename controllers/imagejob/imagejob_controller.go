@@ -18,6 +18,7 @@ import (
 	"flag"
 	"fmt"
 	"strings"
+	"time"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -45,13 +46,14 @@ import (
 )
 
 const (
-	dockerPath     = "/run/dockershim.sock"
-	containerdPath = "/run/containerd/containerd.sock"
-	crioPath       = "/run/crio/crio.sock"
-	docker         = "docker"
-	containerd     = "containerd"
-	crio           = "cri-o"
-	namespace      = "eraser-system"
+	dockerPath      = "/run/dockershim.sock"
+	containerdPath  = "/run/containerd/containerd.sock"
+	crioPath        = "/run/crio/crio.sock"
+	docker          = "docker"
+	containerd      = "containerd"
+	crio            = "cri-o"
+	namespace       = "eraser-system"
+	imageJobLockKey = "ImageJob"
 )
 
 var log = logf.Log.WithName("controller").WithValues("process", "imagejob-controller")
@@ -65,23 +67,25 @@ func init() {
 	flag.Var(&skipNodesSelectors, "skip-nodes-selector", "A kubernetes selector. If a node's labels are a match, the node will be skipped. If this flag is supplied multiple times, the selectors will be logically ORed together.")
 }
 
-func Add(mgr manager.Manager) error {
-	return add(mgr, newReconciler(mgr))
+func Add(mgr manager.Manager, keyMutex util.KeyedLocker) error {
+	return add(mgr, newReconciler(mgr, keyMutex))
 }
 
 // newReconciler returns a new reconcile.Reconciler.
-func newReconciler(mgr manager.Manager) reconcile.Reconciler {
+func newReconciler(mgr manager.Manager, keyMutex util.KeyedLocker) reconcile.Reconciler {
 	return &Reconciler{
 		Client:       mgr.GetClient(),
 		scheme:       mgr.GetScheme(),
 		successRatio: *successRatio,
+		keyMutex:     keyMutex,
 	}
 }
 
 // ImageJobReconciler reconciles a ImageJob object.
 type Reconciler struct {
 	client.Client
-	scheme *runtime.Scheme
+	scheme   *runtime.Scheme
+	keyMutex util.KeyedLocker
 
 	successRatio float64
 }
@@ -162,20 +166,33 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		if err := r.updateJobStatus(ctx, imageJob); err != nil {
 			return ctrl.Result{}, err
 		}
+
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
 	switch imageJob.Status.Phase {
 	case "":
+		gotLock := r.keyMutex.TryLock(imageJobLockKey)
+		log.Info("Attempting to acquire ImageJob lock", "gotLock", gotLock)
+
+		if !gotLock {
+			return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
+		}
 		if err := r.handleNewJob(ctx, imageJob); err != nil {
 			return ctrl.Result{}, fmt.Errorf("reconcile new: %w", err)
 		}
 	case eraserv1alpha1.PhaseRunning:
-		if err := r.handleRunningJob(ctx, imageJob); err != nil {
+		jobFinished, err := r.handleRunningJob(ctx, imageJob)
+		if err != nil {
 			return ctrl.Result{}, fmt.Errorf("reconcile running: %w", err)
 		}
+
+		if jobFinished {
+			log.Info("Releasing ImageJob lock")
+			r.keyMutex.Unlock(imageJobLockKey)
+		}
 	case eraserv1alpha1.PhaseCompleted, eraserv1alpha1.PhaseFailed:
-		break // this is handled by the Owning controller
+		break // deletion is handled by the Owning controller
 	default:
 		return ctrl.Result{}, fmt.Errorf("reconcile: unexpected imagejob phase: %s", imageJob.Status.Phase)
 	}
@@ -190,13 +207,13 @@ func podListOptions(j *eraserv1alpha1.ImageJob) client.ListOptions {
 	}
 }
 
-func (r *Reconciler) handleRunningJob(ctx context.Context, imageJob *eraserv1alpha1.ImageJob) error {
+func (r *Reconciler) handleRunningJob(ctx context.Context, imageJob *eraserv1alpha1.ImageJob) (bool, error) {
 	// get eraser pods
 	podList := &corev1.PodList{}
 	listOpts := podListOptions(imageJob)
 	err := r.List(ctx, podList, &listOpts)
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	failed := 0
@@ -204,7 +221,7 @@ func (r *Reconciler) handleRunningJob(ctx context.Context, imageJob *eraserv1alp
 	skipped := imageJob.Status.Skipped
 
 	if !podsComplete(podList.Items) {
-		return nil
+		return false, nil
 	}
 
 	// if all pods are complete, job is complete
@@ -232,10 +249,10 @@ func (r *Reconciler) handleRunningJob(ctx context.Context, imageJob *eraserv1alp
 	}
 
 	if err := r.updateJobStatus(ctx, imageJob); err != nil {
-		return err
+		return false, err
 	}
 
-	return nil
+	return true, nil
 }
 
 func (r *Reconciler) handleNewJob(ctx context.Context, imageJob *eraserv1alpha1.ImageJob) error {

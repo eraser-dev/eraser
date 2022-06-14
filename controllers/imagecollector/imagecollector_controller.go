@@ -70,21 +70,23 @@ func init() {
 // ImageCollectorReconciler reconciles a ImageCollector object.
 type Reconciler struct {
 	client.Client
-	Scheme *runtime.Scheme
+	Scheme   *runtime.Scheme
+	keyMutex util.KeyedLocker
 }
 
-func Add(mgr manager.Manager) error {
+func Add(mgr manager.Manager, keyMutex util.KeyedLocker) error {
 	if *collectorImage == "" {
 		return nil
 	}
-	return add(mgr, newReconciler(mgr))
+	return add(mgr, newReconciler(mgr, keyMutex))
 }
 
 // newReconciler returns a new reconcile.Reconciler.
-func newReconciler(mgr manager.Manager) reconcile.Reconciler {
+func newReconciler(mgr manager.Manager, keyMutex util.KeyedLocker) reconcile.Reconciler {
 	return &Reconciler{
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
+		Client:   mgr.GetClient(),
+		Scheme:   mgr.GetScheme(),
+		keyMutex: keyMutex,
 	}
 }
 
