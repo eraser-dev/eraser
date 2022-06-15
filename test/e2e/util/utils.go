@@ -1,7 +1,4 @@
-//go:build e2e
-// +build e2e
-
-package e2e
+package util
 
 import (
 	"context"
@@ -16,10 +13,19 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/kind/pkg/cluster"
 )
 
-func newDeployment(namespace, name string, replicas int32, labels map[string]string, containers ...corev1.Container) *appsv1.Deployment {
+const (
+	KindClusterName = "eraser-e2e-test"
+)
+
+func IsNotFound(err error) bool {
+	return err != nil && client.IgnoreNotFound(err) == nil
+}
+
+func NewDeployment(namespace, name string, replicas int32, labels map[string]string, containers ...corev1.Container) *appsv1.Deployment {
 	if len(containers) == 0 {
 		containers = []corev1.Container{
 			{Image: "nginx", Name: "nginx"},
@@ -57,7 +63,7 @@ func newDeployment(namespace, name string, replicas int32, labels map[string]str
 	}
 }
 
-func newPod(namespace, image, name, nodeName string) *corev1.Pod {
+func NewPod(namespace, image, name, nodeName string) *corev1.Pod {
 	return &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
@@ -75,8 +81,8 @@ func newPod(namespace, image, name, nodeName string) *corev1.Pod {
 	}
 }
 
-// deploy eraser config
-func deployEraserConfig(kubeConfig, namespace, resourcePath, fileName string) error {
+// deploy eraser config.
+func DeployEraserConfig(kubeConfig, namespace, resourcePath, fileName string) error {
 	wd, err := os.Getwd()
 	if err != nil {
 		return err
@@ -94,9 +100,9 @@ func deployEraserConfig(kubeConfig, namespace, resourcePath, fileName string) er
 	return nil
 }
 
-func containerNotPresentOnNode(nodeName, containerName string) func() (bool, error) {
+func ContainerNotPresentOnNode(nodeName, containerName string) func() (bool, error) {
 	return func() (bool, error) {
-		output, err := listNodeContainers(nodeName)
+		output, err := ListNodeContainers(nodeName)
 		if err != nil {
 			return false, err
 		}
@@ -105,7 +111,7 @@ func containerNotPresentOnNode(nodeName, containerName string) func() (bool, err
 	}
 }
 
-func imagejobNotInCluster(kubeconfigPath string) func() (bool, error) {
+func ImagejobNotInCluster(kubeconfigPath string) func() (bool, error) {
 	return func() (bool, error) {
 		output, err := KubectlGet(kubeconfigPath, "imagejob")
 		if err != nil {
@@ -116,8 +122,8 @@ func imagejobNotInCluster(kubeconfigPath string) func() (bool, error) {
 	}
 }
 
-// delete eraser config
-func deleteEraserConfig(kubeConfig, namespace, resourcePath, fileName string) error {
+// delete eraser config.
+func DeleteEraserConfig(kubeConfig, namespace, resourcePath, fileName string) error {
 	wd, err := os.Getwd()
 	if err != nil {
 		return err
@@ -135,7 +141,7 @@ func deleteEraserConfig(kubeConfig, namespace, resourcePath, fileName string) er
 	return nil
 }
 
-func listNodeContainers(nodeName string) (string, error) {
+func ListNodeContainers(nodeName string) (string, error) {
 	args := []string{
 		"exec",
 		nodeName,
@@ -156,7 +162,7 @@ func listNodeContainers(nodeName string) (string, error) {
 	return output, err
 }
 
-func listNodeImages(nodeName string) (string, error) {
+func ListNodeImages(nodeName string) (string, error) {
 	args := []string{
 		"exec",
 		nodeName,
@@ -177,12 +183,12 @@ func listNodeImages(nodeName string) (string, error) {
 	return output, err
 }
 
-// This lists nodes in the cluster, filtering out the control-plane
-func getClusterNodes(t *testing.T) []string {
+// This lists nodes in the cluster, filtering out the control-plane.
+func GetClusterNodes(t *testing.T) []string {
 	t.Helper()
 	provider := cluster.NewProvider(cluster.ProviderWithDocker())
 
-	nodeList, err := provider.ListNodes(kindClusterName)
+	nodeList, err := provider.ListNodes(KindClusterName)
 	if err != nil {
 		t.Fatal("Cannot list Kind node list", err)
 	}
@@ -197,11 +203,11 @@ func getClusterNodes(t *testing.T) []string {
 	return ourNodes
 }
 
-func checkImagesExist(ctx context.Context, t *testing.T, nodes []string, images ...string) {
+func CheckImagesExist(ctx context.Context, t *testing.T, nodes []string, images ...string) {
 	t.Helper()
 
 	for _, node := range nodes {
-		nodeImages, err := listNodeImages(node)
+		nodeImages, err := ListNodeImages(node)
 		if err != nil {
 			t.Errorf("Cannot list images on node %s: %v", node, err)
 			continue
@@ -212,11 +218,10 @@ func checkImagesExist(ctx context.Context, t *testing.T, nodes []string, images 
 				t.Errorf("image %s missing on node %s", image, node)
 			}
 		}
-
 	}
 }
 
-func checkImageRemoved(ctx context.Context, t *testing.T, nodes []string, images ...string) {
+func CheckImageRemoved(ctx context.Context, t *testing.T, nodes []string, images ...string) {
 	t.Helper()
 
 	cleaned := make(map[string]bool)
@@ -233,7 +238,7 @@ func checkImageRemoved(ctx context.Context, t *testing.T, nodes []string, images
 				continue
 			}
 
-			nodeImages, err := listNodeImages(node)
+			nodeImages, err := ListNodeImages(node)
 			if err != nil {
 				t.Error("Cannot list images", err)
 			}
@@ -257,7 +262,7 @@ func checkImageRemoved(ctx context.Context, t *testing.T, nodes []string, images
 	}
 }
 
-func dockerPullImage(image string) (string, error) {
+func DockerPullImage(image string) (string, error) {
 	args := []string{"pull", image}
 	cmd := exec.Command("docker", args...)
 
@@ -270,7 +275,7 @@ func dockerPullImage(image string) (string, error) {
 	return output, err
 }
 
-func dockerTagImage(image, tag string) (string, error) {
+func DockerTagImage(image, tag string) (string, error) {
 	args := []string{"tag", image, tag}
 	cmd := exec.Command("docker", args...)
 
@@ -283,7 +288,7 @@ func dockerTagImage(image, tag string) (string, error) {
 	return output, err
 }
 
-func kindLoadImage(clusterName, image string) (string, error) {
+func KindLoadImage(clusterName, image string) (string, error) {
 	args := []string{"load", "docker-image", image, "--name", clusterName}
 	cmd := exec.Command("kind", args...)
 
@@ -296,7 +301,7 @@ func kindLoadImage(clusterName, image string) (string, error) {
 	return output, err
 }
 
-func deleteImageListsAndJobs(kubeConfig string) error {
+func DeleteImageListsAndJobs(kubeConfig string) error {
 	if err := KubectlDelete(kubeConfig, "eraser-system", []string{"imagejob", "--all"}); err != nil {
 		return err
 	}
@@ -306,7 +311,7 @@ func deleteImageListsAndJobs(kubeConfig string) error {
 	return nil
 }
 
-func deleteStringFromSlice(strings []string, s string) []string {
+func DeleteStringFromSlice(strings []string, s string) []string {
 	idx := -1
 	for i, cmp := range strings {
 		if cmp == s {

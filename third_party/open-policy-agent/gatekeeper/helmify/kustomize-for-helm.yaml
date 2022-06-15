@@ -11,6 +11,8 @@ spec:
         args:
         - --leader-elect=false
         - --eraser-image={{ .Values.eraser.image.repository }}:{{ .Values.eraser.image.tag | default .Chart.AppVersion }}
+        - --collector-image={{ if .Values.collector.image.repository }}{{ .Values.collector.image.repository }}:{{ .Values.collector.image.tag | default .Chart.AppVersion }}{{ end }}
+        - --scanner-image={{ if .Values.scanner.image.repository }}{{ .Values.scanner.image.repository }}:{{ .Values.scanner.image.tag | default .Chart.AppVersion }}{{ end }}
         command:
         - /manager
         image: "{{ .Values.controllerManager.image.repository }}:{{ .Values.controllerManager.image.tag | default .Chart.AppVersion }}"

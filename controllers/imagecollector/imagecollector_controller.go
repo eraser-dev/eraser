@@ -42,19 +42,23 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
+	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 var (
-	collectorImage = flag.String("collector-image", "ghcr.io/azure/collector:latest", "collector image")
-	log            = logf.Log.WithName("controller").WithValues("process", "imagecollector-controller")
-	repeatPeriod   = flag.Duration("repeat-period", time.Hour*24, "repeat period for collect/scan process")
+	scannerImage           = flag.String("scanner-image", "ghcr.io/azure/eraser-trivy-scanner:latest", "scanner image")
+	collectorImage         = flag.String("collector-image", "", "collector image")
+	log                    = logf.Log.WithName("controller").WithValues("process", "imagecollector-controller")
+	repeatPeriod           = flag.Duration("repeat-period", time.Hour*24, "repeat period for collect/scan process")
+	deleteScanFailedImages = flag.Bool("delete-scan-failed-images", true, "whether or not to delete images for which scanning has failed")
 )
 
 const (
 	collectorShared = "imagecollector-shared"
 	apiVersion      = "eraser.sh/v1alpha1"
+	namespace       = "eraser-system"
 )
 
 // ImageCollectorReconciler reconciles a ImageCollector object.
@@ -64,6 +68,9 @@ type Reconciler struct {
 }
 
 func Add(mgr manager.Manager) error {
+	if *collectorImage == "" {
+		return nil
+	}
 	return add(mgr, newReconciler(mgr))
 }
 
@@ -106,6 +113,27 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		return err
 	}
 
+	err = c.Watch(
+		&source.Kind{Type: &batchv1.Job{}},
+		&handler.EnqueueRequestForOwner{OwnerType: &eraserv1alpha1.ImageCollector{}, IsController: true},
+		predicate.Funcs{
+			// Do nothing on Create, Delete, or Generic events
+			CreateFunc:  util.NeverOnCreate,
+			DeleteFunc:  util.NeverOnDelete,
+			GenericFunc: util.NeverOnGeneric,
+			UpdateFunc: func(e event.UpdateEvent) bool {
+				if job, ok := e.ObjectNew.(*batchv1.Job); ok && job.Status.Succeeded == 1 {
+					return true
+				}
+
+				return false
+			},
+		},
+	)
+	if err != nil {
+		return err
+	}
+
 	ch := make(chan event.GenericEvent)
 	err = c.Watch(&source.Channel{
 		Source: ch,
@@ -126,8 +154,10 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 }
 
 //+kubebuilder:rbac:groups=eraser.sh,resources=imagecollectors,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=eraser.sh,resources=imagelists,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=eraser.sh,resources=imagecollectors/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=eraser.sh,resources=imagecollectors/finalizers,verbs=update
+//+kubebuilder:rbac:groups="batch",resources=jobs,verbs=get;list;watch;update;create;delete
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
@@ -160,28 +190,44 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		}
 	}
 
-	imageJobList := &eraserv1alpha1.ImageJobList{}
-	if err := r.List(ctx, imageJobList); err != nil {
-		log.Info("could not list imagejobs")
-		return reconcile.Result{}, err
+	relevantJobs, err := r.getChildImageJobs(ctx, imageCollectorShared)
+	if err != nil || len(relevantJobs) > 1 {
+		if err == nil {
+			err = fmt.Errorf("more than one collector ImageJobs are scheduled")
+		}
+
+		return ctrl.Result{}, err
 	}
 
-	relevantJobs := util.FilterJobListByOwner(
-		imageJobList.Items, metav1.NewControllerRef(imageCollectorShared, schema.GroupVersionKind{
-			Group:   "eraser.sh",
-			Version: "v1alpha1",
-			Kind:    "ImageCollector",
-		}),
-	)
-
-	if len(relevantJobs) > 1 {
-		return reconcile.Result{}, fmt.Errorf("more than one collector ImageJobs are scheduled")
-	}
 	if len(relevantJobs) == 0 {
+		// If we reach this point, we are in one of two scenarios. Either:
+		// (a) a scan job has just finished, and we need to clean up the scan
+		//      job and create an imagelist
+		// (b) Reconcile has been called on a timer, and we want to begin a
+		//      collector ImageJob
+		relevantBatchJobs, err := r.getChildScanJobs(ctx, imageCollectorShared)
+		if err != nil || len(relevantBatchJobs) > 1 {
+			if err == nil {
+				err = fmt.Errorf("more than one scan Jobs are scheduled")
+			}
+			return ctrl.Result{}, err
+		}
+
+		if len(relevantBatchJobs) == 1 {
+			err := r.Delete(ctx, &relevantBatchJobs[0])
+			if err != nil {
+				return ctrl.Result{}, err
+			}
+
+			// create imagelist (or update if already exists), which will trigger eraser imagejob
+			return r.upsertImageList(ctx, imageCollectorShared)
+		}
+
+		// else, create an ImageJob
 		if res, err := r.createImageJob(ctx, req, imageCollectorShared); err != nil {
 			return res, err
 		}
-		return ctrl.Result{RequeueAfter: *repeatPeriod}, nil
+		return ctrl.Result{}, nil
 	}
 
 	// else length is 1, so check job phase
@@ -198,6 +244,12 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 			}
 			return ctrl.Result{}, nil
 		}
+
+		err := r.createScanJob(ctx, imageCollectorShared, *scannerImage)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+
 		if res, err := r.handleJobDeletion(ctx, &relevantJobs[0]); err != nil || res.RequeueAfter > 0 {
 			return res, err
 		}
@@ -222,11 +274,146 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	return ctrl.Result{RequeueAfter: *repeatPeriod}, nil
 }
 
-func isNotFound(err error) bool {
-	if err != nil && client.IgnoreNotFound(err) == nil {
-		return true
+func (r *Reconciler) getChildImageJobs(ctx context.Context, collector *eraserv1alpha1.ImageCollector) ([]eraserv1alpha1.ImageJob, error) {
+	imageJobList := &eraserv1alpha1.ImageJobList{}
+	if err := r.List(ctx, imageJobList); err != nil {
+		log.Info("could not list imagejobs")
+		return nil, err
 	}
-	return false
+
+	relevantJobs := util.FilterJobListByOwner(
+		imageJobList.Items, metav1.NewControllerRef(collector, schema.GroupVersionKind{
+			Group:   "eraser.sh",
+			Version: "v1alpha1",
+			Kind:    "ImageCollector",
+		}),
+	)
+
+	return relevantJobs, nil
+}
+
+func (r *Reconciler) upsertImageList(ctx context.Context, collector *eraserv1alpha1.ImageCollector) (ctrl.Result, error) {
+	imageListItems := make([]string, 0, len(collector.Status.Vulnerable))
+	images := collector.Status.Vulnerable
+
+	if *deleteScanFailedImages {
+		images = append(images, collector.Status.Failed...)
+	}
+
+	for i := range images {
+		img := images[i]
+		imageListItems = append(imageListItems, img.Digest)
+	}
+
+	imageList := eraserv1alpha1.ImageList{}
+
+	err := r.Get(ctx, types.NamespacedName{Namespace: "", Name: "imagelist"}, &imageList)
+	if isNotFound(err) {
+		return r.createImageList(ctx, collector, imageListItems)
+	}
+
+	// else update
+	imageList.Spec.Images = imageListItems
+
+	err = r.Update(ctx, &imageList)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
+	return ctrl.Result{}, nil
+}
+
+func (r *Reconciler) createImageList(ctx context.Context, collector *eraserv1alpha1.ImageCollector, items []string) (ctrl.Result, error) {
+	imageList := eraserv1alpha1.ImageList{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "imagelist",
+			OwnerReferences: []metav1.OwnerReference{
+				*metav1.NewControllerRef(
+					collector,
+					schema.GroupVersionKind{
+						Group:   "eraser.sh",
+						Version: "v1alpha1",
+						Kind:    "ImageCollector",
+					},
+				),
+			},
+		},
+		Spec: eraserv1alpha1.ImageListSpec{
+			Images: items,
+		},
+	}
+
+	err := r.Create(ctx, &imageList)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
+	return ctrl.Result{}, nil
+}
+
+func (r *Reconciler) getChildScanJobs(ctx context.Context, collector *eraserv1alpha1.ImageCollector) ([]batchv1.Job, error) {
+	batchJobList := batchv1.JobList{}
+	err := r.List(ctx, &batchJobList, client.InNamespace(namespace))
+	if err != nil {
+		return nil, err
+	}
+
+	relevantBatchJobs := util.FilterBatchJobListByOwner(
+		batchJobList.Items, metav1.NewControllerRef(collector, schema.GroupVersionKind{
+			Group:   "eraser.sh",
+			Version: "v1alpha1",
+			Kind:    "ImageCollector",
+		}),
+	)
+
+	return relevantBatchJobs, nil
+}
+
+func (r *Reconciler) createScanJob(ctx context.Context, collector *eraserv1alpha1.ImageCollector, scannerImage string) error {
+	one := int32(1)
+	scanJob := batchv1.Job{
+		ObjectMeta: metav1.ObjectMeta{
+			GenerateName: "eraser-scanner-",
+			Namespace:    namespace,
+			OwnerReferences: []metav1.OwnerReference{*metav1.NewControllerRef(
+				collector,
+				schema.GroupVersionKind{
+					Group:   "eraser.sh",
+					Version: "v1alpha1",
+					Kind:    "ImageCollector",
+				},
+			)},
+		},
+		Spec: batchv1.JobSpec{
+			Parallelism: &one,
+			Template: corev1.PodTemplateSpec{
+				ObjectMeta: metav1.ObjectMeta{
+					GenerateName: "scanner-",
+					Namespace:    namespace,
+				},
+				Spec: corev1.PodSpec{
+					ServiceAccountName: "eraser-controller-manager",
+					RestartPolicy:      corev1.RestartPolicyNever,
+					Containers: []corev1.Container{
+						{
+							Name:  "trivy-scanner",
+							Image: scannerImage,
+							Args: []string{
+								"--collector-cr-name=" + collector.Name,
+								"--severity=CRITICAL,HIGH",
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	return r.Create(ctx, &scanJob)
+}
+
+func isNotFound(err error) bool {
+	return err != nil && client.IgnoreNotFound(err) == nil
 }
 
 func (r *Reconciler) handleJobDeletion(ctx context.Context, job *eraserv1alpha1.ImageJob) (ctrl.Result, error) {

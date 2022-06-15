@@ -5,6 +5,7 @@ TRIVY_SCANNER_IMG ?= ghcr.io/azure/eraser-trivy-scanner:${VERSION}
 MANAGER_IMG ?= ghcr.io/azure/eraser-manager:${VERSION}
 ERASER_IMG ?= ghcr.io/azure/eraser:${VERSION}
 COLLECTOR_IMG ?= ghcr.io/azure/collector:${VERSION}
+VULNERABLE_IMG ?= docker.io/library/alpine:3.7.3
 
 KUSTOMIZE_VERSION ?= 3.8.9
 KUBERNETES_VERSION ?= 1.23.0
@@ -80,7 +81,10 @@ lint: $(GOLANGCI_LINT) ## Runs go linting.
 ##@ Development
 
 manifests: __controller-gen ## Generates k8s yaml for eraser deployment.
-	@sed -e "s~ERASER_IMG~${ERASER_IMG}~g" -e "s~COLLECTOR_IMG~${COLLECTOR_IMG}~g" config/manager/kustomization.template.yaml > config/manager/kustomization.yaml
+	@sed -e "s~ERASER_IMG~${ERASER_IMG}~g" \
+		-e "s~COLLECTOR_IMG~${COLLECTOR_IMG}~g" \
+		-e "s~SCANNER_IMG~${TRIVY_SCANNER_IMG}~g" \
+		config/manager/kustomization.template.yaml > config/manager/kustomization.yaml
 	docker run -v $(shell pwd)/config:/config -w /config/manager \
 		k8s.gcr.io/kustomize/kustomize:v${KUSTOMIZE_VERSION} edit set image controller=${MANAGER_IMG}
 	$(CONTROLLER_GEN) \
@@ -111,8 +115,19 @@ vet: ## Run go vet against code.
 test: manifests generate fmt vet envtest ## Run unit tests.
 	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) -p path)" go test ./... -coverprofile cover.out
 
-e2e-test: ## Run e2e tests on a cluster.
-	CGO_ENABLED=0 IMAGE=${ERASER_IMG} MANAGER_IMAGE=${MANAGER_IMG} NODE_VERSION=kindest/node:v${KUBERNETES_VERSION} go test -count=$(TEST_COUNT) -timeout=$(TIMEOUT) $(TESTFLAGS) -tags=e2e -v ./test/e2e
+e2e-test-imagelist: ## Run e2e tests on a cluster.
+	CGO_ENABLED=0 IMAGE=${ERASER_IMG} MANAGER_IMAGE=${MANAGER_IMG} NODE_VERSION=kindest/node:v${KUBERNETES_VERSION} go test -count=$(TEST_COUNT) -timeout=$(TIMEOUT) $(TESTFLAGS) -tags=imagelist -v ./test/e2e/imagelist
+
+e2e-test-collector: ## Run e2e tests on a cluster.
+	docker pull $(VULNERABLE_IMG)
+	CGO_ENABLED=0 \
+		IMAGE=${ERASER_IMG} \
+		MANAGER_IMAGE=${MANAGER_IMG} \
+		COLLECTOR_IMAGE=${COLLECTOR_IMG} \
+		SCANNER_IMAGE=${TRIVY_SCANNER_IMG} \
+		VULNERABLE_IMAGE=${VULNERABLE_IMG} \
+		NODE_VERSION=kindest/node:v${KUBERNETES_VERSION} \
+		go test -count=$(TEST_COUNT) -timeout=$(TIMEOUT) $(TESTFLAGS) -tags=collector -v ./test/e2e/collector
 
 ##@ Build
 
