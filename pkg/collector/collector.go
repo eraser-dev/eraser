@@ -10,7 +10,7 @@ import (
 	"os"
 	"time"
 
-	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
+	eraserv1alpha1 "github.com/Azure/eraser/api/eraser.sh/v1alpha1"
 	"github.com/Azure/eraser/pkg/logger"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"

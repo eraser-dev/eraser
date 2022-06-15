@@ -11,7 +11,7 @@ import (
 
 	machinerytypes "k8s.io/apimachinery/pkg/types"
 
-	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
+	eraserv1alpha1 "github.com/Azure/eraser/api/eraser.sh/v1alpha1"
 
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"

@@ -29,7 +29,7 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
+	eraserv1alpha1 "github.com/Azure/eraser/api/eraser.sh/v1alpha1"
 	//+kubebuilder:scaffold:imports
 )
 

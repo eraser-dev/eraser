@@ -35,7 +35,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 
-	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
+	eraserv1alpha1 "github.com/Azure/eraser/api/eraser.sh/v1alpha1"
 	"github.com/Azure/eraser/controllers"
 	"github.com/Azure/eraser/version"
 	//+kubebuilder:scaffold:imports

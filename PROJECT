@@ -11,7 +11,7 @@ resources:
   domain: azure-eraser.io
   group: eraser.sh
   kind: ImageList
-  path: azure-eraser.io/eraser/api/v1alpha1
+  path: azure-eraser.io/eraser/api/eraser.sh/v1alpha1
   version: v1alpha1
 - controller: true
   domain: azure-eraser.io

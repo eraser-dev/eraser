@@ -4,7 +4,7 @@ import (
 	"flag"
 	"time"
 
-	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
+	eraserv1alpha1 "github.com/Azure/eraser/api/eraser.sh/v1alpha1"
 	batchv1 "k8s.io/api/batch/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/event"
