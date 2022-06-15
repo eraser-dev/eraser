@@ -227,6 +227,14 @@ promote-staging-manifest: ## Promotes the k8s deployment yaml files to release.
 	@rm -rf charts
 	@cp -r manifest_staging/charts .
 
+update-codegen: __tooling-image
+	docker run --rm \
+		-u $(shell id -u):$(shell id -g) \
+		-e GOCACHE=/tmp/ \
+		-e CODEGEN_PKG=/build/vendor/k8s.io/code-generator \
+		-v $(shell pwd):/eraser \
+		eraser-tooling hack/update-codegen.sh
+
 ENVTEST = $(shell pwd)/bin/setup-envtest
 .PHONY: envtest
 envtest: __tooling-image bin/setup-envtest
