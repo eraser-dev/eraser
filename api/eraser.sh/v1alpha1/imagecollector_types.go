@@ -34,6 +34,7 @@ type ImageCollectorStatus struct {
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
 //+kubebuilder:resource:scope="Cluster"
+// +genclient
 type ImageCollector struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -44,6 +45,7 @@ type ImageCollector struct {
 
 //+kubebuilder:object:root=true
 
+// +genclient
 type ImageCollectorList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
