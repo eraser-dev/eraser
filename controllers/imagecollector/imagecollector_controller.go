@@ -48,8 +48,8 @@ import (
 )
 
 var (
-	scannerImage           = flag.String("scanner-image", "ghcr.io/azure/eraser-trivy-scanner:latest", "scanner image")
-	collectorImage         = flag.String("collector-image", "", "collector image")
+	scannerImage           = flag.String("scanner-image", "", "scanner image, empty value disables scan feature")
+	collectorImage         = flag.String("collector-image", "", "collector image, empty value disables collect feature")
 	log                    = logf.Log.WithName("controller").WithValues("process", "imagecollector-controller")
 	repeatPeriod           = flag.Duration("repeat-period", time.Hour*24, "repeat period for collect/scan process")
 	deleteScanFailedImages = flag.Bool("delete-scan-failed-images", true, "whether or not to delete images for which scanning has failed")
@@ -245,9 +245,17 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 			return ctrl.Result{}, nil
 		}
 
-		err := r.createScanJob(ctx, imageCollectorShared, *scannerImage)
-		if err != nil {
-			return ctrl.Result{}, err
+		// if scan is disabled, create/update imagelist to prune since collector job has finished
+		if scanDisabled() {
+			if res, err := r.upsertImageList(ctx, imageCollectorShared); err != nil {
+				return res, err
+			}
+		} else {
+			// else we create a scan job which will update imagelist to start removal with relevant images
+			err := r.createScanJob(ctx, imageCollectorShared, *scannerImage)
+			if err != nil {
+				return ctrl.Result{}, err
+			}
 		}
 
 		if res, err := r.handleJobDeletion(ctx, &relevantJobs[0]); err != nil || res.RequeueAfter > 0 {
@@ -293,11 +301,15 @@ func (r *Reconciler) getChildImageJobs(ctx context.Context, collector *eraserv1a
 }
 
 func (r *Reconciler) upsertImageList(ctx context.Context, collector *eraserv1alpha1.ImageCollector) (ctrl.Result, error) {
-	imageListItems := make([]string, 0, len(collector.Status.Vulnerable))
-	images := collector.Status.Vulnerable
+	imageListItems := make([]string, 0, len(collector.Spec.Images))
 
-	if *deleteScanFailedImages {
-		images = append(images, collector.Status.Failed...)
+	images := collector.Spec.Images
+	if !scanDisabled() {
+		images = collector.Status.Vulnerable
+
+		if *deleteScanFailedImages {
+			images = append(images, collector.Status.Failed...)
+		}
 	}
 
 	for i := range images {
@@ -321,6 +333,10 @@ func (r *Reconciler) upsertImageList(ctx context.Context, collector *eraserv1alp
 	}
 
 	return ctrl.Result{}, nil
+}
+
+func scanDisabled() bool {
+	return *scannerImage == ""
 }
 
 func (r *Reconciler) createImageList(ctx context.Context, collector *eraserv1alpha1.ImageCollector, items []string) (ctrl.Result, error) {

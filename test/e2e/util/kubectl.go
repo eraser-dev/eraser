@@ -35,6 +35,19 @@ func HelmInstall(kubeconfigPath, namespace string, args []string) error {
 	return err
 }
 
+// HelmUninstall executes "helm uninstall" given a list of arguments.
+func HelmUninstall(kubeconfigPath, namespace string, args []string) error {
+	args = append([]string{
+		"uninstall",
+		"eraser-e2e-test",
+		fmt.Sprintf("--kubeconfig=%s", kubeconfigPath),
+		fmt.Sprintf("--namespace=%s", namespace),
+	}, args...)
+
+	_, err := Helm(args)
+	return err
+}
+
 // KubectlDelete executes "kubectl delete" given a list of arguments.
 func KubectlDelete(kubeconfigPath, namespace string, args []string) error {
 	args = append([]string{
