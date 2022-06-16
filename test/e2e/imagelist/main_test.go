@@ -1,17 +1,17 @@
-//go:build e2e
-// +build e2e
+//go:build imagelist
+// +build imagelist
 
-package e2e
+package imagelist
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
 	"time"
 
 	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
+	"github.com/Azure/eraser/test/e2e/util"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -26,8 +26,7 @@ import (
 )
 
 var (
-	kindClusterName           = "eraser-e2e-test"
-	providerResourceDirectory = "manifest_staging/deploy"
+	providerResourceDirectory = "manifest_staging/charts"
 	providerResource          = "eraser.yaml"
 	eraserNamespace           = "eraser-system"
 	testenv                   env.Environment
@@ -43,10 +42,10 @@ func TestMain(m *testing.M) {
 	// Create KinD Cluster
 	namespace := envconf.RandomName("eraser-ns", 16)
 	testenv.Setup(
-		envfuncs.CreateKindClusterWithConfig(kindClusterName, nodeVersion, "kind-config.yaml"),
+		envfuncs.CreateKindClusterWithConfig(util.KindClusterName, nodeVersion, "../kind-config.yaml"),
 		envfuncs.CreateNamespace(namespace),
-		envfuncs.LoadDockerImageToCluster(kindClusterName, managerImage),
-		envfuncs.LoadDockerImageToCluster(kindClusterName, image),
+		envfuncs.LoadDockerImageToCluster(util.KindClusterName, managerImage),
+		envfuncs.LoadDockerImageToCluster(util.KindClusterName, image),
 		deployEraserManifest(eraserNamespace),
 	).Finish(
 		envfuncs.DeleteNamespace(namespace),
@@ -60,12 +59,13 @@ func deployEraserManifest(namespace string) env.Func {
 		if err != nil {
 			return ctx, err
 		}
-		providerResourceAbsolutePath, err := filepath.Abs(filepath.Join(wd, "/../../", providerResourceDirectory))
+
+		providerResourceAbsolutePath, err := filepath.Abs(filepath.Join(wd, "/../../../", providerResourceDirectory, "eraser"))
 		if err != nil {
 			return ctx, err
 		}
 		// start deployment
-		if err := KubectlApply(cfg.KubeconfigFile(), namespace, []string{"-f", fmt.Sprintf("%s/%s", providerResourceAbsolutePath, providerResource)}); err != nil {
+		if err := util.HelmInstall(cfg.KubeconfigFile(), namespace, []string{providerResourceAbsolutePath, "--set", `collector.image.repository=`}); err != nil {
 			return ctx, err
 		}
 

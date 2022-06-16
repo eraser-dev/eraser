@@ -34,6 +34,18 @@ jobs:
           version: latest
           working-directory: pkg/eraser
           skip-pkg-cache: true
+      - name: lint collector
+        uses: golangci/golangci-lint-action@v3
+        with:
+          version: latest
+          working-directory: pkg/collector
+          skip-pkg-cache: true
+      - name: lint trivvy scanner
+        uses: golangci/golangci-lint-action@v3
+        with:
+          version: latest
+          working-directory: pkg/scanners/trivy
+          skip-pkg-cache: true
 
   unit-test:
     name: "Unit Tests"
@@ -64,14 +76,14 @@ jobs:
       actions: read
       contents: read
       security-events: write
-    timeout-minutes: 20      
+    timeout-minutes: 20
     steps:
       - name: Set up Go 1.18
         uses: actions/setup-go@v3
         with:
           go-version: 1.18
       - name: Check out code into the Go module directory
-        uses: actions/checkout@v3    
+        uses: actions/checkout@v3
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v2
         with:
@@ -99,8 +111,39 @@ jobs:
           make manifests
           git diff --exit-code
 
-  e2e-test:
-    name: "E2E test"
+  e2e-test-imagelist:
+    name: "E2E test (ImageList)"
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out code into the Go module directory
+        uses: actions/checkout@v3
+      - name: Set up Go 1.18
+        uses: actions/setup-go@v3
+        with:
+          go-version: 1.18
+      - name: Setup buildx instance
+        uses: docker/setup-buildx-action@v2
+        with:
+          use: true
+      - uses: actions/cache@v3.0.3
+        with:
+          key: ${{ runner.OS }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+          path: |
+            ~/go/pkg/mod
+            ~/.cache/go-build
+      - uses: crazy-max/ghaction-github-runtime@v2
+      - name: Build eraser-manager
+        run: make docker-build-manager CACHE_FROM=type=gha,scope=eraser-manager CACHE_TO=type=gha,scope=eraser-manager,mode=max
+      - name: Build eraser
+        run: make docker-build-eraser CACHE_FROM=type=gha,scope=eraser-node CACHE_TO=type=gha,scope=eraser-node,mode=max
+      - name: Run e2e test
+        run: make e2e-test-imagelist
+
+  e2e-test-imagecollector:
+    name: "E2E test (ImageCollector)"
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -127,8 +170,12 @@ jobs:
         run: make docker-build-manager CACHE_FROM=type=gha,scope=eraser-manager CACHE_TO=type=gha,scope=eraser-manager,mode=max
       - name: Build eraser
         run: make docker-build-eraser CACHE_FROM=type=gha,scope=eraser-node CACHE_TO=type=gha,scope=eraser-node,mode=max
+      - name: Build collector
+        run: make docker-build-collector CACHE_FROM=type=gha,scope=collector CACHE_TO=type=gha,scope=collector,mode=max
+      - name: Build trivy-scanner
+        run: make docker-build-trivy-scanner CACHE_FROM=type=gha,scope=trivy-scanner CACHE_TO=type=gha,scope=trivy-scanner,mode=max
       - name: Run e2e test
-        run: make e2e-test
+        run: make e2e-test-collector
 
   scan_vulnerabilities:
     name: "[Trivy] Scan for vulnerabilities"
@@ -158,8 +205,23 @@ jobs:
       - name: Build eraser
         run: |
           make docker-build-eraser ERASER_IMG=${{ env.REGISTRY }}/${REPO}:test
-      - name: Run trivy for eraser 
+
+      - name: Build collector
+        run: |
+          make docker-build-collector COLLECTOR_IMG=${{ env.REGISTRY }}/collector:test
+
+      - name: Build trivy scanner
+        run: |
+          make docker-build-trivy-scanner TRIVY_SCANNER_IMG=${{ env.REGISTRY }}/${REPO}-trivy-scanner:test
+
+      - name: Run trivy for eraser
         run: trivy image --ignore-unfixed --exit-code=1 --vuln-type=os,library ${{ env.REGISTRY }}/${REPO}:test
-          
-      - name: Run trivy for eraser-manager 
+
+      - name: Run trivy for eraser-manager
         run: trivy image --ignore-unfixed --exit-code=1 --vuln-type=os,library ${{ env.REGISTRY }}/${REPO}-manager:test
+
+      - name: Run trivy for collector
+        run: trivy image --ignore-unfixed --exit-code=1 --vuln-type=os,library ${{ env.REGISTRY }}/collector:test
+
+      - name: Run trivy for trivy-scanner
+        run: trivy image --ignore-unfixed --exit-code=1 --vuln-type=os,library ${{ env.REGISTRY }}/${REPO}-trivy-scanner:test

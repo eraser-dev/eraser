@@ -23,5 +23,8 @@ patches:
     - op: add
       path: /spec/template/spec/containers/0/args/-
       value: --collector-image=ghcr.io/azure/collector:v0.1.0
+    - op: add
+      path: /spec/template/spec/containers/0/args/-
+      value: --scanner-image=ghcr.io/azure/eraser-trivy-scanner:v0.1.0
   target:
     kind: Deployment
