@@ -41,7 +41,7 @@ func TestRemoveImagesFromAllNodes(t *testing.T) {
 			}
 			// start deployment
 			if err := util.HelmInstall(cfg.KubeconfigFile(), "eraser-system", []string{providerResourceAbsolutePath}); err != nil {
-				t.Error("Unable to helm install deployment")
+				t.Error("Unable to helm install deployment", err)
 			}
 
 			return ctx
@@ -123,9 +123,27 @@ func TestRemoveImagesFromAllNodes(t *testing.T) {
 			return ctx
 		}).
 		Teardown(func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
-			err := util.HelmUninstall(cfg.KubeconfigFile(), "eraser-system", []string{})
+			c, err := cfg.NewClient()
+			if err != nil {
+				t.Fatal("Failed to create new client", err)
+			}
+
+			err = util.HelmUninstall(cfg.KubeconfigFile(), "eraser-system", []string{})
 			if err != nil {
 				t.Error("Unable to uninstall deployment for teardown", err)
+			}
+
+			var ls corev1.PodList
+			err = c.Resources().List(ctx, &ls, func(o *metav1.ListOptions) {
+				o.LabelSelector = labels.SelectorFromSet(map[string]string{"name": "eraser-manager"}).String()
+			})
+			if err != nil {
+				t.Error("could not list eraser manager pod")
+			}
+
+			err = wait.For(conditions.New(c.Resources()).ResourcesDeleted(&ls), wait.WithTimeout(time.Minute))
+			if err != nil {
+				t.Errorf("error waiting for eraser-manager to be deleted: %v", err)
 			}
 
 			return ctx
@@ -212,7 +230,6 @@ func TestRemoveImagesFromAllNodes(t *testing.T) {
 			imagelistSpec := make(map[string]struct{}, len(imagelist.Spec.Images))
 			for _, img := range imagelist.Spec.Images {
 				imagelistSpec[img] = struct{}{}
-				t.Error(img + " added")
 			}
 
 			// verify the images in both lists match
@@ -226,10 +243,29 @@ func TestRemoveImagesFromAllNodes(t *testing.T) {
 			return ctx
 		}).
 		Teardown(func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
-			err := util.HelmUninstall(cfg.KubeconfigFile(), "eraser-system", []string{})
+			c, err := cfg.NewClient()
+			if err != nil {
+				t.Fatal("Failed to create new client", err)
+			}
+
+			err = util.HelmUninstall(cfg.KubeconfigFile(), "eraser-system", []string{})
 			if err != nil {
 				t.Error("Unable to uninstall deployment for teardown", err)
 			}
+
+			var ls corev1.PodList
+			err = c.Resources().List(ctx, &ls, func(o *metav1.ListOptions) {
+				o.LabelSelector = labels.SelectorFromSet(map[string]string{"name": "eraser-manager"}).String()
+			})
+			if err != nil {
+				t.Error("could not list eraser manager pod")
+			}
+
+			err = wait.For(conditions.New(c.Resources()).ResourcesDeleted(&ls), wait.WithTimeout(time.Minute))
+			if err != nil {
+				t.Errorf("error waiting for eraser-manager to be deleted: %v", err)
+			}
+
 			return ctx
 		}).
 		Feature()
