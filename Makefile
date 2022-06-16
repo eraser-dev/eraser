@@ -232,7 +232,8 @@ update-codegen: __tooling-image
 		-u $(shell id -u):$(shell id -g) \
 		-e GOCACHE=/tmp/ \
 		-e CODEGEN_PKG=/build/vendor/k8s.io/code-generator \
-		-v $(shell pwd):/eraser \
+		-v $(shell pwd):/go/src/github.com/Azure/eraser \
+		-w /go/src/github.com/Azure/eraser \
 		eraser-tooling hack/update-codegen.sh
 
 ENVTEST = $(shell pwd)/bin/setup-envtest

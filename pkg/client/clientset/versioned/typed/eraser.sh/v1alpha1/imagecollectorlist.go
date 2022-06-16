@@ -19,10 +19,10 @@ package v1alpha1
 
 import (
 	"context"
-	scheme "pkg/client/clientset/versioned/scheme"
 	"time"
 
 	v1alpha1 "github.com/Azure/eraser/api/eraser.sh/v1alpha1"
+	scheme "github.com/Azure/eraser/pkg/client/clientset/versioned/scheme"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
 	watch "k8s.io/apimachinery/pkg/watch"

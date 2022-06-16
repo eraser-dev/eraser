@@ -20,8 +20,8 @@ package versioned
 import (
 	"fmt"
 	"net/http"
-	eraserv1alpha1 "pkg/client/clientset/versioned/typed/eraser.sh/v1alpha1"
 
+	eraserv1alpha1 "github.com/Azure/eraser/pkg/client/clientset/versioned/typed/eraser.sh/v1alpha1"
 	discovery "k8s.io/client-go/discovery"
 	rest "k8s.io/client-go/rest"
 	flowcontrol "k8s.io/client-go/util/flowcontrol"

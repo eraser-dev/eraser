@@ -26,9 +26,8 @@ CODEGEN_PKG="${CODEGEN_PKG:-/build/vendor/k8s.io/code-generator}"
 #                  k8s.io/kubernetes. The output-base is needed for the generators to output into the vendor dir
 #                  instead of the $GOPATH directly. For normal projects this can be dropped.
 bash "${CODEGEN_PKG}"/generate-groups.sh "client,lister" \
-  ./pkg/client github.com/Azure/eraser/api \
+  github.com/Azure/eraser/pkg/client github.com/Azure/eraser/api \
   eraser.sh:v1alpha1 \
-  --output-base="${SCRIPT_ROOT}" \
   --go-header-file "${SCRIPT_ROOT}"/hack/boilerplate.go.txt
 
 # To use your own boilerplate text append:
