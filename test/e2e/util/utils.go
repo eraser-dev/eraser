@@ -328,12 +328,3 @@ func DeleteStringFromSlice(strings []string, s string) []string {
 
 	return strings
 }
-
-func Contains(ls []string, image string) bool {
-	for _, i := range ls {
-		if i == image {
-			return true
-		}
-	}
-	return false
-}

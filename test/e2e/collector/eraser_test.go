@@ -127,6 +127,7 @@ func TestRemoveImagesFromAllNodes(t *testing.T) {
 			if err != nil {
 				t.Error("Unable to uninstall deployment for teardown", err)
 			}
+
 			return ctx
 		}).
 		Feature()
@@ -208,10 +209,15 @@ func TestRemoveImagesFromAllNodes(t *testing.T) {
 				t.Error("Scan job has run, should be disabled")
 			}
 
+			imagelistSpec := make(map[string]struct{}, len(imagelist.Spec.Images))
+			for _, img := range imageslist.Spec.Images {
+				imagelistSpec[img] = struct{}{}
+			}
+
 			// verify the images in both lists match
 			for _, img := range imagecollectorShared.Spec.Images {
-				// we add to imagelist by digest when prune without scanner
-				if !util.Contains(imagelist.Spec.Images, img.Digest) {
+				// check by digest as we add to imagelist by digest when pruning without scanner
+				if _, contains := imagelistSpec[img.Digest]; contains {
 					t.Error("imagelist spec does not match imagecollector-shared: ", img.Digest)
 				}
 			}
