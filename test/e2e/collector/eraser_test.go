@@ -235,7 +235,7 @@ func TestRemoveImagesFromAllNodes(t *testing.T) {
 			// verify the images in both lists match
 			for _, img := range imagecollectorShared.Spec.Images {
 				// check by digest as we add to imagelist by digest when pruning without scanner
-				if _, contains := imagelistSpec[img.Digest]; contains {
+				if _, contains := imagelistSpec[img.Digest]; !contains {
 					t.Error("imagelist spec does not match imagecollector-shared: ", img.Digest)
 				}
 			}
