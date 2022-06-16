@@ -19,7 +19,7 @@ package v1alpha1
 
 import (
 	"context"
-	scheme "pkg/generated/clientset/versioned/scheme"
+	scheme "pkg/client/clientset/versioned/scheme"
 	"time"
 
 	v1alpha1 "github.com/Azure/eraser/api/eraser.sh/v1alpha1"

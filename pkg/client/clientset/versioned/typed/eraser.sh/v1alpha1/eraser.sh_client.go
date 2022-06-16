@@ -19,7 +19,7 @@ package v1alpha1
 
 import (
 	"net/http"
-	"pkg/generated/clientset/versioned/scheme"
+	"pkg/client/clientset/versioned/scheme"
 
 	v1alpha1 "github.com/Azure/eraser/api/eraser.sh/v1alpha1"
 	rest "k8s.io/client-go/rest"

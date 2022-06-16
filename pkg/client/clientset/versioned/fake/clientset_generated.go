@@ -18,9 +18,9 @@ limitations under the License.
 package fake
 
 import (
-	clientset "pkg/generated/clientset/versioned"
-	eraserv1alpha1 "pkg/generated/clientset/versioned/typed/eraser.sh/v1alpha1"
-	fakeeraserv1alpha1 "pkg/generated/clientset/versioned/typed/eraser.sh/v1alpha1/fake"
+	clientset "pkg/client/clientset/versioned"
+	eraserv1alpha1 "pkg/client/clientset/versioned/typed/eraser.sh/v1alpha1"
+	fakeeraserv1alpha1 "pkg/client/clientset/versioned/typed/eraser.sh/v1alpha1/fake"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
