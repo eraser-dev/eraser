@@ -390,7 +390,7 @@ func (r *Reconciler) createScanJob(ctx context.Context, collector *eraserv1alpha
 	scanJob := batchv1.Job{
 		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: "eraser-scanner-",
-			Namespace:    "eraser-system",
+			Namespace:    namespace,
 			OwnerReferences: []metav1.OwnerReference{*metav1.NewControllerRef(
 				collector,
 				schema.GroupVersionKind{
@@ -405,7 +405,7 @@ func (r *Reconciler) createScanJob(ctx context.Context, collector *eraserv1alpha
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					GenerateName: "scanner-",
-					Namespace:    "eraser-system",
+					Namespace:    namespace,
 				},
 				Spec: corev1.PodSpec{
 					ServiceAccountName: "eraser-controller-manager",
