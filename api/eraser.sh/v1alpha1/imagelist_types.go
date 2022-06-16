@@ -55,3 +55,7 @@ type ImageListList struct {
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []ImageList `json:"items"`
 }
+
+func init() {
+	localSchemeBuilder.Register(addKnownTypes)
+}

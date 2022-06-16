@@ -15,7 +15,6 @@ import (
 	eraserv1alpha1 "github.com/Azure/eraser/api/eraser.sh/v1alpha1"
 	clientset "github.com/Azure/eraser/pkg/client/clientset/versioned"
 
-	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 
 	_ "net/http/pprof"
@@ -118,7 +117,7 @@ type (
 	statusUpdate struct {
 		apiPath          string
 		ctx              context.Context
-		clientset        *kubernetes.Clientset
+		clientset        *clientset.Clientset
 		collectorCRName  string
 		resourceName     string
 		subResourceName  string
@@ -179,9 +178,9 @@ func main() {
 		os.Exit(generalErr)
 	}
 
-	result, err := clientset.EraserV1alpha1().ImageCollectors().Get(ctx, *collectorCRName, v1.GetOptions{})
+	result, err := clientset.EraserV1alpha1().ImageCollectors("default").Get(ctx, *collectorCRName, v1.GetOptions{})
 	if err != nil {
-		log.Error(err, "RESTClient GET request failed", "apiPath", apiPath, "recourceName", resourceName, "collectorCRName", *collectorCRName)
+		log.Error(err, "Typed client get failed", "apiPath", apiPath, "recourceName", resourceName, "collectorCRName", *collectorCRName, "collector", result)
 		os.Exit(generalErr)
 	}
 

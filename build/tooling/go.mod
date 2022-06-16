@@ -2,7 +2,7 @@ module github.com/Azure/eraser
 
 go 1.18
 
-require k8s.io/code-generator v0.24.1
+require k8s.io/code-generator v0.22.9
 
 require (
 	github.com/PuerkitoBio/purell v1.1.1 // indirect

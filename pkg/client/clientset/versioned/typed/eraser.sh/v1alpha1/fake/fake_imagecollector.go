@@ -116,7 +116,7 @@ func (c *FakeImageCollectors) UpdateStatus(ctx context.Context, imageCollector *
 // Delete takes name of the imageCollector and deletes it. Returns an error if one occurs.
 func (c *FakeImageCollectors) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
 	_, err := c.Fake.
-		Invokes(testing.NewDeleteActionWithOptions(imagecollectorsResource, c.ns, name, opts), &v1alpha1.ImageCollector{})
+		Invokes(testing.NewDeleteAction(imagecollectorsResource, c.ns, name), &v1alpha1.ImageCollector{})
 
 	return err
 }

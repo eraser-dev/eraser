@@ -12,7 +12,7 @@ var SchemeGroupVersion = schema.GroupVersion{
 }
 
 var (
-	localSchemeBuilder = SchemeBuilder
+	localSchemeBuilder = &SchemeBuilder
 )
 
 func init() {
