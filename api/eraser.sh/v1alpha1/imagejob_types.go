@@ -80,7 +80,3 @@ type ImageJobList struct {
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []ImageJob `json:"items"`
 }
-
-func init() {
-	SchemeBuilder.Register(&ImageJob{}, &ImageJobList{})
-}

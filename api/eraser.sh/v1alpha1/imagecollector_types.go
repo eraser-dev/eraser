@@ -51,7 +51,3 @@ type ImageCollectorList struct {
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []ImageCollector `json:"items"`
 }
-
-func init() {
-	SchemeBuilder.Register(&ImageCollector{}, &ImageCollectorList{})
-}

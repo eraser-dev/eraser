@@ -24,7 +24,15 @@ func Resource(resource string) schema.GroupResource {
 }
 
 func addKnownTypes(scheme *runtime.Scheme) error {
-	scheme.AddKnownTypes(SchemeGroupVersion, &ImageCollector{}, &ImageCollectorList{})
+	scheme.AddKnownTypes(
+		SchemeGroupVersion,
+		&ImageCollector{},
+		&ImageCollectorList{},
+		&ImageList{},
+		&ImageListList{},
+		&ImageJob{},
+		&ImageJobList{},
+	)
 	scheme.AddKnownTypes(SchemeGroupVersion, &metav1.Status{})
 	metav1.AddToGroupVersion(scheme, SchemeGroupVersion)
 
