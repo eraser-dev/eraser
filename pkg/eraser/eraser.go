@@ -20,8 +20,9 @@ import (
 
 var (
 	// Timeout  of connecting to server (default: 5m).
-	timeout = 5 * time.Minute
-	log     = logf.Log.WithName("eraser")
+	timeout  = 5 * time.Minute
+	log      = logf.Log.WithName("eraser")
+	excluded []string
 )
 
 type client struct {
@@ -61,7 +62,7 @@ func (c *client) deleteImage(ctx context.Context, image string) (err error) {
 	return nil
 }
 
-func removeImages(c Client, targetImages []string, excluded []string) error {
+func removeImages(c Client, targetImages []string) error {
 	backgroundContext, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
@@ -108,6 +109,11 @@ func removeImages(c Client, targetImages []string, excluded []string) error {
 		}
 
 		if digest, isNonRunning := nonRunningImages[imgDigestOrTag]; isNonRunning {
+			if isExcluded(imgDigestOrTag, idToTagListMap) {
+				log.Info("Image is excluded", "image", imgDigestOrTag)
+				continue
+			}
+
 			err = c.deleteImage(backgroundContext, digest)
 			if err != nil {
 				log.Error(err, "Error removing", "image", digest)
@@ -130,13 +136,16 @@ func removeImages(c Client, targetImages []string, excluded []string) error {
 
 	if prune {
 		for img := range nonRunningImages {
-			_, deleted := deletedImages[img]
-			if deleted {
+			if _, deleted := deletedImages[img]; deleted {
 				continue
 			}
 
-			_, running := runningImages[img]
-			if running {
+			if _, running := runningImages[img]; running {
+				continue
+			}
+
+			if isExcluded(img, idToTagListMap) {
+				log.Info("Image is excluded", "image", img)
 				continue
 			}
 
@@ -149,6 +158,30 @@ func removeImages(c Client, targetImages []string, excluded []string) error {
 	}
 
 	return nil
+}
+
+func contains(ls []string, image string) bool {
+	for _, i := range ls {
+		if i == image {
+			return true
+		}
+	}
+	return false
+}
+
+func isExcluded(img string, idToTagListMap map[string][]string) bool {
+	// check if img excluded by digest
+	if contains(excluded, img) {
+		return true
+	}
+	// check if img excluded by name
+	if len(idToTagListMap[img]) > 0 {
+		if contains(excluded, idToTagListMap[img][0]) {
+			return true
+		}
+	}
+
+	return false
 }
 
 func main() {
@@ -200,15 +233,18 @@ func main() {
 
 	data, err = os.ReadFile("excluded")
 	if err != nil {
-		log.Info("failed to read excluded values")
+		if os.IsNotExist(err) {
+			log.Info("excluded configmap does not exist")
+		} else {
+			log.Info("failed to read excluded values", err)
+		}
 	}
 
-	var excluded []string
 	if err := json.Unmarshal(data, &excluded); err != nil {
 		log.Error(err, "failed to unmarshal excluded configmap")
 	}
 
-	if err := removeImages(client, ls, excluded); err != nil {
+	if err := removeImages(client, ls); err != nil {
 		log.Error(err, "failed to remove images")
 		os.Exit(1)
 	}
