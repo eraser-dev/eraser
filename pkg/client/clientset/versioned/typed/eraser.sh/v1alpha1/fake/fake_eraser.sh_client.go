@@ -31,10 +31,6 @@ func (c *FakeEraserV1alpha1) ImageCollectors(namespace string) v1alpha1.ImageCol
 	return &FakeImageCollectors{c, namespace}
 }
 
-func (c *FakeEraserV1alpha1) ImageCollectorLists(namespace string) v1alpha1.ImageCollectorListInterface {
-	return &FakeImageCollectorLists{c, namespace}
-}
-
 // RESTClient returns a RESTClient that is used to communicate
 // with API server by this client implementation.
 func (c *FakeEraserV1alpha1) RESTClient() rest.Interface {

@@ -28,7 +28,6 @@ import (
 type EraserV1alpha1Interface interface {
 	RESTClient() rest.Interface
 	ImageCollectorsGetter
-	ImageCollectorListsGetter
 }
 
 // EraserV1alpha1Client is used to interact with features provided by the eraser.sh group.
@@ -38,10 +37,6 @@ type EraserV1alpha1Client struct {
 
 func (c *EraserV1alpha1Client) ImageCollectors(namespace string) ImageCollectorInterface {
 	return newImageCollectors(c, namespace)
-}
-
-func (c *EraserV1alpha1Client) ImageCollectorLists(namespace string) ImageCollectorListInterface {
-	return newImageCollectorLists(c, namespace)
 }
 
 // NewForConfig creates a new EraserV1alpha1Client for the given config.

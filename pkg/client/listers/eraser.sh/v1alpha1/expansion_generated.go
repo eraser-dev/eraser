@@ -24,11 +24,3 @@ type ImageCollectorListerExpansion interface{}
 // ImageCollectorNamespaceListerExpansion allows custom methods to be added to
 // ImageCollectorNamespaceLister.
 type ImageCollectorNamespaceListerExpansion interface{}
-
-// ImageCollectorListListerExpansion allows custom methods to be added to
-// ImageCollectorListLister.
-type ImageCollectorListListerExpansion interface{}
-
-// ImageCollectorListNamespaceListerExpansion allows custom methods to be added to
-// ImageCollectorListNamespaceLister.
-type ImageCollectorListNamespaceListerExpansion interface{}

@@ -9,9 +9,11 @@ import (
 	"os"
 	"strings"
 
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	machinerytypes "k8s.io/apimachinery/pkg/types"
 
 	eraserv1alpha1 "github.com/Azure/eraser/api/eraser.sh/v1alpha1"
+	clientset "github.com/Azure/eraser/pkg/client/clientset/versioned"
 
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -171,20 +173,13 @@ func main() {
 		os.Exit(generalErr)
 	}
 
-	clientset, err := kubernetes.NewForConfig(cfg)
+	clientset, err := clientset.NewForConfig(cfg)
 	if err != nil {
 		log.Error(err, "unable to get REST client")
 		os.Exit(generalErr)
 	}
 
-	result := eraserv1alpha1.ImageCollector{}
-
-	err = clientset.RESTClient().Get().
-		AbsPath(apiPath).
-		Resource(resourceName).
-		Name(*collectorCRName).
-		Do(context.Background()).
-		Into(&result)
+	result, err := clientset.EraserV1alpha1().ImageCollectors().Get(ctx, *collectorCRName, v1.GetOptions{})
 	if err != nil {
 		log.Error(err, "RESTClient GET request failed", "apiPath", apiPath, "recourceName", resourceName, "collectorCRName", *collectorCRName)
 		os.Exit(generalErr)
