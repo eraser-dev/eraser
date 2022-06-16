@@ -210,8 +210,9 @@ func TestRemoveImagesFromAllNodes(t *testing.T) {
 			}
 
 			imagelistSpec := make(map[string]struct{}, len(imagelist.Spec.Images))
-			for _, img := range imageslist.Spec.Images {
+			for _, img := range imagelist.Spec.Images {
 				imagelistSpec[img] = struct{}{}
+				t.Error(img + " added")
 			}
 
 			// verify the images in both lists match
