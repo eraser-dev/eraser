@@ -61,7 +61,7 @@ func (c *client) deleteImage(ctx context.Context, image string) (err error) {
 	return nil
 }
 
-func removeImages(c Client, targetImages []string) error {
+func removeImages(c Client, targetImages []string, excluded []string) error {
 	backgroundContext, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
@@ -198,7 +198,17 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err := removeImages(client, ls); err != nil {
+	data, err = os.ReadFile("excluded")
+	if err != nil {
+		log.Info("failed to read excluded values")
+	}
+
+	var excluded []string
+	if err := json.Unmarshal(data, &excluded); err != nil {
+		log.Error(err, "failed to unmarshal excluded configmap")
+	}
+
+	if err := removeImages(client, ls, excluded); err != nil {
 		log.Error(err, "failed to remove images")
 		os.Exit(1)
 	}

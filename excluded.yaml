@@ -1,0 +1,6 @@
+kind: ConfigMap 
+apiVersion: v1 
+metadata:
+  name: excluded 
+data:
+  excluded: "docker.io/library/hello-world:latest, sha256:80f31da1ac7b312ba29d65080fddf797dd76acfb870e677f390d5acba9741b17"
