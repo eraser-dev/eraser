@@ -6,6 +6,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	"google.golang.org/grpc/codes"
@@ -22,7 +23,7 @@ var (
 	// Timeout  of connecting to server (default: 5m).
 	timeout  = 5 * time.Minute
 	log      = logf.Log.WithName("eraser")
-	excluded []string
+	excluded map[string]struct{}
 )
 
 type client struct {
@@ -171,12 +172,13 @@ func contains(ls []string, image string) bool {
 
 func isExcluded(img string, idToTagListMap map[string][]string) bool {
 	// check if img excluded by digest
-	if contains(excluded, img) {
+	if _, contains := excluded[img]; contains {
 		return true
 	}
+
 	// check if img excluded by name
 	if len(idToTagListMap[img]) > 0 {
-		if contains(excluded, idToTagListMap[img][0]) {
+		if _, contains := excluded[idToTagListMap[img][0]]; contains {
 			return true
 		}
 	}
@@ -231,20 +233,23 @@ func main() {
 		os.Exit(1)
 	}
 
-	data, err = os.ReadFile("excluded")
+	// read excluded values from excluded configmap
+	data, err = os.ReadFile("/run/eraser.sh/excluded/excluded")
 	if err != nil {
 		if os.IsNotExist(err) {
-			log.Info("excluded configmap does not exist")
+			log.Info("excluded configmap does not exist", "error: ", err)
 		} else {
-			log.Info("failed to read excluded values", err)
+			log.Info("failed to read excluded values", "error: ", err)
 		}
 	}
 
-	if err := json.Unmarshal(data, &excluded); err != nil {
-		log.Error(err, "failed to unmarshal excluded configmap")
+	// split images stored as comma separated values
+	vals := strings.Split(string(data), ",")
+	excluded = make(map[string]struct{}, len(vals))
+	for _, img := range vals {
+		// clean trailing whitespace and add each image to map
+		excluded[strings.TrimSpace(img)] = struct{}{}
 	}
-
-	log.Info("EXCLUDED", "excluded val", excluded)
 
 	if err := removeImages(client, ls); err != nil {
 		log.Error(err, "failed to remove images")
