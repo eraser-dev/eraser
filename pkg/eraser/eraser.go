@@ -244,6 +244,8 @@ func main() {
 		log.Error(err, "failed to unmarshal excluded configmap")
 	}
 
+	log.Info("EXCLUDED", "excluded val", excluded)
+
 	if err := removeImages(client, ls); err != nil {
 		log.Error(err, "failed to remove images")
 		os.Exit(1)
