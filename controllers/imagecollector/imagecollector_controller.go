@@ -48,9 +48,10 @@ import (
 )
 
 var (
+	log                    = logf.Log.WithName("controller").WithValues("process", "imagecollector-controller")
 	scannerImage           = flag.String("scanner-image", "", "scanner image, empty value disables scan feature")
 	collectorImage         = flag.String("collector-image", "", "collector image, empty value disables collect feature")
-	log                    = logf.Log.WithName("controller").WithValues("process", "imagecollector-controller")
+	scannerSeverity        = flag.String("scanner-severity", "CRITICAL,HIGH", "list of severity levels to report for scanner")
 	repeatPeriod           = flag.Duration("repeat-period", time.Hour*24, "repeat period for collect/scan process")
 	deleteScanFailedImages = flag.Bool("delete-scan-failed-images", true, "whether or not to delete images for which scanning has failed")
 )
@@ -416,7 +417,7 @@ func (r *Reconciler) createScanJob(ctx context.Context, collector *eraserv1alpha
 							Image: scannerImage,
 							Args: []string{
 								"--collector-cr-name=" + collector.Name,
-								"--severity=CRITICAL,HIGH",
+								"--severity=" + *scannerSeverity,
 							},
 						},
 					},
