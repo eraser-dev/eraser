@@ -164,9 +164,9 @@ Eraser can be used to [automatically](#automatically-cleaning-images) or [manual
 
 ## Automatically cleaning images
 
-After deploying Eraser, it will automatically clean images in a regular interval. This interval can be set by `--repeat-period` argument to `eraser-controller-manager`. The default interval is 24 hours.
+After deploying Eraser, it will automatically clean images in a regular interval. This interval can be set by `--repeat-period` argument to `eraser-controller-manager`. The default interval is 24 hours (`24h`). Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h".
 
-Eraser will schedule collector pods to each node in the cluster and these pods will collect non-running images in the cluster. Once the collectors are done, results are de-duplicated and stored in `imagecollector-shared` object in `ImageCollector` CRD.
+Eraser will schedule collector pods to each node in the cluster, and the pods will collect non-running images on those nodes. Once the collectors are done, results are de-duplicated and stored in the `imagecollector-shared` object in `ImageCollector` CRD.
 
 ```bash
 kubectl get pods -n eraser-system
@@ -179,7 +179,7 @@ eraser-controller-manager-649c756544-bgfds   1/1     Running   0          26s
 
 After collector pods are finished, scanner pod will be scheduled to each node in the cluster.
 
-> If you want to remove all the images periodically, you can skip this step by removing the `--scanner-image` argument.
+> If you want to remove all the images periodically, you can skip this step by removing the `--scanner-image` argument. If you are deploying with Helm, use `--set scanner.image.repository=""` to remove the scanner image.
 
 ```bash
 kubectl get pods -n eraser-system
