@@ -13,6 +13,7 @@ KUBERNETES_VERSION ?= 1.23.0
 ENVTEST_K8S_VERSION ?= 1.23
 GOLANGCI_LINT_VERSION := 1.43.0
 TRIVY_VERSION ?= $(shell go list -f '{{ .Version }}' -m github.com/aquasecurity/trivy)
+KUBERNETES_CODE_GENERATOR_VERSION ?= $(shell go list -f '{{ .Version }}' -m k8s.io/code-generator)
 
 PLATFORM ?= linux
 
@@ -249,4 +250,5 @@ CONTROLLER_GEN=docker run -v $(shell pwd):/eraser eraser-tooling controller-gen
 __tooling-image:
 	docker build . \
 		-t eraser-tooling \
+		--build-arg KUBERNETES_CODE_GENERATOR_VERSION="$(KUBERNETES_CODE_GENERATOR_VERSION)" \
 		-f build/tooling/Dockerfile
