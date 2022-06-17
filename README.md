@@ -12,9 +12,6 @@ You can find a [quick start guide / tutorial here](docs/QUICKSTART.md).
 
 If you like to contribute to Eraser you need to setup your development environment. You can find [developer environment setup requirements here](docs/DEVELOP.md).
 
-## Design and Future Work
-* [Design Documentation](https://docs.google.com/document/d/1Rz1bkZKZSLVMjC_w8WLASPDUjfU80tjV-XWUXZ8vq3I/edit?usp=sharing)
-
 ## Contributing
 
 This project welcomes contributions and suggestions.  Most contributions require you to agree to a Contributor License Agreement (CLA) declaring that you have the right to, and actually do, grant us the rights to use your contribution. For details, visit https://cla.opensource.microsoft.com.
