@@ -161,15 +161,6 @@ func removeImages(c Client, targetImages []string) error {
 	return nil
 }
 
-func contains(ls []string, image string) bool {
-	for _, i := range ls {
-		if i == image {
-			return true
-		}
-	}
-	return false
-}
-
 func isExcluded(img string, idToTagListMap map[string][]string) bool {
 	// check if img excluded by digest
 	if _, contains := excluded[img]; contains {
