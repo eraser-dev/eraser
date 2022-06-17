@@ -7,32 +7,33 @@ spec:
   template:
     spec:
       containers:
-      - name: manager
-        args:
-        - --leader-elect=false
-        - --eraser-image={{ .Values.eraser.image.repository }}:{{ .Values.eraser.image.tag | default .Chart.AppVersion }}
-        - --collector-image={{ if .Values.collector.image.repository }}{{ .Values.collector.image.repository }}:{{ .Values.collector.image.tag | default .Chart.AppVersion }}{{ end }}
-        - --scanner-image={{ if .Values.scanner.image.repository }}{{ .Values.scanner.image.repository }}:{{ .Values.scanner.image.tag | default .Chart.AppVersion }}{{ end }}
-        command:
-        - /manager
-        image: "{{ .Values.controllerManager.image.repository }}:{{ .Values.controllerManager.image.tag | default .Chart.AppVersion }}"
-        imagePullPolicy: "{{ .Values.controllerManager.image.pullPolicy }}"
-        livenessProbe:
-          httpGet:
-            path: /healthz
-            port: 8081
-          initialDelaySeconds: 15
-          periodSeconds: 20
-        readinessProbe:
-          httpGet:
-            path: /readyz
-            port: 8081
-          initialDelaySeconds: 5
-          periodSeconds: 10
-        resources:
-          HELMSUBST_DEPLOYMENT_CONTROLLER_MANAGER_CONTAINER_RESOURCES: ""
-        securityContext:
-          allowPrivilegeEscalation: false
+        - name: manager
+          args:
+            - --leader-elect=false
+            - --eraser-image={{ .Values.eraser.image.repository }}:{{ .Values.eraser.image.tag | default .Chart.AppVersion }}
+            - --collector-image={{ if .Values.collector.image.repository }}{{ .Values.collector.image.repository }}:{{ .Values.collector.image.tag | default .Chart.AppVersion }}{{ end }}
+            - --scanner-image={{ if .Values.scanner.image.repository }}{{ .Values.scanner.image.repository }}:{{ .Values.scanner.image.tag | default .Chart.AppVersion }}{{ end }}
+            - --scanner-severity={{ .Values.scanner.severity | default "CRITICAL,HIGH" }}
+          command:
+            - /manager
+          image: "{{ .Values.controllerManager.image.repository }}:{{ .Values.controllerManager.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: "{{ .Values.controllerManager.image.pullPolicy }}"
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8081
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: 8081
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            HELMSUBST_DEPLOYMENT_CONTROLLER_MANAGER_CONTAINER_RESOURCES: ""
+          securityContext:
+            allowPrivilegeEscalation: false
       nodeSelector:
         HELMSUBST_DEPLOYMENT_CONTROLLER_MANAGER_NODESELECTOR: ""
       tolerations:

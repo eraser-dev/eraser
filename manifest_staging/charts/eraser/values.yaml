@@ -1,5 +1,4 @@
 controllerManager:
-
   image:
     repository: ghcr.io/azure/eraser-manager
     pullPolicy: IfNotPresent
@@ -38,5 +37,6 @@ scanner:
   image:
     repository: ghcr.io/azure/eraser-trivy-scanner
     tag: ""
+  severity: "CRITICAL,HIGH"
 
 nameOverride: ""
