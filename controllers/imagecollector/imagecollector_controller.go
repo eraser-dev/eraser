@@ -36,6 +36,7 @@ import (
 
 	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
 	"github.com/Azure/eraser/controllers/util"
+	"github.com/Azure/eraser/pkg/utils"
 
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
@@ -53,6 +54,7 @@ var (
 	log                    = logf.Log.WithName("controller").WithValues("process", "imagecollector-controller")
 	repeatPeriod           = flag.Duration("repeat-period", time.Hour*24, "repeat period for collect/scan process")
 	deleteScanFailedImages = flag.Bool("delete-scan-failed-images", true, "whether or not to delete images for which scanning has failed")
+	scannerArgs            = utils.MultiFlag([]string{})
 )
 
 const (
@@ -60,6 +62,10 @@ const (
 	apiVersion      = "eraser.sh/v1alpha1"
 	namespace       = "eraser-system"
 )
+
+func init() {
+	flag.Var(&scannerArgs, "scanner-arg", "An argument to be passed through to the scanner. For example, --scanner-arg=--severity=CRITICAL,HIGH will be passed through to the scanner as --severity=CRITICAL,HIGH. Can be supplied multiple times.")
+}
 
 // ImageCollectorReconciler reconciles a ImageCollector object.
 type Reconciler struct {
@@ -387,6 +393,8 @@ func (r *Reconciler) getChildScanJobs(ctx context.Context, collector *eraserv1al
 
 func (r *Reconciler) createScanJob(ctx context.Context, collector *eraserv1alpha1.ImageCollector, scannerImage string) error {
 	one := int32(1)
+	args := append(scannerArgs, "--collector-cr-name="+collector.Name)
+
 	scanJob := batchv1.Job{
 		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: "eraser-scanner-",
@@ -414,10 +422,7 @@ func (r *Reconciler) createScanJob(ctx context.Context, collector *eraserv1alpha
 						{
 							Name:  "trivy-scanner",
 							Image: scannerImage,
-							Args: []string{
-								"--collector-cr-name=" + collector.Name,
-								"--severity=CRITICAL,HIGH",
-							},
+							Args:  args,
 						},
 					},
 				},

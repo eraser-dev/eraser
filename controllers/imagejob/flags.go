@@ -4,13 +4,13 @@ import (
 	"fmt"
 )
 
-type nodeSkipSelectors []string
+type multiFlag []string
 
-func (nss *nodeSkipSelectors) String() string {
+func (nss *multiFlag) String() string {
 	return fmt.Sprintf("%#v", nss)
 }
 
-func (nss *nodeSkipSelectors) Set(s string) error {
+func (nss *multiFlag) Set(s string) error {
 	*nss = append(*nss, s)
 	return nil
 }
