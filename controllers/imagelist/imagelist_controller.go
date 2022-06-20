@@ -222,7 +222,7 @@ func (r *Reconciler) handleImageListEvent(ctx context.Context, req *ctrl.Request
 						{
 							Name: excludedName,
 							VolumeSource: corev1.VolumeSource{
-								ConfigMap: &corev1.ConfigMapVolumeSource{LocalObjectReference: corev1.LocalObjectReference{Name: excludedName}},
+								ConfigMap: &corev1.ConfigMapVolumeSource{LocalObjectReference: corev1.LocalObjectReference{Name: excludedName}, Optional: boolPtr(true)},
 							},
 						},
 					},
