@@ -258,7 +258,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 			}
 		} else {
 			// else we create a scan job which will update imagelist to start removal with relevant images
-			err := r.createScanJob(ctx, imageCollectorShared, *scannerImage)
+			err := r.createScanJob(ctx, imageCollectorShared, *scannerImage, scannerArgs)
 			if err != nil {
 				return ctrl.Result{}, err
 			}
@@ -391,9 +391,11 @@ func (r *Reconciler) getChildScanJobs(ctx context.Context, collector *eraserv1al
 	return relevantBatchJobs, nil
 }
 
-func (r *Reconciler) createScanJob(ctx context.Context, collector *eraserv1alpha1.ImageCollector, scannerImage string) error {
+func (r *Reconciler) createScanJob(ctx context.Context, collector *eraserv1alpha1.ImageCollector, scannerImage string, args []string) error {
 	one := int32(1)
-	args := append(scannerArgs, "--collector-cr-name="+collector.Name)
+	instanceArgs := make([]string, 0, len(args)+1)
+	instanceArgs = append(instanceArgs, "--collector-cr-name="+collector.Name)
+	instanceArgs = append(instanceArgs, args...)
 
 	scanJob := batchv1.Job{
 		ObjectMeta: metav1.ObjectMeta{
@@ -422,7 +424,7 @@ func (r *Reconciler) createScanJob(ctx context.Context, collector *eraserv1alpha
 						{
 							Name:  "trivy-scanner",
 							Image: scannerImage,
-							Args:  args,
+							Args:  instanceArgs,
 						},
 					},
 				},
