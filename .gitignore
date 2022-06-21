@@ -28,3 +28,6 @@ testbin/*
 .history
 
 .vscode/
+
+# macOS
+.DS_Store
