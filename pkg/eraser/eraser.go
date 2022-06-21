@@ -185,7 +185,7 @@ func isExcluded(img string, idToTagListMap map[string][]string) bool {
 			repo := strings.Split(key, "*")
 
 			// check if img is part of repo
-			if match2, _ := regexp.MatchString(repo[0], img); match2 {
+			if match2, _ := regexp.MatchString("^"+repo[0], img); match2 {
 				return true
 			}
 
