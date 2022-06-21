@@ -6,6 +6,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"regexp"
 	"strings"
 	"time"
 
@@ -171,6 +172,27 @@ func isExcluded(img string, idToTagListMap map[string][]string) bool {
 	if len(idToTagListMap[img]) > 0 {
 		if _, contains := excluded[idToTagListMap[img][0]]; contains {
 			return true
+		}
+	}
+
+	// look for excluded repository values
+	for key := range excluded {
+		// if excluded key ends in /*, check image with pattern match
+		if match, _ := regexp.MatchString("(\\w)+\\/\\*\\z", key); match {
+			// store repository name
+			repo := strings.Split(key, "*")
+
+			// check if img is part of repo
+			if match2, _ := regexp.MatchString(repo[0], img); match2 {
+				return true
+			}
+
+			// retrieve and check by name in the case img is digest
+			if len(idToTagListMap[img]) > 0 {
+				if match2, _ := regexp.MatchString(repo[0], idToTagListMap[img][0]); match2 {
+					return true
+				}
+			}
 		}
 	}
 
