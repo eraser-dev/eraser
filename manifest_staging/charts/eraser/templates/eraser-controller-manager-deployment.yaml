@@ -31,7 +31,6 @@ spec:
         {{- toYaml .Values.controllerManager.affinity | nindent 8 }}
       containers:
       - args:
-        - --job-cleanup-on-success-delay=60
         - --leader-elect=false
         - --eraser-image={{ .Values.eraser.image.repository }}:{{ .Values.eraser.image.tag | default .Chart.AppVersion }}
         - --collector-image={{ if .Values.collector.image.repository }}{{ .Values.collector.image.repository }}:{{ .Values.collector.image.tag | default .Chart.AppVersion }}{{ end }}
