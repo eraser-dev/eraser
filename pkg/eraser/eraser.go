@@ -175,7 +175,7 @@ func isExcluded(img string, idToTagListMap map[string][]string) bool {
 		}
 	}
 
-	r, _ := regexp.Compile("(\\w)+\\/\\*\\z")
+	r := regexp.MustCompile("(\\w)+\\/\\*\\z")
 
 	// look for excluded repository values
 	for key := range excluded {
