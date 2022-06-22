@@ -866,7 +866,6 @@ func TestRemoveImagesFromAllNodes(t *testing.T) {
 		}).
 		Feature()
 
-	testenv.Test(t, excludedImageFeat)
 	testenv.Test(t, rmImageFeat)
 	testenv.Test(t, pruneImagesFeat)
 	testenv.Test(t, imglistChangeFeat)
