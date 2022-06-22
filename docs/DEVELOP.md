@@ -6,7 +6,8 @@ You can either utilize [Codespaces](https://docs.github.com/en/codespaces/overvi
 ## Local Setup
 
 ### Prerequisites:
-- [go](https://go.dev/) with version 1.16 or later.
+- [go](https://go.dev/) with version 1.17 or later.
+- [docker](https://docs.docker.com/get-docker/)
 - [kind](https://kind.sigs.k8s.io/)
 - `make`
 
@@ -29,11 +30,13 @@ make generate
 make docker-build-manager
 make docker-build-eraser
 make docker-build-collector
+make docker-build-trivy-scanner
 
 # make sure updated image is present on cluster (e.g., see kind example below)
-kind load docker-image ghcr.io/azure/eraser-manager:v0.1.0
-kind load docker-image ghcr.io/azure/eraser:v0.1.0
-kind load docker-image ghcr.io/azure/collector:v0.1.0
+kind load docker-image ghcr.io/azure/eraser-manager:v0.2.0
+kind load docker-image ghcr.io/azure/eraser:v0.2.0
+kind load docker-image ghcr.io/azure/collector:v0.2.0
+kind load docker-image ghcr.io/azure/eraser-trivy-scanner:v0.2.0
 
 make manifests
 make deploy
@@ -55,7 +58,7 @@ docker build . \
 [+] Building 7.8s (8/8) FINISHED
  => => naming to docker.io/library/eraser-tooling                           0.0s
 docker run -v /home/eraser/config:/config -w /config/manager \
-        k8s.gcr.io/kustomize/kustomize:v3.8.9 edit set image controller=ghcr.io/azure/eraser-manager:v0.1.0
+        k8s.gcr.io/kustomize/kustomize:v3.8.9 edit set image controller=ghcr.io/azure/eraser-manager:v0.2.0
 docker run -v /home/eraser:/eraser eraser-tooling controller-gen \
         crd \
         rbac:roleName=manager-role \
@@ -102,8 +105,8 @@ You can override the default configuration using environment variables. Below yo
 
 ### Development
 
-- `make generate` 
-    
+- `make generate`
+
     Generates necessary files for the k8s api stored under `api/v1alpha1/zz_generated.deepcopy.go`. See the [kubebuilder docs](https://book.kubebuilder.io/cronjob-tutorial/other-api-files.html) for details.
 
 - `make manifests`
@@ -159,7 +162,7 @@ You can override the default configuration using environment variables. Below yo
     Configuration Options:
     | Environment Variable         | Description           |
     |------------------------------|-----------------------|
-    | CACHE_FROM                   | Sets the target of the buildx --cache-from flag [see buildx reference](https://docs.docker.com/engine/reference/commandline/buildx_build/#cache-from). | 
+    | CACHE_FROM                   | Sets the target of the buildx --cache-from flag [see buildx reference](https://docs.docker.com/engine/reference/commandline/buildx_build/#cache-from). |
     | CACHE_TO                     | Sets the target of the buildx --cache-to flag [see buildx reference](https://docs.docker.com/engine/reference/commandline/buildx_build/#cache-to). |
     | PLATFORM                     | Sets the target platform for buildx [see buildx reference](https://docs.docker.com/engine/reference/commandline/buildx_build/#platform). |
     | OUTPUT_TYPE                  |  Sets the output for buildx [see buildx reference](https://docs.docker.com/engine/reference/commandline/buildx_build/#output). |
@@ -181,7 +184,7 @@ You can override the default configuration using environment variables. Below yo
     Configuration Options:
     | Environment Variable         | Description           |
     |------------------------------|-----------------------|
-    | CACHE_FROM                   | Sets the target of the buildx --cache-from flag [see buildx reference](https://docs.docker.com/engine/reference/commandline/buildx_build/#cache-from). | 
+    | CACHE_FROM                   | Sets the target of the buildx --cache-from flag [see buildx reference](https://docs.docker.com/engine/reference/commandline/buildx_build/#cache-from). |
     | CACHE_TO                     | Sets the target of the buildx --cache-to flag [see buildx reference](https://docs.docker.com/engine/reference/commandline/buildx_build/#cache-to). |
     | PLATFORM                     | Sets the target platform for buildx [see buildx reference](https://docs.docker.com/engine/reference/commandline/buildx_build/#platform). |
     | OUTPUT_TYPE                  |  Sets the output for buildx [see buildx reference](https://docs.docker.com/engine/reference/commandline/buildx_build/#output). |
@@ -204,7 +207,7 @@ You can override the default configuration using environment variables. Below yo
     Configuration Options:
     | Environment Variable         | Description           |
     |------------------------------|-----------------------|
-    | CACHE_FROM                   | Sets the target of the buildx --cache-from flag [see buildx reference](https://docs.docker.com/engine/reference/commandline/buildx_build/#cache-from). | 
+    | CACHE_FROM                   | Sets the target of the buildx --cache-from flag [see buildx reference](https://docs.docker.com/engine/reference/commandline/buildx_build/#cache-from). |
     | CACHE_TO                     | Sets the target of the buildx --cache-to flag [see buildx reference](https://docs.docker.com/engine/reference/commandline/buildx_build/#cache-to). |
     | PLATFORM                     | Sets the target platform for buildx [see buildx reference](https://docs.docker.com/engine/reference/commandline/buildx_build/#platform). |
     | OUTPUT_TYPE                  |  Sets the output for buildx [see buildx reference](https://docs.docker.com/engine/reference/commandline/buildx_build/#output). |

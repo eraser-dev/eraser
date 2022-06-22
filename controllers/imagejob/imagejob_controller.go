@@ -41,6 +41,7 @@ import (
 
 	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
 	"github.com/Azure/eraser/controllers/util"
+	"github.com/Azure/eraser/pkg/utils"
 )
 
 const (
@@ -57,7 +58,7 @@ var log = logf.Log.WithName("controller").WithValues("process", "imagejob-contro
 
 var (
 	successRatio       = flag.Float64("job-success-ratio", 1.0, "Ratio of successful/total runs to consider a job successful. 1.0 means all runs must succeed.")
-	skipNodesSelectors = nodeSkipSelectors([]string{"kubernetes.io/os=windows", "eraser.sh/cleanup.skip"})
+	skipNodesSelectors = utils.MultiFlag([]string{"kubernetes.io/os=windows", "eraser.sh/cleanup.skip"})
 )
 
 func init() {
