@@ -115,6 +115,9 @@ jobs:
     name: "E2E test (ImageList)"
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    strategy:
+      matrix:
+        KUBERNETES_VERSION: ["1.22.9", "1.23.6", "1.24.1"]
     steps:
       - name: Check out code into the Go module directory
         uses: actions/checkout@v3
@@ -140,12 +143,15 @@ jobs:
       - name: Build eraser
         run: make docker-build-eraser CACHE_FROM=type=gha,scope=eraser-node CACHE_TO=type=gha,scope=eraser-node,mode=max
       - name: Run e2e test
-        run: make e2e-test-imagelist
+        run: make e2e-test-imagelist KUBERNETES_VERSION=${{ matrix.KUBERNETES_VERSION }}
 
   e2e-test-imagecollector:
     name: "E2E test (ImageCollector)"
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    strategy:
+      matrix:
+        KUBERNETES_VERSION: ["1.22.9", "1.23.6", "1.24.1"]
     steps:
       - name: Check out code into the Go module directory
         uses: actions/checkout@v3
@@ -175,7 +181,7 @@ jobs:
       - name: Build trivy-scanner
         run: make docker-build-trivy-scanner CACHE_FROM=type=gha,scope=trivy-scanner CACHE_TO=type=gha,scope=trivy-scanner,mode=max
       - name: Run e2e test
-        run: make e2e-test-collector
+        run: make e2e-test-collector KUBERNETES_VERSION=${{ matrix.KUBERNETES_VERSION }}
 
   scan_vulnerabilities:
     name: "[Trivy] Scan for vulnerabilities"

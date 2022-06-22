@@ -38,5 +38,6 @@ scanner:
   image:
     repository: ghcr.io/azure/eraser-trivy-scanner
     tag: ""
+    args: []
 
 nameOverride: ""
