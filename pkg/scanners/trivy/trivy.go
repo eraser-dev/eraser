@@ -16,7 +16,6 @@ import (
 	"k8s.io/client-go/rest"
 
 	"github.com/Azure/eraser/pkg/logger"
-	"github.com/aquasecurity/fanal/analyzer/config"
 	"github.com/aquasecurity/fanal/applier"
 	"github.com/aquasecurity/fanal/artifact"
 	artifactImage "github.com/aquasecurity/fanal/artifact/image"
@@ -218,7 +217,7 @@ func main() {
 			continue
 		}
 
-		artifactToScan, err := artifactImage.NewArtifact(dockerImage, scanConfig.fscache, artifact.Option{}, config.ScannerOption{})
+		artifactToScan, err := artifactImage.NewArtifact(dockerImage, scanConfig.fscache, artifact.Option{})
 		if err != nil {
 			log.Error(err, "error registering config for artifact", "img", img)
 			failedImages = append(failedImages, img)
