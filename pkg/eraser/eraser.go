@@ -254,7 +254,8 @@ func main() {
 		if os.IsNotExist(err) {
 			log.Info("excluded configmap does not exist", "error: ", err)
 		} else {
-			log.Info("failed to read excluded values", "error: ", err)
+			log.Error(err, "failed to read excluded values")
+			os.Exit(1)
 		}
 	}
 
