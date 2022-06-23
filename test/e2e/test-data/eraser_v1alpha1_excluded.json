@@ -1,0 +1,6 @@
+{
+    "excluded": [
+      "docker.io/library/*",
+      "mcr.microsoft.com/oss/kubernetes/pause"
+    ]
+  }
