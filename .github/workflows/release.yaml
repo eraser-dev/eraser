@@ -13,10 +13,16 @@ jobs:
   build-publish-release:
     name: "release"
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     permissions:
       contents: write
       packages: write
     steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@248ae51c2e8cc9622ecf50685c8bf7150c6e8813
+        with:
+          egress-policy: audit
+
       - name: Check out code into the Go module directory
         uses: actions/checkout@v3
 
