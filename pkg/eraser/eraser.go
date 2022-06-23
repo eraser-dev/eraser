@@ -201,6 +201,27 @@ func isExcluded(img string, idToTagListMap map[string][]string) bool {
 	return false
 }
 
+func init() {
+	// read excluded values from excluded configmap
+	data, err := os.ReadFile("/run/eraser.sh/excluded/excluded")
+	if err != nil {
+		if os.IsNotExist(err) {
+			log.Info("excluded configmap does not exist", "error: ", err)
+		} else {
+			log.Error(err, "failed to read excluded values")
+			os.Exit(1)
+		}
+	}
+
+	// split images stored as comma separated values
+	vals := strings.Split(string(data), ",")
+	excluded = make(map[string]struct{}, len(vals))
+	for _, img := range vals {
+		// clean trailing whitespace and add each image to map
+		excluded[strings.TrimSpace(img)] = struct{}{}
+	}
+}
+
 func main() {
 	runtimePtr := flag.String("runtime", "containerd", "container runtime")
 	imageListPtr := flag.String("imagelist", "", "name of ImageList")
@@ -246,25 +267,6 @@ func main() {
 	if err := json.Unmarshal(data, &ls); err != nil {
 		log.Error(err, "failed to unmarshal image list")
 		os.Exit(1)
-	}
-
-	// read excluded values from excluded configmap
-	data, err = os.ReadFile("/run/eraser.sh/excluded/excluded")
-	if err != nil {
-		if os.IsNotExist(err) {
-			log.Info("excluded configmap does not exist", "error: ", err)
-		} else {
-			log.Error(err, "failed to read excluded values")
-			os.Exit(1)
-		}
-	}
-
-	// split images stored as comma separated values
-	vals := strings.Split(string(data), ",")
-	excluded = make(map[string]struct{}, len(vals))
-	for _, img := range vals {
-		// clean trailing whitespace and add each image to map
-		excluded[strings.TrimSpace(img)] = struct{}{}
 	}
 
 	if err := removeImages(client, ls); err != nil {
