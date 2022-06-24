@@ -51,8 +51,8 @@ const config = {
       navbar: {
         title: 'Eraser',
         logo: {
-          alt: 'Azure Logo',
-          src: 'img/azure.png',
+          alt: 'Eraser Logo',
+          src: 'img/broom.png',
         },
         items: [
           {
