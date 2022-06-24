@@ -418,6 +418,13 @@ func (r *Reconciler) createScanJob(ctx context.Context, collector *eraserv1alpha
 								"--collector-cr-name=" + collector.Name,
 								"--severity=CRITICAL,HIGH",
 							},
+							Resources: corev1.ResourceRequirements{
+								Limits: corev1.ResourceList{
+									"memory": resource.Quantity{
+										Format: "2Gi",
+									},
+								},
+							},
 						},
 					},
 				},
