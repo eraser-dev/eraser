@@ -257,17 +257,17 @@ func main() {
 			log.Error(err, "failed to read excluded values")
 			os.Exit(1)
 		}
-	}
+	} else {
+		var result map[string][]string
+		if err := json.Unmarshal(data, &result); err != nil {
+			log.Error(err, "failed to unmarshal excluded configmap")
+			os.Exit(1)
+		}
 
-	var result map[string][]string
-	if err := json.Unmarshal(data, &result); err != nil {
-		log.Error(err, "failed to unmarshal excluded configmap")
-		os.Exit(1)
-	}
-
-	excluded = make(map[string]struct{}, len(result))
-	for _, img := range result["excluded"] {
-		excluded[img] = struct{}{}
+		excluded = make(map[string]struct{}, len(result))
+		for _, img := range result["excluded"] {
+			excluded[img] = struct{}{}
+		}
 	}
 
 	if err := removeImages(client, ls); err != nil {
