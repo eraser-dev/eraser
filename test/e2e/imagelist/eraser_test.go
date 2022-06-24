@@ -848,7 +848,7 @@ func TestRemoveImagesFromAllNodes(t *testing.T) {
 				t.Errorf("could not list pods: %v", err)
 			}
 
-			err = wait.For(conditions.New(c.Resources()).ResourcesDeleted(&ls), wait.WithTimeout(time.Minute))
+			err = wait.For(conditions.New(c.Resources()).ResourcesDeleted(&ls), wait.WithTimeout(time.Minute*3))
 			if err != nil {
 				t.Errorf("error waiting for pods to be deleted: %v", err)
 			}
