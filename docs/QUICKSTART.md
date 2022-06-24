@@ -161,6 +161,18 @@ Eraser can be used to [automatically](#automatically-cleaning-images) or [manual
     docker.io/library/alpine:3.7.3                                                                             application/vnd.docker.distribution.manifest.list.v2+json sha256:8421d9a84432575381bfabd248f1eb56f3aa21d9d7cd2511583c68c9b7511d10 2.0 MiB   linux/386,linux/amd64,linux/arm/v6,linux/arm64/v8,linux/ppc64le,linux/s390x  io.cri-containerd.image=managed
     docker.io/library/alpine@sha256:8421d9a84432575381bfabd248f1eb56f3aa21d9d7cd2511583c68c9b7511d10           application/vnd.docker.distribution.manifest.list.v2+json sha256:8421d9a84432575381bfabd248f1eb56f3aa21d9d7cd2511583c68c9b7511d10 2.0 MiB   linux/386,linux/amd64,linux/arm/v6,linux/arm64/v8,linux/ppc64le,linux/s390x  io.cri-containerd.image=managed
     ```
+## Excluding images 
+Eraser can exclude registries (docker.io/library/*) and also specific images with a tag (azurecr.io/myImage:tag) or id (sha256:80f31da1ac7b312ba29d65080fd...) from its removal process.
+
+To exclude any images or registries from the removal, create a configmap "excluded" in the eraser-system namespace with a JSON file holding the excluded images.
+
+```bash
+$ cat > sample.json <<EOF 
+{"excluded": ["docker.io/library/*", "ghcr.io/azure/test:latest"]}
+EOF
+
+$ kubectl create configmap excluded --from-file=excluded=sample.json --namespace=eraser-system
+```
 
 ## Automatically cleaning images
 
