@@ -169,8 +169,8 @@ func isExcluded(img string, idToTagListMap map[string][]string) bool {
 	}
 
 	// check if img excluded by name
-	if len(idToTagListMap[img]) > 0 {
-		if _, contains := excluded[idToTagListMap[img][0]]; contains {
+	for _, imgName := range idToTagListMap[img] {
+		if _, contains := excluded[imgName]; contains {
 			return true
 		}
 	}
@@ -190,8 +190,8 @@ func isExcluded(img string, idToTagListMap map[string][]string) bool {
 			}
 
 			// retrieve and check by name in the case img is digest
-			if len(idToTagListMap[img]) > 0 {
-				if match2, _ := regexp.MatchString(repo[0], idToTagListMap[img][0]); match2 {
+			for _, imgName := range idToTagListMap[img] {
+				if match2, _ := regexp.MatchString(repo[0], imgName); match2 {
 					return true
 				}
 			}
