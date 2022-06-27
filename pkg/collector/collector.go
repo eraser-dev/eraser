@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"net/http"
+	_ "net/http/pprof"
 	"os"
 	"time"
 
@@ -151,6 +153,15 @@ func createCollectorCR(ctx context.Context, allImages []eraserv1alpha1.Image) er
 
 func main() {
 	runtimePtr := flag.String("runtime", "containerd", "container runtime")
+	enableProfile := flag.Bool("enable-pprof", false, "enable pprof profiling")
+	profilePort := flag.Int("pprof-port", 6060, "port for pprof profiling. defaulted to 6060 if unspecified")
+
+	if *enableProfile {
+		go func() {
+			err := http.ListenAndServe(fmt.Sprintf("localhost:%d", *profilePort), nil)
+			log.Error(err, "pprof server failed")
+		}()
+	}
 
 	flag.Parse()
 

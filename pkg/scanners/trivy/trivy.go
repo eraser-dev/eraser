@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"net/http"
 	"os"
 	"strings"
 
@@ -14,6 +15,8 @@ import (
 
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
+
+	_ "net/http/pprof"
 
 	"github.com/Azure/eraser/pkg/logger"
 	"github.com/aquasecurity/fanal/applier"
@@ -60,6 +63,8 @@ var (
 	ignoreUnfixed   = flag.Bool("ignore-unfixed", true, "report only fixed vulnerabilities")
 	vulnTypes       = flag.String("vuln-type", "os,library", "comma separated list of vulnerability types")
 	securityChecks  = flag.String("security-checks", "vuln,secret", "comma-separated list of what security issues to detect")
+	enableProfile   = flag.Bool("enable-pprof", false, "enable pprof profiling")
+	profilePort     = flag.Int("pprof-port", 6060, "port for pprof profiling. defaulted to 6060 if unspecified")
 
 	// Will be modified by parseCommaSeparatedOptions() to reflect the `severity` CLI flag
 	// These are the only recognized severities and the keys of this map should never be modified.
@@ -127,6 +132,13 @@ func main() {
 	if err := logger.Configure(); err != nil {
 		fmt.Fprintln(os.Stderr, "Error setting up logger:", err)
 		os.Exit(generalErr)
+	}
+
+	if *enableProfile {
+		go func() {
+			err := http.ListenAndServe(fmt.Sprintf("localhost:%d", *profilePort), nil)
+			log.Error(err, "pprof server failed")
+		}()
 	}
 
 	allCommaSeparatedOptions := []optionSet{
