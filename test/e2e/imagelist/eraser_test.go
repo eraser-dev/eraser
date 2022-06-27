@@ -8,13 +8,13 @@ import (
 	"testing"
 	"time"
 
-	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
+	//eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
 	"github.com/Azure/eraser/test/e2e/util"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
-	clientgo "k8s.io/client-go/kubernetes"
+	//clientgo "k8s.io/client-go/kubernetes"
 
 	"sigs.k8s.io/e2e-framework/klient/wait"
 	"sigs.k8s.io/e2e-framework/klient/wait/conditions"
@@ -770,7 +770,7 @@ func TestRemoveImagesFromAllNodes(t *testing.T) {
 					Name:      "excluded",
 					Namespace: "eraser-system",
 				},
-				Data: map[string]string{"excluded": "docker.io/library/*"},
+				Data: map[string]string{"excluded": "{\"excluded\": [\"docker.io/library/*\"]}"},
 			}
 			if err := cfg.Client().Resources().Create(ctx, &excluded); err != nil {
 				t.Error("failed to create excluded configmap", err)
@@ -789,7 +789,7 @@ func TestRemoveImagesFromAllNodes(t *testing.T) {
 			}
 
 			if err = wait.For(conditions.New(client.Resources()).DeploymentConditionMatch(&resultDeployment, appsv1.DeploymentAvailable, corev1.ConditionTrue),
-				wait.WithTimeout(time.Minute*3)); err != nil {
+				wait.WithTimeout(time.Minute*5)); err != nil {
 				t.Error("deployment not found", err)
 			}
 
