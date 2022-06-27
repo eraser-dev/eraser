@@ -46,7 +46,7 @@ func TestRemoveImagesFromAllNodes(t *testing.T) {
 				t.Error("Failed to create the dep", err)
 			}
 			if err := util.DeleteImageListsAndJobs(cfg.KubeconfigFile()); err != nil {
-				t.Error("Failed to clean eraser obejcts ", err)
+				t.Error("Failed to clean eraser obejcts", err)
 			}
 			return ctx
 		}).
