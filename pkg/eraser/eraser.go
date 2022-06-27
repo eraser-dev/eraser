@@ -111,9 +111,11 @@ func removeImages(c Client, targetImages []string) error {
 		}
 
 		if digest, isNonRunning := nonRunningImages[imgDigestOrTag]; isNonRunning {
-			if isExcluded(imgDigestOrTag, idToTagListMap) {
+			if ex, err := isExcluded(imgDigestOrTag, idToTagListMap); ex {
 				log.Info("Image is excluded", "image", imgDigestOrTag)
 				continue
+			} else if err != nil {
+				log.Error(err, "Error in isExcluded")
 			}
 
 			err = c.deleteImage(backgroundContext, digest)
@@ -146,9 +148,11 @@ func removeImages(c Client, targetImages []string) error {
 				continue
 			}
 
-			if isExcluded(img, idToTagListMap) {
+			if ex, err := isExcluded(img, idToTagListMap); ex {
 				log.Info("Image is excluded", "image", img)
 				continue
+			} else if err != nil {
+				log.Error(err, "Error in isExcluded")
 			}
 
 			if err := c.deleteImage(backgroundContext, img); err != nil {
@@ -162,16 +166,16 @@ func removeImages(c Client, targetImages []string) error {
 	return nil
 }
 
-func isExcluded(img string, idToTagListMap map[string][]string) bool {
+func isExcluded(img string, idToTagListMap map[string][]string) (bool, error) {
 	// check if img excluded by digest
 	if _, contains := excluded[img]; contains {
-		return true
+		return true, nil
 	}
 
 	// check if img excluded by name
 	for _, imgName := range idToTagListMap[img] {
 		if _, contains := excluded[imgName]; contains {
-			return true
+			return true, nil
 		}
 	}
 
@@ -185,20 +189,24 @@ func isExcluded(img string, idToTagListMap map[string][]string) bool {
 			repo := strings.Split(key, "*")
 
 			// check if img is part of repo
-			if match2, _ := regexp.MatchString("^"+repo[0], img); match2 {
-				return true
+			if match, err := regexp.MatchString("^"+repo[0], img); match {
+				return true, nil
+			} else if err != nil {
+				return false, err
 			}
 
 			// retrieve and check by name in the case img is digest
 			for _, imgName := range idToTagListMap[img] {
-				if match2, _ := regexp.MatchString(repo[0], imgName); match2 {
-					return true
+				if match, err := regexp.MatchString(repo[0], imgName); match {
+					return true, nil
+				} else if err != nil {
+					return false, err
 				}
 			}
 		}
 	}
 
-	return false
+	return false, nil
 }
 
 func main() {
