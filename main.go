@@ -18,6 +18,9 @@ package main
 
 import (
 	"flag"
+	"fmt"
+	"net/http"
+	_ "net/http/pprof"
 	"os"
 
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
@@ -46,6 +49,8 @@ var (
 	enableLeaderElection = flag.Bool("leader-elect", false,
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.")
+	enableProfile = flag.Bool("enable-pprof", false, "enable pprof profiling")
+	profilePort   = flag.Int("pprof-port", 6060, "port for pprof profiling. defaulted to 6060 if unspecified")
 )
 
 func init() {
@@ -61,6 +66,13 @@ func main() {
 	if err := logger.Configure(); err != nil {
 		setupLog.Error(err, "unable to configure logger")
 		os.Exit(1)
+	}
+
+	if *enableProfile {
+		go func() {
+			err := http.ListenAndServe(fmt.Sprintf("localhost:%d", *profilePort), nil)
+			setupLog.Error(err, "pprof server failed")
+		}()
 	}
 
 	config := ctrl.GetConfigOrDie()

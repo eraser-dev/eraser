@@ -5,9 +5,9 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"net/http"
 	"os"
 	"strings"
-	"sync"
 
 	machinerytypes "k8s.io/apimachinery/pkg/types"
 
@@ -15,6 +15,8 @@ import (
 
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
+
+	_ "net/http/pprof"
 
 	"github.com/Azure/eraser/pkg/logger"
 	"github.com/aquasecurity/fanal/applier"
@@ -61,6 +63,8 @@ var (
 	ignoreUnfixed   = flag.Bool("ignore-unfixed", true, "report only fixed vulnerabilities")
 	vulnTypes       = flag.String("vuln-type", "os,library", "comma separated list of vulnerability types")
 	securityChecks  = flag.String("security-checks", "vuln,secret", "comma-separated list of what security issues to detect")
+	enableProfile   = flag.Bool("enable-pprof", false, "enable pprof profiling")
+	profilePort     = flag.Int("pprof-port", 6060, "port for pprof profiling. defaulted to 6060 if unspecified")
 
 	// Will be modified by parseCommaSeparatedOptions() to reflect the `severity` CLI flag
 	// These are the only recognized severities and the keys of this map should never be modified.
@@ -119,11 +123,6 @@ type (
 		vulnerableImages []eraserv1alpha1.Image
 		failedImages     []eraserv1alpha1.Image
 	}
-
-	imageReport struct {
-		eraserv1alpha1.Image
-		err error
-	}
 )
 
 func main() {
@@ -133,6 +132,13 @@ func main() {
 	if err := logger.Configure(); err != nil {
 		fmt.Fprintln(os.Stderr, "Error setting up logger:", err)
 		os.Exit(generalErr)
+	}
+
+	if *enableProfile {
+		go func() {
+			err := http.ListenAndServe(fmt.Sprintf("localhost:%d", *profilePort), nil)
+			log.Error(err, "pprof server failed")
+		}()
 	}
 
 	allCommaSeparatedOptions := []optionSet{
@@ -200,97 +206,67 @@ func main() {
 	}
 
 	resultClient := initializeResultClient()
-	dbMutex := sync.Mutex{}
-	imgChan := make(chan imageReport)
-	var wg sync.WaitGroup
+	vulnerableImages := make([]eraserv1alpha1.Image, 0, len(result.Spec.Images))
+	failedImages := make([]eraserv1alpha1.Image, 0, len(result.Spec.Images))
 
 	for k := range result.Spec.Images {
 		img := result.Spec.Images[k]
-		wg.Add(1)
 
-		go func(img eraserv1alpha1.Image) {
-			imageRef := img.Name
-			if imageRef == "" {
-				log.Info("found image with no name", "img", img)
-				imgChan <- imageReport{Image: img, err: fmt.Errorf("no name")}
-				wg.Done()
-				return
-			}
-
-			log.Info("scanning image", "imageRef", imageRef)
-
-			// Reads db and cache and potentially modifies them, so lock all
-			// other threads during this operation
-			dbMutex.Lock()
-			dockerImage, cleanup, err := fanalImage.NewDockerImage(ctx, imageRef, scanConfig.dockerOptions)
-			defer cleanup()
-			dbMutex.Unlock()
-
-			if err != nil {
-				imgChan <- imageReport{Image: img, err: err}
-				log.Error(err, "error fetching manifest for image", "img", img)
-				wg.Done()
-				return
-			}
-
-			artifactToScan, err := artifactImage.NewArtifact(dockerImage, scanConfig.fscache, artifact.Option{})
-			if err != nil {
-				imgChan <- imageReport{Image: img, err: err}
-				log.Error(err, "error registering config for artifact", "img", img)
-				wg.Done()
-				return
-			}
-
-			scanner := scanner.NewScanner(scanConfig.localScanner, artifactToScan)
-			report, err := scanner.ScanArtifact(ctx, scanConfig.scanOptions)
-			if err != nil {
-				imgChan <- imageReport{Image: img, err: err}
-				log.Error(err, "error scanning image", "img", img)
-				wg.Done()
-				return
-			}
-
-		outer:
-			for i := range report.Results {
-				resultClient.FillVulnerabilityInfo(report.Results[i].Vulnerabilities, report.Results[i].Type)
-
-				for j := range report.Results[i].Vulnerabilities {
-					if *ignoreUnfixed && report.Results[i].Vulnerabilities[j].FixedVersion == "" {
-						continue
-					}
-
-					if report.Results[i].Vulnerabilities[j].Severity == "" {
-						report.Results[i].Vulnerabilities[j].Severity = severityUnknown
-					}
-
-					if severityMap[report.Results[i].Vulnerabilities[j].Severity] {
-						imgChan <- imageReport{Image: img, err: nil}
-						break outer
-					}
-				}
-			}
-
-			wg.Done()
-		}(img)
-	}
-
-	go func() {
-		wg.Wait()
-		close(imgChan)
-	}()
-
-	vulnerableImages := make([]eraserv1alpha1.Image, 0, len(result.Spec.Images))
-	failedImages := make([]eraserv1alpha1.Image, 0, len(result.Spec.Images))
-	for img := range imgChan {
-		if img.err != nil {
-			log.V(1).Error(img.err, "error scanning image") // debug only
-			failedImages = append(failedImages, img.Image)
-			log.Info("unable to scan image", "img", img)
+		imageRef := img.Name
+		if imageRef == "" {
+			log.Info("found image with no name", "img", img)
+			failedImages = append(failedImages, img)
 			continue
 		}
 
-		log.Info("image has vulnerabilities", "img", img)
-		vulnerableImages = append(vulnerableImages, img.Image)
+		log.Info("scanning image", "imageRef", imageRef)
+
+		dockerImage, cleanup, err := fanalImage.NewDockerImage(ctx, imageRef, scanConfig.dockerOptions)
+		if err != nil {
+			log.Error(err, "error fetching manifest for image", "img", img)
+			failedImages = append(failedImages, img)
+			cleanup()
+			continue
+		}
+
+		artifactToScan, err := artifactImage.NewArtifact(dockerImage, scanConfig.fscache, artifact.Option{})
+		if err != nil {
+			log.Error(err, "error registering config for artifact", "img", img)
+			failedImages = append(failedImages, img)
+			cleanup()
+			continue
+		}
+
+		scanner := scanner.NewScanner(scanConfig.localScanner, artifactToScan)
+		report, err := scanner.ScanArtifact(ctx, scanConfig.scanOptions)
+		if err != nil {
+			log.Error(err, "error scanning image", "img", img)
+			failedImages = append(failedImages, img)
+			cleanup()
+			continue
+		}
+
+	outer:
+		for i := range report.Results {
+			resultClient.FillVulnerabilityInfo(report.Results[i].Vulnerabilities, report.Results[i].Type)
+
+			for j := range report.Results[i].Vulnerabilities {
+				if *ignoreUnfixed && report.Results[i].Vulnerabilities[j].FixedVersion == "" {
+					continue
+				}
+
+				if report.Results[i].Vulnerabilities[j].Severity == "" {
+					report.Results[i].Vulnerabilities[j].Severity = severityUnknown
+				}
+
+				if severityMap[report.Results[i].Vulnerabilities[j].Severity] {
+					vulnerableImages = append(vulnerableImages, img)
+					break outer
+				}
+			}
+		}
+
+		cleanup()
 	}
 
 	err = updateStatus(&statusUpdate{

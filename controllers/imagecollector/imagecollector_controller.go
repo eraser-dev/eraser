@@ -425,6 +425,13 @@ func (r *Reconciler) createScanJob(ctx context.Context, collector *eraserv1alpha
 							Name:  "trivy-scanner",
 							Image: scannerImage,
 							Args:  instanceArgs,
+							Resources: corev1.ResourceRequirements{
+								Limits: corev1.ResourceList{
+									"memory": resource.Quantity{
+										Format: "2Gi",
+									},
+								},
+							},
 						},
 					},
 				},
