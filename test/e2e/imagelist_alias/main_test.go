@@ -1,7 +1,7 @@
-//go:build imagelist
-// +build imagelist
+//go:build e2e
+// +build e2e
 
-package imagelist
+package e2e
 
 import (
 	"context"

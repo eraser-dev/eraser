@@ -1,7 +1,7 @@
-//go:build collector
-// +build collector
+//go:build e2e
+// +build e2e
 
-package collector
+package e2e
 
 import (
 	"os"
