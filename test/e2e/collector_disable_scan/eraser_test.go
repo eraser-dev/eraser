@@ -5,19 +5,13 @@ package e2e
 
 import (
 	"context"
-	"os"
-	"path/filepath"
 	"testing"
 	"time"
 
 	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
 	"github.com/Azure/eraser/test/e2e/util"
-	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/labels"
 
 	"sigs.k8s.io/e2e-framework/klient/wait"
-	"sigs.k8s.io/e2e-framework/klient/wait/conditions"
 	"sigs.k8s.io/e2e-framework/pkg/envconf"
 	"sigs.k8s.io/e2e-framework/pkg/features"
 )
@@ -28,24 +22,6 @@ func TestRemoveImagesFromAllNodes(t *testing.T) {
 	)
 
 	disableScanFeat := features.New("Test Scanner Disabled Prune").
-		Setup(func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
-			wd, err := os.Getwd()
-			if err != nil {
-				t.Error("Could not get working directory", err)
-			}
-
-			providerResourceAbsolutePath, err := filepath.Abs(filepath.Join(wd, "/../../../", providerResourceDirectory, "eraser"))
-			if err != nil {
-				t.Error("Unable to get provider resource absolute path", err)
-			}
-
-			err = util.HelmInstall(cfg.KubeconfigFile(), "eraser-system", []string{providerResourceAbsolutePath, "--set", "scanner.image.repository="})
-			if err != nil {
-				t.Error("Unable to install deployment with scanner disabled", err)
-			}
-
-			return ctx
-		}).
 		Assess("ImageCollector CR is generated", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
 			c, err := cfg.NewClient()
 			if err != nil {
@@ -54,12 +30,12 @@ func TestRemoveImagesFromAllNodes(t *testing.T) {
 
 			imagecollector := eraserv1alpha1.ImageCollector{}
 			wait.For(func() (bool, error) {
-				err := c.Resources().Get(ctx, "imagecollector-shared", "default", &imagecollector)
+				err := c.Resources().Get(ctx, util.ImageCollectorShared, "default", &imagecollector)
 				if err != nil {
 					t.Error("Could not get imagecollector-shared")
 				}
 
-				if imagecollector.ObjectMeta.Name == "imagecollector-shared" {
+				if imagecollector.ObjectMeta.Name == util.ImageCollectorShared {
 					return true, nil
 				}
 
@@ -68,7 +44,7 @@ func TestRemoveImagesFromAllNodes(t *testing.T) {
 
 			return ctx
 		}).
-		Assess("ImageList Spec Contains Same Images As ImageCollecotor Shared", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
+		Assess("ImageList Spec Contains Same Images As ImageCollector Shared", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
 			c, err := cfg.NewClient()
 			if err != nil {
 				t.Error("Failed to create new client", err)
@@ -94,7 +70,7 @@ func TestRemoveImagesFromAllNodes(t *testing.T) {
 			}, wait.WithTimeout(time.Minute*3))
 
 			imagecollectorShared := eraserv1alpha1.ImageCollector{}
-			err = c.Resources().Get(ctx, "imagecollector-shared", "default", &imagecollectorShared)
+			err = c.Resources().Get(ctx, util.ImageCollectorShared, "default", &imagecollectorShared)
 			if err != nil {
 				t.Error("Could not get imagecollector-shared")
 			}
@@ -119,33 +95,7 @@ func TestRemoveImagesFromAllNodes(t *testing.T) {
 
 			return ctx
 		}).
-		Teardown(func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
-			c, err := cfg.NewClient()
-			if err != nil {
-				t.Fatal("Failed to create new client", err)
-			}
-
-			err = util.HelmUninstall(cfg.KubeconfigFile(), "eraser-system", []string{})
-			if err != nil {
-				t.Error("Unable to uninstall deployment for teardown", err)
-			}
-
-			var ls corev1.PodList
-			err = c.Resources().List(ctx, &ls, func(o *metav1.ListOptions) {
-				o.LabelSelector = labels.SelectorFromSet(map[string]string{"name": "eraser-manager"}).String()
-			})
-			if err != nil {
-				t.Error("could not list eraser manager pod")
-			}
-
-			err = wait.For(conditions.New(c.Resources()).ResourcesDeleted(&ls), wait.WithTimeout(time.Minute))
-			if err != nil {
-				t.Errorf("error waiting for eraser-manager to be deleted: %v", err)
-			}
-
-			return ctx
-		}).
 		Feature()
 
-	testenv.Test(t, disableScanFeat)
+	util.Testenv.Test(t, disableScanFeat)
 }

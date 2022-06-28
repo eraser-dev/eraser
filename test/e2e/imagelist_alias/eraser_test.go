@@ -20,50 +20,35 @@ import (
 )
 
 func TestRemoveImagesFromAllNodes(t *testing.T) {
-	const (
-		nginx         = "nginx"
-		nginxLatest   = "docker.io/library/nginx:latest"
-		nginxAliasOne = "docker.io/library/nginx:one"
-		nginxAliasTwo = "docker.io/library/nginx:two"
-		redis         = "redis"
-		caddy         = "caddy"
-
-		prune               = "imagelist"
-		skippedNodeName     = "eraser-e2e-test-worker"
-		skippedNodeSelector = "kubernetes.io/hostname=eraser-e2e-test-worker"
-		skipLabelKey        = "eraser.sh/cleanup.skip"
-		skipLabelValue      = "true"
-	)
-
 	aliasFix := features.New("Specifying an image alias in the image list will delete the underlying image").
 		// Deploy 3 deployments with different images
 		// We'll shutdown two of them, run eraser with `*`, then check that the images for the removed deployments are removed from the cluster.
 		Setup(func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
 			// Ensure that both nginx:one and nginx:two are tags for the same image digest
-			_, err := util.DockerPullImage(nginxLatest)
+			_, err := util.DockerPullImage(util.NginxLatest)
 			if err != nil {
 				t.Error("failed to pull nginx image", err)
 			}
 
 			// Create the alias nginx:one
-			_, err = util.DockerTagImage(nginxLatest, nginxAliasOne)
+			_, err = util.DockerTagImage(util.NginxLatest, util.NginxAliasOne)
 			if err != nil {
 				t.Error("failed to tag nginx image", err)
 			}
 
 			// Create the alias nginx:two
-			_, err = util.DockerTagImage(nginxLatest, nginxAliasTwo)
+			_, err = util.DockerTagImage(util.NginxLatest, util.NginxAliasTwo)
 			if err != nil {
 				t.Error("failed to tag nginx image", err)
 			}
 
 			// Load the images into the cluster
-			_, err = util.KindLoadImage(util.KindClusterName, nginxAliasOne)
+			_, err = util.KindLoadImage(util.KindClusterName, util.NginxAliasOne)
 			if err != nil {
 				t.Error("failed to load kind image", err)
 			}
 
-			_, err = util.KindLoadImage(util.KindClusterName, nginxAliasTwo)
+			_, err = util.KindLoadImage(util.KindClusterName, util.NginxAliasTwo)
 			if err != nil {
 				t.Error("failed to load kind image", err)
 			}
@@ -71,19 +56,19 @@ func TestRemoveImagesFromAllNodes(t *testing.T) {
 			// Schedule two pods on a single node. Both pods will create containers from the same image,
 			// but each pod refers to that same image by a different tag.
 			nodeName := util.GetClusterNodes(t)[0]
-			nginxOnePod := util.NewPod(cfg.Namespace(), nginxAliasOne, "nginxone", nodeName)
+			nginxOnePod := util.NewPod(cfg.Namespace(), util.NginxAliasOne, "nginxone", nodeName)
 			ctx = context.WithValue(ctx, "nodeName", nodeName)
 
 			if err := cfg.Client().Resources().Create(ctx, nginxOnePod); err != nil {
 				t.Error("Failed to create the nginx pod", err)
 			}
-			ctx = context.WithValue(ctx, nginxAliasOne, nginxOnePod)
+			ctx = context.WithValue(ctx, util.NginxAliasOne, nginxOnePod)
 
-			nginxTwoPod := util.NewPod(cfg.Namespace(), nginxAliasTwo, "nginxtwo", nodeName)
+			nginxTwoPod := util.NewPod(cfg.Namespace(), util.NginxAliasTwo, "nginxtwo", nodeName)
 			if err := cfg.Client().Resources().Create(ctx, nginxTwoPod); err != nil {
 				t.Error("Failed to create the nginx pod", err)
 			}
-			ctx = context.WithValue(ctx, nginxAliasTwo, nginxTwoPod)
+			ctx = context.WithValue(ctx, util.NginxAliasTwo, nginxTwoPod)
 
 			return ctx
 		}).
@@ -112,7 +97,7 @@ func TestRemoveImagesFromAllNodes(t *testing.T) {
 			}
 
 			// Delete the pods, so they will be cleaned up
-			nginxOnePod := ctx.Value(nginxAliasOne).(*corev1.Pod)
+			nginxOnePod := ctx.Value(util.NginxAliasOne).(*corev1.Pod)
 			if err := client.Resources().Delete(ctx, nginxOnePod); err != nil {
 				t.Error("Failed to delete the dep", err)
 			}
@@ -125,7 +110,7 @@ func TestRemoveImagesFromAllNodes(t *testing.T) {
 				t.Logf("error while waiting for deployment deletion: %v", err)
 			}
 
-			nginxTwoPod := ctx.Value(nginxAliasTwo).(*corev1.Pod)
+			nginxTwoPod := ctx.Value(util.NginxAliasTwo).(*corev1.Pod)
 			if err := client.Resources().Delete(ctx, nginxTwoPod); err != nil {
 				t.Error("Failed to delete the dep", err)
 			}
@@ -140,9 +125,9 @@ func TestRemoveImagesFromAllNodes(t *testing.T) {
 		}).
 		Assess("Image deleted when referencing by alias", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
 			imgList := &eraserv1alpha1.ImageList{
-				ObjectMeta: metav1.ObjectMeta{Name: prune},
+				ObjectMeta: metav1.ObjectMeta{Name: util.Prune},
 				Spec: eraserv1alpha1.ImageListSpec{
-					Images: []string{nginxAliasTwo},
+					Images: []string{util.NginxAliasTwo},
 				},
 			}
 			if err := cfg.Client().Resources().Create(ctx, imgList); err != nil {
@@ -152,28 +137,11 @@ func TestRemoveImagesFromAllNodes(t *testing.T) {
 			nodeName := ctx.Value("nodeName").(string)
 			ctxT, cancel := context.WithTimeout(ctx, time.Minute)
 			defer cancel()
-			util.CheckImageRemoved(ctxT, t, []string{nodeName}, nginx)
-
-			return ctx
-		}).
-		Teardown(func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
-			if err := util.DeleteImageListsAndJobs(cfg.KubeconfigFile()); err != nil {
-				t.Error("Failed to clean eraser obejcts ", err)
-			}
-
-			// make sure nginx containers are cleaned up before proceeding
-			for _, nodeName := range util.GetClusterNodes(t) {
-				err := wait.For(util.ContainerNotPresentOnNode(nodeName, nginx), wait.WithTimeout(time.Minute*2))
-				if err != nil {
-					// Let's not mark this as an error
-					// We only have this to prevent race conditions with the eraser spinning up
-					t.Logf("error while waiting for deployment deletion: %v", err)
-				}
-			}
+			util.CheckImageRemoved(ctxT, t, []string{nodeName}, util.Nginx)
 
 			return ctx
 		}).
 		Feature()
 
-	testenv.Test(t, aliasFix)
+	util.Testenv.Test(t, aliasFix)
 }

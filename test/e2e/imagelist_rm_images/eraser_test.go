@@ -21,25 +21,10 @@ import (
 )
 
 func TestRemoveImagesFromAllNodes(t *testing.T) {
-	const (
-		nginx         = "nginx"
-		nginxLatest   = "docker.io/library/nginx:latest"
-		nginxAliasOne = "docker.io/library/nginx:one"
-		nginxAliasTwo = "docker.io/library/nginx:two"
-		redis         = "redis"
-		caddy         = "caddy"
-
-		prune               = "imagelist"
-		skippedNodeName     = "eraser-e2e-test-worker"
-		skippedNodeSelector = "kubernetes.io/hostname=eraser-e2e-test-worker"
-		skipLabelKey        = "eraser.sh/cleanup.skip"
-		skipLabelValue      = "true"
-	)
-
 	rmImageFeat := features.New("Test Remove Image From All Nodes").
 		Setup(func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
-			podSelectorLabels := map[string]string{"app": nginx}
-			nginxDep := util.NewDeployment(cfg.Namespace(), nginx, 2, podSelectorLabels, corev1.Container{Image: nginx, Name: nginx})
+			podSelectorLabels := map[string]string{"app": util.Nginx}
+			nginxDep := util.NewDeployment(cfg.Namespace(), util.Nginx, 2, podSelectorLabels, corev1.Container{Image: util.Nginx, Name: util.Nginx})
 			if err := cfg.Client().Resources().Create(ctx, nginxDep); err != nil {
 				t.Error("Failed to create the dep", err)
 			}
@@ -55,7 +40,7 @@ func TestRemoveImagesFromAllNodes(t *testing.T) {
 			}
 
 			resultDeployment := appsv1.Deployment{
-				ObjectMeta: metav1.ObjectMeta{Name: nginx, Namespace: cfg.Namespace()},
+				ObjectMeta: metav1.ObjectMeta{Name: util.Nginx, Namespace: cfg.Namespace()},
 			}
 
 			if err = wait.For(conditions.New(client.Resources()).DeploymentConditionMatch(&resultDeployment, appsv1.DeploymentAvailable, corev1.ConditionTrue),
@@ -63,7 +48,7 @@ func TestRemoveImagesFromAllNodes(t *testing.T) {
 				t.Error("deployment not found", err)
 			}
 
-			return context.WithValue(ctx, nginx, &resultDeployment)
+			return context.WithValue(ctx, util.Nginx, &resultDeployment)
 		}).
 		Assess("Images successfully deleted from all nodes", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
 			// delete deployment
@@ -74,19 +59,19 @@ func TestRemoveImagesFromAllNodes(t *testing.T) {
 
 			var pods corev1.PodList
 			err = client.Resources().List(ctx, &pods, func(o *metav1.ListOptions) {
-				o.LabelSelector = labels.SelectorFromSet(labels.Set{"app": nginx}).String()
+				o.LabelSelector = labels.SelectorFromSet(labels.Set{"app": util.Nginx}).String()
 			})
 			if err != nil {
 				t.Fatal(err)
 			}
 
-			dep := ctx.Value(nginx).(*appsv1.Deployment)
+			dep := ctx.Value(util.Nginx).(*appsv1.Deployment)
 			if err := client.Resources().Delete(ctx, dep); err != nil {
 				t.Error("Failed to delete the dep", err)
 			}
 
 			for _, nodeName := range util.GetClusterNodes(t) {
-				err := wait.For(util.ContainerNotPresentOnNode(nodeName, nginx), wait.WithTimeout(time.Minute*2))
+				err := wait.For(util.ContainerNotPresentOnNode(nodeName, util.Nginx), wait.WithTimeout(time.Minute*2))
 				if err != nil {
 					// Let's not mark this as an error
 					// We only have this to prevent race conditions with the eraser spinning up
@@ -101,7 +86,7 @@ func TestRemoveImagesFromAllNodes(t *testing.T) {
 
 			ctxT, cancel := context.WithTimeout(ctx, time.Minute)
 			defer cancel()
-			util.CheckImageRemoved(ctxT, t, util.GetClusterNodes(t), nginx)
+			util.CheckImageRemoved(ctxT, t, util.GetClusterNodes(t), util.Nginx)
 
 			return ctx
 		}).
@@ -137,5 +122,5 @@ func TestRemoveImagesFromAllNodes(t *testing.T) {
 		}).
 		Feature()
 
-	testenv.Test(t, rmImageFeat)
+	util.Testenv.Test(t, rmImageFeat)
 }

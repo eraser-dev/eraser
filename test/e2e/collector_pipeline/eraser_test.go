@@ -5,8 +5,6 @@ package e2e
 
 import (
 	"context"
-	"os"
-	"path/filepath"
 	"testing"
 	"time"
 
@@ -28,23 +26,6 @@ func TestRemoveImagesFromAllNodes(t *testing.T) {
 	)
 
 	collectScanErasePipelineFeat := features.New("Test Remove Image From All Nodes").
-		Setup(func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
-			wd, err := os.Getwd()
-			if err != nil {
-				t.Error("Could not get wd")
-			}
-
-			providerResourceAbsolutePath, err := filepath.Abs(filepath.Join(wd, "/../../../", providerResourceDirectory, "eraser"))
-			if err != nil {
-				t.Error("Could not get provider resource absolute pathy")
-			}
-			// start deployment
-			if err := util.HelmInstall(cfg.KubeconfigFile(), "eraser-system", []string{providerResourceAbsolutePath}); err != nil {
-				t.Error("Unable to helm install deployment", err)
-			}
-
-			return ctx
-		}).
 		Assess("ImageCollector CR is generated", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
 			c, err := cfg.NewClient()
 			if err != nil {
@@ -53,12 +34,12 @@ func TestRemoveImagesFromAllNodes(t *testing.T) {
 
 			resource := eraserv1alpha1.ImageCollector{}
 			wait.For(func() (bool, error) {
-				err := c.Resources().Get(ctx, "imagecollector-shared", "default", &resource)
+				err := c.Resources().Get(ctx, util.ImageCollectorShared, "default", &resource)
 				if err != nil {
 					return false, err
 				}
 
-				if resource.ObjectMeta.Name == "imagecollector-shared" {
+				if resource.ObjectMeta.Name == util.ImageCollectorShared {
 					return true, nil
 				}
 
@@ -121,33 +102,7 @@ func TestRemoveImagesFromAllNodes(t *testing.T) {
 
 			return ctx
 		}).
-		Teardown(func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
-			c, err := cfg.NewClient()
-			if err != nil {
-				t.Fatal("Failed to create new client", err)
-			}
-
-			err = util.HelmUninstall(cfg.KubeconfigFile(), "eraser-system", []string{})
-			if err != nil {
-				t.Error("Unable to uninstall deployment for teardown", err)
-			}
-
-			var ls corev1.PodList
-			err = c.Resources().List(ctx, &ls, func(o *metav1.ListOptions) {
-				o.LabelSelector = labels.SelectorFromSet(map[string]string{"name": "eraser-manager"}).String()
-			})
-			if err != nil {
-				t.Error("could not list eraser manager pod")
-			}
-
-			err = wait.For(conditions.New(c.Resources()).ResourcesDeleted(&ls), wait.WithTimeout(time.Minute))
-			if err != nil {
-				t.Errorf("error waiting for eraser-manager to be deleted: %v", err)
-			}
-
-			return ctx
-		}).
 		Feature()
 
-	testenv.Test(t, collectScanErasePipelineFeat)
+	util.Testenv.Test(t, collectScanErasePipelineFeat)
 }
