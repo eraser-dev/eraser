@@ -77,34 +77,6 @@ jobs:
       - name: Unit test
         run: make test
 
-  codeql:
-    name: "CodeQL"
-    runs-on: ubuntu-latest
-    permissions:
-      actions: read
-      contents: read
-      security-events: write
-    timeout-minutes: 20
-    steps:
-      - name: Harden Runner
-        uses: step-security/harden-runner@248ae51c2e8cc9622ecf50685c8bf7150c6e8813
-        with:
-          egress-policy: audit
-      - name: Set up Go 1.18
-        uses: actions/setup-go@v3
-        with:
-          go-version: 1.18
-      - name: Check out code into the Go module directory
-        uses: actions/checkout@v3
-      - name: Initialize CodeQL
-        uses: github/codeql-action/init@41a4ada31ba866a7f1196b9602703a89edd69e22
-        with:
-          languages: go
-      - name: Autobuild
-        uses: github/codeql-action/autobuild@41a4ada31ba866a7f1196b9602703a89edd69e22
-      - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@41a4ada31ba866a7f1196b9602703a89edd69e22
-
   check-manifest:
     name: "Check Manifest"
     runs-on: ubuntu-latest
