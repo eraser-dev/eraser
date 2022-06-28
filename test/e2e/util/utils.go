@@ -36,7 +36,7 @@ const (
 	Redis         = "redis"
 	Caddy         = "caddy"
 
-	ImageCollectorShared = util.ImageCollectorShared
+	ImageCollectorShared = "imagecollector-shared"
 	Prune                = "imagelist"
 	SkippedNodeName      = "eraser-e2e-test-worker"
 	SkippedNodeSelector  = "kubernetes.io/hostname=eraser-e2e-test-worker"
