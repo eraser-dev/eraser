@@ -179,12 +179,13 @@ func isExcluded(img string, idToTagListMap map[string][]string) (bool, error) {
 		}
 	}
 
-	r := regexp.MustCompile(`[a-z0-9]+([._-][a-z0-9]+)*/\*\z`)
+	regexRepo := regexp.MustCompile(`[a-z0-9]+([._-][a-z0-9]+)*/\*\z`)
+	regexTag := regexp.MustCompile(`[a-z0-9]+([._-][a-z0-9]+)*(/[a-z0-9]+([._-][a-z0-9]+)*)*:\*\z`)
 
-	// look for excluded repository values
+	// look for excluded repository values and names without tag
 	for key := range excluded {
 		// if excluded key ends in /*, check image with pattern match
-		if match := r.MatchString(key); match {
+		if match := regexRepo.MatchString(key); match {
 			// store repository name
 			split := strings.Split(key, "*")
 			repo := strings.ReplaceAll(split[0], ".", `\.`)
@@ -199,6 +200,28 @@ func isExcluded(img string, idToTagListMap map[string][]string) (bool, error) {
 			// retrieve and check by name in the case img is digest
 			for _, imgName := range idToTagListMap[img] {
 				if match, err := regexp.MatchString(repo, imgName); match {
+					return true, nil
+				} else if err != nil {
+					return false, err
+				}
+			}
+		}
+
+		// if excluded key ends in :*, check image with pattern patch
+		if match := regexTag.MatchString(key); match {
+			// store image name
+			split := strings.Split(key, ":")
+			imagePath := strings.ReplaceAll(split[0], ".", `\.`)
+
+			if match, err := regexp.MatchString("^"+imagePath, img); match {
+				return true, nil
+			} else if err != nil {
+				return false, err
+			}
+
+			// retrieve and check by name in the case img is digest
+			for _, imgName := range idToTagListMap[img] {
+				if match, err := regexp.MatchString(imagePath, imgName); match {
 					return true, nil
 				} else if err != nil {
 					return false, err
