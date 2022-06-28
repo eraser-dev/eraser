@@ -43,12 +43,7 @@ func TestRemoveImagesFromAllNodes(t *testing.T) {
 			}
 
 			// Load the images into the cluster
-			_, err = util.KindLoadImage(util.KindClusterName, util.NginxAliasOne)
-			if err != nil {
-				t.Error("failed to load kind image", err)
-			}
-
-			_, err = util.KindLoadImage(util.KindClusterName, util.NginxAliasTwo)
+			_, err = util.KindLoadImage(util.KindClusterName, util.NginxAliasOne, util.NginxAliasTwo)
 			if err != nil {
 				t.Error("failed to load kind image", err)
 			}

@@ -322,8 +322,9 @@ func DockerTagImage(image, tag string) (string, error) {
 	return output, err
 }
 
-func KindLoadImage(clusterName, image string) (string, error) {
-	args := []string{"load", "docker-image", image, "--name", clusterName}
+func KindLoadImage(clusterName string, images ...string) (string, error) {
+	args := []string{"load", "docker-image", "--name", clusterName}
+	args = append(args, images...)
 	cmd := exec.Command("kind", args...)
 
 	stdoutStderr, err := cmd.CombinedOutput()
