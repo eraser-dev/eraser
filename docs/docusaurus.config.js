@@ -8,7 +8,7 @@ const darkCodeTheme = require('prism-react-renderer/themes/dracula');
 const config = {
   title: 'Eraser Docs',
   url: 'https://salaxander.github.io/eraser',
-  baseUrl: '/',
+  baseUrl: '/eraser/',
   onBrokenLinks: 'throw',
   onBrokenMarkdownLinks: 'warn',
   favicon: 'img/favicon.ico',
