@@ -6,17 +6,14 @@ Eraser helps Kubernetes admins remove a list of non-running images from all Kube
 
 ## Getting started
 
-You can find a [quick start guide / tutorial here](docs/QUICKSTART.md).
-
-## Developer Setup
-
-If you like to contribute to Eraser you need to setup your development environment. You can find [developer environment setup requirements here](docs/DEVELOP.md).
+You can find a quick start guide in the Eraser [documentation](https://azure.github.io/eraser/docs/quick-start).
 
 ## Contributing
 
 There are several ways to get involved:
 * Join the [mailing list](https://groups.google.com/u/1/g/eraser-dev) to get notifications for releases, security announcements, etc.
 * Join the [biweekly community meetings](https://docs.google.com/document/d/1Sj5u47K3WUGYNPmQHGFpb52auqZb1FxSlWAQnPADhWI/edit) to discuss development, issues, use cases, etc.
+* View the development setup instructions in the [documentation](https://azure.github.io/eraser/docs/development)
 
 This project welcomes contributions and suggestions.  Most contributions require you to agree to a Contributor License Agreement (CLA) declaring that you have the right to, and actually do, grant us the rights to use your contribution. For details, visit https://cla.opensource.microsoft.com.
 
