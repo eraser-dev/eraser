@@ -16,12 +16,8 @@ import (
 	"sigs.k8s.io/e2e-framework/pkg/features"
 )
 
-func TestRemoveImagesFromAllNodes(t *testing.T) {
-	const (
-		alpine = "alpine"
-	)
-
-	disableScanFeat := features.New("Test Scanner Disabled Prune").
+func TestDisableScanner(t *testing.T) {
+	disableScanFeat := features.New("Scanner can be disabled").
 		Assess("ImageCollector CR is generated", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
 			c, err := cfg.NewClient()
 			if err != nil {

@@ -29,6 +29,7 @@ const (
 	ProviderResource = "eraser.yaml"
 	EraserNamespace  = "eraser-system"
 
+	Alpine        = "alpine"
 	Nginx         = "nginx"
 	NginxLatest   = "docker.io/library/nginx:latest"
 	NginxAliasOne = "docker.io/library/nginx:one"

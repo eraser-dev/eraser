@@ -20,12 +20,8 @@ import (
 	"sigs.k8s.io/e2e-framework/pkg/features"
 )
 
-func TestRemoveImagesFromAllNodes(t *testing.T) {
-	const (
-		alpine = "alpine"
-	)
-
-	collectScanErasePipelineFeat := features.New("Test Remove Image From All Nodes").
+func TestCollectScanErasePipeline(t *testing.T) {
+	collectScanErasePipelineFeat := features.New("ImageCollector should run automatically, trigger the scanner, then the eraser pods").
 		Assess("ImageCollector CR is generated", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
 			c, err := cfg.NewClient()
 			if err != nil {
@@ -77,7 +73,7 @@ func TestRemoveImagesFromAllNodes(t *testing.T) {
 		Assess("Images successfully deleted from all nodes", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
 			ctxT, cancel := context.WithTimeout(ctx, 3*time.Minute)
 			defer cancel()
-			util.CheckImageRemoved(ctxT, t, util.GetClusterNodes(t), alpine)
+			util.CheckImageRemoved(ctxT, t, util.GetClusterNodes(t), util.Alpine)
 
 			return ctx
 		}).

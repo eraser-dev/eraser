@@ -21,8 +21,8 @@ import (
 	"sigs.k8s.io/e2e-framework/pkg/features"
 )
 
-func TestRemoveImagesFromAllNodes(t *testing.T) {
-	pruneImagesFeat := features.New("Remove all non-running images from cluster").
+func TestPrune(t *testing.T) {
+	pruneImagesFeat := features.New("Prune all non-running images from cluster").
 		// Deploy 3 deployments with different images
 		// We'll shutdown two of them, run eraser with `*`, then check that the images for the removed deployments are removed from the cluster.
 		Setup(func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {

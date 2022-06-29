@@ -21,8 +21,8 @@ import (
 	"sigs.k8s.io/e2e-framework/pkg/features"
 )
 
-func TestRemoveImagesFromAllNodes(t *testing.T) {
-	skipNodesFeat := features.New("Test node skipping by applying label").
+func TestSkipNodes(t *testing.T) {
+	skipNodesFeat := features.New("Applying the eraser.sh/cleanup.skip label to a node should prevent ImageJob pods from being scheduled on that node").
 		Setup(func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
 			// fetch node info
 			c := cfg.Client().RESTConfig()

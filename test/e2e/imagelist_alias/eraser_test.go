@@ -19,7 +19,7 @@ import (
 	"sigs.k8s.io/e2e-framework/pkg/features"
 )
 
-func TestRemoveImagesFromAllNodes(t *testing.T) {
+func TestEnsureAliasedImageRemoved(t *testing.T) {
 	aliasFix := features.New("Specifying an image alias in the image list will delete the underlying image").
 		// Deploy 3 deployments with different images
 		// We'll shutdown two of them, run eraser with `*`, then check that the images for the removed deployments are removed from the cluster.

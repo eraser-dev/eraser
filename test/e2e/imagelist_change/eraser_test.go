@@ -21,8 +21,8 @@ import (
 	"sigs.k8s.io/e2e-framework/pkg/features"
 )
 
-func TestRemoveImagesFromAllNodes(t *testing.T) {
-	imglistChangeFeat := features.New("Test Updating ImageList to Reconcile").
+func TestUpdateImageList(t *testing.T) {
+	imglistChangeFeat := features.New("Updating the Imagelist should trigger an ImageJob").
 		Setup(func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
 			// Deploy 2 deployments with different images (nginx, redis)
 			nginxDep := util.NewDeployment(cfg.Namespace(), util.Nginx, 2, map[string]string{"app": util.Nginx}, corev1.Container{Image: util.Nginx, Name: util.Nginx})

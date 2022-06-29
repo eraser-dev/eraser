@@ -20,8 +20,8 @@ import (
 	"sigs.k8s.io/e2e-framework/pkg/features"
 )
 
-func TestRemoveImagesFromAllNodes(t *testing.T) {
-	rmImageFeat := features.New("Test Remove Image From All Nodes").
+func TestImageListTriggersEraserImageJob(t *testing.T) {
+	rmImageFeat := features.New("An ImageList should trigger an eraser ImageJob").
 		Setup(func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
 			podSelectorLabels := map[string]string{"app": util.Nginx}
 			nginxDep := util.NewDeployment(cfg.Namespace(), util.Nginx, 2, podSelectorLabels, corev1.Container{Image: util.Nginx, Name: util.Nginx})
