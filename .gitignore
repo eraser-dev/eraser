@@ -35,5 +35,4 @@ testbin/*
 # docs site
 node_modules/
 .docusaurus/
-yarn.lock
 build/
