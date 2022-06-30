@@ -75,13 +75,13 @@ docker.io/library/alpine@sha256:8421d9a84432575381bfabd248f1eb56f3aa21d9d7cd2511
 
 ```
 
-## Excluding registries, repositories, and images 
+## Excluding registries, repositories, and images
 Eraser can exclude registries (example, `docker.io/library/*`) and also specific images with a tag (example, `docker.io/library/ubuntu:18.04`) or digest (example, `sha256:80f31da1ac7b312ba29d65080fd...`) from its removal process.
 
 To exclude any images or registries from the removal, create a configmap named `excluded` in the eraser-system namespace with a JSON file holding the excluded images.
 
 ```bash
-$ cat > sample.json <<EOF 
+$ cat > sample.json <<EOF
 {"excluded": ["docker.io/library/*", "ghcr.io/azure/test:latest"]}
 EOF
 
