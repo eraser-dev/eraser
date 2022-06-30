@@ -113,11 +113,9 @@ func removeImages(c Client, targetImages []string) error {
 		}
 
 		if digest, isNonRunning := nonRunningImages[imgDigestOrTag]; isNonRunning {
-			if ex, err := isExcluded(imgDigestOrTag, idToTagListMap); ex {
+			if ex := isExcluded(imgDigestOrTag, idToTagListMap); ex {
 				log.Info("Image is excluded", "image", imgDigestOrTag)
 				continue
-			} else if err != nil {
-				log.Error(err, "Error in isExcluded")
 			}
 
 			err = c.deleteImage(backgroundContext, digest)
@@ -150,11 +148,9 @@ func removeImages(c Client, targetImages []string) error {
 				continue
 			}
 
-			if ex, err := isExcluded(img, idToTagListMap); ex {
+			if ex := isExcluded(img, idToTagListMap); ex {
 				log.Info("Image is excluded", "image", img)
 				continue
-			} else if err != nil {
-				log.Error(err, "Error in isExcluded")
 			}
 
 			if err := c.deleteImage(backgroundContext, img); err != nil {
@@ -168,16 +164,16 @@ func removeImages(c Client, targetImages []string) error {
 	return nil
 }
 
-func isExcluded(img string, idToTagListMap map[string][]string) (bool, error) {
+func isExcluded(img string, idToTagListMap map[string][]string) bool {
 	// check if img excluded by digest
 	if _, contains := excluded[img]; contains {
-		return true, nil
+		return true
 	}
 
 	// check if img excluded by name
 	for _, imgName := range idToTagListMap[img] {
 		if _, contains := excluded[imgName]; contains {
-			return true, nil
+			return true
 		}
 	}
 
@@ -189,22 +185,17 @@ func isExcluded(img string, idToTagListMap map[string][]string) (bool, error) {
 		// if excluded key ends in /*, check image with pattern match
 		if match := regexRepo.MatchString(key); match {
 			// store repository name
-			split := strings.Split(key, "*")
-			repo := strings.ReplaceAll(split[0], ".", `\.`)
+			repo := strings.Split(key, "*")
 
 			// check if img is part of repo
-			if match, err := regexp.MatchString("^"+repo, img); match {
-				return true, nil
-			} else if err != nil {
-				return false, err
+			if match := strings.HasPrefix(img, repo[0]); match {
+				return true
 			}
 
 			// retrieve and check by name in the case img is digest
 			for _, imgName := range idToTagListMap[img] {
-				if match, err := regexp.MatchString(repo, imgName); match {
-					return true, nil
-				} else if err != nil {
-					return false, err
+				if match := strings.HasPrefix(imgName, repo[0]); match {
+					return true
 				}
 			}
 		}
@@ -212,27 +203,22 @@ func isExcluded(img string, idToTagListMap map[string][]string) (bool, error) {
 		// if excluded key ends in :*, check image with pattern patch
 		if match := regexTag.MatchString(key); match {
 			// store image name
-			split := strings.Split(key, ":")
-			imagePath := strings.ReplaceAll(split[0], ".", `\.`)
+			imagePath := strings.Split(key, ":")
 
-			if match, err := regexp.MatchString("^"+imagePath, img); match {
-				return true, nil
-			} else if err != nil {
-				return false, err
+			if match := strings.HasPrefix(img, imagePath[0]); match {
+				return true
 			}
 
 			// retrieve and check by name in the case img is digest
 			for _, imgName := range idToTagListMap[img] {
-				if match, err := regexp.MatchString(imagePath, imgName); match {
-					return true, nil
-				} else if err != nil {
-					return false, err
+				if match := strings.HasPrefix(imgName, imagePath[0]); match {
+					return true
 				}
 			}
 		}
 	}
 
-	return false, nil
+	return false
 }
 
 func main() {
