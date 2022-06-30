@@ -6,12 +6,12 @@ metadata:
     app.kubernetes.io/managed-by: '{{ .Release.Service }}'
     app.kubernetes.io/name: '{{ template "eraser.name" . }}'
     helm.sh/chart: '{{ template "eraser.name" . }}'
-  name: imagejob-pods-rolebinding
+  name: eraser-imagejob-pods-rolebinding
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: imagejob-pods-role
+  name: eraser-imagejob-pods-role
 subjects:
 - kind: ServiceAccount
-  name: imagejob-pods
+  name: eraser-imagejob-pods
   namespace: '{{ .Release.Namespace }}'
