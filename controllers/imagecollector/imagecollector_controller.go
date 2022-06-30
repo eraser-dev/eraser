@@ -418,7 +418,7 @@ func (r *Reconciler) createScanJob(ctx context.Context, collector *eraserv1alpha
 					Namespace:    namespace,
 				},
 				Spec: corev1.PodSpec{
-					ServiceAccountName: "imagejob-pods",
+					ServiceAccountName: "eraser-imagejob-pods",
 					RestartPolicy:      corev1.RestartPolicyNever,
 					Containers: []corev1.Container{
 						{
@@ -491,7 +491,7 @@ func (r *Reconciler) createImageJob(ctx context.Context, req ctrl.Request, image
 							},
 						},
 					},
-					ServiceAccountName: "imagejob-pods",
+					ServiceAccountName: "eraser-imagejob-pods",
 				},
 			},
 		},

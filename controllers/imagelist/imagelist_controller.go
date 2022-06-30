@@ -240,7 +240,7 @@ func (r *Reconciler) handleImageListEvent(ctx context.Context, req *ctrl.Request
 							},
 						},
 					},
-					ServiceAccountName: "imagejob-pods",
+					ServiceAccountName: "eraser-imagejob-pods",
 				},
 			},
 		},
