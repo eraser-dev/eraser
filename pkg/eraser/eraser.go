@@ -291,14 +291,14 @@ func main() {
 			os.Exit(1)
 		}
 	} else {
-		var result map[string][]string
+		var result util.ExclusionList
 		if err := json.Unmarshal(data, &result); err != nil {
 			log.Error(err, "failed to unmarshal excluded configmap")
 			os.Exit(1)
 		}
 
-		excluded = make(map[string]struct{}, len(result))
-		for _, img := range result["excluded"] {
+		excluded = make(map[string]struct{}, len(result.Excluded))
+		for _, img := range result.Excluded {
 			excluded[img] = struct{}{}
 		}
 	}
