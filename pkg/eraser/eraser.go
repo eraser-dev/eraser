@@ -29,6 +29,10 @@ var (
 	excluded map[string]struct{}
 )
 
+const (
+	excludedPath = "/run/eraser.sh/excluded/excluded"
+)
+
 type client struct {
 	images  pb.ImageServiceClient
 	runtime pb.RuntimeServiceClient
@@ -278,7 +282,7 @@ func main() {
 	}
 
 	// read excluded values from excluded configmap
-	data, err = os.ReadFile("/run/eraser.sh/excluded/excluded")
+	data, err = os.ReadFile(excludedPath)
 	if err != nil {
 		if os.IsNotExist(err) {
 			log.Info("excluded configmap does not exist", "error: ", err)
