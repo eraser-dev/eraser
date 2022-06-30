@@ -89,7 +89,6 @@ manifests: __controller-gen ## Generates k8s yaml for eraser deployment.
 		k8s.gcr.io/kustomize/kustomize:v${KUSTOMIZE_VERSION} edit set image controller=${MANAGER_IMG}
 	$(CONTROLLER_GEN) \
 		crd \
-		rbac:roleName=imagejobs-pods-role \
 		rbac:roleName=manager-role \
 		webhook \
 		paths="./..." \
