@@ -108,12 +108,13 @@ jobs:
       matrix:
         KUBERNETES_VERSION: ["1.22.9", "1.23.6", "1.24.1"]
         E2E_TEST:
+          - collector_disable_scan
+          - collector_pipeline
           - imagelist_alias
           - imagelist_change
+          - imagelist_exclusion_list
           - imagelist_prune_images
-          - collector_pipeline
           - imagelist_rm_images
-          - collector_disable_scan
           - imagelist_skip_nodes
     steps:
       - name: Harden Runner
