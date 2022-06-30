@@ -28,3 +28,11 @@ testbin/*
 .history
 
 .vscode/
+
+# macOS
+.DS_Store
+
+# docs site
+node_modules/
+.docusaurus/
+build/
