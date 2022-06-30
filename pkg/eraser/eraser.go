@@ -8,6 +8,8 @@ import (
 	"net/http"
 	_ "net/http/pprof"
 	"os"
+	"regexp"
+	"strings"
 	"time"
 
 	"google.golang.org/grpc/codes"
@@ -22,8 +24,13 @@ import (
 
 var (
 	// Timeout  of connecting to server (default: 5m).
-	timeout = 5 * time.Minute
-	log     = logf.Log.WithName("eraser")
+	timeout  = 5 * time.Minute
+	log      = logf.Log.WithName("eraser")
+	excluded map[string]struct{}
+)
+
+const (
+	excludedPath = "/run/eraser.sh/excluded/excluded"
 )
 
 type client struct {
@@ -110,6 +117,11 @@ func removeImages(c Client, targetImages []string) error {
 		}
 
 		if digest, isNonRunning := nonRunningImages[imgDigestOrTag]; isNonRunning {
+			if ex := isExcluded(imgDigestOrTag, idToTagListMap); ex {
+				log.Info("Image is excluded", "image", imgDigestOrTag)
+				continue
+			}
+
 			err = c.deleteImage(backgroundContext, digest)
 			if err != nil {
 				log.Error(err, "Error removing", "image", digest)
@@ -132,13 +144,16 @@ func removeImages(c Client, targetImages []string) error {
 
 	if prune {
 		for img := range nonRunningImages {
-			_, deleted := deletedImages[img]
-			if deleted {
+			if _, deleted := deletedImages[img]; deleted {
 				continue
 			}
 
-			_, running := runningImages[img]
-			if running {
+			if _, running := runningImages[img]; running {
+				continue
+			}
+
+			if ex := isExcluded(img, idToTagListMap); ex {
+				log.Info("Image is excluded", "image", img)
 				continue
 			}
 
@@ -151,6 +166,63 @@ func removeImages(c Client, targetImages []string) error {
 	}
 
 	return nil
+}
+
+func isExcluded(img string, idToTagListMap map[string][]string) bool {
+	// check if img excluded by digest
+	if _, contains := excluded[img]; contains {
+		return true
+	}
+
+	// check if img excluded by name
+	for _, imgName := range idToTagListMap[img] {
+		if _, contains := excluded[imgName]; contains {
+			return true
+		}
+	}
+
+	regexRepo := regexp.MustCompile(`[a-z0-9]+([._-][a-z0-9]+)*/\*\z`)
+	regexTag := regexp.MustCompile(`[a-z0-9]+([._-][a-z0-9]+)*(/[a-z0-9]+([._-][a-z0-9]+)*)*:\*\z`)
+
+	// look for excluded repository values and names without tag
+	for key := range excluded {
+		// if excluded key ends in /*, check image with pattern match
+		if match := regexRepo.MatchString(key); match {
+			// store repository name
+			repo := strings.Split(key, "*")
+
+			// check if img is part of repo
+			if match := strings.HasPrefix(img, repo[0]); match {
+				return true
+			}
+
+			// retrieve and check by name in the case img is digest
+			for _, imgName := range idToTagListMap[img] {
+				if match := strings.HasPrefix(imgName, repo[0]); match {
+					return true
+				}
+			}
+		}
+
+		// if excluded key ends in :*, check image with pattern patch
+		if match := regexTag.MatchString(key); match {
+			// store image name
+			imagePath := strings.Split(key, ":")
+
+			if match := strings.HasPrefix(img, imagePath[0]); match {
+				return true
+			}
+
+			// retrieve and check by name in the case img is digest
+			for _, imgName := range idToTagListMap[img] {
+				if match := strings.HasPrefix(imgName, imagePath[0]); match {
+					return true
+				}
+			}
+		}
+	}
+
+	return false
 }
 
 func main() {
@@ -207,6 +279,28 @@ func main() {
 	if err := json.Unmarshal(data, &ls); err != nil {
 		log.Error(err, "failed to unmarshal image list")
 		os.Exit(1)
+	}
+
+	// read excluded values from excluded configmap
+	data, err = os.ReadFile(excludedPath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			log.Info("excluded configmap does not exist", "error: ", err)
+		} else {
+			log.Error(err, "failed to read excluded values")
+			os.Exit(1)
+		}
+	} else {
+		var result util.ExclusionList
+		if err := json.Unmarshal(data, &result); err != nil {
+			log.Error(err, "failed to unmarshal excluded configmap")
+			os.Exit(1)
+		}
+
+		excluded = make(map[string]struct{}, len(result.Excluded))
+		for _, img := range result.Excluded {
+			excluded[img] = struct{}{}
+		}
 	}
 
 	if err := removeImages(client, ls); err != nil {

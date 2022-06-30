@@ -13,12 +13,47 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/e2e-framework/klient/wait"
+	"sigs.k8s.io/e2e-framework/klient/wait/conditions"
+	"sigs.k8s.io/e2e-framework/pkg/env"
+	"sigs.k8s.io/e2e-framework/pkg/envconf"
 	"sigs.k8s.io/kind/pkg/cluster"
 )
 
 const (
-	KindClusterName = "eraser-e2e-test"
+	providerResourceDirectory = "manifest_staging/charts"
+
+	KindClusterName  = "eraser-e2e-test"
+	ProviderResource = "eraser.yaml"
+	EraserNamespace  = "eraser-system"
+
+	Alpine        = "alpine"
+	Nginx         = "nginx"
+	NginxLatest   = "docker.io/library/nginx:latest"
+	NginxAliasOne = "docker.io/library/nginx:one"
+	NginxAliasTwo = "docker.io/library/nginx:two"
+	Redis         = "redis"
+	Caddy         = "caddy"
+
+	ImageCollectorShared = "imagecollector-shared"
+	Prune                = "imagelist"
+	SkippedNodeName      = "eraser-e2e-test-worker"
+	SkippedNodeSelector  = "kubernetes.io/hostname=eraser-e2e-test-worker"
+	SkipLabelKey         = "eraser.sh/cleanup.skip"
+	SkipLabelValue       = "true"
+)
+
+var (
+	Testenv         env.Environment
+	Image           = os.Getenv("IMAGE")
+	ManagerImage    = os.Getenv("MANAGER_IMAGE")
+	CollectorImage  = os.Getenv("COLLECTOR_IMAGE")
+	ScannerImage    = os.Getenv("SCANNER_IMAGE")
+	VulnerableImage = os.Getenv("VULNERABLE_IMAGE")
+	NodeVersion     = os.Getenv("NODE_VERSION")
+	Namespace       = envconf.RandomName("eraser-ns", 16)
 )
 
 func IsNotFound(err error) bool {
@@ -288,8 +323,9 @@ func DockerTagImage(image, tag string) (string, error) {
 	return output, err
 }
 
-func KindLoadImage(clusterName, image string) (string, error) {
-	args := []string{"load", "docker-image", image, "--name", clusterName}
+func KindLoadImage(clusterName string, images ...string) (string, error) {
+	args := []string{"load", "docker-image", "--name", clusterName}
+	args = append(args, images...)
 	cmd := exec.Command("kind", args...)
 
 	stdoutStderr, err := cmd.CombinedOutput()
@@ -327,4 +363,44 @@ func DeleteStringFromSlice(strings []string, s string) []string {
 	}
 
 	return strings
+}
+
+func DeployEraserManifest(namespace string, args ...string) env.Func {
+	return func(ctx context.Context, cfg *envconf.Config) (context.Context, error) {
+		wd, err := os.Getwd()
+		if err != nil {
+			return ctx, err
+		}
+
+		providerResourceAbsolutePath, err := filepath.Abs(filepath.Join(wd, "/../../../", providerResourceDirectory, "eraser"))
+		if err != nil {
+			return ctx, err
+		}
+		// start deployment
+		allArgs := []string{providerResourceAbsolutePath}
+		allArgs = append(allArgs, args...)
+		if err := HelmInstall(cfg.KubeconfigFile(), namespace, allArgs); err != nil {
+			return ctx, err
+		}
+
+		client, err := cfg.NewClient()
+		if err != nil {
+			klog.ErrorS(err, "Failed to create new Client")
+			return ctx, err
+		}
+
+		// wait for the deployment to finish becoming available
+		eraserManagerDep := appsv1.Deployment{
+			ObjectMeta: metav1.ObjectMeta{Name: "eraser-controller-manager", Namespace: namespace},
+		}
+
+		if err = wait.For(conditions.New(client.Resources()).DeploymentConditionMatch(&eraserManagerDep, appsv1.DeploymentAvailable, corev1.ConditionTrue),
+			wait.WithTimeout(time.Minute*1)); err != nil {
+			klog.ErrorS(err, "failed to deploy eraser manager")
+
+			return ctx, err
+		}
+
+		return ctx, nil
+	}
 }

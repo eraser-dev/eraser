@@ -77,34 +77,6 @@ jobs:
       - name: Unit test
         run: make test
 
-  codeql:
-    name: "CodeQL"
-    runs-on: ubuntu-latest
-    permissions:
-      actions: read
-      contents: read
-      security-events: write
-    timeout-minutes: 20
-    steps:
-      - name: Harden Runner
-        uses: step-security/harden-runner@248ae51c2e8cc9622ecf50685c8bf7150c6e8813
-        with:
-          egress-policy: audit
-      - name: Set up Go 1.18
-        uses: actions/setup-go@v3
-        with:
-          go-version: 1.18
-      - name: Check out code into the Go module directory
-        uses: actions/checkout@v3
-      - name: Initialize CodeQL
-        uses: github/codeql-action/init@41a4ada31ba866a7f1196b9602703a89edd69e22
-        with:
-          languages: go
-      - name: Autobuild
-        uses: github/codeql-action/autobuild@41a4ada31ba866a7f1196b9602703a89edd69e22
-      - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@41a4ada31ba866a7f1196b9602703a89edd69e22
-
   check-manifest:
     name: "Check Manifest"
     runs-on: ubuntu-latest
@@ -127,13 +99,23 @@ jobs:
           make manifests
           git diff --exit-code
 
-  e2e-test-imagelist:
-    name: "E2E test (ImageList)"
+  e2e-test:
+    name: "E2E tests"
     runs-on: ubuntu-latest
     timeout-minutes: 20
     strategy:
+      fail-fast: false
       matrix:
         KUBERNETES_VERSION: ["1.22.9", "1.23.6", "1.24.1"]
+        E2E_TEST:
+          - collector_disable_scan
+          - collector_pipeline
+          - imagelist_alias
+          - imagelist_change
+          - imagelist_exclusion_list
+          - imagelist_prune_images
+          - imagelist_rm_images
+          - imagelist_skip_nodes
     steps:
       - name: Harden Runner
         uses: step-security/harden-runner@248ae51c2e8cc9622ecf50685c8bf7150c6e8813
@@ -159,53 +141,15 @@ jobs:
             ~/.cache/go-build
       - uses: crazy-max/ghaction-github-runtime@v2
       - name: Build eraser-manager
-        run: make docker-build-manager CACHE_FROM=type=gha,scope=eraser-manager CACHE_TO=type=gha,scope=eraser-manager,mode=max
+        run: make docker-build-manager
       - name: Build eraser
-        run: make docker-build-eraser CACHE_FROM=type=gha,scope=eraser-node CACHE_TO=type=gha,scope=eraser-node,mode=max
-      - name: Run e2e test
-        run: make e2e-test-imagelist KUBERNETES_VERSION=${{ matrix.KUBERNETES_VERSION }}
-
-  e2e-test-imagecollector:
-    name: "E2E test (ImageCollector)"
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    strategy:
-      matrix:
-        KUBERNETES_VERSION: ["1.22.9", "1.23.6", "1.24.1"]
-    steps:
-      - name: Harden Runner
-        uses: step-security/harden-runner@248ae51c2e8cc9622ecf50685c8bf7150c6e8813
-        with:
-          egress-policy: audit
-      - name: Check out code into the Go module directory
-        uses: actions/checkout@v3
-      - name: Set up Go 1.18
-        uses: actions/setup-go@v3
-        with:
-          go-version: 1.18
-      - name: Setup buildx instance
-        uses: docker/setup-buildx-action@v2
-        with:
-          use: true
-      - uses: actions/cache@v3.0.4
-        with:
-          key: ${{ runner.OS }}-go-${{ hashFiles('**/go.sum') }}
-          restore-keys: |
-            ${{ runner.os }}-go-
-          path: |
-            ~/go/pkg/mod
-            ~/.cache/go-build
-      - uses: crazy-max/ghaction-github-runtime@v2
-      - name: Build eraser-manager
-        run: make docker-build-manager CACHE_FROM=type=gha,scope=eraser-manager CACHE_TO=type=gha,scope=eraser-manager,mode=max
-      - name: Build eraser
-        run: make docker-build-eraser CACHE_FROM=type=gha,scope=eraser-node CACHE_TO=type=gha,scope=eraser-node,mode=max
+        run: make docker-build-eraser
       - name: Build collector
-        run: make docker-build-collector CACHE_FROM=type=gha,scope=collector CACHE_TO=type=gha,scope=collector,mode=max
+        run: make docker-build-collector
       - name: Build trivy-scanner
-        run: make docker-build-trivy-scanner CACHE_FROM=type=gha,scope=trivy-scanner CACHE_TO=type=gha,scope=trivy-scanner,mode=max
+        run: make docker-build-trivy-scanner
       - name: Run e2e test
-        run: make e2e-test-collector KUBERNETES_VERSION=${{ matrix.KUBERNETES_VERSION }}
+        run: make e2e-test KUBERNETES_VERSION=${{ matrix.KUBERNETES_VERSION }} E2E_TESTS=${{ matrix.E2E_TEST }}
 
   scan_vulnerabilities:
     name: "[Trivy] Scan for vulnerabilities"
