@@ -17,6 +17,10 @@ const (
 	unixProtocol = "unix"
 )
 
+type ExclusionList struct {
+	Excluded []string `json:"excluded"`
+}
+
 var (
 	ErrProtocolNotSupported  = errors.New("protocol not supported")
 	ErrEndpointDeprecated    = errors.New("endpoint is deprecated, please consider using full url format")

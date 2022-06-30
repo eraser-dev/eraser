@@ -45,8 +45,10 @@ import (
 )
 
 const (
-	namespace   = "eraser-system"
-	imgListPath = "/run/eraser.sh/imagelist"
+	namespace    = "eraser-system"
+	imgListPath  = "/run/eraser.sh/imagelist"
+	excludedPath = "/run/eraser.sh/excluded"
+	excludedName = "excluded"
 )
 
 var (
@@ -217,6 +219,12 @@ func (r *Reconciler) handleImageListEvent(ctx context.Context, req *ctrl.Request
 								ConfigMap: &corev1.ConfigMapVolumeSource{LocalObjectReference: corev1.LocalObjectReference{Name: configName}},
 							},
 						},
+						{
+							Name: excludedName,
+							VolumeSource: corev1.VolumeSource{
+								ConfigMap: &corev1.ConfigMapVolumeSource{LocalObjectReference: corev1.LocalObjectReference{Name: excludedName}, Optional: boolPtr(true)},
+							},
+						},
 					},
 					RestartPolicy: corev1.RestartPolicyNever,
 					Containers: []corev1.Container{
@@ -227,6 +235,7 @@ func (r *Reconciler) handleImageListEvent(ctx context.Context, req *ctrl.Request
 							Args:            args,
 							VolumeMounts: []corev1.VolumeMount{
 								{MountPath: imgListPath, Name: configName},
+								{MountPath: excludedPath, Name: excludedName},
 							},
 							Resources: corev1.ResourceRequirements{
 								Requests: corev1.ResourceList{
