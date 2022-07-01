@@ -2,7 +2,7 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
   creationTimestamp: null
-  name: imagejob-pods-role
+  name: imagejob-pods-cluster-role
 rules:
 - apiGroups:
   - eraser.sh
