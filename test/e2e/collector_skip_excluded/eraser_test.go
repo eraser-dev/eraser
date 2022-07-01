@@ -35,7 +35,7 @@ func TestCollectorExcluded(t *testing.T) {
 					Name:      "excluded",
 					Namespace: "eraser-system",
 				},
-				Data: map[string]string{"excluded": "{\"excluded\": [\"docker.io/library/alpine\"]}"},
+				Data: map[string]string{"excluded": "{\"excluded\": [\"docker.io/library/alpine:*\"]}"},
 			}
 			if err := cfg.Client().Resources().Create(ctx, &excluded); err != nil {
 				t.Error("failed to create excluded configmap", err)
@@ -107,7 +107,7 @@ func TestCollectorExcluded(t *testing.T) {
 			// alpine is excluded and should not be added to imagecollector-shared
 			for _, img := range resource.Spec.Images {
 				if strings.Contains(img.Name, "alpine") {
-					t.Error("imagecollector-shared should not contains alpine", img.Name)
+					t.Error("imagecollector-shared should not contain alpine", img.Name)
 				}
 			}
 
