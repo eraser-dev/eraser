@@ -4149,6 +4149,12 @@ metadata:
   name: eraser-controller-manager
   namespace: eraser-system
 ---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: eraser-imagejob-pods
+  namespace: eraser-system
+---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
@@ -4186,6 +4192,39 @@ rules:
   verbs:
   - create
   - patch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  creationTimestamp: null
+  name: eraser-imagejob-pods-cluster-role
+rules:
+- apiGroups:
+  - eraser.sh
+  resources:
+  - imagecollectors
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - eraser.sh
+  resources:
+  - imagecollectors/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - eraser.sh
+  resources:
+  - imagecollectors/status
+  verbs:
+  - get
+  - patch
+  - update
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
@@ -4315,6 +4354,19 @@ roleRef:
 subjects:
 - kind: ServiceAccount
   name: eraser-controller-manager
+  namespace: eraser-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: eraser-imagejob-pods-cluster-rolebinding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: eraser-imagejob-pods-cluster-role
+subjects:
+- kind: ServiceAccount
+  name: eraser-imagejob-pods
   namespace: eraser-system
 ---
 apiVersion: rbac.authorization.k8s.io/v1
