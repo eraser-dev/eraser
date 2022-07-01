@@ -222,26 +222,10 @@ func main() {
 		os.Exit(1)
 	}
 
-	// read excluded values from excluded configmap
-	data, err = os.ReadFile(excludedPath)
+	excluded, err = parseExcluded(excludedPath)
 	if err != nil {
-		if os.IsNotExist(err) {
-			log.Info("excluded configmap does not exist", "error: ", err)
-		} else {
-			log.Error(err, "failed to read excluded values")
-			os.Exit(1)
-		}
-	} else {
-		var result util.ExclusionList
-		if err := json.Unmarshal(data, &result); err != nil {
-			log.Error(err, "failed to unmarshal excluded configmap")
-			os.Exit(1)
-		}
-
-		excluded = make(map[string]struct{}, len(result.Excluded))
-		for _, img := range result.Excluded {
-			excluded[img] = struct{}{}
-		}
+		log.Error(err, "failed to parse exclusion list")
+		os.Exit(1)
 	}
 
 	if err := removeImages(client, ls); err != nil {
