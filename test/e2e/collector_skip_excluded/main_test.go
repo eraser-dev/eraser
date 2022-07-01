@@ -26,7 +26,6 @@ func TestMain(m *testing.M) {
 		envfuncs.CreateNamespace(util.Namespace),
 		envfuncs.LoadDockerImageToCluster(util.KindClusterName, util.ManagerImage),
 		envfuncs.LoadDockerImageToCluster(util.KindClusterName, util.Image),
-		envfuncs.LoadDockerImageToCluster(util.KindClusterName, util.ScannerImage),
 		envfuncs.LoadDockerImageToCluster(util.KindClusterName, util.CollectorImage),
 		envfuncs.LoadDockerImageToCluster(util.KindClusterName, util.VulnerableImage),
 		util.DeployEraserManifest(util.EraserNamespace, "--set", "scanner.image.repository="),
