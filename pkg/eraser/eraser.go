@@ -27,12 +27,6 @@ var (
 	timeout  = 5 * time.Minute
 	log      = logf.Log.WithName("eraser")
 	excluded map[string]struct{}
-
-	runtimeSocketMap = map[string]string{
-		"docker":     "unix:///var/run/dockershim.sock",
-		"containerd": "unix:///run/containerd/containerd.sock",
-		"cri-o":      "unix:///var/run/crio/crio.sock",
-	}
 )
 
 const (
@@ -53,7 +47,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	socketPath, found := runtimeSocketMap[*runtimePtr]
+	socketPath, found := util.RuntimeSocketPathMap[*runtimePtr]
 	if !found {
 		log.Error(fmt.Errorf("unsupported runtime"), "runtime", *runtimePtr)
 		os.Exit(1)
@@ -68,16 +62,19 @@ func main() {
 	runtimeClient := pb.NewRuntimeServiceClient(conn)
 	client := client{imageclient, runtimeClient}
 
-	imagelist, err := parseImageList(*imageListPtr)
+	imagelist, err := util.ParseImageList(*imageListPtr)
 	if err != nil {
 		log.Error(err, "failed to parse image list file")
 		os.Exit(1)
 	}
 
-	excluded, err = parseExcluded(excludedPath)
+	excluded, err = util.ParseExcluded(excludedPath)
 	if err != nil {
 		log.Error(err, "failed to parse exclusion list")
 		os.Exit(1)
+	}
+	if len(excluded) == 0 {
+		log.Info("excluded configmap was empty or does not exist")
 	}
 
 	if err := removeImages(&client, imagelist); err != nil {

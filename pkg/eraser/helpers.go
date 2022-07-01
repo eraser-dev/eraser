@@ -2,8 +2,6 @@ package main
 
 import (
 	"context"
-	"encoding/json"
-	"os"
 	"regexp"
 	"strings"
 
@@ -163,46 +161,4 @@ func isExcluded(img string, idToTagListMap map[string][]string) bool {
 	}
 
 	return false
-}
-
-// read values from excluded configmap
-func parseExcluded(path string) (map[string]struct{}, error) {
-	excluded := make(map[string]struct{})
-	data, err := os.ReadFile(path)
-
-	if os.IsNotExist(err) {
-		log.Info("excluded configmap does not exist", "error", err)
-		return excluded, nil
-	} else if err != nil {
-		log.Error(err, "failed to read excluded values")
-		return excluded, err
-	}
-
-	var result util.ExclusionList
-	if err := json.Unmarshal(data, &result); err != nil {
-		log.Error(err, "failed to unmarshal excluded configmap")
-		return excluded, err
-	}
-
-	for _, img := range result.Excluded {
-		excluded[img] = struct{}{}
-	}
-
-	return excluded, nil
-}
-
-func parseImageList(path string) ([]string, error) {
-	imagelist := []string{}
-	data, err := os.ReadFile(path)
-	if err != nil {
-		log.Error(err, "failed to read image list file")
-		return nil, err
-	}
-
-	if err := json.Unmarshal(data, &imagelist); err != nil {
-		log.Error(err, "failed to unmarshal image list")
-		return nil, err
-	}
-
-	return imagelist, nil
 }

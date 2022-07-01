@@ -2,10 +2,12 @@ package utils
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net"
 	"net/url"
+	"os"
 	"regexp"
 	"strings"
 
@@ -27,6 +29,12 @@ var (
 	ErrProtocolNotSupported  = errors.New("protocol not supported")
 	ErrEndpointDeprecated    = errors.New("endpoint is deprecated, please consider using full url format")
 	ErrOnlySupportUnixSocket = errors.New("only support unix socket endpoint")
+
+	RuntimeSocketPathMap = map[string]string{
+		"docker":     "unix:///var/run/dockershim.sock",
+		"containerd": "unix:///run/containerd/containerd.sock",
+		"cri-o":      "unix:///var/run/crio/crio.sock",
+	}
 )
 
 func GetAddressAndDialer(endpoint string) (string, func(ctx context.Context, addr string) (net.Conn, error), error) {
@@ -198,4 +206,41 @@ func IsExcluded(excluded map[string]struct{}, img string, idToTagListMap map[str
 	}
 
 	return false
+}
+
+func ParseImageList(path string) ([]string, error) {
+	imagelist := []string{}
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := json.Unmarshal(data, &imagelist); err != nil {
+		return nil, err
+	}
+
+	return imagelist, nil
+}
+
+// read values from excluded configmap
+func ParseExcluded(path string) (map[string]struct{}, error) {
+	excluded := make(map[string]struct{})
+	data, err := os.ReadFile(path)
+
+	if os.IsNotExist(err) {
+		return excluded, nil
+	} else if err != nil {
+		return excluded, err
+	}
+
+	var result ExclusionList
+	if err := json.Unmarshal(data, &result); err != nil {
+		return excluded, err
+	}
+
+	for _, img := range result.Excluded {
+		excluded[img] = struct{}{}
+	}
+
+	return excluded, nil
 }
