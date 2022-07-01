@@ -6,7 +6,7 @@ MANAGER_IMG ?= ghcr.io/azure/eraser-manager:${VERSION}
 ERASER_IMG ?= ghcr.io/azure/eraser:${VERSION}
 COLLECTOR_IMG ?= ghcr.io/azure/collector:${VERSION}
 VULNERABLE_IMG ?= docker.io/library/alpine:3.7.3
-E2E_TESTS ?= collector_disable_scan collector_pipeline imagelist_alias imagelist_change imagelist_prune_images imagelist_rm_images imagelist_skip_nodes imagelist_exclusion_list
+E2E_TESTS ?= collector_disable_scan collector_pipeline collector_skip_excluded imagelist_alias imagelist_change imagelist_prune_images imagelist_rm_images imagelist_skip_nodes imagelist_exclusion_list
 
 KUSTOMIZE_VERSION ?= 3.8.9
 KUBERNETES_VERSION ?= 1.23.0

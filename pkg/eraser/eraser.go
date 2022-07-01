@@ -8,8 +8,6 @@ import (
 	"net/http"
 	_ "net/http/pprof"
 	"os"
-	"regexp"
-	"strings"
 	"time"
 
 	"google.golang.org/grpc/codes"
@@ -117,7 +115,7 @@ func removeImages(c Client, targetImages []string) error {
 		}
 
 		if digest, isNonRunning := nonRunningImages[imgDigestOrTag]; isNonRunning {
-			if ex := isExcluded(imgDigestOrTag, idToTagListMap); ex {
+			if ex := util.IsExcluded(excluded, imgDigestOrTag, idToTagListMap); ex {
 				log.Info("Image is excluded", "image", imgDigestOrTag)
 				continue
 			}
@@ -152,7 +150,7 @@ func removeImages(c Client, targetImages []string) error {
 				continue
 			}
 
-			if ex := isExcluded(img, idToTagListMap); ex {
+			if ex := util.IsExcluded(excluded, img, idToTagListMap); ex {
 				log.Info("Image is excluded", "image", img)
 				continue
 			}
@@ -166,63 +164,6 @@ func removeImages(c Client, targetImages []string) error {
 	}
 
 	return nil
-}
-
-func isExcluded(img string, idToTagListMap map[string][]string) bool {
-	// check if img excluded by digest
-	if _, contains := excluded[img]; contains {
-		return true
-	}
-
-	// check if img excluded by name
-	for _, imgName := range idToTagListMap[img] {
-		if _, contains := excluded[imgName]; contains {
-			return true
-		}
-	}
-
-	regexRepo := regexp.MustCompile(`[a-z0-9]+([._-][a-z0-9]+)*/\*\z`)
-	regexTag := regexp.MustCompile(`[a-z0-9]+([._-][a-z0-9]+)*(/[a-z0-9]+([._-][a-z0-9]+)*)*:\*\z`)
-
-	// look for excluded repository values and names without tag
-	for key := range excluded {
-		// if excluded key ends in /*, check image with pattern match
-		if match := regexRepo.MatchString(key); match {
-			// store repository name
-			repo := strings.Split(key, "*")
-
-			// check if img is part of repo
-			if match := strings.HasPrefix(img, repo[0]); match {
-				return true
-			}
-
-			// retrieve and check by name in the case img is digest
-			for _, imgName := range idToTagListMap[img] {
-				if match := strings.HasPrefix(imgName, repo[0]); match {
-					return true
-				}
-			}
-		}
-
-		// if excluded key ends in :*, check image with pattern patch
-		if match := regexTag.MatchString(key); match {
-			// store image name
-			imagePath := strings.Split(key, ":")
-
-			if match := strings.HasPrefix(img, imagePath[0]); match {
-				return true
-			}
-
-			// retrieve and check by name in the case img is digest
-			for _, imgName := range idToTagListMap[img] {
-				if match := strings.HasPrefix(imgName, imagePath[0]); match {
-					return true
-				}
-			}
-		}
-	}
-
-	return false
 }
 
 func main() {

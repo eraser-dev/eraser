@@ -22,13 +22,15 @@ import (
 )
 
 const (
-	apiPath = "apis/eraser.sh/v1alpha1"
+	apiPath      = "apis/eraser.sh/v1alpha1"
+	excludedPath = "/run/eraser.sh/excluded/excluded"
 )
 
 var (
 	// Timeout  of connecting to server (default: 5m).
-	timeout = 5 * time.Minute
-	log     = logf.Log.WithName("collector")
+	timeout  = 5 * time.Minute
+	log      = logf.Log.WithName("collector")
+	excluded map[string]struct{}
 )
 
 type client struct {
@@ -98,7 +100,9 @@ func getImages(c Client) ([]eraserv1alpha1.Image, error) {
 				currImage.Name = idToTagListMap[digest][0]
 			}
 
-			finalImages = append(finalImages, currImage)
+			if !util.IsExcluded(excluded, currImage.Digest, idToTagListMap) {
+				finalImages = append(finalImages, currImage)
+			}
 		}
 	}
 
@@ -182,6 +186,28 @@ func main() {
 	default:
 		log.Error(fmt.Errorf("unsupported runtime"), "runtime", runtime)
 		os.Exit(1)
+	}
+
+	// read excluded values from excluded configmap
+	data, err := os.ReadFile(excludedPath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			log.Info("excluded configmap does not exist", "error: ", err)
+		} else {
+			log.Error(err, "failed to read excluded values")
+			os.Exit(1)
+		}
+	} else {
+		var result util.ExclusionList
+		if err := json.Unmarshal(data, &result); err != nil {
+			log.Error(err, "failed to unmarshal excluded configmap")
+			os.Exit(1)
+		}
+
+		excluded = make(map[string]struct{}, len(result.Excluded))
+		for _, img := range result.Excluded {
+			excluded[img] = struct{}{}
+		}
 	}
 
 	imageclient, conn, err := util.GetImageClient(context.Background(), socketPath)

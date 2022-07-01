@@ -110,6 +110,7 @@ jobs:
         E2E_TEST:
           - collector_disable_scan
           - collector_pipeline
+          - collector_skip_excluded
           - imagelist_alias
           - imagelist_change
           - imagelist_exclusion_list
