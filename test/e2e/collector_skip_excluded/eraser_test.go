@@ -106,7 +106,7 @@ func TestCollectorExcluded(t *testing.T) {
 
 			// alpine is excluded and should not be added to imagecollector-shared
 			for _, img := range resource.Spec.Images {
-				if strings.Contains("docker.io/library/alpine", img.Name) {
+				if strings.Contains(img.Name, "alpine") {
 					t.Error("imagecollector-shared should not contains alpine", img.Name)
 				}
 			}
