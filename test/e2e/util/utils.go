@@ -433,7 +433,7 @@ func CreateExclusionList(namespace string, list pkgUtil.ExclusionList) env.Func 
 		}
 
 		cMap := corev1.ConfigMap{}
-		wait.For(func() (bool, error) {
+		err = wait.For(func() (bool, error) {
 			err := c.Resources().Get(ctx, "excluded", EraserNamespace, &cMap)
 			if IsNotFound(err) {
 				return false, nil
@@ -449,6 +449,9 @@ func CreateExclusionList(namespace string, list pkgUtil.ExclusionList) env.Func 
 
 			return false, nil
 		}, wait.WithTimeout(time.Minute*3))
+		if err != nil {
+			return ctx, err
+		}
 
 		return ctx, nil
 	}
