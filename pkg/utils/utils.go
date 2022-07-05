@@ -8,7 +8,6 @@ import (
 	"net"
 	"net/url"
 	"os"
-	"regexp"
 	"strings"
 
 	"google.golang.org/grpc"
@@ -164,13 +163,10 @@ func IsExcluded(excluded map[string]struct{}, img string, idToTagListMap map[str
 		}
 	}
 
-	regexRepo := regexp.MustCompile(`[a-z0-9]+([._-][a-z0-9]+)*/\*\z`)
-	regexTag := regexp.MustCompile(`[a-z0-9]+([._-][a-z0-9]+)*(/[a-z0-9]+([._-][a-z0-9]+)*)*:\*\z`)
-
 	// look for excluded repository values and names without tag
 	for key := range excluded {
 		// if excluded key ends in /*, check image with pattern match
-		if match := regexRepo.MatchString(key); match {
+		if strings.Contains(key, "/*") {
 			// store repository name
 			repo := strings.Split(key, "*")
 
@@ -188,7 +184,7 @@ func IsExcluded(excluded map[string]struct{}, img string, idToTagListMap map[str
 		}
 
 		// if excluded key ends in :*, check image with pattern patch
-		if match := regexTag.MatchString(key); match {
+		if strings.Contains(key, ":*") {
 			// store image name
 			imagePath := strings.Split(key, ":")
 
