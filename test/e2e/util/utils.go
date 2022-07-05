@@ -2,6 +2,7 @@ package util
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
@@ -20,6 +21,8 @@ import (
 	"sigs.k8s.io/e2e-framework/pkg/env"
 	"sigs.k8s.io/e2e-framework/pkg/envconf"
 	"sigs.k8s.io/kind/pkg/cluster"
+
+	pkgUtil "github.com/Azure/eraser/pkg/utils"
 )
 
 const (
@@ -398,6 +401,55 @@ func DeployEraserManifest(namespace string, args ...string) env.Func {
 			wait.WithTimeout(time.Minute*1)); err != nil {
 			klog.ErrorS(err, "failed to deploy eraser manager")
 
+			return ctx, err
+		}
+
+		return ctx, nil
+	}
+}
+
+func CreateExclusionList(namespace string, list pkgUtil.ExclusionList) env.Func {
+	return func(ctx context.Context, cfg *envconf.Config) (context.Context, error) {
+		c, err := cfg.NewClient()
+		if err != nil {
+			return ctx, err
+		}
+
+		b, err := json.Marshal(&list)
+		if err != nil {
+			return ctx, err
+		}
+
+		// create excluded configmap and add docker.io/library/alpine
+		excluded := corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "excluded",
+				Namespace: "eraser-system",
+			},
+			Data: map[string]string{"excluded": string(b)},
+		}
+		if err := cfg.Client().Resources().Create(ctx, &excluded); err != nil {
+			return ctx, err
+		}
+
+		cMap := corev1.ConfigMap{}
+		err = wait.For(func() (bool, error) {
+			err := c.Resources().Get(ctx, "excluded", EraserNamespace, &cMap)
+			if IsNotFound(err) {
+				return false, nil
+			}
+
+			if err != nil {
+				return false, err
+			}
+
+			if cMap.ObjectMeta.Name == "excluded" {
+				return true, nil
+			}
+
+			return false, nil
+		}, wait.WithTimeout(time.Minute*3))
+		if err != nil {
 			return ctx, err
 		}
 
