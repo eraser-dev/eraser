@@ -26,6 +26,8 @@ func HelmInstall(kubeconfigPath, namespace string, args []string) error {
 	args = append([]string{
 		"install",
 		"eraser-e2e-test",
+		"--wait",
+		"--debug",
 		"--create-namespace",
 		fmt.Sprintf("--kubeconfig=%s", kubeconfigPath),
 		fmt.Sprintf("--namespace=%s", namespace),

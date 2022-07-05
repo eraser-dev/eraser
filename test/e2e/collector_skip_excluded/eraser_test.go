@@ -10,15 +10,12 @@ import (
 
 	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
 	"github.com/Azure/eraser/test/e2e/util"
-	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/labels"
+
+	"strings"
 
 	"sigs.k8s.io/e2e-framework/klient/wait"
-	"sigs.k8s.io/e2e-framework/klient/wait/conditions"
 	"sigs.k8s.io/e2e-framework/pkg/envconf"
 	"sigs.k8s.io/e2e-framework/pkg/features"
-	"strings"
 )
 
 func TestCollectorExcluded(t *testing.T) {
@@ -27,18 +24,6 @@ func TestCollectorExcluded(t *testing.T) {
 			c, err := cfg.NewClient()
 			if err != nil {
 				t.Fatal("Failed to create new client", err)
-			}
-
-			// create excluded configmap and add docker.io/library/alpine
-			excluded := corev1.ConfigMap{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "excluded",
-					Namespace: "eraser-system",
-				},
-				Data: map[string]string{"excluded": "{\"excluded\": [\"docker.io/library/alpine:*\"]}"},
-			}
-			if err := cfg.Client().Resources().Create(ctx, &excluded); err != nil {
-				t.Error("failed to create excluded configmap", err)
 			}
 
 			resource := eraserv1alpha1.ImageCollector{}
@@ -109,27 +94,6 @@ func TestCollectorExcluded(t *testing.T) {
 				if strings.Contains(img.Name, "alpine") {
 					t.Error("imagecollector-shared should not contain alpine", img.Name)
 				}
-			}
-
-			return ctx
-		}).
-		Assess("Pods from imagejobs are cleaned up", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
-			c, err := cfg.NewClient()
-			if err != nil {
-				t.Fatal("Failed to create new client", err)
-			}
-
-			var ls corev1.PodList
-			err = c.Resources().List(ctx, &ls, func(o *metav1.ListOptions) {
-				o.LabelSelector = labels.SelectorFromSet(map[string]string{"name": "collector"}).String()
-			})
-			if err != nil {
-				t.Errorf("could not list pods: %v", err)
-			}
-
-			err = wait.For(conditions.New(c.Resources()).ResourcesDeleted(&ls), wait.WithTimeout(time.Minute))
-			if err != nil {
-				t.Errorf("error waiting for pods to be deleted: %v", err)
 			}
 
 			return ctx
