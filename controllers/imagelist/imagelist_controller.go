@@ -42,10 +42,10 @@ import (
 	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
 	"github.com/Azure/eraser/controllers/util"
 	"github.com/Azure/eraser/pkg/logger"
+	"github.com/Azure/eraser/pkg/utils"
 )
 
 const (
-	namespace    = "eraser-system"
 	imgListPath  = "/run/eraser.sh/imagelist"
 	excludedPath = "/run/eraser.sh/excluded"
 	excludedName = "excluded"
@@ -187,7 +187,7 @@ func (r *Reconciler) handleImageListEvent(ctx context.Context, req *ctrl.Request
 	configMap := corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: "imagelist-",
-			Namespace:    namespace,
+			Namespace:    utils.GetNamespace(),
 		},
 		Immutable: boolPtr(true),
 		Data:      map[string]string{"images": string(imgListJSON)},

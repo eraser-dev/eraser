@@ -60,7 +60,6 @@ var (
 const (
 	collectorShared = "imagecollector-shared"
 	apiVersion      = "eraser.sh/v1alpha1"
-	namespace       = "eraser-system"
 	excludedPath    = "/run/eraser.sh/excluded"
 	excludedName    = "excluded"
 )
@@ -186,7 +185,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		Spec: eraserv1alpha1.ImageCollectorSpec{Images: []eraserv1alpha1.Image{}},
 	}
 
-	if err := r.Get(ctx, types.NamespacedName{Name: collectorShared, Namespace: "default"}, imageCollectorShared); err != nil {
+	if err := r.Get(ctx, types.NamespacedName{Name: collectorShared}, imageCollectorShared); err != nil {
 		if isNotFound(err) {
 			if err := r.Create(ctx, imageCollectorShared); err != nil {
 				log.Info("could not create shared image collector")
@@ -377,7 +376,7 @@ func (r *Reconciler) createImageList(ctx context.Context, collector *eraserv1alp
 
 func (r *Reconciler) getChildScanJobs(ctx context.Context, collector *eraserv1alpha1.ImageCollector) ([]batchv1.Job, error) {
 	batchJobList := batchv1.JobList{}
-	err := r.List(ctx, &batchJobList, client.InNamespace(namespace))
+	err := r.List(ctx, &batchJobList, client.InNamespace(utils.GetNamespace()))
 	if err != nil {
 		return nil, err
 	}
@@ -402,7 +401,7 @@ func (r *Reconciler) createScanJob(ctx context.Context, collector *eraserv1alpha
 	scanJob := batchv1.Job{
 		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: "eraser-scanner-",
-			Namespace:    namespace,
+			Namespace:    utils.GetNamespace(),
 			OwnerReferences: []metav1.OwnerReference{*metav1.NewControllerRef(
 				collector,
 				schema.GroupVersionKind{
@@ -417,7 +416,7 @@ func (r *Reconciler) createScanJob(ctx context.Context, collector *eraserv1alpha
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					GenerateName: "scanner-",
-					Namespace:    namespace,
+					Namespace:    utils.GetNamespace(),
 				},
 				Spec: corev1.PodSpec{
 					ServiceAccountName: "eraser-imagejob-pods",

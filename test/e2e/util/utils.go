@@ -30,7 +30,6 @@ const (
 
 	KindClusterName  = "eraser-e2e-test"
 	ProviderResource = "eraser.yaml"
-	EraserNamespace  = "eraser-system"
 
 	Alpine        = "alpine"
 	Nginx         = "nginx"
@@ -56,7 +55,8 @@ var (
 	ScannerImage    = os.Getenv("SCANNER_IMAGE")
 	VulnerableImage = os.Getenv("VULNERABLE_IMAGE")
 	NodeVersion     = os.Getenv("NODE_VERSION")
-	Namespace       = envconf.RandomName("eraser-ns", 16)
+	TestNamespace   = envconf.RandomName("test-ns", 16)
+	EraserNamespace = pkgUtil.GetNamespace()
 )
 
 func IsNotFound(err error) bool {
@@ -341,10 +341,10 @@ func KindLoadImage(clusterName string, images ...string) (string, error) {
 }
 
 func DeleteImageListsAndJobs(kubeConfig string) error {
-	if err := KubectlDelete(kubeConfig, "eraser-system", []string{"imagejob", "--all"}); err != nil {
+	if err := KubectlDelete(kubeConfig, "", []string{"imagejob", "--all"}); err != nil {
 		return err
 	}
-	if err := KubectlDelete(kubeConfig, "eraser-system", []string{"imagelist", "--all"}); err != nil {
+	if err := KubectlDelete(kubeConfig, "", []string{"imagelist", "--all"}); err != nil {
 		return err
 	}
 	return nil
@@ -424,7 +424,7 @@ func CreateExclusionList(namespace string, list pkgUtil.ExclusionList) env.Func 
 		excluded := corev1.ConfigMap{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "excluded",
-				Namespace: "eraser-system",
+				Namespace: EraserNamespace,
 			},
 			Data: map[string]string{"excluded": string(b)},
 		}

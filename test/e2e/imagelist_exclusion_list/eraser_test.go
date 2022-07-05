@@ -36,7 +36,7 @@ func TestExclusionList(t *testing.T) {
 			excluded := corev1.ConfigMap{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "excluded",
-					Namespace: "eraser-system",
+					Namespace: util.EraserNamespace,
 				},
 				Data: map[string]string{"excluded": "{\"excluded\": [\"docker.io/library/*\"]}"},
 			}
@@ -91,7 +91,7 @@ func TestExclusionList(t *testing.T) {
 			}
 
 			// create imagelist to trigger deletion
-			if err := util.DeployEraserConfig(cfg.KubeconfigFile(), "eraser-system", "../test-data", "eraser_v1alpha1_imagelist.yaml"); err != nil {
+			if err := util.DeployEraserConfig(cfg.KubeconfigFile(), util.EraserNamespace, "../test-data", "eraser_v1alpha1_imagelist.yaml"); err != nil {
 				t.Error("Failed to deploy image list config", err)
 			}
 
@@ -124,7 +124,7 @@ func TestExclusionList(t *testing.T) {
 			return ctx
 		}).
 		Teardown(func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
-			if err := util.DeleteEraserConfig(cfg.KubeconfigFile(), "eraser-system", "../test-data", "eraser_v1alpha1_imagelist.yaml"); err != nil {
+			if err := util.DeleteEraserConfig(cfg.KubeconfigFile(), util.EraserNamespace, "../test-data", "eraser_v1alpha1_imagelist.yaml"); err != nil {
 				t.Error("Failed to delete image list config ", err)
 			}
 			if err := util.DeleteImageListsAndJobs(cfg.KubeconfigFile()); err != nil {
