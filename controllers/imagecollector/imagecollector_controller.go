@@ -206,8 +206,33 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 
 	switch len(childImageJobs) {
 	case 0:
-		return r.handleChildJobCreation(ctx, &imageCollectorShared, req)
+		// If we reach this point, we are in one of two scenarios. Either:
+		// (a) Reconcile has been called on a timer, and we want to begin a
+		//      collector ImageJob
+		// (b) a scan job has just finished, and we need to clean up the scan
+		//      job and create an imagelist
+		scanJobs, err := r.getChildScanJobs(ctx, &imageCollectorShared)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+
+		switch len(scanJobs) {
+		case 0: // (a) the timer has elapsed; begin a new pipeline
+			return r.createImageJob(ctx, req, &imageCollectorShared)
+		case 1: // (b) scanjob has finished; delete and create/update imageList
+			err := r.Delete(ctx, &scanJobs[0])
+			if err != nil {
+				return ctrl.Result{}, err
+			}
+
+			// create imagelist (or update if already exists), which will trigger eraser imagejob
+			return r.upsertImageList(ctx, &imageCollectorShared)
+		default:
+			return ctrl.Result{}, fmt.Errorf("more than one scan Jobs are scheduled")
+		}
 	case 1:
+		// an imagejob has just completed; proceed to scanning phase
+		// (if enabled) or imagelist creation.
 		return r.handleCompletedImageJob(ctx, req, &imageCollectorShared, &childImageJobs[0])
 	default:
 		return ctrl.Result{}, fmt.Errorf("more than one collector ImageJobs are scheduled")
@@ -500,37 +525,6 @@ func (r *Reconciler) deleteNodeCRS(ctx context.Context, items []eraserv1alpha1.I
 
 func boolPtr(b bool) *bool {
 	return &b
-}
-
-func (r *Reconciler) handleChildJobCreation(ctx context.Context, collector *eraserv1alpha1.ImageCollector, req ctrl.Request) (ctrl.Result, error) {
-	// If we reach this point, we are in one of two scenarios. Either:
-	// (a) a scan job has just finished, and we need to clean up the scan
-	//      job and create an imagelist
-	// (b) Reconcile has been called on a timer, and we want to begin a
-	//      collector ImageJob
-	relevantBatchJobs, err := r.getChildScanJobs(ctx, collector)
-	if err != nil || len(relevantBatchJobs) > 1 {
-		if err == nil {
-			err = fmt.Errorf("more than one scan Jobs are scheduled")
-		}
-		return ctrl.Result{}, err
-	}
-
-	if len(relevantBatchJobs) == 1 {
-		err := r.Delete(ctx, &relevantBatchJobs[0])
-		if err != nil {
-			return ctrl.Result{}, err
-		}
-
-		// create imagelist (or update if already exists), which will trigger eraser imagejob
-		return r.upsertImageList(ctx, collector)
-	}
-
-	// else, create an ImageJob
-	if res, err := r.createImageJob(ctx, req, collector); err != nil {
-		return res, err
-	}
-	return ctrl.Result{}, nil
 }
 
 func (r *Reconciler) handleCompletedImageJob(ctx context.Context, req ctrl.Request, imageCollectorShared *eraserv1alpha1.ImageCollector, childJob *eraserv1alpha1.ImageJob) (ctrl.Result, error) {
