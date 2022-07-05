@@ -151,6 +151,10 @@ func GetNonRunningImages(runningImages map[string]string, allImages []string, id
 }
 
 func IsExcluded(excluded map[string]struct{}, img string, idToTagListMap map[string][]string) bool {
+	if len(excluded) == 0 {
+		return false
+	}
+
 	// check if img excluded by digest
 	if _, contains := excluded[img]; contains {
 		return true
@@ -166,7 +170,7 @@ func IsExcluded(excluded map[string]struct{}, img string, idToTagListMap map[str
 	// look for excluded repository values and names without tag
 	for key := range excluded {
 		// if excluded key ends in /*, check image with pattern match
-		if strings.Contains(key, "/*") {
+		if strings.HasSuffix(key, "/*") {
 			// store repository name
 			repo := strings.Split(key, "*")
 
@@ -184,7 +188,7 @@ func IsExcluded(excluded map[string]struct{}, img string, idToTagListMap map[str
 		}
 
 		// if excluded key ends in :*, check image with pattern patch
-		if strings.Contains(key, ":*") {
+		if strings.HasSuffix(key, ":*") {
 			// store image name
 			imagePath := strings.Split(key, ":")
 
