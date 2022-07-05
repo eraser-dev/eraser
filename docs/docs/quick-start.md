@@ -182,3 +182,6 @@ $ docker exec kind-worker ctr -n k8s.io images list | grep alpine
 ```
 
 If the image has been successfully removed, there will be no output.
+
+## Features
+* Excluding[exclusion.md] images from removal
