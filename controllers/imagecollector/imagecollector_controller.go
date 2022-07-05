@@ -187,7 +187,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		Spec: eraserv1alpha1.ImageCollectorSpec{Images: []eraserv1alpha1.Image{}},
 	}
 
-	if err := r.Get(ctx, types.NamespacedName{Name: collectorShared, Namespace: "default"}, &imageCollectorShared); err != nil {
+	if err := r.Get(ctx, types.NamespacedName{Name: collectorShared}, &imageCollectorShared); err != nil {
 		if isNotFound(err) {
 			if err := r.Create(ctx, &imageCollectorShared); err != nil {
 				log.Info("could not create shared image collector")
