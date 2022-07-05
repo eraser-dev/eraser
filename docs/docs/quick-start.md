@@ -44,7 +44,7 @@ alpine-hljp9   0/1     Completed   1 (3s ago)   6s
 Delete the DaemonSet:
 
 ```shell
-$ kubectl delete daemonset hello-world
+$ kubectl delete daemonset alpine
 ```
 
 Verify that the Pods have been deleted:
