@@ -41,6 +41,24 @@ func TestCollectorExcluded(t *testing.T) {
 				t.Error("failed to create excluded configmap", err)
 			}
 
+			cMap := corev1.ConfigMap{}
+			wait.For(func() (bool, error) {
+				err := c.Resources().Get(ctx, "excluded", util.EraserNamespace, &cMap)
+				if util.IsNotFound(err) {
+					return false, nil
+				}
+
+				if err != nil {
+					return false, err
+				}
+
+				if cMap.ObjectMeta.Name == "excluded" {
+					return true, nil
+				}
+
+				return false, nil
+			}, wait.WithTimeout(time.Minute*3))
+
 			resource := eraserv1alpha1.ImageCollector{}
 			wait.For(func() (bool, error) {
 				err := c.Resources().Get(ctx, util.ImageCollectorShared, "default", &resource)
