@@ -61,6 +61,8 @@ const (
 	collectorShared = "imagecollector-shared"
 	apiVersion      = "eraser.sh/v1alpha1"
 	namespace       = "eraser-system"
+	excludedPath    = "/run/eraser.sh/excluded"
+	excludedName    = "excluded"
 )
 
 func init() {
@@ -418,7 +420,7 @@ func (r *Reconciler) createScanJob(ctx context.Context, collector *eraserv1alpha
 					Namespace:    namespace,
 				},
 				Spec: corev1.PodSpec{
-					ServiceAccountName: "eraser-controller-manager",
+					ServiceAccountName: "eraser-imagejob-pods",
 					RestartPolicy:      corev1.RestartPolicyNever,
 					Containers: []corev1.Container{
 						{
@@ -473,12 +475,23 @@ func (r *Reconciler) createImageJob(ctx context.Context, req ctrl.Request, image
 		Spec: eraserv1alpha1.ImageJobSpec{
 			JobTemplate: corev1.PodTemplateSpec{
 				Spec: corev1.PodSpec{
+					Volumes: []corev1.Volume{
+						{
+							Name: excludedName,
+							VolumeSource: corev1.VolumeSource{
+								ConfigMap: &corev1.ConfigMapVolumeSource{LocalObjectReference: corev1.LocalObjectReference{Name: excludedName}, Optional: boolPtr(true)},
+							},
+						},
+					},
 					RestartPolicy: corev1.RestartPolicyNever,
 					Containers: []corev1.Container{
 						{
 							Name:            "collector",
 							Image:           *collectorImage,
 							ImagePullPolicy: corev1.PullIfNotPresent,
+							VolumeMounts: []corev1.VolumeMount{
+								{MountPath: excludedPath, Name: excludedName},
+							},
 							Resources: corev1.ResourceRequirements{
 								Requests: corev1.ResourceList{
 									"cpu":    resource.MustParse("7m"),
@@ -491,7 +504,7 @@ func (r *Reconciler) createImageJob(ctx context.Context, req ctrl.Request, image
 							},
 						},
 					},
-					ServiceAccountName: "eraser-controller-manager",
+					ServiceAccountName: "eraser-imagejob-pods",
 				},
 			},
 		},
@@ -559,4 +572,8 @@ func (r *Reconciler) deleteNodeCRS(ctx context.Context, items []eraserv1alpha1.I
 		}
 	}
 	return reconcile.Result{}, nil
+}
+
+func boolPtr(b bool) *bool {
+	return &b
 }
