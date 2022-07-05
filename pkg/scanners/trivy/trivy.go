@@ -83,7 +83,7 @@ var (
 
 	log = logf.Log.WithName("scanner").WithValues("provider", "trivy")
 
-	// This can be overwritten by the linker
+	// This can be overwritten by the linker.
 	trivyVersion = "dev"
 )
 

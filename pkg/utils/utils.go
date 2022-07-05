@@ -222,7 +222,7 @@ func ParseImageList(path string) ([]string, error) {
 	return imagelist, nil
 }
 
-// read values from excluded configmap
+// read values from excluded configmap.
 func ParseExcluded(path string) (map[string]struct{}, error) {
 	excluded := make(map[string]struct{})
 	data, err := os.ReadFile(path)

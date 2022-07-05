@@ -178,17 +178,18 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.11.2/pkg/reconcile
 func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log.Info("ImageCollector Reconcile")
+	defer log.Info("done reconcile")
 
-	imageCollectorShared := &eraserv1alpha1.ImageCollector{
+	imageCollectorShared := eraserv1alpha1.ImageCollector{
 		TypeMeta:   metav1.TypeMeta{Kind: "ImageCollector", APIVersion: apiVersion},
 		ObjectMeta: metav1.ObjectMeta{Name: collectorShared},
 
 		Spec: eraserv1alpha1.ImageCollectorSpec{Images: []eraserv1alpha1.Image{}},
 	}
 
-	if err := r.Get(ctx, types.NamespacedName{Name: collectorShared, Namespace: "default"}, imageCollectorShared); err != nil {
+	if err := r.Get(ctx, types.NamespacedName{Name: collectorShared, Namespace: "default"}, &imageCollectorShared); err != nil {
 		if isNotFound(err) {
-			if err := r.Create(ctx, imageCollectorShared); err != nil {
+			if err := r.Create(ctx, &imageCollectorShared); err != nil {
 				log.Info("could not create shared image collector")
 				return reconcile.Result{}, err
 			}
@@ -198,96 +199,19 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		}
 	}
 
-	relevantJobs, err := r.getChildImageJobs(ctx, imageCollectorShared)
-	if err != nil || len(relevantJobs) > 1 {
-		if err == nil {
-			err = fmt.Errorf("more than one collector ImageJobs are scheduled")
-		}
-
+	childImageJobs, err := r.getChildImageJobs(ctx, &imageCollectorShared)
+	if err != nil {
 		return ctrl.Result{}, err
 	}
 
-	if len(relevantJobs) == 0 {
-		// If we reach this point, we are in one of two scenarios. Either:
-		// (a) a scan job has just finished, and we need to clean up the scan
-		//      job and create an imagelist
-		// (b) Reconcile has been called on a timer, and we want to begin a
-		//      collector ImageJob
-		relevantBatchJobs, err := r.getChildScanJobs(ctx, imageCollectorShared)
-		if err != nil || len(relevantBatchJobs) > 1 {
-			if err == nil {
-				err = fmt.Errorf("more than one scan Jobs are scheduled")
-			}
-			return ctrl.Result{}, err
-		}
-
-		if len(relevantBatchJobs) == 1 {
-			err := r.Delete(ctx, &relevantBatchJobs[0])
-			if err != nil {
-				return ctrl.Result{}, err
-			}
-
-			// create imagelist (or update if already exists), which will trigger eraser imagejob
-			return r.upsertImageList(ctx, imageCollectorShared)
-		}
-
-		// else, create an ImageJob
-		if res, err := r.createImageJob(ctx, req, imageCollectorShared); err != nil {
-			return res, err
-		}
-		return ctrl.Result{}, nil
-	}
-
-	// else length is 1, so check job phase
-	switch phase := relevantJobs[0].Status.Phase; phase {
-	case eraserv1alpha1.PhaseCompleted:
-		log.Info("completed phase")
-		if relevantJobs[0].Status.DeleteAfter == nil {
-			if res, err := r.updateSharedCRD(ctx, req, imageCollectorShared); err != nil {
-				return res, err
-			}
-			relevantJobs[0].Status.DeleteAfter = util.After(time.Now(), *util.SuccessDelDelaySeconds)
-			if err := r.Status().Update(ctx, &relevantJobs[0]); err != nil {
-				log.Info("Could not update Delete After for job " + relevantJobs[0].Name)
-			}
-			return ctrl.Result{}, nil
-		}
-
-		// if scan is disabled, create/update imagelist to prune since collector job has finished
-		if scanDisabled() {
-			if res, err := r.upsertImageList(ctx, imageCollectorShared); err != nil {
-				return res, err
-			}
-		} else {
-			// else we create a scan job which will update imagelist to start removal with relevant images
-			err := r.createScanJob(ctx, imageCollectorShared, *scannerImage, scannerArgs)
-			if err != nil {
-				return ctrl.Result{}, err
-			}
-		}
-
-		if res, err := r.handleJobDeletion(ctx, &relevantJobs[0]); err != nil || res.RequeueAfter > 0 {
-			return res, err
-		}
-	case eraserv1alpha1.PhaseFailed:
-		log.Info("failed phase")
-		if relevantJobs[0].Status.DeleteAfter == nil {
-			relevantJobs[0].Status.DeleteAfter = util.After(time.Now(), *util.ErrDelDelaySeconds)
-			if err := r.Status().Update(ctx, &relevantJobs[0]); err != nil {
-				log.Info("Could not update Delete After for job " + relevantJobs[0].Name)
-			}
-			return ctrl.Result{}, nil
-		}
-		if res, err := r.handleJobDeletion(ctx, &relevantJobs[0]); err != nil || res.RequeueAfter > 0 {
-			return res, err
-		}
+	switch len(childImageJobs) {
+	case 0:
+		return r.handleChildJobCreation(ctx, &imageCollectorShared, req)
+	case 1:
+		return r.handleCompletedImageJob(ctx, req, &imageCollectorShared, &childImageJobs[0])
 	default:
-		log.Error(errors.New("should not reach this point for imagejob"), "imagejob: ", relevantJobs[0])
+		return ctrl.Result{}, fmt.Errorf("more than one collector ImageJobs are scheduled")
 	}
-
-	log.Info("done reconcile")
-
-	return ctrl.Result{RequeueAfter: *repeatPeriod}, nil
 }
 
 func (r *Reconciler) getChildImageJobs(ctx context.Context, collector *eraserv1alpha1.ImageCollector) ([]eraserv1alpha1.ImageJob, error) {
@@ -576,4 +500,87 @@ func (r *Reconciler) deleteNodeCRS(ctx context.Context, items []eraserv1alpha1.I
 
 func boolPtr(b bool) *bool {
 	return &b
+}
+
+func (r *Reconciler) handleChildJobCreation(ctx context.Context, collector *eraserv1alpha1.ImageCollector, req ctrl.Request) (ctrl.Result, error) {
+	// If we reach this point, we are in one of two scenarios. Either:
+	// (a) a scan job has just finished, and we need to clean up the scan
+	//      job and create an imagelist
+	// (b) Reconcile has been called on a timer, and we want to begin a
+	//      collector ImageJob
+	relevantBatchJobs, err := r.getChildScanJobs(ctx, collector)
+	if err != nil || len(relevantBatchJobs) > 1 {
+		if err == nil {
+			err = fmt.Errorf("more than one scan Jobs are scheduled")
+		}
+		return ctrl.Result{}, err
+	}
+
+	if len(relevantBatchJobs) == 1 {
+		err := r.Delete(ctx, &relevantBatchJobs[0])
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+
+		// create imagelist (or update if already exists), which will trigger eraser imagejob
+		return r.upsertImageList(ctx, collector)
+	}
+
+	// else, create an ImageJob
+	if res, err := r.createImageJob(ctx, req, collector); err != nil {
+		return res, err
+	}
+	return ctrl.Result{}, nil
+}
+
+func (r *Reconciler) handleCompletedImageJob(ctx context.Context, req ctrl.Request, imageCollectorShared *eraserv1alpha1.ImageCollector, childJob *eraserv1alpha1.ImageJob) (ctrl.Result, error) {
+	var err error
+	switch phase := childJob.Status.Phase; phase {
+	case eraserv1alpha1.PhaseCompleted:
+		log.Info("completed phase")
+		if childJob.Status.DeleteAfter == nil {
+			if res, err := r.updateSharedCRD(ctx, req, imageCollectorShared); err != nil {
+				return res, err
+			}
+			childJob.Status.DeleteAfter = util.After(time.Now(), *util.SuccessDelDelaySeconds)
+			if err := r.Status().Update(ctx, childJob); err != nil {
+				log.Info("Could not update Delete After for job " + childJob.Name)
+			}
+			return ctrl.Result{}, nil
+		}
+
+		// if scan is disabled, create/update imagelist to prune since collector job has finished
+		if scanDisabled() {
+			if res, err := r.upsertImageList(ctx, imageCollectorShared); err != nil {
+				return res, err
+			}
+		} else {
+			// else we create a scan job which will update imagelist to start removal with relevant images
+			err := r.createScanJob(ctx, imageCollectorShared, *scannerImage, scannerArgs)
+			if err != nil {
+				return ctrl.Result{}, err
+			}
+		}
+
+		if res, err := r.handleJobDeletion(ctx, childJob); err != nil || res.RequeueAfter > 0 {
+			return res, err
+		}
+	case eraserv1alpha1.PhaseFailed:
+		log.Info("failed phase")
+		if childJob.Status.DeleteAfter == nil {
+			childJob.Status.DeleteAfter = util.After(time.Now(), *util.ErrDelDelaySeconds)
+			if err := r.Status().Update(ctx, childJob); err != nil {
+				log.Info("Could not update Delete After for job " + childJob.Name)
+			}
+			return ctrl.Result{}, nil
+		}
+		if res, err := r.handleJobDeletion(ctx, childJob); err != nil || res.RequeueAfter > 0 {
+			return res, err
+		}
+	default:
+		err = errors.New("should not reach this point for imagejob")
+		log.Error(err, "imagejob: ", childJob)
+	}
+
+	return ctrl.Result{RequeueAfter: *repeatPeriod}, err
 }
