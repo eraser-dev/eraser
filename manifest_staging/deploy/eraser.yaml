@@ -4426,6 +4426,12 @@ spec:
         - --scanner-image=ghcr.io/azure/eraser-trivy-scanner:v0.2.0
         command:
         - /manager
+        env:
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: metadata.namespace
         image: ghcr.io/azure/eraser-manager:v0.2.0
         livenessProbe:
           httpGet:

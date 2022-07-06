@@ -38,6 +38,12 @@ spec:
         {{- if .Values.scanner.image.args }}{{- range .Values.scanner.image.args }}{{ nindent 8 "- --scanner-arg=" }}{{ . }}{{- end -}}{{ end }}
         command:
         - /manager
+        env:
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: metadata.namespace
         image: '{{ .Values.controllerManager.image.repository }}:{{ .Values.controllerManager.image.tag | default .Chart.AppVersion }}'
         imagePullPolicy: '{{ .Values.controllerManager.image.pullPolicy }}'
         livenessProbe:
