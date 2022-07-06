@@ -1,12 +1,12 @@
 VERSION := v0.2.0
 
-# Image URL to use all building/pushing image target
+# Image URL to use all building/pushing image targets
 TRIVY_SCANNER_IMG ?= ghcr.io/azure/eraser-trivy-scanner:${VERSION}
 MANAGER_IMG ?= ghcr.io/azure/eraser-manager:${VERSION}
 ERASER_IMG ?= ghcr.io/azure/eraser:${VERSION}
 COLLECTOR_IMG ?= ghcr.io/azure/collector:${VERSION}
 VULNERABLE_IMG ?= docker.io/library/alpine:3.7.3
-E2E_TESTS ?= $(shell find test/e2e/tests/ -mindepth 1 -type d)
+E2E_TESTS ?= $(shell find ./test/e2e/tests/ -mindepth 1 -type d)
 
 KUSTOMIZE_VERSION ?= 3.8.9
 KUBERNETES_VERSION ?= 1.23.0
