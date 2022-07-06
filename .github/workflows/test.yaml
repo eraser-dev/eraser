@@ -117,6 +117,7 @@ jobs:
           - imagelist_prune_images
           - imagelist_rm_images
           - imagelist_skip_nodes
+          - imagelist_include_nodes
     steps:
       - name: Harden Runner
         uses: step-security/harden-runner@74b568e8591fbb3115c70f3436a0c6b0909a8504
