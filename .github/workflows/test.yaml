@@ -14,6 +14,16 @@ env:
 permissions: read-all
 
 jobs:
+  build-matrix:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code into the Go module directory
+        uses: actions/checkout@v3
+      - id: set-test-matrix
+        run: echo "::set-output name=e2e-tests::$(find test/e2e/tests/ -mindepth 1 -type d | jq -R . | jq -s | tr -d '[:space:]')"
+    outputs:
+      e2e-tests: ${{ steps.set-test-matrix.outputs.e2e-tests }}
+
   lint:
     name: "Lint"
     runs-on: ubuntu-latest
@@ -101,22 +111,14 @@ jobs:
 
   e2e-test:
     name: "E2E tests"
+    needs: build-matrix
     runs-on: ubuntu-latest
     timeout-minutes: 20
     strategy:
       fail-fast: false
       matrix:
         KUBERNETES_VERSION: ["1.22.9", "1.23.6", "1.24.1"]
-        E2E_TEST:
-          - collector_disable_scan
-          - collector_pipeline
-          - collector_skip_excluded
-          - imagelist_alias
-          - imagelist_change
-          - imagelist_exclusion_list
-          - imagelist_prune_images
-          - imagelist_rm_images
-          - imagelist_skip_nodes
+        E2E_TEST: ${{ needs.build-matrix.outputs.e2e-tests }}
     steps:
       - name: Harden Runner
         uses: step-security/harden-runner@74b568e8591fbb3115c70f3436a0c6b0909a8504
