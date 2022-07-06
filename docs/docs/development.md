@@ -131,7 +131,7 @@ Generates the eraser deployment yaml files under `manifest_staging/deploy`.
 Runs the unit tests for the eraser project.
 
 Configuration Options:
-    
+
 | Environment Variable         | Description           |
 |------------------------------|-----------------------|
 | ENVTEST                      | Specifies the envtest setup binary. |
@@ -142,7 +142,7 @@ Configuration Options:
 Runs e2e tests on a cluster.
 
 Configuration Options:
-    
+
 | Environment Variable         | Description           |
 |------------------------------|-----------------------|
 | ERASER_IMG                   | Eraser image to be used for e2e test. |
@@ -168,7 +168,7 @@ Runs the eraser manager on your local machine.
 Builds the docker image for the eraser manager.
 
 Configuration Options:
-    
+
 | Environment Variable         | Description           |
 |------------------------------|-----------------------|
 | CACHE_FROM                   | Sets the target of the buildx --cache-from flag [see buildx reference](https://docs.docker.com/engine/reference/commandline/buildx_build/#cache-from). |
@@ -192,7 +192,7 @@ Configuration Options:
 Builds the docker image for the eraser manager.
 
 Configuration Options:
-    
+
 | Environment Variable         | Description           |
 |------------------------------|-----------------------|
 | CACHE_FROM                   | Sets the target of the buildx --cache-from flag [see buildx reference](https://docs.docker.com/engine/reference/commandline/buildx_build/#cache-from). |
@@ -217,7 +217,7 @@ Configuration Options:
 Builds the docker image for the eraser collector.
 
 Configuration Options:
-    
+
 | Environment Variable         | Description           |
 |------------------------------|-----------------------|
 | CACHE_FROM                   | Sets the target of the buildx --cache-from flag [see buildx reference](https://docs.docker.com/engine/reference/commandline/buildx_build/#cache-from). |

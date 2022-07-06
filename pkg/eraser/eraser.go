@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"flag"
 	"fmt"
 	"net/http"
@@ -10,8 +9,6 @@ import (
 	"os"
 	"time"
 
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 
@@ -21,6 +18,11 @@ import (
 )
 
 var (
+	runtimePtr    = flag.String("runtime", "containerd", "container runtime")
+	imageListPtr  = flag.String("imagelist", "", "name of ImageList")
+	enableProfile = flag.Bool("enable-pprof", false, "enable pprof profiling")
+	profilePort   = flag.Int("pprof-port", 6060, "port for pprof profiling. defaulted to 6060 if unspecified")
+
 	// Timeout  of connecting to server (default: 5m).
 	timeout  = 5 * time.Minute
 	log      = logf.Log.WithName("eraser")
@@ -31,147 +33,8 @@ const (
 	excludedPath = "/run/eraser.sh/excluded/excluded"
 )
 
-type client struct {
-	images  pb.ImageServiceClient
-	runtime pb.RuntimeServiceClient
-}
-
-type Client interface {
-	listImages(context.Context) ([]*pb.Image, error)
-	listContainers(context.Context) ([]*pb.Container, error)
-	deleteImage(context.Context, string) error
-}
-
-func (c *client) listContainers(ctx context.Context) (list []*pb.Container, err error) {
-	return util.ListContainers(ctx, c.runtime)
-}
-
-func (c *client) listImages(ctx context.Context) (list []*pb.Image, err error) {
-	return util.ListImages(ctx, c.images)
-}
-
-func (c *client) deleteImage(ctx context.Context, image string) (err error) {
-	if image == "" {
-		return err
-	}
-
-	request := &pb.RemoveImageRequest{Image: &pb.ImageSpec{Image: image}}
-
-	_, err = c.images.RemoveImage(ctx, request)
-	if err != nil {
-		if status.Code(err) == codes.NotFound {
-			return nil
-		}
-		return err
-	}
-
-	return nil
-}
-
-func removeImages(c Client, targetImages []string) error {
-	backgroundContext, cancel := context.WithTimeout(context.Background(), timeout)
-	defer cancel()
-
-	images, err := c.listImages(backgroundContext)
-	if err != nil {
-		return err
-	}
-
-	allImages := make([]string, 0, len(images))
-
-	// map with key: sha id, value: repoTag list (contains full name of image)
-	idToTagListMap := make(map[string][]string)
-
-	for _, img := range images {
-		allImages = append(allImages, img.Id)
-		idToTagListMap[img.Id] = img.RepoTags
-	}
-
-	containers, err := c.listContainers(backgroundContext)
-	if err != nil {
-		return err
-	}
-
-	// Images that are running
-	// map of (digest | tag) -> digest
-	runningImages := util.GetRunningImages(containers, idToTagListMap)
-
-	// Images that aren't running
-	// map of (digest | tag) -> digest
-	nonRunningImages := util.GetNonRunningImages(runningImages, allImages, idToTagListMap)
-
-	// Debug logs
-	log.V(1).Info("Map of non-running images", "nonRunningImages", nonRunningImages)
-	log.V(1).Info("Map of running images", "runningImages", runningImages)
-	log.V(1).Info("Map of digest to image name(s)", "idToTaglistMap", idToTagListMap)
-
-	// remove target images
-	var prune bool
-	deletedImages := make(map[string]struct{}, len(targetImages))
-	for _, imgDigestOrTag := range targetImages {
-		if imgDigestOrTag == "*" {
-			prune = true
-			continue
-		}
-
-		if digest, isNonRunning := nonRunningImages[imgDigestOrTag]; isNonRunning {
-			if ex := util.IsExcluded(excluded, imgDigestOrTag, idToTagListMap); ex {
-				log.Info("Image is excluded", "image", imgDigestOrTag)
-				continue
-			}
-
-			err = c.deleteImage(backgroundContext, digest)
-			if err != nil {
-				log.Error(err, "Error removing", "image", digest)
-				continue
-			}
-
-			deletedImages[imgDigestOrTag] = struct{}{}
-			log.Info("Removed", "given", imgDigestOrTag, "digest", digest, "digest", digest)
-			continue
-		}
-
-		_, isRunning := runningImages[imgDigestOrTag]
-		if isRunning {
-			log.Info("Image is running", "image", imgDigestOrTag)
-			continue
-		}
-
-		log.Info("Image is not on node", "image", imgDigestOrTag)
-	}
-
-	if prune {
-		for img := range nonRunningImages {
-			if _, deleted := deletedImages[img]; deleted {
-				continue
-			}
-
-			if _, running := runningImages[img]; running {
-				continue
-			}
-
-			if ex := util.IsExcluded(excluded, img, idToTagListMap); ex {
-				log.Info("Image is excluded", "image", img)
-				continue
-			}
-
-			if err := c.deleteImage(backgroundContext, img); err != nil {
-				log.Error(err, "Error during prune", "image", img)
-				continue
-			}
-			log.Info("Prune successful", "image", img)
-		}
-	}
-
-	return nil
-}
-
 func main() {
-	runtimePtr := flag.String("runtime", "containerd", "container runtime")
-	imageListPtr := flag.String("imagelist", "", "name of ImageList")
-	enableProfile := flag.Bool("enable-pprof", false, "enable pprof profiling")
-	profilePort := flag.Int("pprof-port", 6060, "port for pprof profiling. defaulted to 6060 if unspecified")
-
+	flag.Parse()
 	if *enableProfile {
 		go func() {
 			err := http.ListenAndServe(fmt.Sprintf("localhost:%d", *profilePort), nil)
@@ -179,24 +42,14 @@ func main() {
 		}()
 	}
 
-	flag.Parse()
-
 	if err := logger.Configure(); err != nil {
 		fmt.Fprintln(os.Stderr, "Error setting up logger:", err)
 		os.Exit(1)
 	}
 
-	var socketPath string
-
-	switch runtime := *runtimePtr; runtime {
-	case "docker":
-		socketPath = "unix:///var/run/dockershim.sock"
-	case "containerd":
-		socketPath = "unix:///run/containerd/containerd.sock"
-	case "cri-o":
-		socketPath = "unix:///var/run/crio/crio.sock"
-	default:
-		log.Error(fmt.Errorf("unsupported runtime"), "runtime", runtime)
+	socketPath, found := util.RuntimeSocketPathMap[*runtimePtr]
+	if !found {
+		log.Error(fmt.Errorf("unsupported runtime"), "runtime", *runtimePtr)
 		os.Exit(1)
 	}
 
@@ -206,45 +59,25 @@ func main() {
 		os.Exit(1)
 	}
 
-	runTimeClient := pb.NewRuntimeServiceClient(conn)
+	runtimeClient := pb.NewRuntimeServiceClient(conn)
+	client := client{imageclient, runtimeClient}
 
-	client := &client{imageclient, runTimeClient}
-
-	data, err := os.ReadFile(*imageListPtr)
+	imagelist, err := util.ParseImageList(*imageListPtr)
 	if err != nil {
-		log.Error(err, "failed to read image list file")
+		log.Error(err, "failed to parse image list file")
 		os.Exit(1)
 	}
 
-	var ls []string
-	if err := json.Unmarshal(data, &ls); err != nil {
-		log.Error(err, "failed to unmarshal image list")
+	excluded, err = util.ParseExcluded(excludedPath)
+	if err != nil {
+		log.Error(err, "failed to parse exclusion list")
 		os.Exit(1)
 	}
-
-	// read excluded values from excluded configmap
-	data, err = os.ReadFile(excludedPath)
-	if err != nil {
-		if os.IsNotExist(err) {
-			log.Info("excluded configmap does not exist", "error: ", err)
-		} else {
-			log.Error(err, "failed to read excluded values")
-			os.Exit(1)
-		}
-	} else {
-		var result util.ExclusionList
-		if err := json.Unmarshal(data, &result); err != nil {
-			log.Error(err, "failed to unmarshal excluded configmap")
-			os.Exit(1)
-		}
-
-		excluded = make(map[string]struct{}, len(result.Excluded))
-		for _, img := range result.Excluded {
-			excluded[img] = struct{}{}
-		}
+	if len(excluded) == 0 {
+		log.Info("excluded configmap was empty or does not exist")
 	}
 
-	if err := removeImages(client, ls); err != nil {
+	if err := removeImages(&client, imagelist); err != nil {
 		log.Error(err, "failed to remove images")
 		os.Exit(1)
 	}
