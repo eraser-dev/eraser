@@ -1,6 +1,6 @@
 ---
 title: How to Use Eraser
-sidebar_position: 3
+sidebar_position: 1
 ---
 
 This tutorial demonstrates the functionality of Eraser and validates that non-running images are removed succesfully.
