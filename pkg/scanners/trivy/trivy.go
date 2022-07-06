@@ -2,14 +2,10 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"flag"
 	"fmt"
 	"net/http"
 	"os"
-	"strings"
-
-	machinerytypes "k8s.io/apimachinery/pkg/types"
 
 	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
 
@@ -19,19 +15,10 @@ import (
 	_ "net/http/pprof"
 
 	"github.com/Azure/eraser/pkg/logger"
-	"github.com/aquasecurity/fanal/applier"
 	"github.com/aquasecurity/fanal/artifact"
 	artifactImage "github.com/aquasecurity/fanal/artifact/image"
-	"github.com/aquasecurity/fanal/cache"
 	fanalImage "github.com/aquasecurity/fanal/image"
-	fanalTypes "github.com/aquasecurity/fanal/types"
-	"github.com/aquasecurity/trivy-db/pkg/db"
-	dlDb "github.com/aquasecurity/trivy/pkg/db"
-	"github.com/aquasecurity/trivy/pkg/detector/ospkg"
-	pkgResult "github.com/aquasecurity/trivy/pkg/result"
 	"github.com/aquasecurity/trivy/pkg/scanner"
-	"github.com/aquasecurity/trivy/pkg/scanner/local"
-	trivyTypes "github.com/aquasecurity/trivy/pkg/types"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
@@ -57,17 +44,18 @@ const (
 )
 
 var (
-	collectorCRName = flag.String("collector-cr-name", "collector-cr", "name of the collector cr to read from and write to")
 	cacheDir        = flag.String("cache-dir", "/var/lib/trivy", "path to the cache dir")
-	severity        = flag.String("severity", "CRITICAL", "list of severity levels to report")
-	ignoreUnfixed   = flag.Bool("ignore-unfixed", true, "report only fixed vulnerabilities")
-	vulnTypes       = flag.String("vuln-type", "os,library", "comma separated list of vulnerability types")
-	securityChecks  = flag.String("security-checks", "vuln,secret", "comma-separated list of what security issues to detect")
+	collectorCRName = flag.String("collector-cr-name", "collector-cr", "name of the collector cr to read from and write to")
 	enableProfile   = flag.Bool("enable-pprof", false, "enable pprof profiling")
+	ignoreUnfixed   = flag.Bool("ignore-unfixed", true, "report only fixed vulnerabilities")
 	profilePort     = flag.Int("pprof-port", 6060, "port for pprof profiling. defaulted to 6060 if unspecified")
+	securityChecks  = flag.String("security-checks", "vuln,secret", "comma-separated list of what security issues to detect")
+	severity        = flag.String("severity", "CRITICAL", "list of severity levels to report")
+	vulnTypes       = flag.String("vuln-type", "os,library", "comma separated list of vulnerability types")
 
-	// Will be modified by parseCommaSeparatedOptions() to reflect the `severity` CLI flag
-	// These are the only recognized severities and the keys of this map should never be modified.
+	// Will be modified by parseCommaSeparatedOptions() to reflect the
+	// `severity` CLI flag These are the only recognized severities and the
+	// keys of this map should never be modified.
 	severityMap = map[string]bool{
 		severityCritical: false,
 		severityHigh:     false,
@@ -76,16 +64,18 @@ var (
 		severityUnknown:  false,
 	}
 
-	// Will be modified by parseCommaSeparatedOptions() to reflect the `security-checks` CLI flag
-	// These are the only recognized security checks and the keys of this map should never be modified.
+	// Will be modified by parseCommaSeparatedOptions() to reflect the
+	// `security-checks` CLI flag These are the only recognized security checks
+	// and the keys of this map should never be modified.
 	securityCheckMap = map[string]bool{
 		securityCheckVuln:   false,
 		securityCheckSecret: false,
 		securityCheckConfig: false,
 	}
 
-	// Will be modified by parseCommaSeparatedOptions()  to reflect the `vuln-type` CLI flag
-	// These are the only recognized vulnerability types and the keys of this map should never be modified.
+	// Will be modified by parseCommaSeparatedOptions()  to reflect the
+	// `vuln-type` CLI flag These are the only recognized vulnerability types
+	// and the keys of this map should never be modified.
 	vulnTypeMap = map[string]bool{
 		vulnTypeOs:      false,
 		vulnTypeLibrary: false,
@@ -93,36 +83,8 @@ var (
 
 	log = logf.Log.WithName("scanner").WithValues("provider", "trivy")
 
+	// This can be overwritten by the linker.
 	trivyVersion = "dev"
-)
-
-type (
-	scannerSetup struct {
-		fscache       cache.FSCache
-		localScanner  local.Scanner
-		scanOptions   trivyTypes.ScanOptions
-		dockerOptions fanalTypes.DockerOption
-	}
-
-	patch struct {
-		Status eraserv1alpha1.ImageCollectorStatus `json:"status"`
-	}
-
-	optionSet struct {
-		input string
-		m     map[string]bool
-	}
-
-	statusUpdate struct {
-		apiPath          string
-		ctx              context.Context
-		clientset        *kubernetes.Clientset
-		collectorCRName  string
-		resourceName     string
-		subResourceName  string
-		vulnerableImages []eraserv1alpha1.Image
-		failedImages     []eraserv1alpha1.Image
-	}
 )
 
 func main() {
@@ -141,7 +103,7 @@ func main() {
 		}()
 	}
 
-	allCommaSeparatedOptions := []optionSet{
+	allSetsOfCommaSeparatedOptions := []optionSet{
 		{
 			input: *severity,
 			m:     severityMap,
@@ -156,7 +118,7 @@ func main() {
 		},
 	}
 
-	for _, oSet := range allCommaSeparatedOptions {
+	for _, oSet := range allSetsOfCommaSeparatedOptions {
 		// note: this function has side effects and will modify the map supplied as the first argument
 		err := parseCommaSeparatedOptions(oSet.m, oSet.input)
 		if err != nil {
@@ -285,125 +247,4 @@ func main() {
 	}
 
 	log.Info("scanning complete, exiting")
-}
-
-// side effects: map `m` will be modified according to the values in `commaSeparatedList`.
-func parseCommaSeparatedOptions(m map[string]bool, commaSeparatedList string) error {
-	list := strings.Split(commaSeparatedList, ",")
-	for _, item := range list {
-		if _, ok := m[item]; !ok {
-			keys := mapKeys(m)
-			return fmt.Errorf("'%s' was not one of %#v", item, keys)
-		}
-
-		m[item] = true
-	}
-
-	return nil
-}
-
-func downloadAndInitDB(cacheDir string) error {
-	err := downloadDB(cacheDir)
-	if err != nil {
-		return err
-	}
-
-	err = db.Init(cacheDir)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func downloadDB(cacheDir string) error {
-	client := dlDb.NewClient(cacheDir, true)
-	ctx := context.Background()
-	needsUpdate, err := client.NeedsUpdate(trivyVersion, false)
-	if err != nil {
-		return err
-	}
-
-	if needsUpdate {
-		if err = client.Download(ctx, cacheDir); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-func setupScanner(cacheDir string, vulnTypes, securityChecks []string) (scannerSetup, error) {
-	filesystemCache, err := cache.NewFSCache(cacheDir)
-	if err != nil {
-		return scannerSetup{}, err
-	}
-
-	app := applier.NewApplier(filesystemCache)
-	det := ospkg.Detector{}
-	dopts := fanalTypes.DockerOption{}
-	scan := local.NewScanner(app, det)
-
-	sopts := trivyTypes.ScanOptions{
-		VulnType:            vulnTypes,
-		SecurityChecks:      securityChecks,
-		ScanRemovedPackages: false,
-		ListAllPackages:     false,
-	}
-
-	return scannerSetup{
-		localScanner:  scan,
-		scanOptions:   sopts,
-		dockerOptions: dopts,
-		fscache:       filesystemCache,
-	}, nil
-}
-
-func initializeResultClient() pkgResult.Client {
-	config := db.Config{}
-	client := pkgResult.NewClient(config)
-	return client
-}
-
-func updateStatus(opts *statusUpdate) error {
-	collectorPatch := patch{
-		Status: eraserv1alpha1.ImageCollectorStatus{
-			Vulnerable: opts.vulnerableImages,
-			Failed:     opts.failedImages,
-		},
-	}
-
-	body, err := json.Marshal(&collectorPatch)
-	if err != nil {
-		return err
-	}
-
-	_, err = opts.clientset.RESTClient().Patch(machinerytypes.MergePatchType).
-		AbsPath(opts.apiPath).
-		Resource(opts.resourceName).
-		SubResource(opts.subResourceName).
-		Name(opts.collectorCRName).
-		Body(body).DoRaw(opts.ctx)
-
-	return err
-}
-
-func mapKeys(m map[string]bool) []string {
-	list := []string{}
-	for k := range m {
-		list = append(list, k)
-	}
-
-	return list
-}
-
-func trueMapKeys(m map[string]bool) []string {
-	list := []string{}
-	for k := range m {
-		if m[k] {
-			list = append(list, k)
-		}
-	}
-
-	return list
 }
