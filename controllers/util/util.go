@@ -13,6 +13,11 @@ import (
 var (
 	SuccessDelDelaySeconds = flag.Int64("job-cleanup-on-success-delay", 0, "Seconds to delay job deletion after successful runs. 0 means no delay")
 	ErrDelDelaySeconds     = flag.Int64("job-cleanup-on-error-delay", 86400, "Seconds to delay job deletion after errored runs. 0 means no delay")
+
+	ScannerCPULimit   = flag.String("scanner-cpu-limit", "", "limit on CPU usage for scanner pods spawned by the eraser manager")
+	ScannerCPURequest = flag.String("scanner-cpu-request", "", "minimum CPU request for scanner pods spawned by the eraser manager")
+	ScannerMemLimit   = flag.String("scanner-mem-limit", "2Gi", "limit on memory usage for scanner pods spawned by the eraser manager")
+	ScannerMemRequest = flag.String("scanner-mem-request", "500Mi", "minimum memory request for scanner pods spawned by the eraser manager")
 )
 
 func NeverOnCreate(_ event.CreateEvent) bool {
