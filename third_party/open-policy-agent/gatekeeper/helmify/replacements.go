@@ -6,4 +6,5 @@ var replacements = map[string]string{
 	`HELMSUBST_DEPLOYMENT_CONTROLLER_MANAGER_TOLERATIONS: ""`:         `{{- toYaml .Values.controllerManager.tolerations | nindent 8 }}`,
 	`HELMSUBST_DEPLOYMENT_CONTROLLER_MANAGER_AFFINITY: ""`:            `{{- toYaml .Values.controllerManager.affinity | nindent 8 }}`,
 	`- HELMSUBST_DEPLOYMENT_CONTROLLER_MANAGER_SCANNER_ARGS`:          `{{- if .Values.scanner.image.args }}{{- range .Values.scanner.image.args }}{{ nindent 8 "- --scanner-arg=" }}{{ . }}{{- end -}}{{ end }}`,
+	`- HELMSUBST_DEPLOYMENT_CONTROLLER_MANAGER_ADDITIONAL_ARGS`:       `{{- if .Values.controllerManager.image.additionalArgs }}{{- range .Values.controllerManager.image.additionalArgs }}{{ nindent 8 "- " }}{{ . }}{{- end -}}{{ end }}`,
 }

@@ -2,11 +2,12 @@ package utils
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net"
 	"net/url"
-	"regexp"
+	"os"
 	"strings"
 
 	"google.golang.org/grpc"
@@ -27,6 +28,12 @@ var (
 	ErrProtocolNotSupported  = errors.New("protocol not supported")
 	ErrEndpointDeprecated    = errors.New("endpoint is deprecated, please consider using full url format")
 	ErrOnlySupportUnixSocket = errors.New("only support unix socket endpoint")
+
+	RuntimeSocketPathMap = map[string]string{
+		"docker":     "unix:///var/run/dockershim.sock",
+		"containerd": "unix:///run/containerd/containerd.sock",
+		"cri-o":      "unix:///var/run/crio/crio.sock",
+	}
 )
 
 func GetAddressAndDialer(endpoint string) (string, func(ctx context.Context, addr string) (net.Conn, error), error) {
@@ -144,6 +151,10 @@ func GetNonRunningImages(runningImages map[string]string, allImages []string, id
 }
 
 func IsExcluded(excluded map[string]struct{}, img string, idToTagListMap map[string][]string) bool {
+	if len(excluded) == 0 {
+		return false
+	}
+
 	// check if img excluded by digest
 	if _, contains := excluded[img]; contains {
 		return true
@@ -156,13 +167,10 @@ func IsExcluded(excluded map[string]struct{}, img string, idToTagListMap map[str
 		}
 	}
 
-	regexRepo := regexp.MustCompile(`[a-z0-9]+([._-][a-z0-9]+)*/\*\z`)
-	regexTag := regexp.MustCompile(`[a-z0-9]+([._-][a-z0-9]+)*(/[a-z0-9]+([._-][a-z0-9]+)*)*:\*\z`)
-
 	// look for excluded repository values and names without tag
 	for key := range excluded {
 		// if excluded key ends in /*, check image with pattern match
-		if match := regexRepo.MatchString(key); match {
+		if strings.HasSuffix(key, "/*") {
 			// store repository name
 			repo := strings.Split(key, "*")
 
@@ -180,7 +188,7 @@ func IsExcluded(excluded map[string]struct{}, img string, idToTagListMap map[str
 		}
 
 		// if excluded key ends in :*, check image with pattern patch
-		if match := regexTag.MatchString(key); match {
+		if strings.HasSuffix(key, ":*") {
 			// store image name
 			imagePath := strings.Split(key, ":")
 
@@ -198,4 +206,41 @@ func IsExcluded(excluded map[string]struct{}, img string, idToTagListMap map[str
 	}
 
 	return false
+}
+
+func ParseImageList(path string) ([]string, error) {
+	imagelist := []string{}
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := json.Unmarshal(data, &imagelist); err != nil {
+		return nil, err
+	}
+
+	return imagelist, nil
+}
+
+// read values from excluded configmap.
+func ParseExcluded(path string) (map[string]struct{}, error) {
+	excluded := make(map[string]struct{})
+	data, err := os.ReadFile(path)
+
+	if os.IsNotExist(err) {
+		return excluded, nil
+	} else if err != nil {
+		return excluded, err
+	}
+
+	var result ExclusionList
+	if err := json.Unmarshal(data, &result); err != nil {
+		return excluded, err
+	}
+
+	for _, img := range result.Excluded {
+		excluded[img] = struct{}{}
+	}
+
+	return excluded, nil
 }

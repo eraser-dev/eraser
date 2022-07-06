@@ -51,7 +51,6 @@ const (
 	docker         = "docker"
 	containerd     = "containerd"
 	crio           = "cri-o"
-	namespace      = "eraser-system"
 )
 
 var log = logf.Log.WithName("controller").WithValues("process", "imagejob-controller")
@@ -186,7 +185,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 
 func podListOptions(j *eraserv1alpha1.ImageJob) client.ListOptions {
 	return client.ListOptions{
-		Namespace:     namespace,
+		Namespace:     utils.GetNamespace(),
 		LabelSelector: labels.SelectorFromSet(map[string]string{"name": j.Spec.JobTemplate.Spec.Containers[0].Name}),
 	}
 }
@@ -295,7 +294,7 @@ func (r *Reconciler) handleNewJob(ctx context.Context, imageJob *eraserv1alpha1.
 			TypeMeta: metav1.TypeMeta{},
 			Spec:     *podSpec,
 			ObjectMeta: metav1.ObjectMeta{
-				Namespace:    "eraser-system",
+				Namespace:    utils.GetNamespace(),
 				GenerateName: containerName + "-" + nodeName + "-",
 				Labels:       map[string]string{"name": containerName},
 				OwnerReferences: []metav1.OwnerReference{

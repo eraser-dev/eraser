@@ -36,8 +36,15 @@ spec:
         - --collector-image={{ if .Values.collector.image.repository }}{{ .Values.collector.image.repository }}:{{ .Values.collector.image.tag | default .Chart.AppVersion }}{{ end }}
         - --scanner-image={{ if .Values.scanner.image.repository }}{{ .Values.scanner.image.repository }}:{{ .Values.scanner.image.tag | default .Chart.AppVersion }}{{ end }}
         {{- if .Values.scanner.image.args }}{{- range .Values.scanner.image.args }}{{ nindent 8 "- --scanner-arg=" }}{{ . }}{{- end -}}{{ end }}
+        {{- if .Values.controllerManager.image.additionalArgs }}{{- range .Values.controllerManager.image.additionalArgs }}{{ nindent 8 "- " }}{{ . }}{{- end -}}{{ end }}
         command:
         - /manager
+        env:
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: metadata.namespace
         image: '{{ .Values.controllerManager.image.repository }}:{{ .Values.controllerManager.image.tag | default .Chart.AppVersion }}'
         imagePullPolicy: '{{ .Values.controllerManager.image.pullPolicy }}'
         livenessProbe:
