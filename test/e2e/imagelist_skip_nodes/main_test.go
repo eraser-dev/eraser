@@ -26,7 +26,7 @@ func TestMain(m *testing.M) {
 		envfuncs.CreateNamespace(util.Namespace),
 		envfuncs.LoadDockerImageToCluster(util.KindClusterName, util.ManagerImage),
 		envfuncs.LoadDockerImageToCluster(util.KindClusterName, util.Image),
-		util.DeployEraserManifest(util.EraserNamespace, "--set", `collector.image.repository=,filter-nodes=exclude`),
+		util.DeployEraserManifest(util.EraserNamespace, "--set", `collector.image.repository=`),
 	).Finish(
 		envfuncs.DestroyKindCluster(util.KindClusterName),
 	)
