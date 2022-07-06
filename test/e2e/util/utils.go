@@ -44,7 +44,7 @@ const (
 	Prune                = "imagelist"
 	SkippedNodeName      = "eraser-e2e-test-worker"
 	SkippedNodeSelector  = "kubernetes.io/hostname=eraser-e2e-test-worker"
-	SkipLabelKey         = "eraser.sh/cleanup.skip"
+	SkipLabelKey         = "eraser.sh/cleanup.filter"
 	SkipLabelValue       = "true"
 )
 
