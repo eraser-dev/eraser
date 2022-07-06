@@ -1,5 +1,5 @@
 ---
-title: Quick Start
+title: How to Use Eraser
 sidebar_position: 3
 ---
 
