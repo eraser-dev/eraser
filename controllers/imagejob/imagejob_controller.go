@@ -63,7 +63,7 @@ var (
 )
 
 func init() {
-	flag.Var(&filterNodesSelectors, "skip-nodes-selector", "A kubernetes selector. If a node's labels are a match, the node will be skipped. If this flag is supplied multiple times, the selectors will be logically ORed together.")
+	flag.Var(&filterNodesSelectors, "filter-nodes-selector", "A kubernetes selector. If a node's labels are a match, the node will be skipped. If this flag is supplied multiple times, the selectors will be logically ORed together.")
 }
 
 func Add(mgr manager.Manager) error {
