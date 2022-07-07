@@ -64,10 +64,6 @@ var (
 
 func init() {
 	flag.Var(&filterNodesSelectors, "filter-nodes-selector", "A kubernetes selector. If a node's labels are a match, the node will be skipped. If this flag is supplied multiple times, the selectors will be logically ORed together.")
-
-	if *filterOption == "excluded" {
-		filterNodesSelectors = append(filterNodesSelectors, "kubernetes.io/os=windows")
-	}
 }
 
 func Add(mgr manager.Manager) error {
