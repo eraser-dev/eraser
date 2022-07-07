@@ -380,10 +380,16 @@ func (r *Reconciler) createScanJob(ctx context.Context, collector *eraserv1alpha
 									"memory": resource.Quantity{
 										Format: resource.Format(*util.ScannerMemRequest),
 									},
+									"cpu": resource.Quantity{
+										Format: resource.Format(*util.ScannerCPURequest),
+									},
 								},
 								Limits: corev1.ResourceList{
 									"memory": resource.Quantity{
 										Format: resource.Format(*util.ScannerMemLimit),
+									},
+									"cpu": resource.Quantity{
+										Format: resource.Format(*util.ScannerCPULimit),
 									},
 								},
 							},
@@ -392,19 +398,6 @@ func (r *Reconciler) createScanJob(ctx context.Context, collector *eraserv1alpha
 				},
 			},
 		},
-	}
-
-	resources := &scanJob.Spec.Template.Spec.Containers[0].Resources
-	if *util.ScannerCPURequest != "" {
-		resources.Requests["cpu"] = resource.Quantity{
-			Format: resource.Format(*util.ScannerCPURequest),
-		}
-	}
-
-	if *util.ScannerCPULimit != "" {
-		resources.Limits["cpu"] = resource.Quantity{
-			Format: resource.Format(*util.ScannerCPULimit),
-		}
 	}
 
 	return r.Create(ctx, &scanJob)
