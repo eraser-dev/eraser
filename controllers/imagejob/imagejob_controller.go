@@ -68,7 +68,9 @@ func init() {
 
 func Add(mgr manager.Manager) error {
 	if *filterOption == "exclude" {
-		filterNodesSelectors.Set("kubernetes.io/os=windows")
+		if err := filterNodesSelectors.Set("kubernetes.io/os=windows"); err != nil {
+			return err
+		}
 	}
 	return add(mgr, newReconciler(mgr))
 }
