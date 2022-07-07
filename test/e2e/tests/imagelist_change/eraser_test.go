@@ -8,7 +8,6 @@ import (
 	"testing"
 	"time"
 
-	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
 	"github.com/Azure/eraser/test/e2e/util"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -135,23 +134,6 @@ func TestUpdateImageList(t *testing.T) {
 			ctxT, cancel := context.WithTimeout(ctx, 5*time.Minute)
 			defer cancel()
 			util.CheckImageRemoved(ctxT, t, util.GetClusterNodes(t), util.Redis)
-
-			return ctx
-		}).
-		Teardown(func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
-			if i := ctx.Value(util.Nginx); i != nil {
-				cfg.Client().Resources().Delete(ctx, i.(*appsv1.Deployment))
-			}
-			if i := ctx.Value(util.Redis); i != nil {
-				cfg.Client().Resources().Delete(ctx, i.(*appsv1.Deployment))
-			}
-			if i := ctx.Value("imagelist"); i != nil {
-				cfg.Client().Resources().Delete(ctx, i.(*eraserv1alpha1.ImageList))
-			}
-
-			if err := util.DeleteImageListsAndJobs(cfg.KubeconfigFile()); err != nil {
-				t.Error("Failed to clean eraser obejcts ", err)
-			}
 
 			return ctx
 		}).Feature()
