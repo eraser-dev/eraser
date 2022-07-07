@@ -38,6 +38,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
+	"sigs.k8s.io/kind/pkg/errors"
 
 	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
 	"github.com/Azure/eraser/controllers/util"
@@ -262,16 +263,19 @@ func (r *Reconciler) handleNewJob(ctx context.Context, imageJob *eraserv1alpha1.
 		{Name: "NODE_NAME", ValueFrom: &corev1.EnvVarSource{FieldRef: &corev1.ObjectFieldSelector{FieldPath: "spec.nodeName"}}},
 	}
 
-	if *filterOption == "exclude" {
+	switch *filterOption {
+	case "exclude":
 		nodeList, skipped, err = filterOutSkippedNodes(nodes, filterNodesSelectors)
 		if err != nil {
 			return err
 		}
-	} else if *filterOption == "include" {
+	case "include":
 		nodeList, skipped, err = filterIncludedNodes(nodes, filterNodesSelectors)
 		if err != nil {
 			return err
 		}
+	default:
+		return errors.Errorf("invalid node filter option")
 	}
 
 	imageJob.Status.Skipped = skipped
