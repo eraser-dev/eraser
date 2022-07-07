@@ -72,7 +72,7 @@ func TestIncludeNodes(t *testing.T) {
 				return len(nodeList.Items) == 1, nil
 			}, wait.WithTimeout(time.Minute))
 			if err != nil {
-				t.Errorf("error while waiting for selector%s to be added to node\n%#v", util.FilterNodeSelector, err)
+				t.Errorf("error while waiting for selector %s to be added to node\n%#v", util.FilterNodeSelector, err)
 			}
 
 			resultDeployment := appsv1.Deployment{
