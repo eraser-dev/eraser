@@ -140,55 +140,6 @@ func TestIncludeNodes(t *testing.T) {
 
 			return ctx
 		}).
-		Teardown(func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
-			if err := util.DeleteEraserConfig(cfg.KubeconfigFile(), "eraser-system", "../../test-data", "eraser_v1alpha1_imagelist.yaml"); err != nil {
-				t.Error("Failed to delete image list config ", err)
-			}
-
-			c := cfg.Client().RESTConfig()
-			k8sClient, err := clientgo.NewForConfig(c)
-			if err != nil {
-				t.Error("unable to obtain k8s client from config", err)
-			}
-
-			nodeList, err := k8sClient.CoreV1().Nodes().List(ctx, metav1.ListOptions{LabelSelector: util.FilterNodeSelector})
-			if err != nil {
-				t.Errorf("unable to list node %s\n%#v", util.FilterNodeSelector, err)
-			}
-
-			if len(nodeList.Items) != 1 {
-				t.Errorf("List operation for selector %s resulted in the wrong number of nodes", util.FilterNodeSelector)
-			}
-
-			filterNode := &nodeList.Items[0]
-			delete(filterNode.ObjectMeta.Labels, util.FilterLabelKey)
-
-			filterNode, err = k8sClient.CoreV1().Nodes().Update(ctx, filterNode, metav1.UpdateOptions{})
-			if err != nil {
-				t.Errorf("unable to remove label %s from node %#v\nerror: %#v", util.FilterLabelKey, filterNode, err)
-			}
-
-			err = wait.For(func() (bool, error) {
-				nodeList, err = k8sClient.CoreV1().Nodes().List(ctx, metav1.ListOptions{LabelSelector: util.FilterLabelKey})
-				if err != nil {
-					return false, err
-				}
-
-				return len(nodeList.Items) == 0, nil
-			}, wait.WithTimeout(time.Minute))
-			if err != nil {
-				t.Errorf("error while waiting for selector%s to be removed from node\n%#v", util.FilterNodeSelector, err)
-			}
-
-			if err := util.KubectlDelete(cfg.KubeconfigFile(), "eraser-system", append([]string{"imagejob", "--all"})); err != nil {
-				t.Error("Failed to delete image job(s) config ", err)
-			}
-			if err := util.KubectlDelete(cfg.KubeconfigFile(), "eraser-system", append([]string{"imagelist", "--all"})); err != nil {
-				t.Error("Failed to delete image job(s) config ", err)
-			}
-
-			return ctx
-		}).
 		Feature()
 
 	util.Testenv.Test(t, includeNodesFeat)
