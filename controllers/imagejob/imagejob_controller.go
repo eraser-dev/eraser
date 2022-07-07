@@ -362,9 +362,10 @@ func filterIncludedNodes(nodes *corev1.NodeList, includeNodesSelectors []string)
 	skipped := 0
 	nodeList := make([]corev1.Node, 0, len(nodes.Items))
 
+nodes:
 	for i := range nodes.Items {
 		log := log.WithValues("node", nodes.Items[i].Name)
-
+		skipped++
 		nodeName := nodes.Items[i].Name
 		for _, includeNodesSelectors := range includeNodesSelectors {
 			includedLabels, err := labels.Parse(includeNodesSelectors)
@@ -382,8 +383,8 @@ func filterIncludedNodes(nodes *corev1.NodeList, includeNodesSelectors []string)
 				)
 
 				nodeList = append(nodeList, nodes.Items[i])
-			} else {
-				skipped++
+				skipped--
+				continue nodes
 			}
 		}
 	}
