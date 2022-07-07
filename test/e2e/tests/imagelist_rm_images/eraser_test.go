@@ -20,8 +20,8 @@ import (
 	"sigs.k8s.io/e2e-framework/pkg/features"
 )
 
-func TestExclusionList(t *testing.T) {
-	excludedImageFeat := features.New("Verify Eraser will skip excluded images").
+func TestImageListTriggersEraserImageJob(t *testing.T) {
+	rmImageFeat := features.New("An ImageList should trigger an eraser ImageJob").
 		Setup(func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
 			podSelectorLabels := map[string]string{"app": util.Nginx}
 			nginxDep := util.NewDeployment(cfg.Namespace(), util.Nginx, 2, podSelectorLabels, corev1.Container{Image: util.Nginx, Name: util.Nginx})
@@ -31,19 +31,6 @@ func TestExclusionList(t *testing.T) {
 			if err := util.DeleteImageListsAndJobs(cfg.KubeconfigFile()); err != nil {
 				t.Error("Failed to clean eraser obejcts ", err)
 			}
-
-			// create excluded configmap and add docker.io/library/*
-			excluded := corev1.ConfigMap{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "excluded",
-					Namespace: util.EraserNamespace,
-				},
-				Data: map[string]string{"excluded": "{\"excluded\": [\"docker.io/library/*\"]}"},
-			}
-			if err := cfg.Client().Resources().Create(ctx, &excluded); err != nil {
-				t.Error("failed to create excluded configmap", err)
-			}
-
 			return ctx
 		}).
 		Assess("deployment successfully deployed", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
@@ -57,13 +44,13 @@ func TestExclusionList(t *testing.T) {
 			}
 
 			if err = wait.For(conditions.New(client.Resources()).DeploymentConditionMatch(&resultDeployment, appsv1.DeploymentAvailable, corev1.ConditionTrue),
-				wait.WithTimeout(time.Minute*5)); err != nil {
+				wait.WithTimeout(time.Minute*3)); err != nil {
 				t.Error("deployment not found", err)
 			}
 
 			return context.WithValue(ctx, util.Nginx, &resultDeployment)
 		}).
-		Assess("Check image remains in all nodes", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
+		Assess("Images successfully deleted from all nodes", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
 			// delete deployment
 			client, err := cfg.NewClient()
 			if err != nil {
@@ -86,19 +73,20 @@ func TestExclusionList(t *testing.T) {
 			for _, nodeName := range util.GetClusterNodes(t) {
 				err := wait.For(util.ContainerNotPresentOnNode(nodeName, util.Nginx), wait.WithTimeout(time.Minute*2))
 				if err != nil {
+					// Let's not mark this as an error
+					// We only have this to prevent race conditions with the eraser spinning up
 					t.Logf("error while waiting for deployment deletion: %v", err)
 				}
 			}
 
-			// create imagelist to trigger deletion
-			if err := util.DeployEraserConfig(cfg.KubeconfigFile(), util.EraserNamespace, "../test-data", "eraser_v1alpha1_imagelist.yaml"); err != nil {
+			// deploy imageJob config
+			if err := util.DeployEraserConfig(cfg.KubeconfigFile(), util.EraserNamespace, "../../test-data", "eraser_v1alpha1_imagelist.yaml"); err != nil {
 				t.Error("Failed to deploy image list config", err)
 			}
 
 			ctxT, cancel := context.WithTimeout(ctx, time.Minute)
 			defer cancel()
-			// since docker.io/library/* was excluded, nginx should still exist following deletion
-			util.CheckImagesExist(ctxT, t, util.GetClusterNodes(t), util.Nginx)
+			util.CheckImageRemoved(ctxT, t, util.GetClusterNodes(t), util.Nginx)
 
 			return ctx
 		}).
@@ -116,7 +104,7 @@ func TestExclusionList(t *testing.T) {
 				t.Errorf("could not list pods: %v", err)
 			}
 
-			err = wait.For(conditions.New(c.Resources()).ResourcesDeleted(&ls), wait.WithTimeout(time.Minute*3))
+			err = wait.For(conditions.New(c.Resources()).ResourcesDeleted(&ls), wait.WithTimeout(time.Minute))
 			if err != nil {
 				t.Errorf("error waiting for pods to be deleted: %v", err)
 			}
@@ -124,7 +112,7 @@ func TestExclusionList(t *testing.T) {
 			return ctx
 		}).
 		Teardown(func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
-			if err := util.DeleteEraserConfig(cfg.KubeconfigFile(), util.EraserNamespace, "../test-data", "eraser_v1alpha1_imagelist.yaml"); err != nil {
+			if err := util.DeleteEraserConfig(cfg.KubeconfigFile(), util.EraserNamespace, "../../test-data", "eraser_v1alpha1_imagelist.yaml"); err != nil {
 				t.Error("Failed to delete image list config ", err)
 			}
 			if err := util.DeleteImageListsAndJobs(cfg.KubeconfigFile()); err != nil {
@@ -134,5 +122,5 @@ func TestExclusionList(t *testing.T) {
 		}).
 		Feature()
 
-	util.Testenv.Test(t, excludedImageFeat)
+	util.Testenv.Test(t, rmImageFeat)
 }
