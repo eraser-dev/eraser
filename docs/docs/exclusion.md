@@ -1,6 +1,5 @@
 ---
 title: Exclusion
-sidebar_position: 2
 ---
 
 ## Excluding registries, repositories, and images
