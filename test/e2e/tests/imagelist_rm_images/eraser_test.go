@@ -111,15 +111,6 @@ func TestImageListTriggersEraserImageJob(t *testing.T) {
 
 			return ctx
 		}).
-		Teardown(func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
-			if err := util.DeleteEraserConfig(cfg.KubeconfigFile(), util.EraserNamespace, "../../test-data", "eraser_v1alpha1_imagelist.yaml"); err != nil {
-				t.Error("Failed to delete image list config ", err)
-			}
-			if err := util.DeleteImageListsAndJobs(cfg.KubeconfigFile()); err != nil {
-				t.Error("Failed to clean eraser obejcts ", err)
-			}
-			return ctx
-		}).
 		Feature()
 
 	util.Testenv.Test(t, rmImageFeat)
