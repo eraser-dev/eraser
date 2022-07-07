@@ -22,7 +22,7 @@ import (
 )
 
 func TestSkipNodes(t *testing.T) {
-	skipNodesFeat := features.New("Applying the eraser.sh/cleanup.skip label to a node should prevent ImageJob pods from being scheduled on that node").
+	skipNodesFeat := features.New("Applying the eraser.sh/cleanup.filter label to a node should prevent ImageJob pods from being scheduled on that node").
 		Setup(func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
 			// fetch node info
 			c := cfg.Client().RESTConfig()
@@ -37,21 +37,21 @@ func TestSkipNodes(t *testing.T) {
 				t.Error("Failed to create the dep", err)
 			}
 
-			nodeList, err := k8sClient.CoreV1().Nodes().List(ctx, metav1.ListOptions{LabelSelector: util.SkippedNodeSelector})
+			nodeList, err := k8sClient.CoreV1().Nodes().List(ctx, metav1.ListOptions{LabelSelector: util.FilterNodeSelector})
 			if err != nil {
-				t.Errorf("unable to list node %s\n%#v", util.SkippedNodeSelector, err)
+				t.Errorf("unable to list node %s\n%#v", util.FilterNodeSelector, err)
 			}
 
 			if len(nodeList.Items) != 1 {
-				t.Errorf("List operation for selector %s resulted in the wrong number of nodes", util.SkippedNodeSelector)
+				t.Errorf("List operation for selector %s resulted in the wrong number of nodes", util.FilterNodeSelector)
 			}
 
 			nodeToSkip := &nodeList.Items[0]
-			nodeToSkip.ObjectMeta.Labels[util.SkipLabelKey] = util.SkipLabelValue
+			nodeToSkip.ObjectMeta.Labels[util.FilterLabelKey] = util.FilterLabelValue
 
 			nodeToSkip, err = k8sClient.CoreV1().Nodes().Update(ctx, nodeToSkip, metav1.UpdateOptions{})
 			if err != nil {
-				t.Errorf("unable to update node %#v with label {%s: %s}\nerror: %#v", nodeToSkip, util.SkipLabelKey, util.SkipLabelValue, err)
+				t.Errorf("unable to update node %#v with label {%s: %s}\nerror: %#v", nodeToSkip, util.FilterLabelKey, util.FilterLabelValue, err)
 			}
 
 			return ctx
@@ -64,7 +64,7 @@ func TestSkipNodes(t *testing.T) {
 			}
 
 			err = wait.For(func() (bool, error) {
-				nodeList, err := k8sClient.CoreV1().Nodes().List(ctx, metav1.ListOptions{LabelSelector: util.SkipLabelKey})
+				nodeList, err := k8sClient.CoreV1().Nodes().List(ctx, metav1.ListOptions{LabelSelector: util.FilterLabelKey})
 				if err != nil {
 					return false, err
 				}
@@ -72,7 +72,7 @@ func TestSkipNodes(t *testing.T) {
 				return len(nodeList.Items) == 1, nil
 			}, wait.WithTimeout(time.Minute))
 			if err != nil {
-				t.Errorf("error while waiting for selector%s to be added to node\n%#v", util.SkippedNodeSelector, err)
+				t.Errorf("error while waiting for selector%s to be added to node\n%#v", util.FilterNodeSelector, err)
 			}
 
 			resultDeployment := appsv1.Deployment{
@@ -109,7 +109,7 @@ func TestSkipNodes(t *testing.T) {
 			}
 
 			clusterNodes := util.GetClusterNodes(t)
-			clusterNodes = util.DeleteStringFromSlice(clusterNodes, util.SkippedNodeName)
+			clusterNodes = util.DeleteStringFromSlice(clusterNodes, util.FilterNodeName)
 
 			for _, nodeName := range clusterNodes {
 				err := wait.For(util.ContainerNotPresentOnNode(nodeName, util.Nginx), wait.WithTimeout(time.Minute*2))
@@ -139,7 +139,7 @@ func TestSkipNodes(t *testing.T) {
 			}
 
 			// the imagejob has done its work, so now we can check the node to make sure it didn't remove the image
-			util.CheckImagesExist(ctx, t, []string{util.SkippedNodeName}, util.Nginx)
+			util.CheckImagesExist(ctx, t, []string{util.FilterNodeName}, util.Nginx)
 
 			return ctx
 		}).
@@ -154,25 +154,25 @@ func TestSkipNodes(t *testing.T) {
 				t.Error("unable to obtain k8s client from config", err)
 			}
 
-			nodeList, err := k8sClient.CoreV1().Nodes().List(ctx, metav1.ListOptions{LabelSelector: util.SkippedNodeSelector})
+			nodeList, err := k8sClient.CoreV1().Nodes().List(ctx, metav1.ListOptions{LabelSelector: util.FilterNodeSelector})
 			if err != nil {
-				t.Errorf("unable to list node %s\n%#v", util.SkippedNodeSelector, err)
+				t.Errorf("unable to list node %s\n%#v", util.FilterNodeSelector, err)
 			}
 
 			if len(nodeList.Items) != 1 {
-				t.Errorf("List operation for selector %s resulted in the wrong number of nodes", util.SkippedNodeSelector)
+				t.Errorf("List operation for selector %s resulted in the wrong number of nodes", util.FilterNodeSelector)
 			}
 
 			skippedNode := &nodeList.Items[0]
-			delete(skippedNode.ObjectMeta.Labels, util.SkipLabelKey)
+			delete(skippedNode.ObjectMeta.Labels, util.FilterLabelKey)
 
 			skippedNode, err = k8sClient.CoreV1().Nodes().Update(ctx, skippedNode, metav1.UpdateOptions{})
 			if err != nil {
-				t.Errorf("unable to remove label %s from node %#v\nerror: %#v", util.SkipLabelKey, skippedNode, err)
+				t.Errorf("unable to remove label %s from node %#v\nerror: %#v", util.FilterLabelKey, skippedNode, err)
 			}
 
 			err = wait.For(func() (bool, error) {
-				nodeList, err = k8sClient.CoreV1().Nodes().List(ctx, metav1.ListOptions{LabelSelector: util.SkipLabelKey})
+				nodeList, err = k8sClient.CoreV1().Nodes().List(ctx, metav1.ListOptions{LabelSelector: util.FilterLabelKey})
 				if err != nil {
 					return false, err
 				}
@@ -180,7 +180,7 @@ func TestSkipNodes(t *testing.T) {
 				return len(nodeList.Items) == 0, nil
 			}, wait.WithTimeout(time.Minute))
 			if err != nil {
-				t.Errorf("error while waiting for selector%s to be removed from node\n%#v", util.SkippedNodeSelector, err)
+				t.Errorf("error while waiting for selector%s to be removed from node\n%#v", util.FilterNodeSelector, err)
 			}
 
 			if err := util.KubectlDelete(cfg.KubeconfigFile(), "", append([]string{"imagejob", "--all"})); err != nil {

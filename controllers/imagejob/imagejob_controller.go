@@ -38,6 +38,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
+	"sigs.k8s.io/kind/pkg/errors"
 
 	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
 	"github.com/Azure/eraser/controllers/util"
@@ -56,15 +57,21 @@ const (
 var log = logf.Log.WithName("controller").WithValues("process", "imagejob-controller")
 
 var (
-	successRatio       = flag.Float64("job-success-ratio", 1.0, "Ratio of successful/total runs to consider a job successful. 1.0 means all runs must succeed.")
-	skipNodesSelectors = utils.MultiFlag([]string{"kubernetes.io/os=windows", "eraser.sh/cleanup.skip"})
+	successRatio         = flag.Float64("job-success-ratio", 1.0, "Ratio of successful/total runs to consider a job successful. 1.0 means all runs must succeed.")
+	filterNodesSelectors = utils.MultiFlag([]string{"eraser.sh/cleanup.filter"})
+	filterOption         = flag.String("filter-nodes", "exclude", "operation type (include|exclude) to filter nodes that eraser runs on")
 )
 
 func init() {
-	flag.Var(&skipNodesSelectors, "skip-nodes-selector", "A kubernetes selector. If a node's labels are a match, the node will be skipped. If this flag is supplied multiple times, the selectors will be logically ORed together.")
+	flag.Var(&filterNodesSelectors, "filter-nodes-selector", "A kubernetes selector. If a node's labels are a match, the node will be skipped. If this flag is supplied multiple times, the selectors will be logically ORed together.")
 }
 
 func Add(mgr manager.Manager) error {
+	if *filterOption == "exclude" {
+		if err := filterNodesSelectors.Set("kubernetes.io/os=windows"); err != nil {
+			return err
+		}
+	}
 	return add(mgr, newReconciler(mgr))
 }
 
@@ -253,6 +260,7 @@ func (r *Reconciler) handleNewJob(ctx context.Context, imageJob *eraserv1alpha1.
 	}
 
 	skipped := 0
+	var nodeList []corev1.Node
 
 	log := log.WithValues("job", imageJob.Name)
 
@@ -260,9 +268,19 @@ func (r *Reconciler) handleNewJob(ctx context.Context, imageJob *eraserv1alpha1.
 		{Name: "NODE_NAME", ValueFrom: &corev1.EnvVarSource{FieldRef: &corev1.ObjectFieldSelector{FieldPath: "spec.nodeName"}}},
 	}
 
-	nodeList, skipped, err := filterOutSkippedNodes(nodes, skipNodesSelectors)
-	if err != nil {
-		return err
+	switch *filterOption {
+	case "exclude":
+		nodeList, skipped, err = filterOutSkippedNodes(nodes, filterNodesSelectors)
+		if err != nil {
+			return err
+		}
+	case "include":
+		nodeList, skipped, err = selectIncludedNodes(nodes, filterNodesSelectors)
+		if err != nil {
+			return err
+		}
+	default:
+		return errors.Errorf("invalid node filter option")
 	}
 
 	imageJob.Status.Skipped = skipped
@@ -347,6 +365,40 @@ func (r *Reconciler) updateJobStatus(ctx context.Context, imageJob *eraserv1alph
 		}
 	}
 	return nil
+}
+
+func selectIncludedNodes(nodes *corev1.NodeList, includeNodesSelectors []string) ([]corev1.Node, int, error) {
+	skipped := 0
+	nodeList := make([]corev1.Node, 0, len(nodes.Items))
+
+nodes:
+	for i := range nodes.Items {
+		log := log.WithValues("node", nodes.Items[i].Name)
+		skipped++
+		nodeName := nodes.Items[i].Name
+		for _, includeNodesSelectors := range includeNodesSelectors {
+			includedLabels, err := labels.Parse(includeNodesSelectors)
+			if err != nil {
+				return nil, -1, err
+			}
+
+			log.V(1).Info("includedLabels", "includedLabels", includedLabels)
+			log.V(1).Info("nodeLabels", "nodeLabels", nodes.Items[i].ObjectMeta.Labels)
+			if includedLabels.Matches(labels.Set(nodes.Items[i].ObjectMeta.Labels)) {
+				log.Info("node is included because it matched the specified labels",
+					"nodeName", nodeName,
+					"labels", nodes.Items[i].ObjectMeta.Labels,
+					"specifiedSelectors", includeNodesSelectors,
+				)
+
+				nodeList = append(nodeList, nodes.Items[i])
+				skipped--
+				continue nodes
+			}
+		}
+	}
+
+	return nodeList, skipped, nil
 }
 
 func filterOutSkippedNodes(nodes *corev1.NodeList, skipNodesSelectors []string) ([]corev1.Node, int, error) {

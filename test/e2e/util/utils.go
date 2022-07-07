@@ -41,10 +41,10 @@ const (
 
 	ImageCollectorShared = "imagecollector-shared"
 	Prune                = "imagelist"
-	SkippedNodeName      = "eraser-e2e-test-worker"
-	SkippedNodeSelector  = "kubernetes.io/hostname=eraser-e2e-test-worker"
-	SkipLabelKey         = "eraser.sh/cleanup.skip"
-	SkipLabelValue       = "true"
+	FilterNodeName       = "eraser-e2e-test-worker"
+	FilterNodeSelector   = "kubernetes.io/hostname=eraser-e2e-test-worker"
+	FilterLabelKey       = "eraser.sh/cleanup.filter"
+	FilterLabelValue     = "true"
 )
 
 var (
