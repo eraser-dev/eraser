@@ -58,7 +58,7 @@ var log = logf.Log.WithName("controller").WithValues("process", "imagejob-contro
 
 var (
 	successRatio         = flag.Float64("job-success-ratio", 1.0, "Ratio of successful/total runs to consider a job successful. 1.0 means all runs must succeed.")
-	filterNodesSelectors = utils.MultiFlag([]string{"kubernetes.io/os=windows", "eraser.sh/cleanup.filter"})
+	filterNodesSelectors = utils.MultiFlag([]string{"eraser.sh/cleanup.filter"})
 	filterOption         = flag.String("filter-nodes", "exclude", "operation type (include|exclude) to filter nodes that eraser runs on")
 )
 
@@ -67,6 +67,9 @@ func init() {
 }
 
 func Add(mgr manager.Manager) error {
+	if *filterOption == "exclude" {
+		filterNodesSelectors.Set("kubernetes.io/os=windows")
+	}
 	return add(mgr, newReconciler(mgr))
 }
 
