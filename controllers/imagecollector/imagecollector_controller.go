@@ -376,9 +376,20 @@ func (r *Reconciler) createScanJob(ctx context.Context, collector *eraserv1alpha
 							Image: scannerImage,
 							Args:  instanceArgs,
 							Resources: corev1.ResourceRequirements{
+								Requests: corev1.ResourceList{
+									"memory": resource.Quantity{
+										Format: resource.Format(*util.ScannerMemRequest),
+									},
+									"cpu": resource.Quantity{
+										Format: resource.Format(*util.ScannerCPURequest),
+									},
+								},
 								Limits: corev1.ResourceList{
 									"memory": resource.Quantity{
-										Format: "2Gi",
+										Format: resource.Format(*util.ScannerMemLimit),
+									},
+									"cpu": resource.Quantity{
+										Format: resource.Format(*util.ScannerCPULimit),
 									},
 								},
 							},

@@ -6,7 +6,7 @@ MANAGER_IMG ?= ghcr.io/azure/eraser-manager:${VERSION}
 ERASER_IMG ?= ghcr.io/azure/eraser:${VERSION}
 COLLECTOR_IMG ?= ghcr.io/azure/collector:${VERSION}
 VULNERABLE_IMG ?= docker.io/library/alpine:3.7.3
-E2E_TESTS ?= collector_disable_scan collector_pipeline collector_skip_excluded imagelist_alias imagelist_change imagelist_prune_images imagelist_rm_images imagelist_skip_nodes imagelist_exclusion_list imagelist_include_nodes
+E2E_TESTS ?= $(shell find ./test/e2e/tests/ -mindepth 1 -type d)
 
 KUSTOMIZE_VERSION ?= 3.8.9
 KUBERNETES_VERSION ?= 1.23.0
@@ -128,7 +128,7 @@ e2e-test: vulnerable-img
 			SCANNER_IMAGE=${TRIVY_SCANNER_IMG} \
 			VULNERABLE_IMAGE=${VULNERABLE_IMG} \
 			NODE_VERSION=kindest/node:v${KUBERNETES_VERSION} \
-			go test -count=$(TEST_COUNT) -timeout=$(TIMEOUT) $(TESTFLAGS) -tags=e2e -v ./test/e2e/$$test ; \
+			go test -count=$(TEST_COUNT) -timeout=$(TIMEOUT) $(TESTFLAGS) -tags=e2e -v $$test ; \
 	done
 
 ##@ Build
