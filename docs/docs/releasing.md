@@ -1,10 +1,13 @@
-# Release Process
+---
+title: Releasing
+---
 
 ## Overview
 
 The release process consists of three phases: versioning, building, and publishing.
 
 Versioning involves maintaining the following files:
+
 - **Makefile** - the Makefile contains a VERSION variable that defines the version of the project.
 - **manager.yaml** - the controller-manager deployment yaml contains the latest release tag image of the project.
 - **eraser.yaml** - the eraser.yaml contains all eraser resources to be deployed to a cluster including the latest release tag image of the project.
@@ -13,58 +16,58 @@ The steps below explain how to update these files. In addition, the repository s
 
 Building involves obtaining a copy of the repository and triggering a build as part of the GitHub Actions CI pipeline.
 
-Publishing involves creating a release tag and creating a new *Release* on GitHub.
+Publishing involves creating a release tag and creating a new _Release_ on GitHub.
 
 ## Versioning
 
 1. Obtain a copy of the repository.
 
-	```
-	git clone git@github.com:Azure/eraser.git
-	```
+   ```
+   git clone git@github.com:Azure/eraser.git
+   ```
 
 1. If this is a patch release for a release branch, check out applicable branch, such as `release-0.1`. If not, branch should be `main`
 
 1. Execute the release-patch target to generate patch. Give the semantic version of the release:
 
-	```
-	make release-manifest NEWVERSION=vX.Y.Z
-	```
+   ```
+   make release-manifest NEWVERSION=vX.Y.Z
+   ```
 
 1. Promote staging manifest to release.
 
-	```
-	make promote-staging-manifest
-	```
+   ```
+   make promote-staging-manifest
+   ```
 
 1. Preview the changes:
 
-	```
-	git status
-	git diff
-	```
+   ```
+   git status
+   git diff
+   ```
 
 ## Building and releasing
 
 1. Commit the changes and push to remote repository to create a pull request.
 
-	```
-	git checkout -b release-<NEW VERSION>
-	git commit -a -s -m "Prepare <NEW VERSION> release"
-	git push <YOUR FORK>
-	```
+   ```
+   git checkout -b release-<NEW VERSION>
+   git commit -a -s -m "Prepare <NEW VERSION> release"
+   git push <YOUR FORK>
+   ```
 
 2. Once the PR is merged to `main` or `release` branch (`<BRANCH NAME>` below), tag that commit with release version and push tags to remote repository.
 
-	```
-	git checkout <BRANCH NAME>
-	git pull origin <BRANCH NAME>
-	git tag -a <NEW VERSION> -m '<NEW VERSION>'
-	git push origin <NEW VERSION>
-	```
+   ```
+   git checkout <BRANCH NAME>
+   git pull origin <BRANCH NAME>
+   git tag -a <NEW VERSION> -m '<NEW VERSION>'
+   git push origin <NEW VERSION>
+   ```
 
-1. Pushing the release tag will trigger GitHub Actions to trigger `release` job.
-This will build the `ghcr.io/azure/eraser` and `ghcr.io/azure/eraser-manager` images automatically, then publish the new release tag.
+3. Pushing the release tag will trigger GitHub Actions to trigger `release` job.
+   This will build the `ghcr.io/azure/eraser` and `ghcr.io/azure/eraser-manager` images automatically, then publish the new release tag.
 
 ## Publishing
 
