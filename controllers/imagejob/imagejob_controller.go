@@ -270,7 +270,7 @@ func (r *Reconciler) handleNewJob(ctx context.Context, imageJob *eraserv1alpha1.
 			return err
 		}
 	case "include":
-		nodeList, skipped, err = filterIncludedNodes(nodes, filterNodesSelectors)
+		nodeList, skipped, err = selectIncludedNodes(nodes, filterNodesSelectors)
 		if err != nil {
 			return err
 		}
@@ -362,7 +362,7 @@ func (r *Reconciler) updateJobStatus(ctx context.Context, imageJob *eraserv1alph
 	return nil
 }
 
-func filterIncludedNodes(nodes *corev1.NodeList, includeNodesSelectors []string) ([]corev1.Node, int, error) {
+func selectIncludedNodes(nodes *corev1.NodeList, includeNodesSelectors []string) ([]corev1.Node, int, error) {
 	skipped := 0
 	nodeList := make([]corev1.Node, 0, len(nodes.Items))
 
