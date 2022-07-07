@@ -1,6 +1,5 @@
 ---
-title: How to Use Eraser
-sidebar_position: 1
+title: Quick Start
 ---
 
 This tutorial demonstrates the functionality of Eraser and validates that non-running images are removed succesfully.
@@ -75,6 +74,23 @@ docker.io/library/alpine@sha256:8421d9a84432575381bfabd248f1eb56f3aa21d9d7cd2511
 
 ```
 
+<<<<<<< HEAD:docs/docs/quickstart/how-to-use.md
+=======
+## Excluding registries, repositories, and images
+
+Eraser can exclude registries (example, `docker.io/library/*`) and also specific images with a tag (example, `docker.io/library/ubuntu:18.04`) or digest (example, `sha256:80f31da1ac7b312ba29d65080fd...`) from its removal process.
+
+To exclude any images or registries from the removal, create a configmap named `excluded` in the eraser-system namespace with a JSON file holding the excluded images.
+
+```bash
+$ cat > sample.json <<EOF
+{"excluded": ["docker.io/library/*", "ghcr.io/azure/test:latest"]}
+EOF
+
+$ kubectl create configmap excluded --from-file=excluded=sample.json --namespace=eraser-system
+```
+
+>>>>>>> 29b61ce3c26cfa33c86168831296fe018673fca9:docs/docs/quick-start.md
 ## Automatically Cleaning Images
 
 After deploying Eraser, it will automatically clean images in a regular interval. This interval can be set by `--repeat-period` argument to `eraser-controller-manager`. The default interval is 24 hours (`24h`). Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h".
@@ -124,6 +140,7 @@ eraser-kind-worker-wfqc                      0/1     Completed   0          17s
 eraser-kind-worker2-gwbit                    0/1     Completed   0          17s
 eraser-scanner-78p49-vxb4j                   0/1     Completed   0          30s
 ```
+<<<<<<< HEAD:docs/docs/quickstart/how-to-use.md
 
 ## Manually Cleaning Images
 
@@ -185,3 +202,5 @@ If the image has been successfully removed, there will be no output.
 
 ## Features
 * [Excluding registries, repositories, and images](exclusion.md) from removal
+=======
+>>>>>>> 29b61ce3c26cfa33c86168831296fe018673fca9:docs/docs/quick-start.md

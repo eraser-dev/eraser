@@ -59,6 +59,8 @@ const config = {
             href: 'https://github.com/azure/eraser',
             label: 'GitHub',
             position: 'right',
+            className: 'header-github-link',
+            'aria-label': 'GitHub repository',
           },
         ],
       },
@@ -70,6 +72,16 @@ const config = {
         theme: lightCodeTheme,
         darkTheme: darkCodeTheme,
       },
+      algolia: {
+        appId: 'X8MU4GEC0G',
+        apiKey: 'aaca7901c07e616a7ec2e1e1f9670809',
+        indexName: 'eraser',
+      },
+      colorMode: {
+        defaultMode: 'light',
+        disableSwitch: false,
+        respectPrefersColorScheme: true,
+      }
     }),
 };
 

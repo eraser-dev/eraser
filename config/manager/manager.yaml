@@ -31,6 +31,12 @@ spec:
         - --leader-elect=false
         image: controller:latest
         name: manager
+        env:
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: metadata.namespace
         securityContext:
           allowPrivilegeEscalation: false
         livenessProbe:

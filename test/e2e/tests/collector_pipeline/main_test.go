@@ -14,8 +14,6 @@ import (
 	"sigs.k8s.io/e2e-framework/pkg/env"
 	"sigs.k8s.io/e2e-framework/pkg/envconf"
 	"sigs.k8s.io/e2e-framework/pkg/envfuncs"
-
-	pkgUtil "github.com/Azure/eraser/pkg/utils"
 )
 
 func TestMain(m *testing.M) {
@@ -24,17 +22,14 @@ func TestMain(m *testing.M) {
 	util.Testenv = env.NewWithConfig(envconf.New())
 	// Create KinD Cluster
 	util.Testenv.Setup(
-		envfuncs.CreateKindClusterWithConfig(util.KindClusterName, util.NodeVersion, "../kind-config.yaml"),
-		envfuncs.CreateNamespace(util.Namespace),
-		envfuncs.CreateNamespace(util.EraserNamespace),
+		envfuncs.CreateKindClusterWithConfig(util.KindClusterName, util.NodeVersion, "../../kind-config.yaml"),
+		envfuncs.CreateNamespace(util.TestNamespace),
 		envfuncs.LoadDockerImageToCluster(util.KindClusterName, util.ManagerImage),
 		envfuncs.LoadDockerImageToCluster(util.KindClusterName, util.Image),
+		envfuncs.LoadDockerImageToCluster(util.KindClusterName, util.ScannerImage),
 		envfuncs.LoadDockerImageToCluster(util.KindClusterName, util.CollectorImage),
 		envfuncs.LoadDockerImageToCluster(util.KindClusterName, util.VulnerableImage),
-		util.CreateExclusionList(util.EraserNamespace, pkgUtil.ExclusionList{
-			Excluded: []string{"docker.io/library/alpine:*"},
-		}),
-		util.DeployEraserManifest(util.EraserNamespace, "--set", "scanner.image.repository="),
+		util.DeployEraserManifest(util.EraserNamespace),
 	).Finish(
 		envfuncs.DestroyKindCluster(util.KindClusterName),
 	)

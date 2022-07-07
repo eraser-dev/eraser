@@ -22,8 +22,8 @@ func TestMain(m *testing.M) {
 	util.Testenv = env.NewWithConfig(envconf.New())
 	// Create KinD Cluster
 	util.Testenv.Setup(
-		envfuncs.CreateKindClusterWithConfig(util.KindClusterName, util.NodeVersion, "../kind-config.yaml"),
-		envfuncs.CreateNamespace(util.Namespace),
+		envfuncs.CreateKindClusterWithConfig(util.KindClusterName, util.NodeVersion, "../../kind-config.yaml"),
+		envfuncs.CreateNamespace(util.TestNamespace),
 		envfuncs.LoadDockerImageToCluster(util.KindClusterName, util.ManagerImage),
 		envfuncs.LoadDockerImageToCluster(util.KindClusterName, util.Image),
 		util.DeployEraserManifest(util.EraserNamespace, "--set", `collector.image.repository=`),
