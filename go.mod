@@ -67,7 +67,7 @@ require (
 	github.com/cenkalti/backoff v2.2.1+incompatible // indirect
 	github.com/cespare/xxhash/v2 v2.1.2 // indirect
 	github.com/cheggaaa/pb/v3 v3.0.8 // indirect
-	github.com/containerd/containerd v1.6.2 // indirect
+	github.com/containerd/containerd v1.6.6 // indirect
 	github.com/containerd/stargz-snapshotter/estargz v0.10.1 // indirect
 	github.com/containerd/typeurl v1.0.2 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
@@ -145,9 +145,10 @@ require (
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/nxadm/tail v1.4.8 // indirect
 	github.com/olekukonko/tablewriter v0.0.5 // indirect
+	github.com/onsi/ginkgo/v2 v2.1.3 // indirect
 	github.com/open-policy-agent/opa v0.40.0 // indirect
 	github.com/opencontainers/go-digest v1.0.0 // indirect
-	github.com/opencontainers/image-spec v1.0.2 // indirect
+	github.com/opencontainers/image-spec v1.0.3-0.20211202183452-c5a74bcca799 // indirect
 	github.com/owenrumney/go-sarif/v2 v2.1.1 // indirect
 	github.com/owenrumney/squealer v0.3.2 // indirect
 	github.com/package-url/packageurl-go v0.1.1-0.20220203205134-d70459300c8a // indirect
