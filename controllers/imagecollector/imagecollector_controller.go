@@ -368,6 +368,23 @@ func (r *Reconciler) createScanJob(ctx context.Context, collector *eraserv1alpha
 					Namespace:    utils.GetNamespace(),
 				},
 				Spec: corev1.PodSpec{
+					Affinity: &corev1.Affinity{
+						NodeAffinity: &corev1.NodeAffinity{
+							RequiredDuringSchedulingIgnoredDuringExecution: &corev1.NodeSelector{
+								NodeSelectorTerms: []corev1.NodeSelectorTerm{
+									{
+										MatchExpressions: []corev1.NodeSelectorRequirement{
+											{
+												Key:      "kubernetes.io/os",
+												Operator: corev1.NodeSelectorOperator("NotIn"),
+												Values:   []string{"windows"},
+											},
+										},
+									},
+								},
+							},
+						},
+					},
 					ServiceAccountName: "eraser-imagejob-pods",
 					RestartPolicy:      corev1.RestartPolicyNever,
 					Containers: []corev1.Container{
