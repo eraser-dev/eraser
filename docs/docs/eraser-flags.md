@@ -1,5 +1,5 @@
 ---
-title: Eraser Pod Flags
+title: Customization
 ---
 
 By default, successful jobs will be deleted after a period of time. You can change this behavior by setting the following flags in the eraser-controller-manager:
