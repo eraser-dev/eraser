@@ -145,9 +145,9 @@ func (r *Reconciler) handleJobListEvent(ctx context.Context, imageList *eraserv1
 
 		if job.Status.DeleteAfter == nil {
 			if job.Status.Phase == eraserv1alpha1.PhaseCompleted {
-				job.Status.DeleteAfter = util.After(time.Now(), *util.SuccessDelDelaySeconds)
+				job.Status.DeleteAfter = util.After(time.Now(), int64(util.SuccessDel.Seconds()))
 			} else if job.Status.Phase == eraserv1alpha1.PhaseFailed {
-				job.Status.DeleteAfter = util.After(time.Now(), *util.ErrDelDelaySeconds)
+				job.Status.DeleteAfter = util.After(time.Now(), int64(util.ErrDel.Seconds()))
 			}
 
 			if err := r.Status().Update(ctx, job); err != nil {
