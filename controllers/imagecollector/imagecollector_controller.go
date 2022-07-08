@@ -546,7 +546,7 @@ func (r *Reconciler) handleCompletedImageJob(ctx context.Context, req ctrl.Reque
 			if res, err := r.updateSharedCRD(ctx, req, imageCollectorShared); err != nil {
 				return res, err
 			}
-			childJob.Status.DeleteAfter = util.After(time.Now(), *util.SuccessDelDelaySeconds)
+			childJob.Status.DeleteAfter = util.After(time.Now(), int64(util.SuccessDel.Seconds()))
 			if err := r.Status().Update(ctx, childJob); err != nil {
 				log.Info("Could not update Delete After for job " + childJob.Name)
 			}
@@ -572,7 +572,7 @@ func (r *Reconciler) handleCompletedImageJob(ctx context.Context, req ctrl.Reque
 	case eraserv1alpha1.PhaseFailed:
 		log.Info("failed phase")
 		if childJob.Status.DeleteAfter == nil {
-			childJob.Status.DeleteAfter = util.After(time.Now(), *util.ErrDelDelaySeconds)
+			childJob.Status.DeleteAfter = util.After(time.Now(), int64(util.ErrDel.Seconds()))
 			if err := r.Status().Update(ctx, childJob); err != nil {
 				log.Info("Could not update Delete After for job " + childJob.Name)
 			}
