@@ -24,7 +24,8 @@ const sidebars = {
       collapsed: false,
       items: [
         'manual-removal',
-        'exclusion'
+        'exclusion',
+        'eraser-flags'
       ]
     },
     {
