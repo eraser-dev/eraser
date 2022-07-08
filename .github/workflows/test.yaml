@@ -90,6 +90,12 @@ jobs:
         uses: actions/checkout@v3
       - name: Unit test
         run: make test
+      - name: Codecov upload
+        uses: codecov/codecov-action@81cd2dc8148241f03f5839d295e000b8f761e378
+        with:
+          flags: unittests
+          file: ./cover.out
+          fail_ci_if_error: false
 
   check-manifest:
     name: "Check Manifest"
