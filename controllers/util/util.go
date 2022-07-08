@@ -11,8 +11,8 @@ import (
 )
 
 var (
-	SuccessDelDelaySeconds = flag.Int64("job-cleanup-on-success-delay", 0, "Seconds to delay job deletion after successful runs. 0 means no delay")
-	ErrDelDelaySeconds     = flag.Int64("job-cleanup-on-error-delay", 86400, "Seconds to delay job deletion after errored runs. 0 means no delay")
+	SuccessDel = flag.Duration("job-cleanup-on-success-delay", 0, "Seconds to delay job deletion after successful runs. 0 means no delay")
+	ErrDel     = flag.Duration("job-cleanup-on-error-delay", time.Hour*24, "Seconds to delay job deletion after errored runs. 0 means no delay")
 
 	ScannerCPURequest = flag.String("scanner-cpu-request", "1000m", "minimum CPU request for scanner pods spawned by the eraser manager")
 	ScannerCPULimit   = flag.String("scanner-cpu-limit", "1500m", "limit on CPU usage for scanner pods spawned by the eraser manager")
