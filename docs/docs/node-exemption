@@ -1,0 +1,18 @@
+---
+title: Node Exemption
+---
+
+## Exempting Nodes from the Eraser Pipeline
+
+When deploying Eraser, you can specify whether there is a list of nodes you would like to `include` or `exclude` from the cleanup process using the `--filter-nodes` argument.  
+
+```bash
+$ helm install eraser-test manifest_staging/charts/eraser --create-namespace --namespace=eraser-system --set controllerManager.image.AdditionalArgs={--filter-nodes=include}
+```
+```bash
+$ helm install eraser-test manifest_staging/charts/eraser --create-namespace --namespace=eraser-system --set controllerManager.image.AdditionalArgs={--filter-nodes=exclude}
+```
+
+Nodes with the selector `eraser.sh/cleanup.filter` will be filtered accordingly. By default, Eraser excludes nodes including all Windows nodes.
+
+Additional node selectors can be provided through the `--filter-nodes-selector` flag.
