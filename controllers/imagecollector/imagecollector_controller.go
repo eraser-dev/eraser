@@ -55,6 +55,7 @@ var (
 	repeatPeriod           = flag.Duration("repeat-period", time.Hour*24, "repeat period for collect/scan process")
 	deleteScanFailedImages = flag.Bool("delete-scan-failed-images", true, "whether or not to delete images for which scanning has failed")
 	scannerArgs            = utils.MultiFlag([]string{})
+	collectorArgs          = utils.MultiFlag([]string{})
 )
 
 const (
@@ -66,6 +67,7 @@ const (
 
 func init() {
 	flag.Var(&scannerArgs, "scanner-arg", "An argument to be passed through to the scanner. For example, --scanner-arg=--severity=CRITICAL,HIGH will be passed through to the scanner as --severity=CRITICAL,HIGH. Can be supplied multiple times.")
+	flag.Var(&collectorArgs, "collector-arg", "An argument to be passed through to the collector. For example, --collector-arg=--enable-pprof=true will pass through to the collector as --enable-pprof=true. Can be supplied multiple times.")
 }
 
 // ImageCollectorReconciler reconciles a ImageCollector object.
