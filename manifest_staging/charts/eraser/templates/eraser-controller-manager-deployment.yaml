@@ -36,6 +36,8 @@ spec:
         - --collector-image={{ if .Values.collector.image.repository }}{{ .Values.collector.image.repository }}:{{ .Values.collector.image.tag | default .Chart.AppVersion }}{{ end }}
         - --scanner-image={{ if .Values.scanner.image.repository }}{{ .Values.scanner.image.repository }}:{{ .Values.scanner.image.tag | default .Chart.AppVersion }}{{ end }}
         {{- if .Values.scanner.image.args }}{{- range .Values.scanner.image.args }}{{ nindent 8 "- --scanner-arg=" }}{{ . }}{{- end -}}{{ end }}
+        {{- if .Values.eraser.image.args }}{{- range .Values.eraser.image.args }}{{ nindent 8 "- --eraser-arg=" }}{{ . }}{{- end -}}{{ end }}
+        {{- if .Values.collector.image.args }}{{- range .Values.collector.image.args }}{{ nindent 8 "- --collector-arg=" }}{{ . }}{{- end -}}{{ end }}
         {{- if .Values.controllerManager.image.additionalArgs }}{{- range .Values.controllerManager.image.additionalArgs }}{{ nindent 8 "- " }}{{ . }}{{- end -}}{{ end }}
         command:
         - /manager
