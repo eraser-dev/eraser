@@ -37,7 +37,9 @@ const sidebars = {
         'setup',
         'releasing',
       ]
-    }
+    },
+    'contributing',
+    'code-of-conduct',
   ]
 };
 
