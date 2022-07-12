@@ -14,3 +14,16 @@ EOF
 
 $ kubectl create configmap excluded --from-file=excluded=sample.json --namespace=eraser-system
 ```
+
+## Exempting Nodes from the Eraser Pipeline
+Exempting nodes with `--filter-nodes` is added in v0.3.0. When deploying Eraser, you can specify whether there is a list of nodes you would like to `include` or `exclude` from the cleanup process using the `--filter-nodes` argument. 
+
+_See [Eraser Helm Chart](../../manifest_staging/charts/eraser/README.md) for more information on deployment._
+
+Nodes with the selector `eraser.sh/cleanup.filter` will be filtered accordingly. 
+- If `include` is provided, eraser and collector pods will only be scheduled on nodes with the selector `eraser.sh/cleanup.filter`. 
+- If `exclude` is provided, eraser and collector pods will be scheduled on all nodes besides those with the selector `eraser.sh/cleanup.filter`.
+
+Unless specified, the default value of `--filter-nodes` is `exclude`. Because Windows nodes are not supported, they will always be excluded regardless of the `eraser.sh/cleanup.filter` label or the value of `--filter-nodes`.
+
+Additional node selectors can be provided through the `--filter-nodes-selector` flag.
