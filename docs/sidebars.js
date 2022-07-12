@@ -25,7 +25,6 @@ const sidebars = {
       items: [
         'manual-removal',
         'exclusion',
-        'node-exemption'
       ]
     },
     {
