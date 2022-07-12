@@ -19,13 +19,6 @@ $ kubectl create configmap excluded --from-file=excluded=sample.json --namespace
 
 When deploying Eraser, you can specify whether there is a list of nodes you would like to `include` or `exclude` from the cleanup process using the `--filter-nodes` argument.  
 
-```bash
-$ helm install eraser-test manifest_staging/charts/eraser --create-namespace --namespace=eraser-system --set controllerManager.image.AdditionalArgs={--filter-nodes=include}
-```
-```bash
-$ helm install eraser-test manifest_staging/charts/eraser --create-namespace --namespace=eraser-system --set controllerManager.image.AdditionalArgs={--filter-nodes=exclude}
-```
-
 Nodes with the selector `eraser.sh/cleanup.filter` will be filtered accordingly. 
 - If `include` is provided, eraser and collector pods will only be scheduled on nodes with the selector `eraser.sh/cleanup.filter`. 
 - If `exclude` is provided, eraser and collector pods will be scheduled on all nodes besides those with the selector `eraser.sh/cleanup.filter`.
