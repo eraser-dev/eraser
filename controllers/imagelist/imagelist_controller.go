@@ -55,7 +55,12 @@ var (
 	log         = logf.Log.WithName("controller").WithValues("process", "imagelist-controller")
 	eraserImage = flag.String("eraser-image", "ghcr.io/azure/eraser:latest", "eraser image")
 	imageList   = types.NamespacedName{Name: "imagelist"}
+	eraserArgs  = utils.MultiFlag([]string{})
 )
+
+func init() {
+	flag.Var(&eraserArgs, "eraser-arg", "An argument to be passed through to the eraser. For example, --eraser-arg=--enable-pprof=true will pass through to the eraser as --enable-pprof=true. Can be supplied multiple times.")
+}
 
 func Add(mgr manager.Manager) error {
 	return add(mgr, newReconciler(mgr))
@@ -201,6 +206,7 @@ func (r *Reconciler) handleImageListEvent(ctx context.Context, req *ctrl.Request
 		"--imagelist=" + filepath.Join(imgListPath, "images"),
 		"--log-level=" + logger.GetLevel(),
 	}
+	args = append(args, eraserArgs...)
 
 	job := &eraserv1alpha1.ImageJob{
 		ObjectMeta: metav1.ObjectMeta{

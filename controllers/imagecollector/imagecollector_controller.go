@@ -55,6 +55,7 @@ var (
 	repeatPeriod           = flag.Duration("repeat-period", time.Hour*24, "repeat period for collect/scan process")
 	deleteScanFailedImages = flag.Bool("delete-scan-failed-images", true, "whether or not to delete images for which scanning has failed")
 	scannerArgs            = utils.MultiFlag([]string{})
+	collectorArgs          = utils.MultiFlag([]string{})
 )
 
 const (
@@ -66,6 +67,7 @@ const (
 
 func init() {
 	flag.Var(&scannerArgs, "scanner-arg", "An argument to be passed through to the scanner. For example, --scanner-arg=--severity=CRITICAL,HIGH will be passed through to the scanner as --severity=CRITICAL,HIGH. Can be supplied multiple times.")
+	flag.Var(&collectorArgs, "collector-arg", "An argument to be passed through to the collector. For example, --collector-arg=--enable-pprof=true will pass through to the collector as --enable-pprof=true. Can be supplied multiple times.")
 }
 
 // ImageCollectorReconciler reconciles a ImageCollector object.
@@ -217,7 +219,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 
 		switch len(scanJobs) {
 		case 0: // (a) the timer has elapsed; begin a new pipeline
-			return r.createImageJob(ctx, req, &imageCollectorShared)
+			return r.createImageJob(ctx, req, &imageCollectorShared, collectorArgs)
 		case 1: // (b) scanjob has finished; delete and create/update imageList
 			err := r.Delete(ctx, &scanJobs[0])
 			if err != nil {
@@ -440,7 +442,7 @@ func (r *Reconciler) handleJobDeletion(ctx context.Context, job *eraserv1alpha1.
 	return ctrl.Result{}, nil
 }
 
-func (r *Reconciler) createImageJob(ctx context.Context, req ctrl.Request, imageCollector *eraserv1alpha1.ImageCollector) (ctrl.Result, error) {
+func (r *Reconciler) createImageJob(ctx context.Context, req ctrl.Request, imageCollector *eraserv1alpha1.ImageCollector, args []string) (ctrl.Result, error) {
 	job := &eraserv1alpha1.ImageJob{
 		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: "imagejob-",
@@ -465,6 +467,7 @@ func (r *Reconciler) createImageJob(ctx context.Context, req ctrl.Request, image
 							Name:            "collector",
 							Image:           *collectorImage,
 							ImagePullPolicy: corev1.PullIfNotPresent,
+							Args:            args,
 							VolumeMounts: []corev1.VolumeMount{
 								{MountPath: excludedPath, Name: excludedName},
 							},
