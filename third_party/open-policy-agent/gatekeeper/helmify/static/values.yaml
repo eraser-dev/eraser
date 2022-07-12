@@ -29,11 +29,13 @@ eraser:
   image:
     repository: ghcr.io/azure/eraser
     tag: ""
+    args: []
 
 collector:
   image:
     repository: ghcr.io/azure/collector
     tag: ""
+    args: []
 
 scanner:
   image:

@@ -5,6 +5,7 @@ controllerManager:
     pullPolicy: IfNotPresent
     # Overrides the image tag whose default is the chart appVersion.
     tag: ""
+    additionalArgs: []
 
   securityContext:
     allowPrivilegeEscalation: false
@@ -38,5 +39,6 @@ scanner:
   image:
     repository: ghcr.io/azure/eraser-trivy-scanner
     tag: ""
+    args: []
 
 nameOverride: ""

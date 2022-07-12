@@ -14,6 +14,8 @@ spec:
         - --collector-image={{ if .Values.collector.image.repository }}{{ .Values.collector.image.repository }}:{{ .Values.collector.image.tag | default .Chart.AppVersion }}{{ end }}
         - --scanner-image={{ if .Values.scanner.image.repository }}{{ .Values.scanner.image.repository }}:{{ .Values.scanner.image.tag | default .Chart.AppVersion }}{{ end }}
         - HELMSUBST_DEPLOYMENT_CONTROLLER_MANAGER_SCANNER_ARGS
+        - HELMSUBST_DEPLOYMENT_CONTROLLER_MANAGER_ERASER_ARGS
+        - HELMSUBST_DEPLOYMENT_CONTROLLER_MANAGER_COLLECTOR_ARGS
         - HELMSUBST_DEPLOYMENT_CONTROLLER_MANAGER_ADDITIONAL_ARGS
         command:
         - /manager
