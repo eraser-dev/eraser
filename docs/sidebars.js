@@ -25,7 +25,7 @@ const sidebars = {
       items: [
         'manual-removal',
         'exclusion',
-        'eraser-flags'
+        'customization'
       ]
     },
     {
