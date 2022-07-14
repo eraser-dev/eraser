@@ -12,8 +12,6 @@ rules:
   verbs:
   - get
   - list
-  - update
-  - watch
 - apiGroups:
   - ""
   resources:
@@ -34,8 +32,6 @@ rules:
   - delete
   - get
   - list
-  - update
-  - watch
 - apiGroups:
   - eraser.sh
   resources:
