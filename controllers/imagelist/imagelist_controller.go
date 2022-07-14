@@ -87,7 +87,6 @@ type Reconciler struct {
 
 //+kubebuilder:rbac:groups=eraser.sh,resources=imagelists,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=eraser.sh,resources=imagelists/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=eraser.sh,resources=imagelists/finalizers,verbs=update
 //+kubebuilder:rbac:groups="",resources=nodes,verbs=get;list
 //+kubebuilder:rbac:groups="",resources=pods,verbs=get;list;watch;update;create;delete
 

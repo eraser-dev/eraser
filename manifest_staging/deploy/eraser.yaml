@@ -4274,12 +4274,6 @@ rules:
 - apiGroups:
   - eraser.sh
   resources:
-  - imagecollectors/finalizers
-  verbs:
-  - update
-- apiGroups:
-  - eraser.sh
-  resources:
   - imagecollectors/status
   verbs:
   - get
@@ -4300,12 +4294,6 @@ rules:
 - apiGroups:
   - eraser.sh
   resources:
-  - imagejobs/finalizers
-  verbs:
-  - update
-- apiGroups:
-  - eraser.sh
-  resources:
   - imagejobs/status
   verbs:
   - get
@@ -4323,12 +4311,6 @@ rules:
   - patch
   - update
   - watch
-- apiGroups:
-  - eraser.sh
-  resources:
-  - imagelists/finalizers
-  verbs:
-  - update
 - apiGroups:
   - eraser.sh
   resources:

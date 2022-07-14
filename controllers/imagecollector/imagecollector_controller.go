@@ -163,9 +163,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 }
 
 //+kubebuilder:rbac:groups=eraser.sh,resources=imagecollectors,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=eraser.sh,resources=imagelists,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=eraser.sh,resources=imagecollectors/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=eraser.sh,resources=imagecollectors/finalizers,verbs=update
 //+kubebuilder:rbac:groups="batch",resources=jobs,verbs=get;list;create;delete
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
