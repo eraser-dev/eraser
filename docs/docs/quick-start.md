@@ -6,7 +6,7 @@ This tutorial demonstrates the functionality of Eraser and validates that non-ru
 
 ## Deploy a DaemonSet
 
-After following the [install instructions](https://example.com), we'll apply a demo `DaemonSet`. For illustrative purposes, a DaemonSet is applied and deleted so the non-running images remain on all nodes. The alpine image with the `3.7.3` tag will be used in this example. This is an image with a known critical vulnerability.
+After following the [install instructions](installation.md), we'll apply a demo `DaemonSet`. For illustrative purposes, a DaemonSet is applied and deleted so the non-running images remain on all nodes. The alpine image with the `3.7.3` tag will be used in this example. This is an image with a known critical vulnerability.
 
 First, apply the `DaemonSet`:
 
