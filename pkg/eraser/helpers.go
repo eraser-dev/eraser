@@ -75,7 +75,7 @@ func removeImages(c Client, targetImages []string) error {
 			continue
 		}
 
-		log.Info("Image is not on node", "image", imgDigestOrTag)
+		log.Info("Image is not on node", "given", imgDigestOrTag)
 	}
 
 	if prune {
