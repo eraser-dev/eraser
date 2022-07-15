@@ -54,28 +54,28 @@ func removeImages(c Client, targetImages []string) error {
 
 		if digest, isNonRunning := nonRunningImages[imgDigestOrTag]; isNonRunning {
 			if ex := util.IsExcluded(excluded, imgDigestOrTag, idToTagListMap); ex {
-				log.Info("Image is excluded", "given", imgDigestOrTag, "digest", digest, "name", idToTagListMap[digest])
+				log.Info("image is excluded", "given", imgDigestOrTag, "digest", digest, "name", idToTagListMap[digest])
 				continue
 			}
 
 			err = c.deleteImage(backgroundContext, digest)
 			if err != nil {
-				log.Error(err, "Error removing", "given", imgDigestOrTag, "digest", digest, "name", idToTagListMap[digest])
+				log.Error(err, "error removing image", "given", imgDigestOrTag, "digest", digest, "name", idToTagListMap[digest])
 				continue
 			}
 
 			deletedImages[imgDigestOrTag] = struct{}{}
-			log.Info("Removed", "given", imgDigestOrTag, "digest", digest, "name", idToTagListMap[digest])
+			log.Info("removed image", "given", imgDigestOrTag, "digest", digest, "name", idToTagListMap[digest])
 			continue
 		}
 
 		digest, isRunning := runningImages[imgDigestOrTag]
 		if isRunning {
-			log.Info("Image is running", "given", imgDigestOrTag, "digest", digest, "name", idToTagListMap[digest])
+			log.Info("image is running", "given", imgDigestOrTag, "digest", digest, "name", idToTagListMap[digest])
 			continue
 		}
 
-		log.Info("Image is not on node", "given", imgDigestOrTag)
+		log.Info("image is not on node", "given", imgDigestOrTag)
 	}
 
 	if prune {
@@ -85,15 +85,15 @@ func removeImages(c Client, targetImages []string) error {
 			}
 
 			if util.IsExcluded(excluded, digest, idToTagListMap) {
-				log.Info("Image is excluded", "digest", digest, "name", idToTagListMap[digest])
+				log.Info("image is excluded", "digest", digest, "name", idToTagListMap[digest])
 				continue
 			}
 
 			if err := c.deleteImage(backgroundContext, digest); err != nil {
-				log.Error(err, "Error during prune", "digest", digest, "name", idToTagListMap[digest])
+				log.Error(err, "error during prune", "digest", digest, "name", idToTagListMap[digest])
 				continue
 			}
-			log.Info("Prune successful", "digest", digest, "name", idToTagListMap[digest])
+			log.Info("prune successful", "digest", digest, "name", idToTagListMap[digest])
 			deletedImages[digest] = struct{}{}
 		}
 	}
