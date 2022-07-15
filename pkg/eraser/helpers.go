@@ -54,24 +54,24 @@ func removeImages(c Client, targetImages []string) error {
 
 		if digest, isNonRunning := nonRunningImages[imgDigestOrTag]; isNonRunning {
 			if ex := util.IsExcluded(excluded, imgDigestOrTag, idToTagListMap); ex {
-				log.Info("Image is excluded", "image", imgDigestOrTag)
+				log.Info("Image is excluded", "given", imgDigestOrTag, "digest", digest, "name", idToTagListMap[digest])
 				continue
 			}
 
 			err = c.deleteImage(backgroundContext, digest)
 			if err != nil {
-				log.Error(err, "Error removing", "image", digest)
+				log.Error(err, "Error removing", "given", imgDigestOrTag, "digest", digest, "name", idToTagListMap[digest])
 				continue
 			}
 
 			deletedImages[imgDigestOrTag] = struct{}{}
-			log.Info("Removed", "given", imgDigestOrTag, "digest", digest, "digest", digest)
+			log.Info("Removed", "given", imgDigestOrTag, "digest", digest, "name", idToTagListMap[digest])
 			continue
 		}
 
-		_, isRunning := runningImages[imgDigestOrTag]
+		digest, isRunning := runningImages[imgDigestOrTag]
 		if isRunning {
-			log.Info("Image is running", "image", imgDigestOrTag)
+			log.Info("Image is running", "given", imgDigestOrTag, "digest", digest, "name", idToTagListMap[digest])
 			continue
 		}
 
@@ -79,25 +79,22 @@ func removeImages(c Client, targetImages []string) error {
 	}
 
 	if prune {
-		for img := range nonRunningImages {
-			if _, deleted := deletedImages[img]; deleted {
+		for _, digest := range nonRunningImages {
+			if _, deleted := deletedImages[digest]; deleted {
 				continue
 			}
 
-			if _, running := runningImages[img]; running {
+			if util.IsExcluded(excluded, digest, idToTagListMap) {
+				log.Info("Image is excluded", "digest", digest, "name", idToTagListMap[digest])
 				continue
 			}
 
-			if util.IsExcluded(excluded, img, idToTagListMap) {
-				log.Info("Image is excluded", "image", img)
+			if err := c.deleteImage(backgroundContext, digest); err != nil {
+				log.Error(err, "Error during prune", "digest", digest, "name", idToTagListMap[digest])
 				continue
 			}
-
-			if err := c.deleteImage(backgroundContext, img); err != nil {
-				log.Error(err, "Error during prune", "image", img)
-				continue
-			}
-			log.Info("Prune successful", "image", img)
+			log.Info("Prune successful", "digest", digest, "name", idToTagListMap[digest])
+			deletedImages[digest] = struct{}{}
 		}
 	}
 
