@@ -79,6 +79,7 @@ func removeImages(c Client, targetImages []string) error {
 	}
 
 	if prune {
+		success := true
 		for _, digest := range nonRunningImages {
 			if _, deleted := deletedImages[digest]; deleted {
 				continue
@@ -90,13 +91,18 @@ func removeImages(c Client, targetImages []string) error {
 			}
 
 			if err := c.deleteImage(backgroundContext, digest); err != nil {
-				log.Error(err, "error during prune", "digest", digest, "name", idToTagListMap[digest])
+				success = false
+				log.Error(err, "error removing image", "digest", digest, "name", idToTagListMap[digest])
 				continue
 			}
 			log.Info("removed image", "digest", digest, "name", idToTagListMap[digest])
 			deletedImages[digest] = struct{}{}
 		}
-		log.Info("prune successful")
+		if success {
+			log.Info("prune successful")
+		} else {
+			log.Info("error during prune")
+		}
 	}
 
 	return nil
