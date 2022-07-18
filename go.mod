@@ -17,7 +17,7 @@ require (
 	k8s.io/client-go v0.23.5
 	k8s.io/cri-api v0.23.1
 	k8s.io/klog/v2 v2.30.0
-	k8s.io/kubernetes v1.22.11
+	k8s.io/kubernetes v1.22.12
 	sigs.k8s.io/controller-runtime v0.11.2
 	sigs.k8s.io/e2e-framework v0.0.7
 	sigs.k8s.io/kind v0.11.1
