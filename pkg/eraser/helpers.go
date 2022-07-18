@@ -93,9 +93,10 @@ func removeImages(c Client, targetImages []string) error {
 				log.Error(err, "error during prune", "digest", digest, "name", idToTagListMap[digest])
 				continue
 			}
-			log.Info("prune successful", "digest", digest, "name", idToTagListMap[digest])
+			log.Info("removed image", "digest", digest, "name", idToTagListMap[digest])
 			deletedImages[digest] = struct{}{}
 		}
+		log.Info("prune successful")
 	}
 
 	return nil
