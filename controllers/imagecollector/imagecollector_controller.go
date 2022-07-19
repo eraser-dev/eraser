@@ -217,7 +217,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 
 		switch len(scanJobs) {
 		case 0: // (a) the timer has elapsed; begin a new pipeline
-			return r.createImageJob(ctx, req, &imageCollectorShared, collectorArgs)
+			return r.createImageJob(ctx, req, &imageCollectorShared)
 		case 1: // (b) scanjob has finished; delete and create/update imageList
 			err := r.Delete(ctx, &scanJobs[0])
 			if err != nil {
@@ -341,6 +341,7 @@ func (r *Reconciler) getChildScanJobs(ctx context.Context, collector *eraserv1al
 	return relevantBatchJobs, nil
 }
 
+/*
 func (r *Reconciler) createScanJob(ctx context.Context, collector *eraserv1alpha1.ImageCollector, scannerImage string, args []string) error {
 	one := int32(1)
 	instanceArgs := make([]string, 0, len(args)+1)
@@ -418,7 +419,7 @@ func (r *Reconciler) createScanJob(ctx context.Context, collector *eraserv1alpha
 	}
 
 	return r.Create(ctx, &scanJob)
-}
+} */
 
 func isNotFound(err error) bool {
 	return err != nil && client.IgnoreNotFound(err) == nil
@@ -440,7 +441,7 @@ func (r *Reconciler) handleJobDeletion(ctx context.Context, job *eraserv1alpha1.
 	return ctrl.Result{}, nil
 }
 
-func (r *Reconciler) createImageJob(ctx context.Context, req ctrl.Request, imageCollector *eraserv1alpha1.ImageCollector, args []string) (ctrl.Result, error) {
+func (r *Reconciler) createImageJob(ctx context.Context, req ctrl.Request, imageCollector *eraserv1alpha1.ImageCollector) (ctrl.Result, error) {
 	job := &eraserv1alpha1.ImageJob{
 		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: "imagejob-",
@@ -459,18 +460,20 @@ func (r *Reconciler) createImageJob(ctx context.Context, req ctrl.Request, image
 							},
 						},
 						{
+							// EmptyDir default
 							Name: "shared-data",
 						},
 					},
 					RestartPolicy: corev1.RestartPolicyNever,
-					Containers: []corev1.Container{
+					InitContainers: []corev1.Container{
 						{
 							Name:            "collector",
 							Image:           *collectorImage,
 							ImagePullPolicy: corev1.PullIfNotPresent,
-							Args:            args,
+							Args:            collectorArgs,
 							VolumeMounts: []corev1.VolumeMount{
 								{MountPath: excludedPath, Name: excludedName},
+								{MountPath: "/run/eraser.sh/shared-data", Name: "shared-data"},
 							},
 							Resources: corev1.ResourceRequirements{
 								Requests: corev1.ResourceList{
@@ -483,9 +486,33 @@ func (r *Reconciler) createImageJob(ctx context.Context, req ctrl.Request, image
 								},
 							},
 						},
+					},
+					Containers: []corev1.Container{
 						{
-							Name:  "",
+							Name:  "trivy-scanner",
 							Image: *scannerImage,
+							Args:  scannerArgs,
+							VolumeMounts: []corev1.VolumeMount{
+								{MountPath: "/run/eraser.sh/shared-data", Name: "shared-data"},
+							},
+							Resources: corev1.ResourceRequirements{
+								Requests: corev1.ResourceList{
+									"memory": resource.Quantity{
+										Format: resource.Format(*util.ScannerMemRequest),
+									},
+									"cpu": resource.Quantity{
+										Format: resource.Format(*util.ScannerCPURequest),
+									},
+								},
+								Limits: corev1.ResourceList{
+									"memory": resource.Quantity{
+										Format: resource.Format(*util.ScannerMemLimit),
+									},
+									"cpu": resource.Quantity{
+										Format: resource.Format(*util.ScannerCPULimit),
+									},
+								},
+							},
 						},
 					},
 					ServiceAccountName: "eraser-imagejob-pods",
