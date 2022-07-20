@@ -43,7 +43,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
-	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -122,26 +121,27 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		return err
 	}
 
-	err = c.Watch(
-		&source.Kind{Type: &batchv1.Job{}},
-		&handler.EnqueueRequestForOwner{OwnerType: &eraserv1alpha1.ImageCollector{}, IsController: true},
-		predicate.Funcs{
-			// Do nothing on Create, Delete, or Generic events
-			CreateFunc:  util.NeverOnCreate,
-			DeleteFunc:  util.NeverOnDelete,
-			GenericFunc: util.NeverOnGeneric,
-			UpdateFunc: func(e event.UpdateEvent) bool {
-				if job, ok := e.ObjectNew.(*batchv1.Job); ok && job.Status.Succeeded == 1 {
-					return true
-				}
+	/*
+		err = c.Watch(
+			&source.Kind{Type: &batchv1.Job{}},
+			&handler.EnqueueRequestForOwner{OwnerType: &eraserv1alpha1.ImageCollector{}, IsController: true},
+			predicate.Funcs{
+				// Do nothing on Create, Delete, or Generic events
+				CreateFunc:  util.NeverOnCreate,
+				DeleteFunc:  util.NeverOnDelete,
+				GenericFunc: util.NeverOnGeneric,
+				UpdateFunc: func(e event.UpdateEvent) bool {
+					if job, ok := e.ObjectNew.(*batchv1.Job); ok && job.Status.Succeeded == 1 {
+						return true
+					}
 
-				return false
+					return false
+				},
 			},
-		},
-	)
-	if err != nil {
-		return err
-	}
+		)
+		if err != nil {
+			return err
+		} */
 
 	ch := make(chan event.GenericEvent)
 	err = c.Watch(&source.Channel{
@@ -205,33 +205,11 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 
 	switch len(childImageJobs) {
 	case 0:
-		// If we reach this point, we are in one of two scenarios. Either:
-		// (a) Reconcile has been called on a timer, and we want to begin a
-		//      collector ImageJob
-		// (b) a scan job has just finished, and we need to clean up the scan
-		//      job and create an imagelist
-		scanJobs, err := r.getChildScanJobs(ctx, &imageCollectorShared)
-		if err != nil {
-			return ctrl.Result{}, err
-		}
-
-		switch len(scanJobs) {
-		case 0: // (a) the timer has elapsed; begin a new pipeline
-			return r.createImageJob(ctx, req, &imageCollectorShared)
-		case 1: // (b) scanjob has finished; delete and create/update imageList
-			err := r.Delete(ctx, &scanJobs[0])
-			if err != nil {
-				return ctrl.Result{}, err
-			}
-
-			// create imagelist (or update if already exists), which will trigger eraser imagejob
-			return r.upsertImageList(ctx, &imageCollectorShared)
-		default:
-			return ctrl.Result{}, fmt.Errorf("more than one scan Jobs are scheduled")
-		}
+		// If we reach this point, reconcile has been called on a timer, and we want to begin a
+		// collector ImageJob
+		return r.createImageJob(ctx, req, &imageCollectorShared)
 	case 1:
-		// an imagejob has just completed; proceed to scanning phase
-		// (if enabled) or imagelist creation.
+		// an imagejob has just completed; proceed to imagelist creation.
 		return r.handleCompletedImageJob(ctx, req, &imageCollectorShared, &childImageJobs[0])
 	default:
 		return ctrl.Result{}, fmt.Errorf("more than one collector ImageJobs are scheduled")
@@ -323,6 +301,7 @@ func (r *Reconciler) createImageList(ctx context.Context, collector *eraserv1alp
 	return ctrl.Result{}, nil
 }
 
+/*
 func (r *Reconciler) getChildScanJobs(ctx context.Context, collector *eraserv1alpha1.ImageCollector) ([]batchv1.Job, error) {
 	batchJobList := batchv1.JobList{}
 	err := r.List(ctx, &batchJobList, client.InNamespace(utils.GetNamespace()))
@@ -339,7 +318,7 @@ func (r *Reconciler) getChildScanJobs(ctx context.Context, collector *eraserv1al
 	)
 
 	return relevantBatchJobs, nil
-}
+} */
 
 /*
 func (r *Reconciler) createScanJob(ctx context.Context, collector *eraserv1alpha1.ImageCollector, scannerImage string, args []string) error {
@@ -605,18 +584,8 @@ func (r *Reconciler) handleCompletedImageJob(ctx context.Context, req ctrl.Reque
 			return ctrl.Result{}, nil
 		}
 
-		// if scan is disabled, create/update imagelist to prune since collector job has finished
-		if scanDisabled() {
-			if res, err := r.upsertImageList(ctx, imageCollectorShared); err != nil {
-				return res, err
-			}
-		} else {
-			// else we create a scan job which will update imagelist to start removal with relevant images
-			err := r.createScanJob(ctx, imageCollectorShared, *scannerImage, scannerArgs)
-			if err != nil {
-				return ctrl.Result{}, err
-			}
-		}
+		// TODO: create ImageList r.upsertImageList once collector job has finished
+		// QUESTION: how will we get the volume mount data from the controller?
 
 		if res, err := r.handleJobDeletion(ctx, childJob); err != nil || res.RequeueAfter > 0 {
 			return res, err

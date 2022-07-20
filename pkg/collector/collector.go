@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"net/http"
@@ -77,8 +78,20 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err := createCollectorCR(context.Background(), finalImages); err != nil {
-		log.Error(err, "Error creating ImageCollector CR")
+	test, err := json.Marshal(finalImages)
+	if err != nil {
+		log.Error(err, "failed to encode finalImages")
 		os.Exit(1)
 	}
+
+	// fileMode 0777 = public read write
+	if err := os.WriteFile("/run/eraser.sh/shared-data/shared-data", test, os.FileMode(0777)); err != nil {
+		log.Error(err, "failed to write to shared-data")
+		os.Exit(1)
+	}
+
+	/*	if err := createCollectorCR(context.Background(), finalImages); err != nil {
+		log.Error(err, "Error creating ImageCollector CR")
+		os.Exit(1)
+	} */
 }
