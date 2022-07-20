@@ -457,7 +457,6 @@ func copyAndFillTemplateSpec(templateSpecTemplate *corev1.PodSpec, env []corev1.
 	collectorImage.Env = append(env, collectorImage.Env...)
 
 	scannerImage := &templateSpec.Containers[1]
-	scannerImage.Args = append(args, scannerImage.Args...)
 	scannerImage.VolumeMounts = append(volumeMounts, scannerImage.VolumeMounts...)
 	scannerImage.Env = append(env, scannerImage.Env...)
 
