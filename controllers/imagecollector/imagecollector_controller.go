@@ -449,12 +449,12 @@ func (r *Reconciler) createImageJob(ctx context.Context, req ctrl.Request, image
 					InitContainers: []corev1.Container{
 						{
 							Name:            "init-collector-pod",
-							Image:           "docker.io/library/debian:latest",
+							Image:           "docker.io/library/busybox:latest",
 							ImagePullPolicy: corev1.PullIfNotPresent,
 							VolumeMounts: []corev1.VolumeMount{
 								{MountPath: "/run/eraser.sh/shared-data", Name: "shared-data"},
 							},
-							Command: []string{"mkfifo eraserPipe"},
+							Command: []string{"sh", "-c", "mkfifo eraserPipe"},
 						},
 					},
 					Containers: []corev1.Container{
