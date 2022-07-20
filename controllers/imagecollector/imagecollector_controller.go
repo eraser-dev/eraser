@@ -179,6 +179,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	log.Info("ImageCollector Reconcile")
 	defer log.Info("done reconcile")
 
+	// TODO: remove
 	imageCollectorShared := eraserv1alpha1.ImageCollector{
 		TypeMeta:   metav1.TypeMeta{Kind: "ImageCollector", APIVersion: apiVersion},
 		ObjectMeta: metav1.ObjectMeta{Name: collectorShared},
@@ -207,7 +208,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	case 0:
 		// If we reach this point, reconcile has been called on a timer, and we want to begin a
 		// collector ImageJob
-		return r.createImageJob(ctx, req, &imageCollectorShared)
+		return r.createImageJob(ctx, req, &imageCollectorShared, collectorArgs)
 	case 1:
 		// an imagejob has just completed; proceed to imagelist creation.
 		return r.handleCompletedImageJob(ctx, req, &imageCollectorShared, &childImageJobs[0])
@@ -420,7 +421,7 @@ func (r *Reconciler) handleJobDeletion(ctx context.Context, job *eraserv1alpha1.
 	return ctrl.Result{}, nil
 }
 
-func (r *Reconciler) createImageJob(ctx context.Context, req ctrl.Request, imageCollector *eraserv1alpha1.ImageCollector) (ctrl.Result, error) {
+func (r *Reconciler) createImageJob(ctx context.Context, req ctrl.Request, imageCollector *eraserv1alpha1.ImageCollector, argsCollector []string) (ctrl.Result, error) {
 	job := &eraserv1alpha1.ImageJob{
 		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: "imagejob-",
@@ -444,12 +445,24 @@ func (r *Reconciler) createImageJob(ctx context.Context, req ctrl.Request, image
 						},
 					},
 					RestartPolicy: corev1.RestartPolicyNever,
+					// init container creates named pipes
 					InitContainers: []corev1.Container{
+						{
+							Name:            "init-collector-pod",
+							Image:           "docker.io/library/debian:latest",
+							ImagePullPolicy: corev1.PullIfNotPresent,
+							VolumeMounts: []corev1.VolumeMount{
+								{MountPath: "/run/eraser.sh/shared-data", Name: "shared-data"},
+							},
+							Command: []string{"mkfifo eraserPipe"},
+						},
+					},
+					Containers: []corev1.Container{
 						{
 							Name:            "collector",
 							Image:           *collectorImage,
 							ImagePullPolicy: corev1.PullIfNotPresent,
-							Args:            collectorArgs,
+							Args:            argsCollector,
 							VolumeMounts: []corev1.VolumeMount{
 								{MountPath: excludedPath, Name: excludedName},
 								{MountPath: "/run/eraser.sh/shared-data", Name: "shared-data"},
@@ -465,8 +478,6 @@ func (r *Reconciler) createImageJob(ctx context.Context, req ctrl.Request, image
 								},
 							},
 						},
-					},
-					Containers: []corev1.Container{
 						{
 							Name:  "trivy-scanner",
 							Image: *scannerImage,
