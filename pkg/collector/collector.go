@@ -90,6 +90,9 @@ func main() {
 		os.Exit(1)
 	}
 
+	file, err := os.OpenFile("eraserPipe", os.O_RDWR, os.ModeNamedPipe)
+	file.Write(test)
+
 	/*	if err := createCollectorCR(context.Background(), finalImages); err != nil {
 		log.Error(err, "Error creating ImageCollector CR")
 		os.Exit(1)
