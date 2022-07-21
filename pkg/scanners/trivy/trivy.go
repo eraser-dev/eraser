@@ -11,9 +11,6 @@ import (
 
 	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
 
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/rest"
-
 	_ "net/http/pprof"
 
 	"github.com/Azure/eraser/pkg/logger"
@@ -21,6 +18,7 @@ import (
 	artifactImage "github.com/aquasecurity/fanal/artifact/image"
 	fanalImage "github.com/aquasecurity/fanal/image"
 	"github.com/aquasecurity/trivy/pkg/scanner"
+	"github.com/fsnotify/fsnotify"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
@@ -129,20 +127,43 @@ func main() {
 		}
 	}
 
-	cfg, err := rest.InClusterConfig()
+	// from https://github.com/fsnotify/fsnotify
+	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
-		log.Error(err, "unable to get in-cluster config")
-		os.Exit(generalErr)
+		log.Error(err, "Error creating watcher")
 	}
+	defer watcher.Close()
 
-	clientset, err := kubernetes.NewForConfig(cfg)
+	done := make(chan bool)
+	go func() {
+		for {
+			select {
+			case event, ok := <-watcher.Events:
+				if !ok {
+					return
+				}
+				log.Info("event:", event)
+				if event.Op&fsnotify.Write == fsnotify.Write {
+					log.Info("modified file:", event.Name)
+					return
+				}
+			case err, ok := <-watcher.Errors:
+				if !ok {
+					return
+				}
+				log.Error(err, "watcher error")
+			}
+		}
+	}()
+
+	err = watcher.Add("/run/eraser.sh/shared-data/all-images/collectScan")
 	if err != nil {
-		log.Error(err, "unable to get REST client")
-		os.Exit(generalErr)
+		log.Error(err, "error watching collectScan pipe")
 	}
+	<-done
 
 	// json data is list of []eraserv1alpha1.Image
-	data, err := ioutil.ReadFile("/run/eraser.sh/shared-data/all-images")
+	data, err := ioutil.ReadFile("/run/eraser.sh/shared-data/all-images/collectScan")
 	if err != nil {
 		log.Error(err, "Error reading allImages")
 		os.Exit(generalErr)
@@ -231,20 +252,9 @@ func main() {
 		cleanup()
 	}
 
-	err = updateStatus(&statusUpdate{
-		apiPath:          apiPath,
-		ctx:              ctx,
-		clientset:        clientset,
-		collectorCRName:  *collectorCRName,
-		resourceName:     resourceName,
-		subResourceName:  subResourceName,
-		vulnerableImages: vulnerableImages,
-		failedImages:     failedImages,
-	})
-	if err != nil {
-		log.Error(err, "error updating ImageCollectorStatus", "images", vulnerableImages)
-		os.Exit(generalErr)
-	}
+	log.Info("vulnerable images: ", vulnerableImages)
+	// TODO: add this data to pipe using IO Copy
 
 	log.Info("scanning complete, exiting")
+	watcher.Close()
 }
