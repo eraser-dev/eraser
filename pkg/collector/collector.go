@@ -85,7 +85,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	file, err := os.OpenFile("/run/eraser.sh/shared-data/all-images/collectScan", os.O_RDWR, os.ModeNamedPipe)
+	file, err := os.OpenFile("/run/eraser.sh/shared-data/collectScan", os.O_RDWR, os.ModeNamedPipe)
 	if err != nil {
 		log.Error(err, "failed to open collectScan pipe")
 		os.Exit(1)

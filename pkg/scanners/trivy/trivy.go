@@ -156,14 +156,14 @@ func main() {
 		}
 	}()
 
-	err = watcher.Add("/run/eraser.sh/shared-data/all-images/collectScan")
+	err = watcher.Add("/run/eraser.sh/shared-data/collectScan")
 	if err != nil {
 		log.Error(err, "error watching collectScan pipe")
 	}
 	<-done
 
 	// json data is list of []eraserv1alpha1.Image
-	data, err := ioutil.ReadFile("/run/eraser.sh/shared-data/all-images/collectScan")
+	data, err := ioutil.ReadFile("/run/eraser.sh/shared-data/collectScan")
 	if err != nil {
 		log.Error(err, "Error reading allImages")
 		os.Exit(generalErr)
