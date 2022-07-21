@@ -72,6 +72,7 @@ func main() {
 		log.Info("excluded configmap was empty or does not exist")
 	}
 
+	// finalImages of type []Image
 	finalImages, err := getImages(client)
 	if err != nil {
 		log.Error(err, "failed to list all images")
