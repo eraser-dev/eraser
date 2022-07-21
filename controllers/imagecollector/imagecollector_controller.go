@@ -445,7 +445,7 @@ func (r *Reconciler) createImageJob(ctx context.Context, req ctrl.Request, image
 						},
 					},
 					RestartPolicy: corev1.RestartPolicyNever,
-					// init container creates named pipes
+					// init container creates named pipe
 					InitContainers: []corev1.Container{
 						{
 							Name:            "init-collector-pod",
