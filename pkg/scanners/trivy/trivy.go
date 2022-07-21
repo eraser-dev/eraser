@@ -2,8 +2,10 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"os"
 
@@ -139,16 +141,16 @@ func main() {
 		os.Exit(generalErr)
 	}
 
-	result := eraserv1alpha1.ImageCollector{}
-
-	err = clientset.RESTClient().Get().
-		AbsPath(apiPath).
-		Resource(resourceName).
-		Name(*collectorCRName).
-		Do(context.Background()).
-		Into(&result)
+	// json data is list of []eraserv1alpha1.Image
+	data, err := ioutil.ReadFile("/run/eraser.sh/shared-data/all-images")
 	if err != nil {
-		log.Error(err, "RESTClient GET request failed", "apiPath", apiPath, "recourceName", resourceName, "collectorCRName", *collectorCRName)
+		log.Error(err, "Error reading allImages")
+		os.Exit(generalErr)
+	}
+
+	allImages := []eraserv1alpha1.Image{}
+	if err = json.Unmarshal(data, allImages); err != nil {
+		log.Error(err, "Error in unmarshal allImages")
 		os.Exit(generalErr)
 	}
 
@@ -168,12 +170,10 @@ func main() {
 	}
 
 	resultClient := initializeResultClient()
-	vulnerableImages := make([]eraserv1alpha1.Image, 0, len(result.Spec.Images))
-	failedImages := make([]eraserv1alpha1.Image, 0, len(result.Spec.Images))
+	vulnerableImages := make([]eraserv1alpha1.Image, 0, len(allImages))
+	failedImages := make([]eraserv1alpha1.Image, 0, len(allImages))
 
-	for k := range result.Spec.Images {
-		img := result.Spec.Images[k]
-
+	for _, img := range allImages {
 		imageRef := img.Name
 		if imageRef == "" {
 			log.Info("found image with no name", "img", img)
