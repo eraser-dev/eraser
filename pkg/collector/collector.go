@@ -79,33 +79,15 @@ func main() {
 		os.Exit(1)
 	}
 
-	test, err := json.Marshal(finalImages)
+	data, err := json.Marshal(finalImages)
 	if err != nil {
 		log.Error(err, "failed to encode finalImages")
 		os.Exit(1)
 	}
 
-	// fileMode 0777 = public read write
-	if err := os.WriteFile("/run/eraser.sh/shared-data/all-images", test, os.FileMode(0777)); err != nil {
-		log.Error(err, "failed to write to shared-data")
+	file, err := os.OpenFile("/run/eraser.sh/shared-data/all-images/collectScan", os.O_RDWR, os.ModeNamedPipe)
+	if _, err := file.Write(data); err != nil {
+		log.Error(err, "failed to write to collectScan pipe")
 		os.Exit(1)
 	}
-
-	/*
-		file, err := os.OpenFile("eraserPipe", os.O_RDWR, os.ModeNamedPipe)
-
-		if _, err := file.Write(test); err != nil {
-			log.Error(err, "filed to write to eraserPipe")
-			os.Exit(1)
-		}
-
-		if err := file.Close(); err != nil {
-			log.Error(err, "failed to close eraserPipe")
-			os.Exit(1)
-		} */
-
-	/*	if err := createCollectorCR(context.Background(), finalImages); err != nil {
-		log.Error(err, "Error creating ImageCollector CR")
-		os.Exit(1)
-	} */
 }
