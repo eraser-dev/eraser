@@ -2,18 +2,22 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	_ "net/http/pprof"
 	"os"
 	"time"
 
+	"github.com/fsnotify/fsnotify"
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 
 	"github.com/Azure/eraser/pkg/logger"
 
+	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
 	util "github.com/Azure/eraser/pkg/utils"
 )
 
@@ -62,10 +66,68 @@ func main() {
 	runtimeClient := pb.NewRuntimeServiceClient(conn)
 	client := client{imageclient, runtimeClient}
 
-	imagelist, err := util.ParseImageList(*imageListPtr)
-	if err != nil {
-		log.Error(err, "failed to parse image list file")
-		os.Exit(1)
+	var imagelist []string
+
+	if *imageListPtr == "" {
+		// from https://github.com/fsnotify/fsnotify
+		watcher, err := fsnotify.NewWatcher()
+		if err != nil {
+			log.Error(err, "Error creating watcher")
+		}
+
+		done := make(chan bool)
+		go func() {
+			for {
+				select {
+				case event, ok := <-watcher.Events:
+					if !ok {
+						return
+					}
+					log.Info("event triggered", "event:", event)
+					if event.Op&fsnotify.Write == fsnotify.Write {
+						log.Info("modified file:", event.Name)
+						close(done)
+					}
+				case err, ok := <-watcher.Errors:
+					if !ok {
+						return
+					}
+					log.Error(err, "watcher error")
+				}
+			}
+		}()
+
+		err = watcher.Add("/run/eraser.sh/shared-data/scanErase")
+		if err != nil {
+			log.Error(err, "error watching scanErase pipe")
+		}
+		<-done
+
+		watcher.Close()
+
+		// json data is list of []eraserv1alpha1.Image
+		data, err := ioutil.ReadFile("/run/eraser.sh/shared-data/scanErase")
+		if err != nil {
+			log.Error(err, "Error reading vulnerableImages")
+			os.Exit(1)
+		}
+
+		vulnerableImages := &[]eraserv1alpha1.Image{}
+		if err = json.Unmarshal(data, vulnerableImages); err != nil {
+			log.Error(err, "Error in unmarshal vulnerableImages")
+			os.Exit(1)
+		}
+
+		for _, img := range *vulnerableImages {
+			imagelist = append(imagelist, img.Digest)
+		}
+
+	} else {
+		imagelist, err = util.ParseImageList(*imageListPtr)
+		if err != nil {
+			log.Error(err, "failed to parse image list file")
+			os.Exit(1)
+		}
 	}
 
 	excluded, err = util.ParseExcluded(excludedPath)
