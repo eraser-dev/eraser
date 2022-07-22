@@ -122,12 +122,14 @@ func main() {
 			imagelist = append(imagelist, img.Digest)
 		}
 
+		log.Info("successfully created imagelist from scanned vulnerableImages")
 	} else {
 		imagelist, err = util.ParseImageList(*imageListPtr)
 		if err != nil {
 			log.Error(err, "failed to parse image list file")
 			os.Exit(1)
 		}
+		log.Info("sucessfully parsed image list file")
 	}
 
 	excluded, err = util.ParseExcluded(excludedPath)
