@@ -505,6 +505,26 @@ func (r *Reconciler) createImageJob(ctx context.Context, req ctrl.Request, image
 								},
 							},
 						},
+						{
+							Name:            "eraser",
+							Image:           *util.EraserImage,
+							ImagePullPolicy: corev1.PullIfNotPresent,
+							Args:            util.EraserArgs,
+							VolumeMounts: []corev1.VolumeMount{
+								{MountPath: "/run/eraser.sh/shared-data", Name: "shared-data"},
+								{MountPath: excludedPath, Name: excludedName},
+							},
+							Resources: corev1.ResourceRequirements{
+								Requests: corev1.ResourceList{
+									"cpu":    resource.MustParse("7m"),
+									"memory": resource.MustParse("25Mi"),
+								},
+								Limits: corev1.ResourceList{
+									"cpu":    resource.MustParse("8m"),
+									"memory": resource.MustParse("30Mi"),
+								},
+							},
+						},
 					},
 					ServiceAccountName: "eraser-imagejob-pods",
 				},
