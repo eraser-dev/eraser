@@ -132,7 +132,6 @@ func main() {
 	if err != nil {
 		log.Error(err, "Error creating watcher")
 	}
-	defer watcher.Close()
 
 	done := make(chan bool)
 	go func() {
@@ -142,10 +141,10 @@ func main() {
 				if !ok {
 					return
 				}
-				log.Info("event:", event)
+				log.Info("event triggered", "event:", event)
 				if event.Op&fsnotify.Write == fsnotify.Write {
 					log.Info("modified file:", event.Name)
-					return
+					close(done)
 				}
 			case err, ok := <-watcher.Errors:
 				if !ok {
@@ -162,6 +161,8 @@ func main() {
 	}
 	<-done
 
+	watcher.Close()
+
 	// json data is list of []eraserv1alpha1.Image
 	data, err := ioutil.ReadFile("/run/eraser.sh/shared-data/collectScan")
 	if err != nil {
@@ -169,7 +170,7 @@ func main() {
 		os.Exit(generalErr)
 	}
 
-	allImages := []eraserv1alpha1.Image{}
+	allImages := &[]eraserv1alpha1.Image{}
 	if err = json.Unmarshal(data, allImages); err != nil {
 		log.Error(err, "Error in unmarshal allImages")
 		os.Exit(generalErr)
@@ -191,10 +192,10 @@ func main() {
 	}
 
 	resultClient := initializeResultClient()
-	vulnerableImages := make([]eraserv1alpha1.Image, 0, len(allImages))
-	failedImages := make([]eraserv1alpha1.Image, 0, len(allImages))
+	vulnerableImages := make([]eraserv1alpha1.Image, 0, len(*allImages))
+	failedImages := make([]eraserv1alpha1.Image, 0, len(*allImages))
 
-	for _, img := range allImages {
+	for _, img := range *allImages {
 		imageRef := img.Name
 		if imageRef == "" {
 			log.Info("found image with no name", "img", img)
@@ -252,9 +253,26 @@ func main() {
 		cleanup()
 	}
 
-	log.Info("vulnerable images: ", vulnerableImages)
-	// TODO: add this data to pipe using IO Copy
+	log.Info("Failed", "Images", failedImages)
+	log.Info("Vulnerable", "Images", vulnerableImages)
+
+	// write vulnerable images to scanErase pipe for eraser to read
+	data, err = json.Marshal(vulnerableImages)
+	if err != nil {
+		log.Error(err, "failed to encode vulnerableImages")
+		os.Exit(1)
+	}
+
+	file, err := os.OpenFile("/run/eraser.sh/shared-data/scanErase", os.O_RDWR, os.ModeNamedPipe)
+	if err != nil {
+		log.Error(err, "failed to open scanErase pipe")
+		os.Exit(1)
+	}
+
+	if _, err := file.Write(data); err != nil {
+		log.Error(err, "failed to write to scanErase pipe")
+		os.Exit(1)
+	}
 
 	log.Info("scanning complete, exiting")
-	watcher.Close()
 }
