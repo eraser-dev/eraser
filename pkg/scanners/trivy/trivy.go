@@ -274,5 +274,9 @@ func main() {
 		os.Exit(1)
 	}
 
+	if err := file.Close(); err != nil {
+		log.Error(err, "error closing scanErase pipe")
+	}
+
 	log.Info("scanning complete, exiting")
 }
