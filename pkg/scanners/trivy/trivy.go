@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 
@@ -167,7 +168,7 @@ func main() {
 		log.Error(err, "error opening collectScan WR")
 		os.Exit(generalErr)
 	}
-	_, err = os.OpenFile("/run/eraser.sh/shared-data/collectScan", os.O_RDONLY, os.ModeNamedPipe)
+	fileR, err := os.OpenFile("/run/eraser.sh/shared-data/collectScan", os.O_RDONLY, os.ModeNamedPipe)
 	if err != nil {
 		log.Error(err, "error opening collectScan RD")
 		os.Exit(generalErr)
@@ -175,7 +176,7 @@ func main() {
 	fileW.Close()
 
 	// json data is list of []eraserv1alpha1.Image
-	data, err := os.ReadFile("/run/eraser.sh/shared-data/collectScan")
+	data, err := io.ReadAll(fileR)
 	if err != nil {
 		log.Error(err, "Error reading allImages")
 		os.Exit(generalErr)

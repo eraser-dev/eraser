@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"io"
 	"net/http"
 	_ "net/http/pprof"
 	"os"
@@ -109,7 +110,7 @@ func main() {
 			log.Error(err, "error opening scanErase WR")
 			os.Exit(1)
 		}
-		_, err = os.OpenFile("/run/eraser.sh/shared-data/scanErase", os.O_RDONLY, os.ModeNamedPipe)
+		fileR, err := os.OpenFile("/run/eraser.sh/shared-data/scanErase", os.O_RDONLY, os.ModeNamedPipe)
 		if err != nil {
 			log.Error(err, "error opening scanErase RD")
 			os.Exit(1)
@@ -117,7 +118,7 @@ func main() {
 		fileW.Close()
 
 		// json data is list of []eraserv1alpha1.Image
-		data, err := os.ReadFile("/run/eraser.sh/shared-data/scanErase")
+		data, err := io.ReadAll(fileR)
 		if err != nil {
 			log.Error(err, "Error reading vulnerableImages")
 			os.Exit(1)
