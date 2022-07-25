@@ -105,7 +105,7 @@ func main() {
 
 		watcher.Close()
 
-		_, err = os.OpenFile("/run/eraser.sh/shared-data/scanErase", os.O_WRONLY, os.ModeNamedPipe)
+		fileW, err := os.OpenFile("/run/eraser.sh/shared-data/scanErase", os.O_WRONLY, os.ModeNamedPipe)
 		if err != nil {
 			log.Error(err, "error opening scanErase WR")
 			os.Exit(1)
@@ -115,7 +115,7 @@ func main() {
 			log.Error(err, "error opening scanErase RD")
 			os.Exit(1)
 		}
-		//fileW.Close()
+		fileW.Close()
 
 		// json data is list of []eraserv1alpha1.Image
 		data, err := io.ReadAll(fileR)
