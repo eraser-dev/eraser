@@ -26,7 +26,6 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/event"
@@ -122,28 +121,6 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		return err
 	}
 
-	/*
-		err = c.Watch(
-			&source.Kind{Type: &batchv1.Job{}},
-			&handler.EnqueueRequestForOwner{OwnerType: &eraserv1alpha1.ImageCollector{}, IsController: true},
-			predicate.Funcs{
-				// Do nothing on Create, Delete, or Generic events
-				CreateFunc:  util.NeverOnCreate,
-				DeleteFunc:  util.NeverOnDelete,
-				GenericFunc: util.NeverOnGeneric,
-				UpdateFunc: func(e event.UpdateEvent) bool {
-					if job, ok := e.ObjectNew.(*batchv1.Job); ok && job.Status.Succeeded == 1 {
-						return true
-					}
-
-					return false
-				},
-			},
-		)
-		if err != nil {
-			return err
-		} */
-
 	ch := make(chan event.GenericEvent)
 	err = c.Watch(&source.Channel{
 		Source: ch,
@@ -180,27 +157,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	log.Info("ImageCollector Reconcile")
 	defer log.Info("done reconcile")
 
-	// TODO: remove
-	imageCollectorShared := eraserv1alpha1.ImageCollector{
-		TypeMeta:   metav1.TypeMeta{Kind: "ImageCollector", APIVersion: apiVersion},
-		ObjectMeta: metav1.ObjectMeta{Name: collectorShared},
-
-		Spec: eraserv1alpha1.ImageCollectorSpec{Images: []eraserv1alpha1.Image{}},
-	}
-
-	if err := r.Get(ctx, types.NamespacedName{Name: collectorShared}, &imageCollectorShared); err != nil {
-		if isNotFound(err) {
-			if err := r.Create(ctx, &imageCollectorShared); err != nil {
-				log.Info("could not create shared image collector")
-				return reconcile.Result{}, err
-			}
-		} else {
-			log.Info("could not get shared image collector")
-			return reconcile.Result{}, err
-		}
-	}
-
-	childImageJobs, err := r.getChildImageJobs(ctx, &imageCollectorShared)
+	childImageJobs, err := r.getChildImageJobs(ctx)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -209,16 +166,16 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	case 0:
 		// If we reach this point, reconcile has been called on a timer, and we want to begin a
 		// collector ImageJob
-		return r.createImageJob(ctx, req, &imageCollectorShared, collectorArgs)
+		return r.createImageJob(ctx, req, collectorArgs)
 	case 1:
 		// an imagejob has just completed; proceed to imagelist creation.
-		return r.handleCompletedImageJob(ctx, req, &imageCollectorShared, &childImageJobs[0])
+		return r.handleCompletedImageJob(ctx, req, &childImageJobs[0])
 	default:
 		return ctrl.Result{}, fmt.Errorf("more than one collector ImageJobs are scheduled")
 	}
 }
 
-func (r *Reconciler) getChildImageJobs(ctx context.Context, collector *eraserv1alpha1.ImageCollector) ([]eraserv1alpha1.ImageJob, error) {
+func (r *Reconciler) getChildImageJobs(ctx context.Context) ([]eraserv1alpha1.ImageJob, error) {
 	imageJobList := &eraserv1alpha1.ImageJobList{}
 	if err := r.List(ctx, imageJobList); err != nil {
 		log.Info("could not list imagejobs")
@@ -226,7 +183,7 @@ func (r *Reconciler) getChildImageJobs(ctx context.Context, collector *eraserv1a
 	}
 
 	relevantJobs := util.FilterJobListByOwner(
-		imageJobList.Items, metav1.NewControllerRef(collector, schema.GroupVersionKind{
+		imageJobList.Items, metav1.NewControllerRef(&eraserv1alpha1.ImageCollector{}, schema.GroupVersionKind{
 			Group:   "eraser.sh",
 			Version: "v1alpha1",
 			Kind:    "ImageCollector",
@@ -234,73 +191,6 @@ func (r *Reconciler) getChildImageJobs(ctx context.Context, collector *eraserv1a
 	)
 
 	return relevantJobs, nil
-}
-
-func (r *Reconciler) upsertImageList(ctx context.Context, collector *eraserv1alpha1.ImageCollector) (ctrl.Result, error) {
-	imageListItems := make([]string, 0, len(collector.Spec.Images))
-
-	images := collector.Spec.Images
-	if !scanDisabled() {
-		images = collector.Status.Vulnerable
-
-		if *deleteScanFailedImages {
-			images = append(images, collector.Status.Failed...)
-		}
-	}
-
-	for i := range images {
-		img := images[i]
-		imageListItems = append(imageListItems, img.Digest)
-	}
-
-	imageList := eraserv1alpha1.ImageList{}
-
-	err := r.Get(ctx, types.NamespacedName{Namespace: "", Name: "imagelist"}, &imageList)
-	if isNotFound(err) {
-		return r.createImageList(ctx, collector, imageListItems)
-	}
-
-	// else update
-	imageList.Spec.Images = imageListItems
-
-	err = r.Update(ctx, &imageList)
-	if err != nil {
-		return ctrl.Result{}, err
-	}
-
-	return ctrl.Result{}, nil
-}
-
-func scanDisabled() bool {
-	return *scannerImage == ""
-}
-
-func (r *Reconciler) createImageList(ctx context.Context, collector *eraserv1alpha1.ImageCollector, items []string) (ctrl.Result, error) {
-	imageList := eraserv1alpha1.ImageList{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "imagelist",
-			OwnerReferences: []metav1.OwnerReference{
-				*metav1.NewControllerRef(
-					collector,
-					schema.GroupVersionKind{
-						Group:   "eraser.sh",
-						Version: "v1alpha1",
-						Kind:    "ImageCollector",
-					},
-				),
-			},
-		},
-		Spec: eraserv1alpha1.ImageListSpec{
-			Images: items,
-		},
-	}
-
-	err := r.Create(ctx, &imageList)
-	if err != nil {
-		return ctrl.Result{}, err
-	}
-
-	return ctrl.Result{}, nil
 }
 
 func isNotFound(err error) bool {
@@ -323,12 +213,12 @@ func (r *Reconciler) handleJobDeletion(ctx context.Context, job *eraserv1alpha1.
 	return ctrl.Result{}, nil
 }
 
-func (r *Reconciler) createImageJob(ctx context.Context, req ctrl.Request, imageCollector *eraserv1alpha1.ImageCollector, argsCollector []string) (ctrl.Result, error) {
+func (r *Reconciler) createImageJob(ctx context.Context, req ctrl.Request, argsCollector []string) (ctrl.Result, error) {
 	job := &eraserv1alpha1.ImageJob{
 		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: "imagejob-",
 			OwnerReferences: []metav1.OwnerReference{
-				*metav1.NewControllerRef(imageCollector, schema.GroupVersionKind{Group: "eraser.sh", Version: "v1alpha1", Kind: "ImageCollector"}),
+				*metav1.NewControllerRef(&eraserv1alpha1.ImageCollector{}, schema.GroupVersionKind{Group: "eraser.sh", Version: "v1alpha1", Kind: "ImageCollector"}),
 			},
 		},
 		Spec: eraserv1alpha1.ImageJobSpec{
@@ -347,11 +237,11 @@ func (r *Reconciler) createImageJob(ctx context.Context, req ctrl.Request, image
 						},
 					},
 					RestartPolicy: corev1.RestartPolicyNever,
-					// init container creates named pipe
+					// init container creates named pipes
 					InitContainers: []corev1.Container{
 						{
 							Name:            "init-collector-pod",
-							Image:           "docker.io/library/busybox:latest", // eraser image
+							Image:           "docker.io/library/busybox:latest", // eraser image?
 							ImagePullPolicy: corev1.PullIfNotPresent,
 							VolumeMounts: []corev1.VolumeMount{
 								{MountPath: "/run/eraser.sh/shared-data", Name: "shared-data"},
@@ -444,82 +334,22 @@ func (r *Reconciler) createImageJob(ctx context.Context, req ctrl.Request, image
 	return reconcile.Result{}, nil
 }
 
-func (r *Reconciler) updateSharedCRD(ctx context.Context, req ctrl.Request, imageCollector *eraserv1alpha1.ImageCollector) (ctrl.Result, error) {
-	imageCollectorList := &eraserv1alpha1.ImageCollectorList{}
-	if err := r.List(ctx, imageCollectorList); err != nil {
-		return ctrl.Result{}, client.IgnoreNotFound(err)
-	}
-
-	items := imageCollectorList.Items
-
-	// store images in map to remove duplicates
-	// map with key: sha id, value: name of image
-	idToNameMap := make(map[string]string)
-
-	for i := range items {
-		if items[i].Name != collectorShared {
-			temp := items[i].Spec.Images
-			for _, img := range temp {
-				idToNameMap[img.Digest] = img.Name
-			}
-		}
-	}
-
-	var combined []eraserv1alpha1.Image
-
-	for key, value := range idToNameMap {
-		combined = append(combined, eraserv1alpha1.Image{Digest: key, Name: value})
-	}
-
-	imageCollector.Spec = eraserv1alpha1.ImageCollectorSpec{Images: combined}
-
-	if err := r.Update(ctx, imageCollector); err != nil {
-		log.Info("Could not update imageCollector spec")
-		return reconcile.Result{}, err
-	}
-
-	if res, err := r.deleteNodeCRS(ctx, items); err != nil {
-		return res, err
-	}
-
-	return reconcile.Result{}, nil
-}
-
-func (r *Reconciler) deleteNodeCRS(ctx context.Context, items []eraserv1alpha1.ImageCollector) (ctrl.Result, error) {
-	// delete individual image collector CRs
-	for i := range items {
-		if items[i].Name != collectorShared {
-			if err := r.Delete(ctx, &items[i]); err != nil {
-				log.Info("Delete", "Could not delete image collector", items[i].Name)
-				return reconcile.Result{}, err
-			}
-		}
-	}
-	return reconcile.Result{}, nil
-}
-
 func boolPtr(b bool) *bool {
 	return &b
 }
 
-func (r *Reconciler) handleCompletedImageJob(ctx context.Context, req ctrl.Request, imageCollectorShared *eraserv1alpha1.ImageCollector, childJob *eraserv1alpha1.ImageJob) (ctrl.Result, error) {
+func (r *Reconciler) handleCompletedImageJob(ctx context.Context, req ctrl.Request, childJob *eraserv1alpha1.ImageJob) (ctrl.Result, error) {
 	var err error
 	switch phase := childJob.Status.Phase; phase {
 	case eraserv1alpha1.PhaseCompleted:
 		log.Info("completed phase")
 		if childJob.Status.DeleteAfter == nil {
-			if res, err := r.updateSharedCRD(ctx, req, imageCollectorShared); err != nil {
-				return res, err
-			}
 			childJob.Status.DeleteAfter = util.After(time.Now(), int64(util.SuccessDel.Seconds()))
 			if err := r.Status().Update(ctx, childJob); err != nil {
 				log.Info("Could not update Delete After for job " + childJob.Name)
 			}
 			return ctrl.Result{}, nil
 		}
-
-		// TODO: create ImageList r.upsertImageList once collector job has finished
-		// QUESTION: how will we get the volume mount data from the controller?
 
 		if res, err := r.handleJobDeletion(ctx, childJob); err != nil || res.RequeueAfter > 0 {
 			return res, err
