@@ -95,4 +95,6 @@ func main() {
 		log.Error(err, "failed to write to collectScan pipe")
 		os.Exit(1)
 	}
+
+	file.Close()
 }
