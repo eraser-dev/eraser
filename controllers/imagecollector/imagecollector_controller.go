@@ -156,19 +156,20 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	log.Info("ImageCollector Reconcile")
 	defer log.Info("done reconcile")
 
-	childImageJobs, err := r.getChildImageJobs(ctx)
-	if err != nil {
+	imageJobList := &eraserv1alpha1.ImageJobList{}
+	if err := r.List(ctx, imageJobList); err != nil {
+		log.Info("could not list imagejobs")
 		return ctrl.Result{}, err
 	}
 
-	switch len(childImageJobs) {
+	switch len(imageJobList.Items) {
 	case 0:
 		// If we reach this point, reconcile has been called on a timer, and we want to begin a
 		// collector ImageJob
 		return r.createImageJob(ctx, req, collectorArgs)
 	case 1:
 		// an imagejob has just completed; proceed to imagelist creation.
-		return r.handleCompletedImageJob(ctx, req, &childImageJobs[0])
+		return r.handleCompletedImageJob(ctx, req, &imageJobList.Items[0])
 	default:
 		return ctrl.Result{}, fmt.Errorf("more than one collector ImageJobs are scheduled")
 	}
@@ -216,9 +217,6 @@ func (r *Reconciler) createImageJob(ctx context.Context, req ctrl.Request, argsC
 	job := &eraserv1alpha1.ImageJob{
 		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: "imagejob-",
-			OwnerReferences: []metav1.OwnerReference{
-				*metav1.NewControllerRef(&eraserv1alpha1.ImageCollector{}, schema.GroupVersionKind{Group: "eraser.sh", Version: "v1alpha1", Kind: "ImageCollector"}),
-			},
 		},
 		Spec: eraserv1alpha1.ImageJobSpec{
 			JobTemplate: corev1.PodTemplateSpec{
