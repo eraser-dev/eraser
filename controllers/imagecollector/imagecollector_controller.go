@@ -58,10 +58,9 @@ var (
 )
 
 const (
-	collectorShared = "imagecollector-shared"
-	apiVersion      = "eraser.sh/v1alpha1"
-	excludedPath    = "/run/eraser.sh/excluded"
-	excludedName    = "excluded"
+	apiVersion   = "eraser.sh/v1alpha1"
+	excludedPath = "/run/eraser.sh/excluded"
+	excludedName = "excluded"
 )
 
 func init() {
