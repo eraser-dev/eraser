@@ -455,7 +455,7 @@ func (r *Reconciler) createImageJob(ctx context.Context, req ctrl.Request, image
 								{MountPath: "/run/eraser.sh/shared-data", Name: "shared-data"},
 							},
 							Command: []string{"/bin/sh", "-c"},
-							Args:    []string{"mkfifo /run/eraser.sh/shared-data/collectScan; mkfifo /run/eraser.sh/shared-data/scanErase"},
+							Args:    []string{"mkfifo /run/eraser.sh/shared-data/collectScan; mkfifo /run/eraser.sh/shared-data/scanErase; chown -R 65532:65532 /run/eraser.sh/shared-data/"},
 						},
 					},
 					Containers: []corev1.Container{
