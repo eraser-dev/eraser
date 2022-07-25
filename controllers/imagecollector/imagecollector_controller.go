@@ -43,6 +43,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
+	"github.com/Azure/eraser/pkg/logger"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -509,7 +510,7 @@ func (r *Reconciler) createImageJob(ctx context.Context, req ctrl.Request, image
 							Name:            "eraser",
 							Image:           *util.EraserImage,
 							ImagePullPolicy: corev1.PullIfNotPresent,
-							Args:            util.EraserArgs,
+							Args:            append(util.EraserArgs, "--log-level="+logger.GetLevel()),
 							VolumeMounts: []corev1.VolumeMount{
 								{MountPath: "/run/eraser.sh/shared-data", Name: "shared-data"},
 								{MountPath: excludedPath, Name: excludedName},
