@@ -18,7 +18,6 @@ import (
 )
 
 const (
-	apiPath      = "apis/eraser.sh/v1alpha1"
 	excludedPath = "/run/eraser.sh/excluded/excluded"
 )
 
