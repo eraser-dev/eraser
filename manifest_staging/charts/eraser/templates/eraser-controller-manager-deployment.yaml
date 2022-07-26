@@ -66,6 +66,15 @@ spec:
           {{- toYaml .Values.controllerManager.resources | nindent 10 }}
         securityContext:
           allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+          runAsGroup: 65532
+          runAsNonRoot: true
+          runAsUser: 65532
+          seccompProfile:
+            type: RuntimeDefault
       nodeSelector:
         {{- toYaml .Values.controllerManager.nodeSelector | nindent 8 }}
       serviceAccountName: eraser-controller-manager
