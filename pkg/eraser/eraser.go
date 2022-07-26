@@ -11,7 +11,6 @@ import (
 	"os"
 	"time"
 
-	"github.com/fsnotify/fsnotify"
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 
@@ -47,7 +46,7 @@ func main() {
 	}
 
 	if err := logger.Configure(); err != nil {
-		fmt.Fprintln(os.Stderr, "Error setting up logger:", err)
+		fmt.Fprintln(os.Stderr, "error setting up logger:", err)
 		os.Exit(1)
 	}
 
@@ -69,64 +68,22 @@ func main() {
 	var imagelist []string
 
 	if *imageListPtr == "" {
-		// from https://github.com/fsnotify/fsnotify
-		watcher, err := fsnotify.NewWatcher()
-		if err != nil {
-			log.Error(err, "Error creating watcher")
-		}
-
-		done := make(chan bool)
-		go func() {
-			for {
-				select {
-				case event, ok := <-watcher.Events:
-					if !ok {
-						return
-					}
-					log.Info("event triggered", "event:", event)
-					if event.Op&fsnotify.Write == fsnotify.Write {
-						log.Info("modified file:", event.Name)
-						close(done)
-					}
-				case err, ok := <-watcher.Errors:
-					if !ok {
-						return
-					}
-					log.Error(err, "watcher error")
-				}
-			}
-		}()
-
-		err = watcher.Add("/run/eraser.sh/shared-data/scanErase")
-		if err != nil {
-			log.Error(err, "error watching scanErase pipe")
-		}
-		<-done
-
-		watcher.Close()
-
-		fileW, err := os.OpenFile("/run/eraser.sh/shared-data/scanErase", os.O_WRONLY, os.ModeNamedPipe)
-		if err != nil {
-			log.Error(err, "error opening scanErase WR")
-			os.Exit(1)
-		}
 		fileR, err := os.OpenFile("/run/eraser.sh/shared-data/scanErase", os.O_RDONLY, os.ModeNamedPipe)
 		if err != nil {
 			log.Error(err, "error opening scanErase RD")
 			os.Exit(1)
 		}
-		fileW.Close()
 
 		// json data is list of []eraserv1alpha1.Image
 		data, err := io.ReadAll(fileR)
 		if err != nil {
-			log.Error(err, "Error reading vulnerableImages")
+			log.Error(err, "error reading vulnerableImages")
 			os.Exit(1)
 		}
 
 		vulnerableImages := &[]eraserv1alpha1.Image{}
 		if err = json.Unmarshal(data, vulnerableImages); err != nil {
-			log.Error(err, "Error in unmarshal vulnerableImages")
+			log.Error(err, "error in unmarshal vulnerableImages")
 			os.Exit(1)
 		}
 
