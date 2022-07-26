@@ -18,51 +18,7 @@ import (
 
 func TestDisableScanner(t *testing.T) {
 	disableScanFeat := features.New("Scanner can be disabled").
-		Setup(func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
-			podSelectorLabels := map[string]string{"app": util.Nginx}
-			nginxDep := util.NewDeployment(cfg.Namespace(), util.Nginx, 2, podSelectorLabels, corev1.Container{Image: util.Nginx, Name: util.Nginx})
-			if err := cfg.Client().Resources().Create(ctx, nginxDep); err != nil {
-				t.Error("Failed to create the dep", err)
-			}
-			return ctx
-		}).
-		Assess("deployment successfully deployed", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
-			client, err := cfg.NewClient()
-			if err != nil {
-				t.Error("Failed to create new client", err)
-			}
-
-			resultDeployment := appsv1.Deployment{
-				ObjectMeta: metav1.ObjectMeta{Name: util.Nginx, Namespace: cfg.Namespace()},
-			}
-
-			if err = wait.For(conditions.New(client.Resources()).DeploymentConditionMatch(&resultDeployment, appsv1.DeploymentAvailable, corev1.ConditionTrue),
-				wait.WithTimeout(time.Minute*3)); err != nil {
-				t.Error("deployment not found", err)
-			}
-
-			return context.WithValue(ctx, util.Nginx, &resultDeployment)
-		}).
-		Assess("Images successfully deleted from all nodes", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
-			// delete deployment
-			client, err := cfg.NewClient()
-			if err != nil {
-				t.Error("Failed to create new client", err)
-			}
-
-			var pods corev1.PodList
-			err = client.Resources().List(ctx, &pods, func(o *metav1.ListOptions) {
-				o.LabelSelector = labels.SelectorFromSet(labels.Set{"app": util.Nginx}).String()
-			})
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			dep := ctx.Value(util.Nginx).(*appsv1.Deployment)
-			if err := client.Resources().Delete(ctx, dep); err != nil {
-				t.Error("Failed to delete the dep", err)
-			}
-
+		Assess("Nginx successfully deleted from all nodes", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
 			for _, nodeName := range util.GetClusterNodes(t) {
 				err := wait.For(util.ContainerNotPresentOnNode(nodeName, util.Nginx), wait.WithTimeout(time.Minute*2))
 				if err != nil {
@@ -72,12 +28,7 @@ func TestDisableScanner(t *testing.T) {
 				}
 			}
 
-			// deploy imageJob config
-			if err := util.DeployEraserConfig(cfg.KubeconfigFile(), util.EraserNamespace, "../../test-data", "eraser_v1alpha1_imagelist.yaml"); err != nil {
-				t.Error("Failed to deploy image list config", err)
-			}
-
-			ctxT, cancel := context.WithTimeout(ctx, time.Minute)
+			ctxT, cancel := context.WithTimeout(ctx, time.Minute*3)
 			defer cancel()
 			util.CheckImageRemoved(ctxT, t, util.GetClusterNodes(t), util.Nginx)
 
