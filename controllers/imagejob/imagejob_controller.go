@@ -451,13 +451,17 @@ func copyAndFillTemplateSpec(templateSpecTemplate *corev1.PodSpec, env []corev1.
 	templateSpec := templateSpecTemplate.DeepCopy()
 
 	for idx, _ := range templateSpec.Containers {
-		img := templateSpec.Containers[idx]
+		img := &templateSpec.Containers[idx]
+		imgArgs := &img.Args
+		imgVolumeMounts := &img.VolumeMounts
+		imgEnv := &img.Env
+
 		// eraser and collector need runtime argument, but not scanner (if present)
 		if img.Name != "trivy-scanner" {
-			img.Args = append(args, img.Args...)
+			img.Args = append(args, *imgArgs...)
 		}
-		img.VolumeMounts = append(volumeMounts, img.VolumeMounts...)
-		img.Env = append(env, img.Env...)
+		img.VolumeMounts = append(volumeMounts, *imgVolumeMounts...)
+		img.Env = append(env, *imgEnv...)
 	}
 
 	templateSpec.Volumes = append(volumes, templateSpec.Volumes...)
