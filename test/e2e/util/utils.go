@@ -54,6 +54,7 @@ var (
 	CollectorImage  = os.Getenv("COLLECTOR_IMAGE")
 	ScannerImage    = os.Getenv("SCANNER_IMAGE")
 	VulnerableImage = os.Getenv("VULNERABLE_IMAGE")
+	NginxImage      = os.Getenv("NGINX_IMAGE")
 	NodeVersion     = os.Getenv("NODE_VERSION")
 	TestNamespace   = envconf.RandomName("test-ns", 16)
 	EraserNamespace = pkgUtil.GetNamespace()
