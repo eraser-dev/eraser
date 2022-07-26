@@ -39,13 +39,14 @@ const (
 )
 
 var (
-	cacheDir       = flag.String("cache-dir", "/var/lib/trivy", "path to the cache dir")
-	enableProfile  = flag.Bool("enable-pprof", false, "enable pprof profiling")
-	ignoreUnfixed  = flag.Bool("ignore-unfixed", true, "report only fixed vulnerabilities")
-	profilePort    = flag.Int("pprof-port", 6060, "port for pprof profiling. defaulted to 6060 if unspecified")
-	securityChecks = flag.String("security-checks", "vuln,secret", "comma-separated list of what security issues to detect")
-	severity       = flag.String("severity", "CRITICAL", "list of severity levels to report")
-	vulnTypes      = flag.String("vuln-type", "os,library", "comma separated list of vulnerability types")
+	cacheDir               = flag.String("cache-dir", "/var/lib/trivy", "path to the cache dir")
+	enableProfile          = flag.Bool("enable-pprof", false, "enable pprof profiling")
+	ignoreUnfixed          = flag.Bool("ignore-unfixed", true, "report only fixed vulnerabilities")
+	profilePort            = flag.Int("pprof-port", 6060, "port for pprof profiling. defaulted to 6060 if unspecified")
+	securityChecks         = flag.String("security-checks", "vuln,secret", "comma-separated list of what security issues to detect")
+	severity               = flag.String("severity", "CRITICAL", "list of severity levels to report")
+	vulnTypes              = flag.String("vuln-type", "os,library", "comma separated list of vulnerability types")
+	deleteScanFailedImages = flag.Bool("delete-scan-failed-images", true, "whether or not to delete images for which scanning has failed")
 
 	// Will be modified by parseCommaSeparatedOptions() to reflect the
 	// `severity` CLI flag These are the only recognized severities and the
@@ -219,6 +220,11 @@ func main() {
 
 	log.Info("Failed", "Images", failedImages)
 	log.Info("Vulnerable", "Images", vulnerableImages)
+
+	// if deleteScanFailedImages is true, we want to pass failed images as vulnerable to be deleted
+	if *deleteScanFailedImages {
+		vulnerableImages = append(vulnerableImages, failedImages...)
+	}
 
 	// write vulnerable images to scanErase pipe for eraser to read
 	data, err = json.Marshal(vulnerableImages)

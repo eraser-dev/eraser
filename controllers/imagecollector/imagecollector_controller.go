@@ -48,13 +48,13 @@ import (
 )
 
 var (
-	scannerImage   = flag.String("scanner-image", "", "scanner image, empty value disables scan feature")
-	collectorImage = flag.String("collector-image", "", "collector image, empty value disables collect feature")
-	log            = logf.Log.WithName("controller").WithValues("process", "imagecollector-controller")
-	repeatPeriod   = flag.Duration("repeat-period", time.Hour*24, "repeat period for collect/scan process")
-	// deleteScanFailedImages = flag.Bool("delete-scan-failed-images", true, "whether or not to delete images for which scanning has failed").
-	scannerArgs   = utils.MultiFlag([]string{})
-	collectorArgs = utils.MultiFlag([]string{})
+	scannerImage           = flag.String("scanner-image", "", "scanner image, empty value disables scan feature")
+	collectorImage         = flag.String("collector-image", "", "collector image, empty value disables collect feature")
+	log                    = logf.Log.WithName("controller").WithValues("process", "imagecollector-controller")
+	repeatPeriod           = flag.Duration("repeat-period", time.Hour*24, "repeat period for collect/scan process")
+	deleteScanFailedImages = flag.Bool("delete-scan-failed-images", true, "whether or not to delete images for which scanning has failed")
+	scannerArgs            = utils.MultiFlag([]string{})
+	collectorArgs          = utils.MultiFlag([]string{})
 )
 
 const (
@@ -280,7 +280,7 @@ func (r *Reconciler) createImageJob(ctx context.Context, req ctrl.Request, argsC
 		scannerContainer := corev1.Container{
 			Name:  "trivy-scanner",
 			Image: *scannerImage,
-			Args:  scannerArgs,
+			Args:  append(scannerArgs, "delete-scan-failed-images="+strconv.FormatBool(*deleteScanFailedImages)),
 			VolumeMounts: []corev1.VolumeMount{
 				{MountPath: "/run/eraser.sh/shared-data", Name: "shared-data"},
 			},
