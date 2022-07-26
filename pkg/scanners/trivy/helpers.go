@@ -2,11 +2,9 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"strings"
 
-	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
 	"github.com/aquasecurity/fanal/applier"
 	"github.com/aquasecurity/fanal/cache"
 	fanalTypes "github.com/aquasecurity/fanal/types"
@@ -16,7 +14,6 @@ import (
 	pkgResult "github.com/aquasecurity/trivy/pkg/result"
 	"github.com/aquasecurity/trivy/pkg/scanner/local"
 	trivyTypes "github.com/aquasecurity/trivy/pkg/types"
-	machinerytypes "k8s.io/apimachinery/pkg/types"
 )
 
 // side effects: map `m` will be modified according to the values in `commaSeparatedList`.
@@ -95,29 +92,6 @@ func initializeResultClient() pkgResult.Client {
 	config := db.Config{}
 	client := pkgResult.NewClient(config)
 	return client
-}
-
-func updateStatus(opts *statusUpdate) error {
-	collectorPatch := patch{
-		Status: eraserv1alpha1.ImageCollectorStatus{
-			Vulnerable: opts.vulnerableImages,
-			Failed:     opts.failedImages,
-		},
-	}
-
-	body, err := json.Marshal(&collectorPatch)
-	if err != nil {
-		return err
-	}
-
-	_, err = opts.clientset.RESTClient().Patch(machinerytypes.MergePatchType).
-		AbsPath(opts.apiPath).
-		Resource(opts.resourceName).
-		SubResource(opts.subResourceName).
-		Name(opts.collectorCRName).
-		Body(body).DoRaw(opts.ctx)
-
-	return err
 }
 
 func mapKeys(m map[string]bool) []string {

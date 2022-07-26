@@ -98,7 +98,7 @@ func main() {
 			log.Error(err, "failed to parse image list file")
 			os.Exit(1)
 		}
-		log.Info("sucessfully parsed image list file")
+		log.Info("successfully parsed image list file")
 	}
 
 	excluded, err = util.ParseExcluded(excludedPath)

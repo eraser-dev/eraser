@@ -36,21 +36,16 @@ const (
 	securityCheckVuln   = "vuln"
 	securityCheckConfig = "config"
 	securityCheckSecret = "secret"
-
-	apiPath         = "apis/eraser.sh/v1alpha1"
-	resourceName    = "imagecollectors"
-	subResourceName = "status"
 )
 
 var (
-	cacheDir        = flag.String("cache-dir", "/var/lib/trivy", "path to the cache dir")
-	collectorCRName = flag.String("collector-cr-name", "collector-cr", "name of the collector cr to read from and write to")
-	enableProfile   = flag.Bool("enable-pprof", false, "enable pprof profiling")
-	ignoreUnfixed   = flag.Bool("ignore-unfixed", true, "report only fixed vulnerabilities")
-	profilePort     = flag.Int("pprof-port", 6060, "port for pprof profiling. defaulted to 6060 if unspecified")
-	securityChecks  = flag.String("security-checks", "vuln,secret", "comma-separated list of what security issues to detect")
-	severity        = flag.String("severity", "CRITICAL", "list of severity levels to report")
-	vulnTypes       = flag.String("vuln-type", "os,library", "comma separated list of vulnerability types")
+	cacheDir       = flag.String("cache-dir", "/var/lib/trivy", "path to the cache dir")
+	enableProfile  = flag.Bool("enable-pprof", false, "enable pprof profiling")
+	ignoreUnfixed  = flag.Bool("ignore-unfixed", true, "report only fixed vulnerabilities")
+	profilePort    = flag.Int("pprof-port", 6060, "port for pprof profiling. defaulted to 6060 if unspecified")
+	securityChecks = flag.String("security-checks", "vuln,secret", "comma-separated list of what security issues to detect")
+	severity       = flag.String("severity", "CRITICAL", "list of severity levels to report")
+	vulnTypes      = flag.String("vuln-type", "os,library", "comma separated list of vulnerability types")
 
 	// Will be modified by parseCommaSeparatedOptions() to reflect the
 	// `severity` CLI flag These are the only recognized severities and the
