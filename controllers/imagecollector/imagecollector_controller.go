@@ -174,10 +174,6 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	}
 }
 
-func isNotFound(err error) bool {
-	return err != nil && client.IgnoreNotFound(err) == nil
-}
-
 func (r *Reconciler) handleJobDeletion(ctx context.Context, job *eraserv1alpha1.ImageJob) (ctrl.Result, error) {
 	until := time.Until(job.Status.DeleteAfter.Time)
 	if until > 0 {
