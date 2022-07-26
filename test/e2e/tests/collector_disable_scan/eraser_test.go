@@ -23,7 +23,7 @@ func TestDisableScanner(t *testing.T) {
 	disableScanFeat := features.New("Scanner can be disabled").
 		// nginx is not a vulnerable image, so it should be deleted from all nodes when scanner is disabled and we prune with collector
 		Assess("Nginx successfully deleted from all nodes", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
-			ctxT, cancel := context.WithTimeout(ctx, time.Minute*3)
+			ctxT, cancel := context.WithTimeout(ctx, time.Minute*5)
 			defer cancel()
 			util.CheckImageRemoved(ctxT, t, util.GetClusterNodes(t), util.Nginx)
 
