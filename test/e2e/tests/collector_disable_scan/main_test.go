@@ -27,7 +27,7 @@ func TestMain(m *testing.M) {
 		envfuncs.LoadDockerImageToCluster(util.KindClusterName, util.ManagerImage),
 		envfuncs.LoadDockerImageToCluster(util.KindClusterName, util.Image),
 		envfuncs.LoadDockerImageToCluster(util.KindClusterName, util.CollectorImage),
-		envfuncs.LoadDockerImageToCluster(util.KindClusterName, util.Nginx),,
+		envfuncs.LoadDockerImageToCluster(util.KindClusterName, util.Nginx),
 		util.DeployEraserManifest(util.EraserNamespace, "--set", "scanner.image.repository="),
 	).Finish(
 		envfuncs.DestroyKindCluster(util.KindClusterName),

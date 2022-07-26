@@ -8,7 +8,6 @@ import (
 	"testing"
 	"time"
 
-	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
 	"github.com/Azure/eraser/test/e2e/util"
 
 	"sigs.k8s.io/e2e-framework/klient/wait"
@@ -18,6 +17,7 @@ import (
 
 func TestDisableScanner(t *testing.T) {
 	disableScanFeat := features.New("Scanner can be disabled").
+		// nginx is not a vulnerable image, so it should be deleted from all nodes when scanner is disabled and we prune with collector
 		Assess("Nginx successfully deleted from all nodes", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
 			for _, nodeName := range util.GetClusterNodes(t) {
 				err := wait.For(util.ContainerNotPresentOnNode(nodeName, util.Nginx), wait.WithTimeout(time.Minute*2))
