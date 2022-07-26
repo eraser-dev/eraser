@@ -25,7 +25,6 @@ import (
 
 	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/event"
@@ -173,24 +172,6 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	default:
 		return ctrl.Result{}, fmt.Errorf("more than one collector ImageJobs are scheduled")
 	}
-}
-
-func (r *Reconciler) getChildImageJobs(ctx context.Context) ([]eraserv1alpha1.ImageJob, error) {
-	imageJobList := &eraserv1alpha1.ImageJobList{}
-	if err := r.List(ctx, imageJobList); err != nil {
-		log.Info("could not list imagejobs")
-		return nil, err
-	}
-
-	relevantJobs := util.FilterJobListByOwner(
-		imageJobList.Items, metav1.NewControllerRef(&eraserv1alpha1.ImageCollector{}, schema.GroupVersionKind{
-			Group:   "eraser.sh",
-			Version: "v1alpha1",
-			Kind:    "ImageCollector",
-		}),
-	)
-
-	return relevantJobs, nil
 }
 
 func isNotFound(err error) bool {
