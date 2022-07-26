@@ -6,7 +6,7 @@ MANAGER_IMG ?= ghcr.io/azure/eraser-manager:${VERSION}
 ERASER_IMG ?= ghcr.io/azure/eraser:${VERSION}
 COLLECTOR_IMG ?= ghcr.io/azure/collector:${VERSION}
 VULNERABLE_IMG ?= docker.io/library/alpine:3.7.3
-NGINX_IMG ?= docker.io/library/ngix:latest
+NGINX_IMG ?= docker.io/library/nginx:latest
 E2E_TESTS ?= $(shell find ./test/e2e/tests/ -mindepth 1 -type d)
 
 KUSTOMIZE_VERSION ?= 3.8.9
