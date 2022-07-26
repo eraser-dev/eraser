@@ -100,8 +100,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 
 	err = c.Watch(
 		&source.Kind{Type: &eraserv1alpha1.ImageJob{}},
-		&handler.EnqueueRequestForOwner{OwnerType: &eraserv1alpha1.ImageCollector{}, IsController: true},
-		predicate.Funcs{
+		&handler.EnqueueRequestForObject{}, predicate.Funcs{
 			// Do nothing on Create, Delete, or Generic events
 			CreateFunc:  util.NeverOnCreate,
 			DeleteFunc:  util.NeverOnDelete,
