@@ -121,7 +121,7 @@ vulnerable-img:
 	docker pull $(VULNERABLE_IMG)
 
 nginx-img:
-	docker pull $(VULNERABLE_IMG)
+	docker pull $(NGINX_IMG)
 
 e2e-test: vulnerable-img nginx-img
 	for test in $(E2E_TESTS); do \
