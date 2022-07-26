@@ -26,6 +26,7 @@ var (
 	runtimePtr    = flag.String("runtime", "containerd", "container runtime")
 	enableProfile = flag.Bool("enable-pprof", false, "enable pprof profiling")
 	profilePort   = flag.Int("pprof-port", 6060, "port for pprof profiling. defaulted to 6060 if unspecified")
+	scanDisabled  = flag.Bool("scan-disabled", true, "boolean for if scanner container is disabled")
 
 	// Timeout  of connecting to server (default: 5m).
 	timeout  = 5 * time.Minute
@@ -85,16 +86,31 @@ func main() {
 		os.Exit(1)
 	}
 
-	file, err := os.OpenFile("/run/eraser.sh/shared-data/collectScan", os.O_WRONLY, os.ModeNamedPipe)
-	if err != nil {
-		log.Error(err, "failed to open collectScan pipe")
-		os.Exit(1)
-	}
+	if *scanDisabled {
+		file, err := os.OpenFile("/run/eraser.sh/shared-data/scanErase", os.O_WRONLY, os.ModeNamedPipe)
+		if err != nil {
+			log.Error(err, "failed to open scanErase pipe")
+			os.Exit(1)
+		}
 
-	if _, err := file.Write(data); err != nil {
-		log.Error(err, "failed to write to collectScan pipe")
-		os.Exit(1)
-	}
+		if _, err := file.Write(data); err != nil {
+			log.Error(err, "failed to write to scanErase pipe")
+			os.Exit(1)
+		}
 
-	file.Close()
+		file.Close()
+	} else {
+		file, err := os.OpenFile("/run/eraser.sh/shared-data/collectScan", os.O_WRONLY, os.ModeNamedPipe)
+		if err != nil {
+			log.Error(err, "failed to open collectScan pipe")
+			os.Exit(1)
+		}
+
+		if _, err := file.Write(data); err != nil {
+			log.Error(err, "failed to write to collectScan pipe")
+			os.Exit(1)
+		}
+
+		file.Close()
+	}
 }

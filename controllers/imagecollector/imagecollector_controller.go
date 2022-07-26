@@ -21,6 +21,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"strconv"
 	"time"
 
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -190,6 +191,11 @@ func (r *Reconciler) handleJobDeletion(ctx context.Context, job *eraserv1alpha1.
 }
 
 func (r *Reconciler) createImageJob(ctx context.Context, req ctrl.Request, argsCollector []string) (ctrl.Result, error) {
+	scanDisabled := false
+	if *scannerImage == "" {
+		scanDisabled = true
+	}
+
 	job := &eraserv1alpha1.ImageJob{
 		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: "imagejob-",
@@ -228,7 +234,7 @@ func (r *Reconciler) createImageJob(ctx context.Context, req ctrl.Request, argsC
 							Name:            "collector",
 							Image:           *collectorImage,
 							ImagePullPolicy: corev1.PullIfNotPresent,
-							Args:            argsCollector,
+							Args:            append(collectorArgs, "--scan-disabled="+strconv.FormatBool(scanDisabled)),
 							VolumeMounts: []corev1.VolumeMount{
 								{MountPath: excludedPath, Name: excludedName},
 								{MountPath: "/run/eraser.sh/shared-data", Name: "shared-data"},
@@ -241,32 +247,6 @@ func (r *Reconciler) createImageJob(ctx context.Context, req ctrl.Request, argsC
 								Limits: corev1.ResourceList{
 									"cpu":    resource.MustParse("8m"),
 									"memory": resource.MustParse("30Mi"),
-								},
-							},
-						},
-						{
-							Name:  "trivy-scanner",
-							Image: *scannerImage,
-							Args:  scannerArgs,
-							VolumeMounts: []corev1.VolumeMount{
-								{MountPath: "/run/eraser.sh/shared-data", Name: "shared-data"},
-							},
-							Resources: corev1.ResourceRequirements{
-								Requests: corev1.ResourceList{
-									"memory": resource.Quantity{
-										Format: resource.Format(*util.ScannerMemRequest),
-									},
-									"cpu": resource.Quantity{
-										Format: resource.Format(*util.ScannerCPURequest),
-									},
-								},
-								Limits: corev1.ResourceList{
-									"memory": resource.Quantity{
-										Format: resource.Format(*util.ScannerMemLimit),
-									},
-									"cpu": resource.Quantity{
-										Format: resource.Format(*util.ScannerCPULimit),
-									},
 								},
 							},
 						},
@@ -295,6 +275,36 @@ func (r *Reconciler) createImageJob(ctx context.Context, req ctrl.Request, argsC
 				},
 			},
 		},
+	}
+
+	if !scanDisabled {
+		scannerContainer := corev1.Container{
+			Name:  "trivy-scanner",
+			Image: *scannerImage,
+			Args:  scannerArgs,
+			VolumeMounts: []corev1.VolumeMount{
+				{MountPath: "/run/eraser.sh/shared-data", Name: "shared-data"},
+			},
+			Resources: corev1.ResourceRequirements{
+				Requests: corev1.ResourceList{
+					"memory": resource.Quantity{
+						Format: resource.Format(*util.ScannerMemRequest),
+					},
+					"cpu": resource.Quantity{
+						Format: resource.Format(*util.ScannerCPURequest),
+					},
+				},
+				Limits: corev1.ResourceList{
+					"memory": resource.Quantity{
+						Format: resource.Format(*util.ScannerMemLimit),
+					},
+					"cpu": resource.Quantity{
+						Format: resource.Format(*util.ScannerCPULimit),
+					},
+				},
+			},
+		}
+		job.Spec.JobTemplate.Spec.Containers = append(job.Spec.JobTemplate.Spec.Containers, scannerContainer)
 	}
 
 	err := r.Create(ctx, job)
