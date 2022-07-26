@@ -18,7 +18,6 @@ import (
 	artifactImage "github.com/aquasecurity/fanal/artifact/image"
 	fanalImage "github.com/aquasecurity/fanal/image"
 	"github.com/aquasecurity/trivy/pkg/scanner"
-	"github.com/fsnotify/fsnotify"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
@@ -92,7 +91,7 @@ func main() {
 	ctx := context.Background()
 
 	if err := logger.Configure(); err != nil {
-		fmt.Fprintln(os.Stderr, "Error setting up logger:", err)
+		fmt.Fprintln(os.Stderr, "error setting up logger:", err)
 		os.Exit(generalErr)
 	}
 
@@ -127,66 +126,22 @@ func main() {
 		}
 	}
 
-	// from https://github.com/fsnotify/fsnotify
-	watcher, err := fsnotify.NewWatcher()
-	if err != nil {
-		log.Error(err, "Error creating watcher")
-	}
-
-	done := make(chan bool)
-	go func() {
-		for {
-			select {
-			case event, ok := <-watcher.Events:
-				if !ok {
-					return
-				}
-				log.Info("event triggered", "event:", event)
-				if event.Op&fsnotify.Write == fsnotify.Write {
-					log.Info("modified file:", event.Name)
-					close(done)
-				}
-			case err, ok := <-watcher.Errors:
-				if !ok {
-					return
-				}
-				log.Error(err, "watcher error")
-			}
-		}
-	}()
-
-	err = watcher.Add("/run/eraser.sh/shared-data/collectScan")
-	if err != nil {
-		log.Error(err, "error watching collectScan pipe")
-	}
-	<-done
-
-	watcher.Close()
-
-	fileW, err := os.OpenFile("/run/eraser.sh/shared-data/collectScan", os.O_WRONLY, os.ModeNamedPipe)
-	if err != nil {
-		log.Error(err, "error opening collectScan WR")
-		os.Exit(generalErr)
-	}
 	fileR, err := os.OpenFile("/run/eraser.sh/shared-data/collectScan", os.O_RDONLY, os.ModeNamedPipe)
 	if err != nil {
 		log.Error(err, "error opening collectScan RD")
-		os.Exit(generalErr)
+		os.Exit(1)
 	}
-	fileW.Close()
 
 	// json data is list of []eraserv1alpha1.Image
 	data, err := io.ReadAll(fileR)
 	if err != nil {
-		log.Error(err, "Error reading allImages")
-		os.Exit(generalErr)
+		log.Error(err, "error reading allImages")
+		os.Exit(1)
 	}
-
-	// close collectScan
 
 	allImages := &[]eraserv1alpha1.Image{}
 	if err = json.Unmarshal(data, allImages); err != nil {
-		log.Error(err, "Error in unmarshal allImages")
+		log.Error(err, "error in unmarshal allImages")
 		os.Exit(generalErr)
 	}
 
@@ -277,7 +232,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	file, err := os.OpenFile("/run/eraser.sh/shared-data/scanErase", os.O_RDWR, os.ModeNamedPipe)
+	file, err := os.OpenFile("/run/eraser.sh/shared-data/scanErase", os.O_WRONLY, os.ModeNamedPipe)
 	if err != nil {
 		log.Error(err, "failed to open scanErase pipe")
 		os.Exit(1)
