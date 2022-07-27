@@ -129,7 +129,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	go func() {
 		log.Info("Queueing first ImageCollector reconcile...")
 		ch <- event.GenericEvent{
-			Object: &eraserv1alpha1.ImageCollector{},
+			Object: &eraserv1alpha1.ImageJob{},
 		}
 		log.Info("Queued first ImageCollector reconcile")
 	}()
