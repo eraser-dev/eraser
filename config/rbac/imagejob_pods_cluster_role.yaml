@@ -3,31 +3,3 @@ kind: ClusterRole
 metadata:
   creationTimestamp: null
   name: imagejob-pods-cluster-role
-rules:
-- apiGroups:
-  - eraser.sh
-  resources:
-  - imagecollectors
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - eraser.sh
-  resources:
-  - imagecollectors/finalizers
-  verbs:
-  - update
-- apiGroups:
-  - eraser.sh
-  resources:
-  - imagecollectors/status
-  verbs:
-  - get
-  - patch
-  - update
-
