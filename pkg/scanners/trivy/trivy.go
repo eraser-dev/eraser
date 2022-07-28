@@ -49,7 +49,7 @@ var (
 	enableProfile   = flag.Bool("enable-pprof", false, "enable pprof profiling")
 	ignoreUnfixed   = flag.Bool("ignore-unfixed", true, "report only fixed vulnerabilities")
 	profilePort     = flag.Int("pprof-port", 6060, "port for pprof profiling. defaulted to 6060 if unspecified")
-	securityChecks  = flag.String("security-checks", "vuln,secret", "comma-separated list of what security issues to detect")
+	securityChecks  = flag.String("security-checks", "vuln", "comma-separated list of what security issues to detect")
 	severity        = flag.String("severity", "CRITICAL", "list of severity levels to report")
 	vulnTypes       = flag.String("vuln-type", "os,library", "comma separated list of vulnerability types")
 
