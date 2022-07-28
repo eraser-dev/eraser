@@ -85,3 +85,6 @@ COPY --from=trivy-scanner-build /workspace/out/trivy-scanner /
 USER 65532:65532
 WORKDIR /var/lib/trivy
 ENTRYPOINT ["/trivy-scanner"]
+
+FROM scratch as non-vulnerable
+ENTRYPOINT [ "/non-vulnerable" ]

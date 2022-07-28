@@ -6,7 +6,7 @@ MANAGER_IMG ?= ghcr.io/azure/eraser-manager:${VERSION}
 ERASER_IMG ?= ghcr.io/azure/eraser:${VERSION}
 COLLECTOR_IMG ?= ghcr.io/azure/collector:${VERSION}
 VULNERABLE_IMG ?= docker.io/library/alpine:3.7.3
-NGINX_IMG ?= docker.io/library/nginx:latest
+NON_VULNERABLE_IMG ?= ghcr.io/azure/non-vulnerable:latest
 E2E_TESTS ?= $(shell find ./test/e2e/tests/ -mindepth 1 -type d)
 
 KUSTOMIZE_VERSION ?= 3.8.9
@@ -120,10 +120,16 @@ test: manifests generate fmt vet envtest ## Run unit tests.
 vulnerable-img:
 	docker pull $(VULNERABLE_IMG)
 
-nginx-img:
-	docker pull $(NGINX_IMG)
+non-vulnerable-img:
+	docker buildx build \
+		$(_CACHE_FROM) $(_CACHE_TO) \
+		--build-arg LDFLAGS="$(LDFLAGS)" \
+		--platform="$(PLATFORM)" \
+		--output=$(OUTPUT_TYPE) \
+		-t ${NON_VULNERABLE_IMG} \
+		--target non-vulnerable .
 
-e2e-test: vulnerable-img nginx-img
+e2e-test: vulnerable-img non-vulnerable-img
 	for test in $(E2E_TESTS); do \
 		CGO_ENABLED=0 \
 			IMAGE=${ERASER_IMG} \
@@ -131,7 +137,7 @@ e2e-test: vulnerable-img nginx-img
 			COLLECTOR_IMAGE=${COLLECTOR_IMG} \
 			SCANNER_IMAGE=${TRIVY_SCANNER_IMG} \
 			VULNERABLE_IMAGE=${VULNERABLE_IMG} \
-			NGINX_IMAGE=${NGINX_IMG} \
+			NON_VULNERABLE_IMAGE=${NON_VULNERABLE_IMG} \
 			NODE_VERSION=kindest/node:v${KUBERNETES_VERSION} \
 			go test -count=$(TEST_COUNT) -timeout=$(TIMEOUT) $(TESTFLAGS) -tags=e2e -v $$test ; \
 	done
