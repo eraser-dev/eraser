@@ -201,7 +201,7 @@ func (r *Reconciler) createImageJob(ctx context.Context, req ctrl.Request, argsC
 						{
 							Name: excludedName,
 							VolumeSource: corev1.VolumeSource{
-								ConfigMap: &corev1.ConfigMapVolumeSource{LocalObjectReference: corev1.LocalObjectReference{Name: excludedName}, Optional: boolPtr(true)},
+								ConfigMap: &corev1.ConfigMapVolumeSource{LocalObjectReference: corev1.LocalObjectReference{Name: excludedName}, Optional: utils.BoolPtr(true)},
 							},
 						},
 						{
@@ -263,6 +263,7 @@ func (r *Reconciler) createImageJob(ctx context.Context, req ctrl.Request, argsC
 									"memory": resource.MustParse("30Mi"),
 								},
 							},
+							SecurityContext: utils.SharedSecurityContext,
 						},
 					},
 					ServiceAccountName: "eraser-imagejob-pods",
