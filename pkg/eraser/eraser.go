@@ -34,6 +34,7 @@ var (
 
 const (
 	excludedPath = "/run/eraser.sh/excluded/excluded"
+	generalErr   = 1
 )
 
 func main() {
@@ -47,19 +48,19 @@ func main() {
 
 	if err := logger.Configure(); err != nil {
 		fmt.Fprintln(os.Stderr, "error setting up logger:", err)
-		os.Exit(1)
+		os.Exit(generalErr)
 	}
 
 	socketPath, found := util.RuntimeSocketPathMap[*runtimePtr]
 	if !found {
 		log.Error(fmt.Errorf("unsupported runtime"), "runtime", *runtimePtr)
-		os.Exit(1)
+		os.Exit(generalErr)
 	}
 
 	imageclient, conn, err := util.GetImageClient(context.Background(), socketPath)
 	if err != nil {
 		log.Error(err, "failed to get image client")
-		os.Exit(1)
+		os.Exit(generalErr)
 	}
 
 	runtimeClient := pb.NewRuntimeServiceClient(conn)
@@ -71,20 +72,20 @@ func main() {
 		fileR, err := os.OpenFile("/run/eraser.sh/shared-data/scanErase", os.O_RDONLY, os.ModeNamedPipe)
 		if err != nil {
 			log.Error(err, "error opening scanErase RD")
-			os.Exit(1)
+			os.Exit(generalErr)
 		}
 
 		// json data is list of []eraserv1alpha1.Image
 		data, err := io.ReadAll(fileR)
 		if err != nil {
 			log.Error(err, "error reading vulnerableImages")
-			os.Exit(1)
+			os.Exit(generalErr)
 		}
 
 		vulnerableImages := &[]eraserv1alpha1.Image{}
 		if err = json.Unmarshal(data, vulnerableImages); err != nil {
 			log.Error(err, "error in unmarshal vulnerableImages")
-			os.Exit(1)
+			os.Exit(generalErr)
 		}
 
 		for _, img := range *vulnerableImages {
@@ -96,7 +97,7 @@ func main() {
 		imagelist, err = util.ParseImageList(*imageListPtr)
 		if err != nil {
 			log.Error(err, "failed to parse image list file")
-			os.Exit(1)
+			os.Exit(generalErr)
 		}
 		log.Info("successfully parsed image list file")
 	}
@@ -104,7 +105,7 @@ func main() {
 	excluded, err = util.ParseExcluded(excludedPath)
 	if err != nil {
 		log.Error(err, "failed to parse exclusion list")
-		os.Exit(1)
+		os.Exit(generalErr)
 	}
 	if len(excluded) == 0 {
 		log.Info("excluded configmap was empty or does not exist")
@@ -112,6 +113,6 @@ func main() {
 
 	if err := removeImages(&client, imagelist); err != nil {
 		log.Error(err, "failed to remove images")
-		os.Exit(1)
+		os.Exit(generalErr)
 	}
 }
