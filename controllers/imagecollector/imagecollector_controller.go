@@ -312,10 +312,6 @@ func (r *Reconciler) createImageJob(ctx context.Context, req ctrl.Request, argsC
 	return reconcile.Result{}, nil
 }
 
-func boolPtr(b bool) *bool {
-	return &b
-}
-
 func (r *Reconciler) handleCompletedImageJob(ctx context.Context, req ctrl.Request, childJob *eraserv1alpha1.ImageJob) (ctrl.Result, error) {
 	var err error
 	switch phase := childJob.Status.Phase; phase {
