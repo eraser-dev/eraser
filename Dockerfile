@@ -88,4 +88,3 @@ ENTRYPOINT ["/trivy-scanner"]
 
 FROM scratch as non-vulnerable
 COPY . .
-ENTRYPOINT [ "/non-vulnerable" ]
