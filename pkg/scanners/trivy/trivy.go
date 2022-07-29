@@ -218,7 +218,10 @@ func main() {
 		cleanup()
 	}
 
-	log.Info("Failed", "Images", failedImages)
+	if len(failedImages) > 0 {
+		log.Info("Failed", "Images", failedImages)
+	}
+
 	log.Info("Vulnerable", "Images", vulnerableImages)
 
 	// if deleteScanFailedImages is true, we want to pass failed images as vulnerable to be deleted
