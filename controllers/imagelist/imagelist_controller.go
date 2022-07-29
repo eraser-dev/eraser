@@ -193,7 +193,7 @@ func (r *Reconciler) handleImageListEvent(ctx context.Context, req *ctrl.Request
 			GenerateName: "imagelist-",
 			Namespace:    utils.GetNamespace(),
 		},
-		Immutable: boolPtr(true),
+		Immutable: utils.BoolPtr(true),
 		Data:      map[string]string{"images": string(imgListJSON)},
 	}
 	if err := r.Create(ctx, &configMap); err != nil {
@@ -227,7 +227,7 @@ func (r *Reconciler) handleImageListEvent(ctx context.Context, req *ctrl.Request
 						{
 							Name: excludedName,
 							VolumeSource: corev1.VolumeSource{
-								ConfigMap: &corev1.ConfigMapVolumeSource{LocalObjectReference: corev1.LocalObjectReference{Name: excludedName}, Optional: boolPtr(true)},
+								ConfigMap: &corev1.ConfigMapVolumeSource{LocalObjectReference: corev1.LocalObjectReference{Name: excludedName}, Optional: utils.BoolPtr(true)},
 							},
 						},
 					},
@@ -252,6 +252,7 @@ func (r *Reconciler) handleImageListEvent(ctx context.Context, req *ctrl.Request
 									"memory": resource.MustParse("30Mi"),
 								},
 							},
+							SecurityContext: utils.SharedSecurityContext,
 						},
 					},
 					ServiceAccountName: "eraser-imagejob-pods",
@@ -334,8 +335,4 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	}
 
 	return nil
-}
-
-func boolPtr(b bool) *bool {
-	return &b
 }
