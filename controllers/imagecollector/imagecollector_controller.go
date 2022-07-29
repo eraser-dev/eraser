@@ -129,7 +129,11 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	go func() {
 		log.Info("Queueing first ImageCollector reconcile...")
 		ch <- event.GenericEvent{
-			Object: &eraserv1alpha1.ImageJob{},
+			Object: &eraserv1alpha1.ImageJob{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "first-reconcile",
+				},
+			},
 		}
 		log.Info("Queued first ImageCollector reconcile")
 	}()
@@ -156,6 +160,16 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	if err := r.List(ctx, imageJobList); err != nil {
 		log.Info("could not list imagejobs")
 		return ctrl.Result{}, err
+	}
+
+	if req.Name == "first-reconcile" {
+		for _, job := range imageJobList.Items {
+			if err := r.Delete(ctx, &job); err != nil {
+				log.Info("error cleaning up previous imagejobs")
+				return ctrl.Result{}, err
+			}
+		}
+		return r.createImageJob(ctx, req, collectorArgs)
 	}
 
 	switch len(imageJobList.Items) {
@@ -342,7 +356,7 @@ func (r *Reconciler) handleCompletedImageJob(ctx context.Context, req ctrl.Reque
 		}
 	default:
 		err = errors.New("should not reach this point for imagejob")
-		log.Error(err, "imagejob", childJob)
+		log.Error(err, "xyz", "imagejob", childJob)
 	}
 
 	return ctrl.Result{RequeueAfter: *repeatPeriod}, err
