@@ -188,10 +188,7 @@ func (r *Reconciler) handleJobDeletion(ctx context.Context, job *eraserv1alpha1.
 }
 
 func (r *Reconciler) createImageJob(ctx context.Context, req ctrl.Request, argsCollector []string) (ctrl.Result, error) {
-	scanDisabled := false
-	if *scannerImage == "" {
-		scanDisabled = true
-	}
+	scanDisabled := *scannerImage == ""
 
 	job := &eraserv1alpha1.ImageJob{
 		ObjectMeta: metav1.ObjectMeta{
