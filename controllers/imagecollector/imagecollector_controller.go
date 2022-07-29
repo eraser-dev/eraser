@@ -599,7 +599,7 @@ func (r *Reconciler) handleCompletedImageJob(ctx context.Context, req ctrl.Reque
 		}
 	default:
 		err = errors.New("should not reach this point for imagejob")
-		log.Error(err, "imagejob", childJob)
+		log.Error(err, "image job not in completed or failed phase", "imagejob", childJob)
 	}
 
 	return ctrl.Result{RequeueAfter: *repeatPeriod}, err
