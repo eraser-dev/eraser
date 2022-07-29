@@ -25,7 +25,7 @@ var (
 	runtimePtr    = flag.String("runtime", "containerd", "container runtime")
 	enableProfile = flag.Bool("enable-pprof", false, "enable pprof profiling")
 	profilePort   = flag.Int("pprof-port", 6060, "port for pprof profiling. defaulted to 6060 if unspecified")
-	scanDisabled  = flag.Bool("scan-disabled", true, "boolean for if scanner container is disabled")
+	scanDisabled  = flag.Bool("scan-disabled", false, "boolean for if scanner container is disabled")
 
 	// Timeout  of connecting to server (default: 5m).
 	timeout  = 5 * time.Minute
