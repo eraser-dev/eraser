@@ -244,3 +244,7 @@ func ParseExcluded(path string) (map[string]struct{}, error) {
 
 	return excluded, nil
 }
+
+func BoolPtr(b bool) *bool {
+	return &b
+}
