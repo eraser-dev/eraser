@@ -163,8 +163,8 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	}
 
 	if req.Name == "first-reconcile" {
-		for _, job := range imageJobList.Items {
-			if err := r.Delete(ctx, &job); err != nil {
+		for idx := range imageJobList.Items {
+			if err := r.Delete(ctx, &imageJobList.Items[idx]); err != nil {
 				log.Info("error cleaning up previous imagejobs")
 				return ctrl.Result{}, err
 			}
