@@ -86,5 +86,8 @@ USER 65532:65532
 WORKDIR /var/lib/trivy
 ENTRYPOINT ["/trivy-scanner"]
 
+FROM busybox AS empty
+RUN touch /empty
+
 FROM scratch as non-vulnerable
-COPY . .
+COPY --from=empty /empty /.
