@@ -81,7 +81,7 @@ func main() {
 			}
 		}
 
-		fileR, err := os.OpenFile("/run/eraser.sh/shared-data/scanErase", os.O_RDONLY, os.ModeNamedPipe)
+		fileR, err := os.OpenFile("/run/eraser.sh/shared-data/scanErase", os.O_RDONLY, 0)
 		if err != nil {
 			log.Error(err, "error opening scanErase RD")
 			os.Exit(generalErr)

@@ -135,7 +135,7 @@ func main() {
 		}
 	}
 
-	fileR, err := os.OpenFile("/run/eraser.sh/shared-data/collectScan", os.O_RDONLY, os.ModeNamedPipe)
+	fileR, err := os.OpenFile("/run/eraser.sh/shared-data/collectScan", os.O_RDONLY, 0)
 	if err != nil {
 		log.Error(err, "error opening collectScan RD")
 		os.Exit(1)
@@ -255,7 +255,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	file, err := os.OpenFile("/run/eraser.sh/shared-data/scanErase", os.O_WRONLY, os.ModeNamedPipe)
+	file, err := os.OpenFile("/run/eraser.sh/shared-data/scanErase", os.O_WRONLY, 0)
 	if err != nil {
 		log.Error(err, "failed to open scanErase pipe")
 		os.Exit(1)
