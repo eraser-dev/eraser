@@ -87,8 +87,7 @@ func main() {
 	}
 
 	if *scanDisabled {
-		err := unix.Mkfifo("/run/eraser.sh/shared-data/scanErase", 0644)
-		if err != nil {
+		if err := unix.Mkfifo("/run/eraser.sh/shared-data/scanErase", 0644); err != nil {
 			log.Error(err, "failed to create scanErase pipe")
 			os.Exit(1)
 		}
@@ -106,8 +105,7 @@ func main() {
 
 		file.Close()
 	} else {
-		err := unix.Mkfifo("/run/eraser.sh/shared-data/collectScan", 0644)
-		if err != nil {
+		if err := unix.Mkfifo("/run/eraser.sh/shared-data/collectScan", 0644); err != nil {
 			log.Error(err, "failed to create collectScan pipe")
 			os.Exit(1)
 		}
