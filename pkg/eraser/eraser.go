@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"flag"
 	"fmt"
 	"io"
@@ -69,6 +70,17 @@ func main() {
 	var imagelist []string
 
 	if *imageListPtr == "" {
+		for {
+			if _, err := os.Stat("/run/eraser.sh/shared-data/scanErase"); errors.Is(err, os.ErrNotExist) {
+				time.Sleep(1)
+			} else {
+				if err != nil {
+					log.Error(err, "error in checking for scanErase")
+				}
+				break
+			}
+		}
+
 		fileR, err := os.OpenFile("/run/eraser.sh/shared-data/scanErase", os.O_RDONLY, os.ModeNamedPipe)
 		if err != nil {
 			log.Error(err, "error opening scanErase RD")

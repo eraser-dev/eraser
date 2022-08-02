@@ -3,11 +3,13 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"flag"
 	"fmt"
 	"io"
 	"net/http"
 	"os"
+	"time"
 
 	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
 
@@ -122,6 +124,17 @@ func main() {
 		}
 	}
 
+	for {
+		if _, err := os.Stat("/run/eraser.sh/shared-data/collectScan"); errors.Is(err, os.ErrNotExist) {
+			time.Sleep(1)
+		} else {
+			if err != nil {
+				log.Error(err, "error in checking for collectScan")
+			}
+			break
+		}
+	}
+
 	fileR, err := os.OpenFile("/run/eraser.sh/shared-data/collectScan", os.O_RDONLY, os.ModeNamedPipe)
 	if err != nil {
 		log.Error(err, "error opening collectScan RD")
@@ -233,6 +246,12 @@ func main() {
 	data, err = json.Marshal(vulnerableImages)
 	if err != nil {
 		log.Error(err, "failed to encode vulnerableImages")
+		os.Exit(1)
+	}
+
+	_, err = os.Create("/run/eraser.sh/shared-data/scanErase")
+	if err != nil {
+		log.Error(err, "failed to create scanErase pipe")
 		os.Exit(1)
 	}
 

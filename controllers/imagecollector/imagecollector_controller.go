@@ -224,19 +224,6 @@ func (r *Reconciler) createImageJob(ctx context.Context, req ctrl.Request, argsC
 						},
 					},
 					RestartPolicy: corev1.RestartPolicyNever,
-					// init container creates named pipes
-					InitContainers: []corev1.Container{
-						{
-							Name:            "init-collector-pod",
-							Image:           "docker.io/library/busybox:latest", // eraser image?
-							ImagePullPolicy: corev1.PullIfNotPresent,
-							VolumeMounts: []corev1.VolumeMount{
-								{MountPath: "/run/eraser.sh/shared-data", Name: "shared-data"},
-							},
-							Command: []string{"/bin/sh", "-c"},
-							Args:    []string{"mkfifo /run/eraser.sh/shared-data/collectScan; mkfifo /run/eraser.sh/shared-data/scanErase; chown -R 65532:65532 /run/eraser.sh/shared-data/"},
-						},
-					},
 					Containers: []corev1.Container{
 						{
 							Name:            "collector",

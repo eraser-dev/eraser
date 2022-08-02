@@ -86,6 +86,12 @@ func main() {
 	}
 
 	if *scanDisabled {
+		_, err := os.Create("/run/eraser.sh/shared-data/scanErase")
+		if err != nil {
+			log.Error(err, "failed to create scanErase pipe")
+			os.Exit(1)
+		}
+
 		file, err := os.OpenFile("/run/eraser.sh/shared-data/scanErase", os.O_WRONLY, os.ModeNamedPipe)
 		if err != nil {
 			log.Error(err, "failed to open scanErase pipe")
@@ -99,6 +105,12 @@ func main() {
 
 		file.Close()
 	} else {
+		_, err := os.Create("/run/eraser.sh/shared-data/collectScan")
+		if err != nil {
+			log.Error(err, "failed to create collectScan pipe")
+			os.Exit(1)
+		}
+
 		file, err := os.OpenFile("/run/eraser.sh/shared-data/collectScan", os.O_WRONLY, os.ModeNamedPipe)
 		if err != nil {
 			log.Error(err, "failed to open collectScan pipe")
