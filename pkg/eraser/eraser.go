@@ -94,13 +94,13 @@ func main() {
 			os.Exit(generalErr)
 		}
 
-		vulnerableImages := &[]eraserv1alpha1.Image{}
-		if err = json.Unmarshal(data, vulnerableImages); err != nil {
+		vulnerableImages := []eraserv1alpha1.Image{}
+		if err = json.Unmarshal(data, &vulnerableImages); err != nil {
 			log.Error(err, "error in unmarshal vulnerableImages")
 			os.Exit(generalErr)
 		}
 
-		for _, img := range *vulnerableImages {
+		for _, img := range vulnerableImages {
 			imagelist = append(imagelist, img.Digest)
 		}
 

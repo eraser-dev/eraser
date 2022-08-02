@@ -148,8 +148,8 @@ func main() {
 		os.Exit(1)
 	}
 
-	allImages := &[]eraserv1alpha1.Image{}
-	if err = json.Unmarshal(data, allImages); err != nil {
+	allImages := []eraserv1alpha1.Image{}
+	if err = json.Unmarshal(data, &allImages); err != nil {
 		log.Error(err, "error in unmarshal allImages")
 		os.Exit(generalErr)
 	}
@@ -170,10 +170,10 @@ func main() {
 	}
 
 	resultClient := initializeResultClient()
-	vulnerableImages := make([]eraserv1alpha1.Image, 0, len(*allImages))
-	failedImages := make([]eraserv1alpha1.Image, 0, len(*allImages))
+	vulnerableImages := make([]eraserv1alpha1.Image, 0, len(allImages))
+	failedImages := make([]eraserv1alpha1.Image, 0, len(allImages))
 
-	for _, img := range *allImages {
+	for _, img := range allImages {
 		imageRef := img.Name
 		if imageRef == "" {
 			log.Info("found image with no name", "img", img)
