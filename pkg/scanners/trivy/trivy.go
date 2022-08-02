@@ -11,6 +11,7 @@ import (
 	"time"
 
 	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
+	"golang.org/x/sys/unix"
 
 	_ "net/http/pprof"
 
@@ -246,7 +247,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	_, err = os.Create("/run/eraser.sh/shared-data/scanErase")
+	err = unix.Mkfifo("/run/eraser.sh/shared-data/scanErase", 0644)
 	if err != nil {
 		log.Error(err, "failed to create scanErase pipe")
 		os.Exit(1)

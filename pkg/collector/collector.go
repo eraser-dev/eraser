@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/Azure/eraser/pkg/logger"
+	"golang.org/x/sys/unix"
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 
@@ -86,7 +87,7 @@ func main() {
 	}
 
 	if *scanDisabled {
-		_, err := os.Create("/run/eraser.sh/shared-data/scanErase")
+		err := unix.Mkfifo("/run/eraser.sh/shared-data/scanErase", 0644)
 		if err != nil {
 			log.Error(err, "failed to create scanErase pipe")
 			os.Exit(1)
@@ -105,7 +106,7 @@ func main() {
 
 		file.Close()
 	} else {
-		_, err := os.Create("/run/eraser.sh/shared-data/collectScan")
+		err := unix.Mkfifo("/run/eraser.sh/shared-data/collectScan", 0644)
 		if err != nil {
 			log.Error(err, "failed to create collectScan pipe")
 			os.Exit(1)
