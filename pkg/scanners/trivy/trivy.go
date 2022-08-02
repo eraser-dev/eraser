@@ -3,12 +3,12 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"flag"
 	"fmt"
 	"io"
 	"net/http"
 	"os"
+	"time"
 
 	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
 
@@ -123,25 +123,23 @@ func main() {
 		}
 	}
 
+	var f *os.File
 	for {
-		if _, err := os.Stat("/run/eraser.sh/shared-data/collectScan"); errors.Is(err, os.ErrNotExist) {
-			continue
-		} else {
-			if err != nil {
-				log.Error(err, "error in checking for collectScan")
-			}
+		var err error
+		f, err = os.OpenFile("/run/eraser.sh/shared-data/collectScan", os.O_RDONLY, 0)
+		if err == nil {
 			break
 		}
-	}
-
-	fileR, err := os.OpenFile("/run/eraser.sh/shared-data/collectScan", os.O_RDONLY, 0)
-	if err != nil {
-		log.Error(err, "error opening collectScan RD")
-		os.Exit(1)
+		if !os.IsNotExist(err) {
+			log.Error(err, "error opening collectScan pipe")
+			os.Exit(generalErr)
+		}
+		time.Sleep(1 * time.Second)
+		continue
 	}
 
 	// json data is list of []eraserv1alpha1.Image
-	data, err := io.ReadAll(fileR)
+	data, err := io.ReadAll(f)
 	if err != nil {
 		log.Error(err, "error reading allImages")
 		os.Exit(1)

@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"flag"
 	"fmt"
 	"io"
@@ -70,25 +69,23 @@ func main() {
 	var imagelist []string
 
 	if *imageListPtr == "" {
+		var f *os.File
 		for {
-			if _, err := os.Stat("/run/eraser.sh/shared-data/scanErase"); errors.Is(err, os.ErrNotExist) {
-				continue
-			} else {
-				if err != nil {
-					log.Error(err, "error in checking for scanErase")
-				}
+			var err error
+			f, err = os.OpenFile("/run/eraser.sh/shared-data/scanErase", os.O_RDONLY, 0)
+			if err == nil {
 				break
 			}
-		}
-
-		fileR, err := os.OpenFile("/run/eraser.sh/shared-data/scanErase", os.O_RDONLY, 0)
-		if err != nil {
-			log.Error(err, "error opening scanErase RD")
-			os.Exit(generalErr)
+			if !os.IsNotExist(err) {
+				log.Error(err, "error opening scanErase pipe")
+				os.Exit(generalErr)
+			}
+			time.Sleep(1 * time.Second)
+			continue
 		}
 
 		// json data is list of []eraserv1alpha1.Image
-		data, err := io.ReadAll(fileR)
+		data, err := io.ReadAll(f)
 		if err != nil {
 			log.Error(err, "error reading vulnerableImages")
 			os.Exit(generalErr)
