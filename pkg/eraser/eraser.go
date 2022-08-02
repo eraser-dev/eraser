@@ -72,7 +72,7 @@ func main() {
 	if *imageListPtr == "" {
 		for {
 			if _, err := os.Stat("/run/eraser.sh/shared-data/scanErase"); errors.Is(err, os.ErrNotExist) {
-				time.Sleep(1)
+				continue
 			} else {
 				if err != nil {
 					log.Error(err, "error in checking for scanErase")

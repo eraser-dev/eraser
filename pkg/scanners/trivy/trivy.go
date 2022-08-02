@@ -9,7 +9,6 @@ import (
 	"io"
 	"net/http"
 	"os"
-	"time"
 
 	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
 
@@ -126,7 +125,7 @@ func main() {
 
 	for {
 		if _, err := os.Stat("/run/eraser.sh/shared-data/collectScan"); errors.Is(err, os.ErrNotExist) {
-			time.Sleep(1)
+			continue
 		} else {
 			if err != nil {
 				log.Error(err, "error in checking for collectScan")
