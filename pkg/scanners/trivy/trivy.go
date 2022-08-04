@@ -19,6 +19,7 @@ import (
 	"github.com/aquasecurity/fanal/artifact"
 	artifactImage "github.com/aquasecurity/fanal/artifact/image"
 	fanalImage "github.com/aquasecurity/fanal/image"
+	trivylogger "github.com/aquasecurity/trivy/pkg/log"
 	"github.com/aquasecurity/trivy/pkg/scanner"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 )
@@ -88,9 +89,15 @@ func main() {
 	flag.Parse()
 	ctx := context.Background()
 
-	if err := logger.Configure(); err != nil {
+	var err error
+
+	if err = logger.Configure(); err != nil {
 		fmt.Fprintln(os.Stderr, "error setting up logger:", err)
 		os.Exit(generalErr)
+	}
+
+	if trivylogger.Logger, err = trivylogger.NewLogger(false, true); err != nil {
+		log.Error(err, "Unable to disable trivy logger")
 	}
 
 	if *enableProfile {
