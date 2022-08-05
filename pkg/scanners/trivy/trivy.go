@@ -16,6 +16,7 @@ import (
 	_ "net/http/pprof"
 
 	"github.com/Azure/eraser/pkg/logger"
+	util "github.com/Azure/eraser/pkg/utils"
 	"github.com/aquasecurity/fanal/artifact"
 	artifactImage "github.com/aquasecurity/fanal/artifact/image"
 	fanalImage "github.com/aquasecurity/fanal/image"
@@ -91,7 +92,7 @@ func main() {
 
 	var err error
 
-	if err = logger.Configure(); err != nil {
+	if err := logger.Configure(); err != nil {
 		fmt.Fprintln(os.Stderr, "error setting up logger:", err)
 		os.Exit(generalErr)
 	}
@@ -134,7 +135,8 @@ func main() {
 	var f *os.File
 	for {
 		var err error
-		f, err = os.OpenFile("/run/eraser.sh/shared-data/collectScan", os.O_RDONLY, 0)
+
+		f, err = os.OpenFile(util.CollectScanPath, os.O_RDONLY, 0)
 		if err == nil {
 			break
 		}
@@ -254,12 +256,12 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err = unix.Mkfifo("/run/eraser.sh/shared-data/scanErase", 0o644); err != nil {
+	if err = unix.Mkfifo(util.ScanErasePath, util.PipeMode); err != nil {
 		log.Error(err, "failed to create scanErase pipe")
 		os.Exit(1)
 	}
 
-	file, err := os.OpenFile("/run/eraser.sh/shared-data/scanErase", os.O_WRONLY, 0)
+	file, err := os.OpenFile(util.ScanErasePath, os.O_WRONLY, 0)
 	if err != nil {
 		log.Error(err, "failed to open scanErase pipe")
 		os.Exit(1)
