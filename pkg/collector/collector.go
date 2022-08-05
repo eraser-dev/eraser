@@ -87,20 +87,12 @@ func main() {
 	}
 
 	if *scanDisabled {
-<<<<<<< HEAD
-		if err := unix.Mkfifo("/run/eraser.sh/shared-data/scanErase", 0o644); err != nil {
-=======
 		if err := unix.Mkfifo(util.ScanErasePath, util.PipeMode); err != nil {
->>>>>>> 8a601336e88d8a47777764553e8d1d719c14ae1c
 			log.Error(err, "failed to create scanErase pipe")
 			os.Exit(1)
 		}
 
-<<<<<<< HEAD
-		file, err := os.OpenFile("/run/eraser.sh/shared-data/scanErase", os.O_WRONLY, 0)
-=======
 		file, err := os.OpenFile(util.ScanErasePath, os.O_WRONLY, 0)
->>>>>>> 8a601336e88d8a47777764553e8d1d719c14ae1c
 		if err != nil {
 			log.Error(err, "failed to open scanErase pipe")
 			os.Exit(1)
