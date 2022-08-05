@@ -19,10 +19,7 @@ import (
 )
 
 const (
-	excludedPath    = "/run/eraser.sh/excluded/excluded"
-	pipeMode        = 0o644
-	scanErasePath   = "/run/eraser.sh/shared-data/scanErase"
-	collectScanPath = "/run/eraser.sh/shared-data/collectScan"
+	excludedPath = "/run/eraser.sh/excluded/excluded"
 )
 
 var (
@@ -90,12 +87,12 @@ func main() {
 	}
 
 	if *scanDisabled {
-		if err := unix.Mkfifo(scanErasePath, pipeMode); err != nil {
+		if err := unix.Mkfifo(util.ScanErasePath, util.PipeMode); err != nil {
 			log.Error(err, "failed to create scanErase pipe")
 			os.Exit(1)
 		}
 
-		file, err := os.OpenFile(scanErasePath, os.O_WRONLY, 0)
+		file, err := os.OpenFile(util.ScanErasePath, os.O_WRONLY, 0)
 		if err != nil {
 			log.Error(err, "failed to open scanErase pipe")
 			os.Exit(1)
@@ -108,12 +105,12 @@ func main() {
 
 		file.Close()
 	} else {
-		if err := unix.Mkfifo(collectScanPath, pipeMode); err != nil {
+		if err := unix.Mkfifo(util.CollectScanPath, util.PipeMode); err != nil {
 			log.Error(err, "failed to create collectScan pipe")
 			os.Exit(1)
 		}
 
-		file, err := os.OpenFile(collectScanPath, os.O_WRONLY, 0)
+		file, err := os.OpenFile(util.CollectScanPath, os.O_WRONLY, 0)
 		if err != nil {
 			log.Error(err, "failed to open collectScan pipe")
 			os.Exit(1)

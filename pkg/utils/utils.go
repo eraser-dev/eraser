@@ -17,7 +17,10 @@ import (
 
 const (
 	// unixProtocol is the network protocol of unix socket.
-	unixProtocol = "unix"
+	unixProtocol    = "unix"
+	PipeMode        = 0o644
+	ScanErasePath   = "/run/eraser.sh/shared-data/scanErase"
+	CollectScanPath = "/run/eraser.sh/shared-data/collectScan"
 )
 
 type ExclusionList struct {

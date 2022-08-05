@@ -33,9 +33,8 @@ var (
 )
 
 const (
-	excludedPath  = "/run/eraser.sh/excluded/excluded"
-	generalErr    = 1
-	scanErasePath = "/run/eraser.sh/shared-data/scanErase"
+	excludedPath = "/run/eraser.sh/excluded/excluded"
+	generalErr   = 1
 )
 
 func main() {
@@ -73,7 +72,7 @@ func main() {
 		var f *os.File
 		for {
 			var err error
-			f, err = os.OpenFile(scanErasePath, os.O_RDONLY, 0)
+			f, err = os.OpenFile(util.ScanErasePath, os.O_RDONLY, 0)
 			if err == nil {
 				break
 			}
