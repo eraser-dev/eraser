@@ -38,6 +38,10 @@ const (
 	securityCheckVuln   = "vuln"
 	securityCheckConfig = "config"
 	securityCheckSecret = "secret"
+
+	pipeMode        = 0o644
+	scanErasePath   = "/run/eraser.sh/shared-data/scanErase"
+	collectScanPath = "/run/eraser.sh/shared-data/collectScan"
 )
 
 var (
@@ -127,7 +131,7 @@ func main() {
 	var f *os.File
 	for {
 		var err error
-		f, err = os.OpenFile("/run/eraser.sh/shared-data/collectScan", os.O_RDONLY, 0)
+		f, err = os.OpenFile(collectScanPath, os.O_RDONLY, 0)
 		if err == nil {
 			break
 		}
@@ -247,12 +251,12 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err = unix.Mkfifo("/run/eraser.sh/shared-data/scanErase", 0o644); err != nil {
+	if err = unix.Mkfifo(scanErasePath, pipeMode); err != nil {
 		log.Error(err, "failed to create scanErase pipe")
 		os.Exit(1)
 	}
 
-	file, err := os.OpenFile("/run/eraser.sh/shared-data/scanErase", os.O_WRONLY, 0)
+	file, err := os.OpenFile(scanErasePath, os.O_WRONLY, 0)
 	if err != nil {
 		log.Error(err, "failed to open scanErase pipe")
 		os.Exit(1)
