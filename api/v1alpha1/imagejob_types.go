@@ -21,6 +21,11 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+type Image struct {
+	Digest string `json:"digest"`
+	Name   string `json:"name,omitempty"`
+}
+
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
@@ -60,9 +65,9 @@ type ImageJobStatus struct {
 	DeleteAfter *metav1.Time `json:"deleteAfter,omitempty"`
 }
 
-//+kubebuilder:object:root=true
-//+kubebuilder:subresource:status
-//+kubebuilder:resource:scope="Cluster"
+// +kubebuilder:object:root=true
+// +kubebuilder:subresource:status
+// +kubebuilder:resource:scope="Cluster"
 // ImageJob is the Schema for the imagejobs API.
 type ImageJob struct {
 	metav1.TypeMeta   `json:",inline"`
@@ -72,7 +77,7 @@ type ImageJob struct {
 	Status ImageJobStatus `json:"status,omitempty"`
 }
 
-//+kubebuilder:object:root=true
+// +kubebuilder:object:root=true
 
 // ImageJobList contains a list of ImageJob.
 type ImageJobList struct {

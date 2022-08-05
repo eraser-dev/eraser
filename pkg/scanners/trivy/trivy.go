@@ -2,19 +2,21 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"flag"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
+	"time"
 
 	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
-
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/rest"
+	"golang.org/x/sys/unix"
 
 	_ "net/http/pprof"
 
 	"github.com/Azure/eraser/pkg/logger"
+	util "github.com/Azure/eraser/pkg/utils"
 	"github.com/aquasecurity/fanal/artifact"
 	artifactImage "github.com/aquasecurity/fanal/artifact/image"
 	fanalImage "github.com/aquasecurity/fanal/image"
@@ -37,21 +39,17 @@ const (
 	securityCheckVuln   = "vuln"
 	securityCheckConfig = "config"
 	securityCheckSecret = "secret"
-
-	apiPath         = "apis/eraser.sh/v1alpha1"
-	resourceName    = "imagecollectors"
-	subResourceName = "status"
 )
 
 var (
-	cacheDir        = flag.String("cache-dir", "/var/lib/trivy", "path to the cache dir")
-	collectorCRName = flag.String("collector-cr-name", "collector-cr", "name of the collector cr to read from and write to")
-	enableProfile   = flag.Bool("enable-pprof", false, "enable pprof profiling")
-	ignoreUnfixed   = flag.Bool("ignore-unfixed", true, "report only fixed vulnerabilities")
-	profilePort     = flag.Int("pprof-port", 6060, "port for pprof profiling. defaulted to 6060 if unspecified")
-	securityChecks  = flag.String("security-checks", "vuln", "comma-separated list of what security issues to detect")
-	severity        = flag.String("severity", "CRITICAL", "list of severity levels to report")
-	vulnTypes       = flag.String("vuln-type", "os,library", "comma separated list of vulnerability types")
+	cacheDir               = flag.String("cache-dir", "/var/lib/trivy", "path to the cache dir")
+	enableProfile          = flag.Bool("enable-pprof", false, "enable pprof profiling")
+	ignoreUnfixed          = flag.Bool("ignore-unfixed", true, "report only fixed vulnerabilities")
+	profilePort            = flag.Int("pprof-port", 6060, "port for pprof profiling. defaulted to 6060 if unspecified")
+	securityChecks         = flag.String("security-checks", "vuln", "comma-separated list of what security issues to detect")
+	severity               = flag.String("severity", "CRITICAL", "list of severity levels to report")
+	vulnTypes              = flag.String("vuln-type", "os,library", "comma separated list of vulnerability types")
+	deleteScanFailedImages = flag.Bool("delete-scan-failed-images", true, "whether or not to delete images for which scanning has failed")
 
 	// Will be modified by parseCommaSeparatedOptions() to reflect the
 	// `severity` CLI flag These are the only recognized severities and the
@@ -92,7 +90,7 @@ func main() {
 	ctx := context.Background()
 
 	if err := logger.Configure(); err != nil {
-		fmt.Fprintln(os.Stderr, "Error setting up logger:", err)
+		fmt.Fprintln(os.Stderr, "error setting up logger:", err)
 		os.Exit(generalErr)
 	}
 
@@ -127,28 +125,31 @@ func main() {
 		}
 	}
 
-	cfg, err := rest.InClusterConfig()
-	if err != nil {
-		log.Error(err, "unable to get in-cluster config")
-		os.Exit(generalErr)
+	var f *os.File
+	for {
+		var err error
+		f, err = os.OpenFile(util.CollectScanPath, os.O_RDONLY, 0)
+		if err == nil {
+			break
+		}
+		if !os.IsNotExist(err) {
+			log.Error(err, "error opening collectScan pipe")
+			os.Exit(generalErr)
+		}
+		time.Sleep(1 * time.Second)
+		continue
 	}
 
-	clientset, err := kubernetes.NewForConfig(cfg)
+	// json data is list of []eraserv1alpha1.Image
+	data, err := io.ReadAll(f)
 	if err != nil {
-		log.Error(err, "unable to get REST client")
-		os.Exit(generalErr)
+		log.Error(err, "error reading allImages")
+		os.Exit(1)
 	}
 
-	result := eraserv1alpha1.ImageCollector{}
-
-	err = clientset.RESTClient().Get().
-		AbsPath(apiPath).
-		Resource(resourceName).
-		Name(*collectorCRName).
-		Do(context.Background()).
-		Into(&result)
-	if err != nil {
-		log.Error(err, "RESTClient GET request failed", "apiPath", apiPath, "recourceName", resourceName, "collectorCRName", *collectorCRName)
+	allImages := []eraserv1alpha1.Image{}
+	if err = json.Unmarshal(data, &allImages); err != nil {
+		log.Error(err, "error in unmarshal allImages")
 		os.Exit(generalErr)
 	}
 
@@ -168,12 +169,10 @@ func main() {
 	}
 
 	resultClient := initializeResultClient()
-	vulnerableImages := make([]eraserv1alpha1.Image, 0, len(result.Spec.Images))
-	failedImages := make([]eraserv1alpha1.Image, 0, len(result.Spec.Images))
+	vulnerableImages := make([]eraserv1alpha1.Image, 0, len(allImages))
+	failedImages := make([]eraserv1alpha1.Image, 0, len(allImages))
 
-	for k := range result.Spec.Images {
-		img := result.Spec.Images[k]
-
+	for _, img := range allImages {
 		imageRef := img.Name
 		if imageRef == "" {
 			log.Info("found image with no name", "img", img)
@@ -231,20 +230,40 @@ func main() {
 		cleanup()
 	}
 
-	err = updateStatus(&statusUpdate{
-		apiPath:          apiPath,
-		ctx:              ctx,
-		clientset:        clientset,
-		collectorCRName:  *collectorCRName,
-		resourceName:     resourceName,
-		subResourceName:  subResourceName,
-		vulnerableImages: vulnerableImages,
-		failedImages:     failedImages,
-	})
-	if err != nil {
-		log.Error(err, "error updating ImageCollectorStatus", "images", vulnerableImages)
-		os.Exit(generalErr)
+	if len(failedImages) > 0 {
+		log.Info("Failed", "Images", failedImages)
 	}
 
+	log.Info("Vulnerable", "Images", vulnerableImages)
+
+	// if deleteScanFailedImages is true, we want to pass failed images as vulnerable to be deleted
+	if *deleteScanFailedImages {
+		vulnerableImages = append(vulnerableImages, failedImages...)
+	}
+
+	// write vulnerable images to scanErase pipe for eraser to read
+	data, err = json.Marshal(vulnerableImages)
+	if err != nil {
+		log.Error(err, "failed to encode vulnerableImages")
+		os.Exit(1)
+	}
+
+	if err = unix.Mkfifo(util.ScanErasePath, util.PipeMode); err != nil {
+		log.Error(err, "failed to create scanErase pipe")
+		os.Exit(1)
+	}
+
+	file, err := os.OpenFile(util.ScanErasePath, os.O_WRONLY, 0)
+	if err != nil {
+		log.Error(err, "failed to open scanErase pipe")
+		os.Exit(1)
+	}
+
+	if _, err := file.Write(data); err != nil {
+		log.Error(err, "failed to write to scanErase pipe")
+		os.Exit(1)
+	}
+
+	file.Close()
 	log.Info("scanning complete, exiting")
 }

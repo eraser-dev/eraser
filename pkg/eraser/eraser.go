@@ -2,8 +2,10 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"flag"
 	"fmt"
+	"io"
 	"net/http"
 	_ "net/http/pprof"
 	"os"
@@ -14,6 +16,7 @@ import (
 
 	"github.com/Azure/eraser/pkg/logger"
 
+	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
 	util "github.com/Azure/eraser/pkg/utils"
 )
 
@@ -31,6 +34,7 @@ var (
 
 const (
 	excludedPath = "/run/eraser.sh/excluded/excluded"
+	generalErr   = 1
 )
 
 func main() {
@@ -43,35 +47,74 @@ func main() {
 	}
 
 	if err := logger.Configure(); err != nil {
-		fmt.Fprintln(os.Stderr, "Error setting up logger:", err)
-		os.Exit(1)
+		fmt.Fprintln(os.Stderr, "error setting up logger:", err)
+		os.Exit(generalErr)
 	}
 
 	socketPath, found := util.RuntimeSocketPathMap[*runtimePtr]
 	if !found {
 		log.Error(fmt.Errorf("unsupported runtime"), "runtime", *runtimePtr)
-		os.Exit(1)
+		os.Exit(generalErr)
 	}
 
 	imageclient, conn, err := util.GetImageClient(context.Background(), socketPath)
 	if err != nil {
 		log.Error(err, "failed to get image client")
-		os.Exit(1)
+		os.Exit(generalErr)
 	}
 
 	runtimeClient := pb.NewRuntimeServiceClient(conn)
 	client := client{imageclient, runtimeClient}
 
-	imagelist, err := util.ParseImageList(*imageListPtr)
-	if err != nil {
-		log.Error(err, "failed to parse image list file")
-		os.Exit(1)
+	var imagelist []string
+
+	if *imageListPtr == "" {
+		var f *os.File
+		for {
+			var err error
+			f, err = os.OpenFile(util.ScanErasePath, os.O_RDONLY, 0)
+			if err == nil {
+				break
+			}
+			if !os.IsNotExist(err) {
+				log.Error(err, "error opening scanErase pipe")
+				os.Exit(generalErr)
+			}
+			time.Sleep(1 * time.Second)
+			continue
+		}
+
+		// json data is list of []eraserv1alpha1.Image
+		data, err := io.ReadAll(f)
+		if err != nil {
+			log.Error(err, "error reading vulnerableImages")
+			os.Exit(generalErr)
+		}
+
+		vulnerableImages := []eraserv1alpha1.Image{}
+		if err = json.Unmarshal(data, &vulnerableImages); err != nil {
+			log.Error(err, "error in unmarshal vulnerableImages")
+			os.Exit(generalErr)
+		}
+
+		for _, img := range vulnerableImages {
+			imagelist = append(imagelist, img.Digest)
+		}
+
+		log.Info("successfully created imagelist from scanned vulnerableImages")
+	} else {
+		imagelist, err = util.ParseImageList(*imageListPtr)
+		if err != nil {
+			log.Error(err, "failed to parse image list file")
+			os.Exit(generalErr)
+		}
+		log.Info("successfully parsed image list file")
 	}
 
 	excluded, err = util.ParseExcluded(excludedPath)
 	if err != nil {
 		log.Error(err, "failed to parse exclusion list")
-		os.Exit(1)
+		os.Exit(generalErr)
 	}
 	if len(excluded) == 0 {
 		log.Info("excluded configmap was empty or does not exist")
@@ -79,6 +122,6 @@ func main() {
 
 	if err := removeImages(&client, imagelist); err != nil {
 		log.Error(err, "failed to remove images")
-		os.Exit(1)
+		os.Exit(generalErr)
 	}
 }

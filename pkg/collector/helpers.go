@@ -2,14 +2,9 @@ package main
 
 import (
 	"context"
-	"encoding/json"
-	"os"
 
 	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
 	util "github.com/Azure/eraser/pkg/utils"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/rest"
 )
 
 func getImages(c Client) ([]eraserv1alpha1.Image, error) {
@@ -68,50 +63,4 @@ func getImages(c Client) ([]eraserv1alpha1.Image, error) {
 	}
 
 	return finalImages, nil
-}
-
-func createCollectorCR(ctx context.Context, allImages []eraserv1alpha1.Image) error {
-	config, err := rest.InClusterConfig()
-	if err != nil {
-		log.Info("Could not create InClusterConfig")
-		return err
-	}
-
-	clientset, err := kubernetes.NewForConfig(config)
-	if err != nil {
-		log.Info("Could not create clientset")
-		return err
-	}
-
-	imageCollector := eraserv1alpha1.ImageCollector{
-		TypeMeta: v1.TypeMeta{
-			APIVersion: "eraser.sh/v1alpha1",
-			Kind:       "ImageCollector",
-		},
-		ObjectMeta: v1.ObjectMeta{
-			// imagejob will set node name as env when creating collector pod
-			GenerateName: "imagecollector-" + os.Getenv("NODE_NAME") + "-",
-		},
-		Spec: eraserv1alpha1.ImageCollectorSpec{
-			Images: allImages,
-		},
-	}
-
-	body, err := json.Marshal(imageCollector)
-	if err != nil {
-		log.Info("Could not marshal imagecollector for node: ", os.Getenv("NODE_NAME"))
-		return err
-	}
-
-	_, err = clientset.RESTClient().Post().
-		AbsPath(apiPath).
-		Resource("imagecollectors").
-		Body(body).DoRaw(ctx)
-
-	if err != nil {
-		log.Error(err, "Could not create imagecollector", imageCollector.Name, imageCollector.APIVersion)
-		return err
-	}
-
-	return nil
 }

@@ -16,7 +16,6 @@ package imagelist
 import (
 	"context"
 	"encoding/json"
-	"flag"
 	"fmt"
 	"path/filepath"
 	"time"
@@ -52,15 +51,9 @@ const (
 )
 
 var (
-	log         = logf.Log.WithName("controller").WithValues("process", "imagelist-controller")
-	eraserImage = flag.String("eraser-image", "ghcr.io/azure/eraser:latest", "eraser image")
-	imageList   = types.NamespacedName{Name: "imagelist"}
-	eraserArgs  = utils.MultiFlag([]string{})
+	log       = logf.Log.WithName("controller").WithValues("process", "imagelist-controller")
+	imageList = types.NamespacedName{Name: "imagelist"}
 )
-
-func init() {
-	flag.Var(&eraserArgs, "eraser-arg", "An argument to be passed through to the eraser. For example, --eraser-arg=--enable-pprof=true will pass through to the eraser as --enable-pprof=true. Can be supplied multiple times.")
-}
 
 func Add(mgr manager.Manager) error {
 	return add(mgr, newReconciler(mgr))
@@ -205,7 +198,7 @@ func (r *Reconciler) handleImageListEvent(ctx context.Context, req *ctrl.Request
 		"--imagelist=" + filepath.Join(imgListPath, "images"),
 		"--log-level=" + logger.GetLevel(),
 	}
-	args = append(args, eraserArgs...)
+	args = append(args, util.EraserArgs...)
 
 	job := &eraserv1alpha1.ImageJob{
 		ObjectMeta: metav1.ObjectMeta{
@@ -235,7 +228,7 @@ func (r *Reconciler) handleImageListEvent(ctx context.Context, req *ctrl.Request
 					Containers: []corev1.Container{
 						{
 							Name:            "eraser",
-							Image:           *eraserImage,
+							Image:           *util.EraserImage,
 							ImagePullPolicy: corev1.PullIfNotPresent,
 							Args:            args,
 							VolumeMounts: []corev1.VolumeMount{
