@@ -11,6 +11,7 @@ import (
 	"time"
 
 	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
+	"go.uber.org/zap"
 	"golang.org/x/sys/unix"
 
 	_ "net/http/pprof"
@@ -20,6 +21,7 @@ import (
 	"github.com/aquasecurity/fanal/artifact"
 	artifactImage "github.com/aquasecurity/fanal/artifact/image"
 	fanalImage "github.com/aquasecurity/fanal/image"
+	trivylogger "github.com/aquasecurity/trivy/pkg/log"
 	"github.com/aquasecurity/trivy/pkg/scanner"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 )
@@ -89,10 +91,22 @@ func main() {
 	flag.Parse()
 	ctx := context.Background()
 
-	if err := logger.Configure(); err != nil {
+	var err error
+
+	if err = logger.Configure(); err != nil {
 		fmt.Fprintln(os.Stderr, "error setting up logger:", err)
 		os.Exit(generalErr)
 	}
+
+	// creating new logger for JSON output with trivy scanner as trivy logs are not JSON encoded
+	logger, err := zap.NewProduction()
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "error setting up trivy logger:", err)
+		os.Exit(generalErr)
+	}
+
+	sugar := logger.Sugar()
+	trivylogger.Logger = sugar
 
 	if *enableProfile {
 		go func() {
@@ -128,6 +142,7 @@ func main() {
 	var f *os.File
 	for {
 		var err error
+
 		f, err = os.OpenFile(util.CollectScanPath, os.O_RDONLY, 0)
 		if err == nil {
 			break
