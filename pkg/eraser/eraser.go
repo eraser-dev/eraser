@@ -72,6 +72,7 @@ func main() {
 		var f *os.File
 		for {
 			var err error
+
 			f, err = os.OpenFile(util.ScanErasePath, os.O_RDONLY, 0)
 			if err == nil {
 				break
