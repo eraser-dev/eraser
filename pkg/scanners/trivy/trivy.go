@@ -11,6 +11,7 @@ import (
 	"time"
 
 	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
+	"go.uber.org/zap"
 	"golang.org/x/sys/unix"
 
 	_ "net/http/pprof"
@@ -92,10 +93,20 @@ func main() {
 
 	var err error
 
-	if err := logger.Configure(); err != nil {
+	if err = logger.Configure(); err != nil {
 		fmt.Fprintln(os.Stderr, "error setting up logger:", err)
 		os.Exit(generalErr)
 	}
+
+	logger, err := zap.NewProduction()
+
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "error setting up trivy logger:", err)
+		os.Exit(generalErr)
+	}
+
+	sugar := logger.Sugar()
+	trivylogger.Logger = sugar
 
 	if trivylogger.Logger, err = trivylogger.NewLogger(false, true); err != nil {
 		log.Error(err, "Unable to disable trivy logger")
