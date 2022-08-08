@@ -99,7 +99,6 @@ func main() {
 	}
 
 	logger, err := zap.NewProduction()
-
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "error setting up trivy logger:", err)
 		os.Exit(generalErr)
