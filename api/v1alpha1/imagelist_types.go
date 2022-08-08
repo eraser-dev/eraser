@@ -19,7 +19,7 @@ import (
 
 // ImageListSpec defines the desired state of ImageList.
 type ImageListSpec struct {
-	// The list of vulnerable images to delete if non-running.
+	// The list of non-compliant images to delete if non-running.
 	Images []string `json:"images"`
 }
 
