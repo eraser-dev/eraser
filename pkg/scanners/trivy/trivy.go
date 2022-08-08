@@ -98,6 +98,7 @@ func main() {
 		os.Exit(generalErr)
 	}
 
+	// creating new logger for JSON output with trivy scanner as trivy logs are not JSON encoded
 	logger, err := zap.NewProduction()
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "error setting up trivy logger:", err)
@@ -106,10 +107,6 @@ func main() {
 
 	sugar := logger.Sugar()
 	trivylogger.Logger = sugar
-
-	if trivylogger.Logger, err = trivylogger.NewLogger(false, true); err != nil {
-		log.Error(err, "Unable to disable trivy logger")
-	}
 
 	if *enableProfile {
 		go func() {
