@@ -1,4 +1,4 @@
-VERSION := v0.3.0
+VERSION := v0.4.0
 
 # Image URL to use all building/pushing image targets
 TRIVY_SCANNER_IMG ?= ghcr.io/azure/eraser-trivy-scanner:${VERSION}
