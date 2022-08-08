@@ -88,21 +88,21 @@ func main() {
 		// json data is list of []eraserv1alpha1.Image
 		data, err := io.ReadAll(f)
 		if err != nil {
-			log.Error(err, "error reading vulnerableImages")
+			log.Error(err, "error reading non-compliant images")
 			os.Exit(generalErr)
 		}
 
-		vulnerableImages := []eraserv1alpha1.Image{}
-		if err = json.Unmarshal(data, &vulnerableImages); err != nil {
-			log.Error(err, "error in unmarshal vulnerableImages")
+		nonCompliantImages := []eraserv1alpha1.Image{}
+		if err = json.Unmarshal(data, &nonCompliantImages); err != nil {
+			log.Error(err, "error in unmarshal non-compliant images")
 			os.Exit(generalErr)
 		}
 
-		for _, img := range vulnerableImages {
+		for _, img := range nonCompliantImages {
 			imagelist = append(imagelist, img.Digest)
 		}
 
-		log.Info("successfully created imagelist from scanned vulnerableImages")
+		log.Info("successfully created imagelist from scanned non-compliant images")
 	} else {
 		imagelist, err = util.ParseImageList(*imageListPtr)
 		if err != nil {

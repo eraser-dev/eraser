@@ -4030,7 +4030,7 @@ spec:
             description: ImageListSpec defines the desired state of ImageList.
             properties:
               images:
-                description: The list of vulnerable images to delete if non-running.
+                description: The list of non-compliant images to delete if non-running.
                 items:
                   type: string
                 type: array
