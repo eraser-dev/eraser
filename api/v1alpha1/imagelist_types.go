@@ -19,7 +19,7 @@ import (
 
 // ImageListSpec defines the desired state of ImageList.
 type ImageListSpec struct {
-	// The list of vulnerable images to delete if non-running.
+	// The list of non-compliant images to delete if non-running.
 	Images []string `json:"images"`
 }
 
@@ -35,9 +35,9 @@ type ImageListStatus struct {
 	Skipped int64 `json:"skipped"`
 }
 
-//+kubebuilder:object:root=true
-//+kubebuilder:subresource:status
-//+kubebuilder:resource:scope="Cluster"
+// +kubebuilder:object:root=true
+// +kubebuilder:subresource:status
+// +kubebuilder:resource:scope="Cluster"
 // ImageList is the Schema for the imagelists API.
 type ImageList struct {
 	metav1.TypeMeta   `json:",inline"`
@@ -47,7 +47,7 @@ type ImageList struct {
 	Status ImageListStatus `json:"status,omitempty"`
 }
 
-//+kubebuilder:object:root=true
+// +kubebuilder:object:root=true
 
 // ImageListList contains a list of ImageList.
 type ImageListList struct {

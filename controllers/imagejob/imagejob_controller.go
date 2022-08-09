@@ -449,11 +449,25 @@ func copyAndFillTemplateSpec(templateSpecTemplate *corev1.PodSpec, env []corev1.
 	}
 
 	templateSpec := templateSpecTemplate.DeepCopy()
-	image := &templateSpec.Containers[0]
 
-	image.Args = append(args, image.Args...)
-	image.VolumeMounts = append(volumeMounts, image.VolumeMounts...)
-	image.Env = append(env, image.Env...)
+	eraserImg := &templateSpec.Containers[0]
+	eraserImg.Args = append(eraserImg.Args, args...)
+	eraserImg.VolumeMounts = append(eraserImg.VolumeMounts, volumeMounts...)
+	eraserImg.Env = append(eraserImg.Env, env...)
+
+	if len(templateSpec.Containers) > 1 {
+		collectorImg := &templateSpec.Containers[1]
+		collectorImg.Args = append(collectorImg.Args, args...)
+		collectorImg.VolumeMounts = append(collectorImg.VolumeMounts, volumeMounts...)
+		collectorImg.Env = append(collectorImg.Env, env...)
+	}
+
+	if len(templateSpec.Containers) > 2 {
+		scannerImg := &templateSpec.Containers[2]
+		scannerImg.VolumeMounts = append(scannerImg.VolumeMounts, volumeMounts...)
+		scannerImg.Env = append(scannerImg.Env, env...)
+	}
+
 	templateSpec.Volumes = append(volumes, templateSpec.Volumes...)
 	templateSpec.NodeName = nodeName
 

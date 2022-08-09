@@ -5,6 +5,7 @@ import (
 	"time"
 
 	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
+	"github.com/Azure/eraser/pkg/utils"
 	batchv1 "k8s.io/api/batch/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/event"
@@ -18,7 +19,14 @@ var (
 	ScannerCPULimit   = flag.String("scanner-cpu-limit", "1500m", "limit on CPU usage for scanner pods spawned by the eraser manager")
 	ScannerMemRequest = flag.String("scanner-mem-request", "500Mi", "minimum memory request for scanner pods spawned by the eraser manager")
 	ScannerMemLimit   = flag.String("scanner-mem-limit", "2Gi", "limit on memory usage for scanner pods spawned by the eraser manager")
+
+	EraserImage = flag.String("eraser-image", "ghcr.io/azure/eraser:latest", "eraser image")
+	EraserArgs  = utils.MultiFlag([]string{})
 )
+
+func init() {
+	flag.Var(&EraserArgs, "eraser-arg", "An argument to be passed through to the eraser. For example, --eraser-arg=--enable-pprof=true will pass through to the eraser as --enable-pprof=true. Can be supplied multiple times.")
+}
 
 func NeverOnCreate(_ event.CreateEvent) bool {
 	return false

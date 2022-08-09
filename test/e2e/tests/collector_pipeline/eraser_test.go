@@ -8,7 +8,6 @@ import (
 	"testing"
 	"time"
 
-	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
 	"github.com/Azure/eraser/test/e2e/util"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -22,55 +21,7 @@ import (
 
 func TestCollectScanErasePipeline(t *testing.T) {
 	collectScanErasePipelineFeat := features.New("ImageCollector should run automatically, trigger the scanner, then the eraser pods").
-		Assess("ImageCollector CR is generated", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
-			c, err := cfg.NewClient()
-			if err != nil {
-				t.Fatal("Failed to create new client", err)
-			}
-
-			resource := eraserv1alpha1.ImageCollector{}
-			wait.For(func() (bool, error) {
-				err := c.Resources().Get(ctx, util.ImageCollectorShared, "default", &resource)
-				if err != nil {
-					return false, err
-				}
-
-				if resource.ObjectMeta.Name == util.ImageCollectorShared {
-					return true, nil
-				}
-
-				return false, nil
-			}, wait.WithTimeout(time.Minute*3))
-
-			return ctx
-		}).
-		Assess("ImageList CR is generated", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
-			c, err := cfg.NewClient()
-			if err != nil {
-				t.Fatal("Failed to create new client", err)
-			}
-
-			resource := eraserv1alpha1.ImageList{}
-			wait.For(func() (bool, error) {
-				err := c.Resources().Get(ctx, "imagelist", "default", &resource)
-				if util.IsNotFound(err) {
-					return false, nil
-				}
-
-				if err != nil {
-					return false, err
-				}
-
-				if resource.ObjectMeta.Name == "imagelist" {
-					return true, nil
-				}
-
-				return false, nil
-			}, wait.WithTimeout(time.Minute*3))
-
-			return ctx
-		}).
-		Assess("Images successfully deleted from all nodes", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
+		Assess("Vulnerable Image successfully deleted from all nodes", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
 			ctxT, cancel := context.WithTimeout(ctx, 3*time.Minute)
 			defer cancel()
 			util.CheckImageRemoved(ctxT, t, util.GetClusterNodes(t), util.Alpine)

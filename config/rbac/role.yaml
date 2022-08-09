@@ -12,6 +12,7 @@ rules:
   verbs:
   - get
   - list
+  - watch
 - apiGroups:
   - ""
   resources:
@@ -32,26 +33,7 @@ rules:
   - delete
   - get
   - list
-- apiGroups:
-  - eraser.sh
-  resources:
-  - imagecollectors
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
   - watch
-- apiGroups:
-  - eraser.sh
-  resources:
-  - imagecollectors/status
-  verbs:
-  - get
-  - patch
-  - update
 - apiGroups:
   - eraser.sh
   resources:

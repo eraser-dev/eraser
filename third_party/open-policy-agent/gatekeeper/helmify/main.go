@@ -11,9 +11,7 @@ import (
 	"strings"
 )
 
-var (
-	outputDir = flag.String("output-dir", "manifest_staging/charts/eraser", "The root directory in which to write the Helm chart")
-)
+var outputDir = flag.String("output-dir", "manifest_staging/charts/eraser", "The root directory in which to write the Helm chart")
 
 var kindRegex = regexp.MustCompile(`(?m)^kind:[\s]+([\S]+)[\s]*$`)
 
@@ -73,7 +71,7 @@ func (ks *kindSet) Write() error {
 			destFile := path.Join(*outputDir, subPath, fileName)
 			fmt.Printf("Writing %s\n", destFile)
 
-			if err := os.WriteFile(destFile, []byte(obj), 0600); err != nil {
+			if err := os.WriteFile(destFile, []byte(obj), 0o600); err != nil {
 				return err
 			}
 		}
@@ -100,7 +98,7 @@ func copyStaticFiles(root string, subdirs ...string) error {
 		destination := path.Join(append([]string{*outputDir}, newSubDirs...)...)
 		if f.IsDir() {
 			fmt.Printf("Making %s\n", destination)
-			if err := os.Mkdir(destination, 0750); err != nil {
+			if err := os.Mkdir(destination, 0o750); err != nil {
 				return err
 			}
 			if err := copyStaticFiles(root, newSubDirs...); err != nil {
@@ -112,7 +110,7 @@ func copyStaticFiles(root string, subdirs ...string) error {
 				return err
 			}
 			fmt.Printf("Writing %s\n", destination)
-			if err := os.WriteFile(destination, contents, 0600); err != nil {
+			if err := os.WriteFile(destination, contents, 0o600); err != nil {
 				return err
 			}
 		}

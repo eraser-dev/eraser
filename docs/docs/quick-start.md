@@ -6,7 +6,7 @@ This tutorial demonstrates the functionality of Eraser and validates that non-ru
 
 ## Deploy a DaemonSet
 
-After following the [install instructions](https://example.com), we'll apply a demo `DaemonSet`. For illustrative purposes, a DaemonSet is applied and deleted so the non-running images remain on all nodes. The alpine image with the `3.7.3` tag will be used in this example. This is an image with a known critical vulnerability.
+After following the [install instructions](installation.md), we'll apply a demo `DaemonSet`. For illustrative purposes, a DaemonSet is applied and deleted so the non-running images remain on all nodes. The alpine image with the `3.7.3` tag will be used in this example. This is an image with a known critical vulnerability.
 
 First, apply the `DaemonSet`:
 
@@ -78,48 +78,26 @@ docker.io/library/alpine@sha256:8421d9a84432575381bfabd248f1eb56f3aa21d9d7cd2511
 
 After deploying Eraser, it will automatically clean images in a regular interval. This interval can be set by `--repeat-period` argument to `eraser-controller-manager`. The default interval is 24 hours (`24h`). Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h".
 
-Eraser will schedule collector pods to each node in the cluster, and the pods will collect non-running images on those nodes. Once the collectors are done, results are de-duplicated and stored in the `imagecollector-shared` object in `ImageCollector` CRD.
+Eraser will schedule collector pods to each node in the cluster, and each pod will contain 3 containers: collector, scanner, and eraser that will run to completion.
 
 ```shell
 $ kubectl get pods -n eraser-system
-NAME                                         READY   STATUS    RESTARTS   AGE
-collector-kind-control-plane-lv982           1/1     Running   0          14s
-collector-kind-control-plane-ab840           1/1     Running   0          14s
-collector-kind-control-plane-sg352           1/1     Running   0          14s
-eraser-controller-manager-649c756544-bgfds   1/1     Running   0          26s
+NAMESPACE            NAME                                         READY   STATUS      RESTARTS         AGE
+eraser-system        collector-kind-control-plane-sb789           0/3     Completed   0                26m
+eraser-system        collector-kind-worker-j84hm                  0/3     Completed   0                26m
+eraser-system        collector-kind-worker2-4lbdr                 0/3     Completed   0                26m
+eraser-system        eraser-controller-manager-86cdb4cbf9-x8d7q   1/1     Running     0                26m
 ```
 
-After collector pods are finished, scanner pod will be scheduled to each node in the cluster.
+The collector container sends the list of all images to the scanner container, which scans and reports non-compliant images to the eraser container for removal of images that are non-running. Once all pods are completed, they will be automatically cleaned up. 
 
-> If you want to remove all the images periodically, you can skip this step by removing the `--scanner-image` argument. If you are deploying with Helm, use `--set scanner.image.repository=""` to remove the scanner image.
-
-```shell
-$ kubectl get pods -n eraser-system
-NAME                                         READY   STATUS    RESTARTS   AGE
-eraser-controller-manager-649c756544-bgfds   1/1     Running   0          36s
-eraser-scanner-78p49-vxb4j                   1/1     Running   0          5s
-```
-
-After scanner pods are finished, Eraser will remove the non-running images from the cluster.
+> If you want to remove all the images periodically, you can skip the scanner container by removing the `--scanner-image` argument. If you are deploying with Helm, use `--set scanner.image.repository=""` to remove the scanner image. In this case, each collector pod will hold 2 containers: collector and eraser.
 
 ```shell
 $ kubectl get pods -n eraser-system
-NAME                                         READY   STATUS      RESTARTS   AGE
-eraser-controller-manager-649c756544-bgfds   1/1     Running     0          56s
-eraser-kind-control-plane-lswqn              1/1     Running     0          12s
-eraser-kind-worker-wfqc                      0/1     Running     0          12s
-eraser-kind-worker2-gwbit                    0/1     Running     0          12s
-eraser-scanner-78p49-vxb4j                   0/1     Completed   0          25s
-```
-
-Eraser pods will run to completion and the non-running images will be removed.
-
-```shell
-$ kubectl get pods -n eraser-system
-NAME                                         READY   STATUS      RESTARTS   AGE
-eraser-controller-manager-649c756544-bgfds   1/1     Running     0          61s
-eraser-kind-control-plane-lswqn              0/1     Completed   0          17s
-eraser-kind-worker-wfqc                      0/1     Completed   0          17s
-eraser-kind-worker2-gwbit                    0/1     Completed   0          17s
-eraser-scanner-78p49-vxb4j                   0/1     Completed   0          30s
+NAMESPACE            NAME                                         READY   STATUS      RESTARTS         AGE
+eraser-system        collector-kind-control-plane-ksk2b           0/2     Completed   0                50s
+eraser-system        collector-kind-worker-cpgqc                  0/2     Completed   0                50s
+eraser-system        collector-kind-worker2-k25df                 0/2     Completed   0                50s
+eraser-system        eraser-controller-manager-86cdb4cbf9-x8d7q   1/1     Running     0                55s
 ```
