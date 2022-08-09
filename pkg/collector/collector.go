@@ -18,10 +18,6 @@ import (
 	util "github.com/Azure/eraser/pkg/utils"
 )
 
-const (
-	excludedPath = "/run/eraser.sh/excluded/excluded"
-)
-
 var (
 	runtimePtr    = flag.String("runtime", "containerd", "container runtime")
 	enableProfile = flag.Bool("enable-pprof", false, "enable pprof profiling")
@@ -64,7 +60,7 @@ func main() {
 	runTimeClient := pb.NewRuntimeServiceClient(conn)
 	client := &client{imageclient, runTimeClient}
 
-	excluded, err = util.ParseExcluded(excludedPath)
+	excluded, err = util.ParseExcluded()
 	if err != nil {
 		log.Error(err, "failed to parse exclusion list")
 		os.Exit(1)

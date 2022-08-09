@@ -33,8 +33,7 @@ var (
 )
 
 const (
-	excludedPath = "/run/eraser.sh/excluded/excluded"
-	generalErr   = 1
+	generalErr = 1
 )
 
 func main() {
@@ -112,7 +111,7 @@ func main() {
 		log.Info("successfully parsed image list file")
 	}
 
-	excluded, err = util.ParseExcluded(excludedPath)
+	excluded, err = util.ParseExcluded()
 	if err != nil {
 		log.Error(err, "failed to parse exclusion list")
 		os.Exit(generalErr)
