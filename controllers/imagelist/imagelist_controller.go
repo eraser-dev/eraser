@@ -45,9 +45,7 @@ import (
 )
 
 const (
-	imgListPath  = "/run/eraser.sh/imagelist"
-	excludedPath = "/run/eraser.sh/excluded"
-	excludedName = "excluded"
+	imgListPath = "/run/eraser.sh/imagelist"
 )
 
 var (
@@ -217,12 +215,6 @@ func (r *Reconciler) handleImageListEvent(ctx context.Context, req *ctrl.Request
 								ConfigMap: &corev1.ConfigMapVolumeSource{LocalObjectReference: corev1.LocalObjectReference{Name: configName}},
 							},
 						},
-						{
-							Name: excludedName,
-							VolumeSource: corev1.VolumeSource{
-								ConfigMap: &corev1.ConfigMapVolumeSource{LocalObjectReference: corev1.LocalObjectReference{Name: excludedName}, Optional: utils.BoolPtr(true)},
-							},
-						},
 					},
 					RestartPolicy: corev1.RestartPolicyNever,
 					Containers: []corev1.Container{
@@ -233,7 +225,6 @@ func (r *Reconciler) handleImageListEvent(ctx context.Context, req *ctrl.Request
 							Args:            args,
 							VolumeMounts: []corev1.VolumeMount{
 								{MountPath: imgListPath, Name: configName},
-								{MountPath: excludedPath, Name: excludedName},
 							},
 							Resources: corev1.ResourceRequirements{
 								Requests: corev1.ResourceList{
@@ -253,6 +244,24 @@ func (r *Reconciler) handleImageListEvent(ctx context.Context, req *ctrl.Request
 			},
 		},
 	}
+
+	configmapList := &corev1.ConfigMapList{}
+	if err := r.List(ctx, configmapList); err != nil {
+		log.Info("Could not get list of configmaps")
+		return reconcile.Result{}, err
+	}
+
+	exclusionMount, exclusionVolume, err := util.GetExclusionVolume(configmapList)
+	if err != nil {
+		log.Info("Could not get exclusion mounts and volumes")
+		return reconcile.Result{}, err
+	}
+
+	for _, container := range job.Spec.JobTemplate.Spec.Containers {
+		container.VolumeMounts = append(container.VolumeMounts, exclusionMount...)
+	}
+
+	job.Spec.JobTemplate.Spec.Volumes = append(job.Spec.JobTemplate.Spec.Volumes, exclusionVolume...)
 
 	err = r.Create(ctx, job)
 	log.Info("creating imagejob", "job", job.Name)
