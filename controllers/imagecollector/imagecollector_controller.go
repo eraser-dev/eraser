@@ -57,11 +57,6 @@ var (
 	collectorArgs          = utils.MultiFlag([]string{})
 )
 
-const (
-	excludedPath = "/run/eraser.sh/excluded"
-	excludedName = "excluded"
-)
-
 func init() {
 	flag.Var(&scannerArgs, "scanner-arg", "An argument to be passed through to the scanner. For example, --scanner-arg=--severity=CRITICAL,HIGH will be passed through to the scanner as --severity=CRITICAL,HIGH. Can be supplied multiple times.")
 	flag.Var(&collectorArgs, "collector-arg", "An argument to be passed through to the collector. For example, --collector-arg=--enable-pprof=true will pass through to the collector as --enable-pprof=true. Can be supplied multiple times.")
@@ -213,12 +208,6 @@ func (r *Reconciler) createImageJob(ctx context.Context, req ctrl.Request, argsC
 				Spec: corev1.PodSpec{
 					Volumes: []corev1.Volume{
 						{
-							Name: excludedName,
-							VolumeSource: corev1.VolumeSource{
-								ConfigMap: &corev1.ConfigMapVolumeSource{LocalObjectReference: corev1.LocalObjectReference{Name: excludedName}, Optional: utils.BoolPtr(true)},
-							},
-						},
-						{
 							// EmptyDir default
 							Name: "shared-data",
 						},
@@ -231,7 +220,6 @@ func (r *Reconciler) createImageJob(ctx context.Context, req ctrl.Request, argsC
 							ImagePullPolicy: corev1.PullIfNotPresent,
 							Args:            append(collectorArgs, "--scan-disabled="+strconv.FormatBool(scanDisabled)),
 							VolumeMounts: []corev1.VolumeMount{
-								{MountPath: excludedPath, Name: excludedName},
 								{MountPath: "/run/eraser.sh/shared-data", Name: "shared-data"},
 							},
 							Resources: corev1.ResourceRequirements{
@@ -252,7 +240,6 @@ func (r *Reconciler) createImageJob(ctx context.Context, req ctrl.Request, argsC
 							Args:            append(util.EraserArgs, "--log-level="+logger.GetLevel()),
 							VolumeMounts: []corev1.VolumeMount{
 								{MountPath: "/run/eraser.sh/shared-data", Name: "shared-data"},
-								{MountPath: excludedPath, Name: excludedName},
 							},
 							Resources: corev1.ResourceRequirements{
 								Requests: corev1.ResourceList{
@@ -303,7 +290,25 @@ func (r *Reconciler) createImageJob(ctx context.Context, req ctrl.Request, argsC
 		job.Spec.JobTemplate.Spec.Containers = append(job.Spec.JobTemplate.Spec.Containers, scannerContainer)
 	}
 
-	err := r.Create(ctx, job)
+	configmapList := &corev1.ConfigMapList{}
+	if err := r.List(ctx, configmapList); err != nil {
+		log.Info("Could not get list of configmaps")
+		return reconcile.Result{}, err
+	}
+
+	exclusionMount, exclusionVolume, err := util.GetExclusionVolume(configmapList)
+	if err != nil {
+		log.Info("Could not get exclusion mounts and volumes")
+		return reconcile.Result{}, err
+	}
+
+	for _, container := range job.Spec.JobTemplate.Spec.Containers {
+		container.VolumeMounts = append(container.VolumeMounts, exclusionMount...)
+	}
+
+	job.Spec.JobTemplate.Spec.Volumes = append(job.Spec.JobTemplate.Spec.Volumes, exclusionVolume...)
+
+	err = r.Create(ctx, job)
 	if err != nil {
 		log.Info("Could not create collector ImageJob")
 		return reconcile.Result{}, err
