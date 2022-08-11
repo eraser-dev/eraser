@@ -22,7 +22,6 @@ const (
 	PipeMode        = 0o644
 	ScanErasePath   = "/run/eraser.sh/shared-data/scanErase"
 	CollectScanPath = "/run/eraser.sh/shared-data/collectScan"
-	excludedPath    = "/run/eraser.sh/excluded/"
 )
 
 type ExclusionList struct {
@@ -261,6 +260,10 @@ func readConfigMap(path string) ([]string, error) {
 	var fileName string
 
 	files, err := ioutil.ReadDir(path)
+	if err != nil {
+		return nil, err
+	}
+
 	for _, f := range files {
 		if strings.HasSuffix(f.Name(), ".json") {
 			fileName = f.Name()
@@ -282,9 +285,7 @@ func readConfigMap(path string) ([]string, error) {
 		return nil, err
 	}
 
-	for _, img := range result.Excluded {
-		images = append(images, img)
-	}
+	images = append(images, result.Excluded...)
 
 	return images, nil
 }
