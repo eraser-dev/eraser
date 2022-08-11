@@ -291,7 +291,7 @@ func (r *Reconciler) createImageJob(ctx context.Context, req ctrl.Request, argsC
 	}
 
 	configmapList := &corev1.ConfigMapList{}
-	if err := r.List(ctx, configmapList); err != nil {
+	if err := r.List(ctx, configmapList, client.InNamespace("eraser-system")); err != nil {
 		log.Info("Could not get list of configmaps")
 		return reconcile.Result{}, err
 	}
