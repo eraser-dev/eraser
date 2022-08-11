@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"net"
 	"net/url"
 	"os"
@@ -230,7 +229,7 @@ func ParseExcluded() (map[string]struct{}, error) {
 	excludedMap := make(map[string]struct{})
 	var excludedList []string
 
-	files, err := ioutil.ReadDir("./")
+	files, err := os.ReadDir("./")
 	if err != nil {
 		return nil, err
 	}
@@ -259,7 +258,7 @@ func BoolPtr(b bool) *bool {
 func readConfigMap(path string) ([]string, error) {
 	var fileName string
 
-	files, err := ioutil.ReadDir(path)
+	files, err := os.ReadDir(path)
 	if err != nil {
 		return nil, err
 	}
