@@ -1,5 +1,5 @@
 # syntax=mcr.microsoft.com/oss/moby/dockerfile:1.3.1
-ARG BUILDERIMAGE="golang:1.18-bullseye"
+ARG BUILDERIMAGE="golang:1.19-bullseye"
 
 ARG STATICBASEIMAGE="gcr.io/distroless/static:latest"
 ARG STATICNONROOTBASEIMAGE="gcr.io/distroless/static:nonroot"
