@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"net"
 	"net/url"
 	"os"
@@ -21,6 +22,7 @@ const (
 	PipeMode        = 0o644
 	ScanErasePath   = "/run/eraser.sh/shared-data/scanErase"
 	CollectScanPath = "/run/eraser.sh/shared-data/collectScan"
+	excludedPath    = "/run/eraser.sh/excluded/"
 )
 
 type ExclusionList struct {
@@ -225,29 +227,64 @@ func ParseImageList(path string) ([]string, error) {
 	return imagelist, nil
 }
 
-// read values from excluded configmap.
-func ParseExcluded(path string) (map[string]struct{}, error) {
-	excluded := make(map[string]struct{})
-	data, err := os.ReadFile(path)
+func ParseExcluded() (map[string]struct{}, error) {
+	excludedMap := make(map[string]struct{})
+	var excludedList []string
 
-	if os.IsNotExist(err) {
-		return excluded, nil
-	} else if err != nil {
-		return excluded, err
+	files, err := ioutil.ReadDir("./")
+	if err != nil {
+		return nil, err
 	}
 
-	var result ExclusionList
-	if err := json.Unmarshal(data, &result); err != nil {
-		return excluded, err
+	for _, file := range files {
+		if strings.HasPrefix(file.Name(), "exclude-") {
+			temp, err := readConfigMap(file.Name())
+			if err != nil {
+				return nil, err
+			}
+			excludedList = append(excludedList, temp...)
+		}
 	}
 
-	for _, img := range result.Excluded {
-		excluded[img] = struct{}{}
+	for _, img := range excludedList {
+		excludedMap[img] = struct{}{}
 	}
 
-	return excluded, nil
+	return excludedMap, nil
 }
 
 func BoolPtr(b bool) *bool {
 	return &b
+}
+
+func readConfigMap(path string) ([]string, error) {
+	var fileName string
+
+	files, err := ioutil.ReadDir(path)
+	for _, f := range files {
+		if strings.HasSuffix(f.Name(), ".json") {
+			fileName = f.Name()
+			break
+		}
+	}
+
+	var images []string
+	data, err := os.ReadFile(path + "/" + fileName)
+
+	if os.IsNotExist(err) {
+		return nil, err
+	} else if err != nil {
+		return nil, err
+	}
+
+	var result ExclusionList
+	if err := json.Unmarshal(data, &result); err != nil {
+		return nil, err
+	}
+
+	for _, img := range result.Excluded {
+		images = append(images, img)
+	}
+
+	return images, nil
 }
