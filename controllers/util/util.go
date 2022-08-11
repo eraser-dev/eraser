@@ -28,7 +28,7 @@ var (
 
 const (
 	exclusionLabel = "eraser.sh/exclude.list=true"
-	excludedPath   = "/run/eraser.sh/excluded"
+	excludedPath   = "/run/eraser.sh/excluded/"
 )
 
 func init() {
@@ -125,7 +125,7 @@ func GetExclusionVolume(configmapList *corev1.ConfigMapList) ([]corev1.VolumeMou
 		}
 
 		if selector.Matches(labels.Set(cm.ObjectMeta.Labels)) {
-			exclusionMount = append(exclusionMount, corev1.VolumeMount{MountPath: excludedPath, Name: cm.Name})
+			exclusionMount = append(exclusionMount, corev1.VolumeMount{MountPath: "exclude-" + cm.Name, Name: cm.Name})
 			exclusionVolume = append(exclusionVolume, corev1.Volume{
 				Name: cm.Name,
 				VolumeSource: corev1.VolumeSource{
