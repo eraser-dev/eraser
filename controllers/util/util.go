@@ -122,7 +122,8 @@ func GetExclusionVolume(configmapList *corev1.ConfigMapList) ([]corev1.VolumeMou
 		return nil, nil, err
 	}
 
-	for _, cm := range configmapList.Items {
+	for i := range configmapList.Items {
+		cm := configmapList.Items[i]
 		if selector.Matches(labels.Set(cm.ObjectMeta.Labels)) {
 			exclusionMount = append(exclusionMount, corev1.VolumeMount{MountPath: "exclude-" + cm.Name, Name: cm.Name})
 			exclusionVolume = append(exclusionVolume, corev1.Volume{

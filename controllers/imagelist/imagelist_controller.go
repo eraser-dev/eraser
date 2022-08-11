@@ -257,8 +257,8 @@ func (r *Reconciler) handleImageListEvent(ctx context.Context, req *ctrl.Request
 		return reconcile.Result{}, err
 	}
 
-	for i, container := range job.Spec.JobTemplate.Spec.Containers {
-		job.Spec.JobTemplate.Spec.Containers[i].VolumeMounts = append(container.VolumeMounts, exclusionMount...)
+	for i := range job.Spec.JobTemplate.Spec.Containers {
+		job.Spec.JobTemplate.Spec.Containers[i].VolumeMounts = append(job.Spec.JobTemplate.Spec.Containers[i].VolumeMounts, exclusionMount...)
 	}
 
 	job.Spec.JobTemplate.Spec.Volumes = append(job.Spec.JobTemplate.Spec.Volumes, exclusionVolume...)
