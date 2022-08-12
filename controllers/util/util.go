@@ -7,7 +7,9 @@ import (
 	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
 	"github.com/Azure/eraser/pkg/utils"
 	batchv1 "k8s.io/api/batch/v1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 )
 
@@ -22,6 +24,10 @@ var (
 
 	EraserImage = flag.String("eraser-image", "ghcr.io/azure/eraser:latest", "eraser image")
 	EraserArgs  = utils.MultiFlag([]string{})
+)
+
+const (
+	exclusionLabel = "eraser.sh/exclude.list=true"
 )
 
 func init() {
@@ -105,4 +111,29 @@ func FilterBatchJobListByOwner(jobs []batchv1.Job, owner *metav1.OwnerReference)
 func After(t time.Time, seconds int64) *metav1.Time {
 	newT := metav1.NewTime(t.Add(time.Duration(seconds) * time.Second))
 	return &newT
+}
+
+func GetExclusionVolume(configmapList *corev1.ConfigMapList) ([]corev1.VolumeMount, []corev1.Volume, error) {
+	var exclusionMount []corev1.VolumeMount
+	var exclusionVolume []corev1.Volume
+
+	selector, err := labels.Parse(exclusionLabel)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	for i := range configmapList.Items {
+		cm := configmapList.Items[i]
+		if selector.Matches(labels.Set(cm.ObjectMeta.Labels)) {
+			exclusionMount = append(exclusionMount, corev1.VolumeMount{MountPath: "exclude-" + cm.Name, Name: cm.Name})
+			exclusionVolume = append(exclusionVolume, corev1.Volume{
+				Name: cm.Name,
+				VolumeSource: corev1.VolumeSource{
+					ConfigMap: &corev1.ConfigMapVolumeSource{LocalObjectReference: corev1.LocalObjectReference{Name: cm.Name}},
+				},
+			})
+		}
+	}
+
+	return exclusionMount, exclusionVolume, nil
 }

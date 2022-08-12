@@ -18,10 +18,6 @@ import (
 	util "github.com/Azure/eraser/pkg/utils"
 )
 
-const (
-	excludedPath = "/run/eraser.sh/excluded/excluded"
-)
-
 var (
 	runtimePtr    = flag.String("runtime", "containerd", "container runtime")
 	enableProfile = flag.Bool("enable-pprof", false, "enable pprof profiling")
@@ -64,13 +60,15 @@ func main() {
 	runTimeClient := pb.NewRuntimeServiceClient(conn)
 	client := &client{imageclient, runTimeClient}
 
-	excluded, err = util.ParseExcluded(excludedPath)
-	if err != nil {
+	excluded, err = util.ParseExcluded()
+	if os.IsNotExist(err) {
+		log.Info("configmaps for exclusion do not exist")
+	} else if err != nil {
 		log.Error(err, "failed to parse exclusion list")
 		os.Exit(1)
 	}
 	if len(excluded) == 0 {
-		log.Info("excluded configmap was empty or does not exist")
+		log.Info("no images to exclude")
 	}
 
 	// finalImages of type []Image

@@ -33,8 +33,7 @@ var (
 )
 
 const (
-	excludedPath = "/run/eraser.sh/excluded/excluded"
-	generalErr   = 1
+	generalErr = 1
 )
 
 func main() {
@@ -112,13 +111,15 @@ func main() {
 		log.Info("successfully parsed image list file")
 	}
 
-	excluded, err = util.ParseExcluded(excludedPath)
-	if err != nil {
+	excluded, err = util.ParseExcluded()
+	if os.IsNotExist(err) {
+		log.Info("configmaps for exclusion do not exist")
+	} else if err != nil {
 		log.Error(err, "failed to parse exclusion list")
 		os.Exit(generalErr)
 	}
 	if len(excluded) == 0 {
-		log.Info("excluded configmap was empty or does not exist")
+		log.Info("no images to exclude")
 	}
 
 	if err := removeImages(&client, imagelist); err != nil {

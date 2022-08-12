@@ -28,6 +28,13 @@ func TestCollectorExcluded(t *testing.T) {
 
 			return ctx
 		}).
+		Assess("Non-vulnerable image is not removed", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
+			ctxT, cancel := context.WithTimeout(ctx, time.Minute*5)
+			defer cancel()
+			util.CheckImagesExist(ctxT, t, util.GetClusterNodes(t), util.NonVulnerableImage)
+
+			return ctx
+		}).
 		Assess("Pods from imagejobs are cleaned up", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
 			c, err := cfg.NewClient()
 			if err != nil {

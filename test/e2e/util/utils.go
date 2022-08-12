@@ -424,8 +424,8 @@ func CreateExclusionList(namespace string, list pkgUtil.ExclusionList) env.Func 
 		// create excluded configmap and add docker.io/library/alpine
 		excluded := corev1.ConfigMap{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      "excluded",
-				Namespace: EraserNamespace,
+				GenerateName: "excluded",
+				Namespace:    EraserNamespace,
 			},
 			Data: map[string]string{"excluded": string(b)},
 		}
@@ -435,7 +435,7 @@ func CreateExclusionList(namespace string, list pkgUtil.ExclusionList) env.Func 
 
 		cMap := corev1.ConfigMap{}
 		err = wait.For(func() (bool, error) {
-			err := c.Resources().Get(ctx, "excluded", EraserNamespace, &cMap)
+			err := c.Resources().Get(ctx, excluded.Name, EraserNamespace, &cMap)
 			if IsNotFound(err) {
 				return false, nil
 			}
@@ -444,7 +444,7 @@ func CreateExclusionList(namespace string, list pkgUtil.ExclusionList) env.Func 
 				return false, err
 			}
 
-			if cMap.ObjectMeta.Name == "excluded" {
+			if cMap.ObjectMeta.Name == excluded.Name {
 				return true, nil
 			}
 
