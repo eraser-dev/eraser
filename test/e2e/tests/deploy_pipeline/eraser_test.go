@@ -21,7 +21,7 @@ import (
 
 func TestCollectScanErasePipeline(t *testing.T) {
 	collectScanErasePipelineFeat := features.New("Collector pods should run automatically, trigger the scanner, then the eraser pods").
-		Setup("Deploy eraser", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
+		Setup(func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
 			ctxT, cancel := context.WithTimeout(ctx, 3*time.Minute)
 			defer cancel()
 			_, err := util.MakeDeploy()
@@ -57,7 +57,7 @@ func TestCollectScanErasePipeline(t *testing.T) {
 
 			return ctx
 		}).
-		Teardown("Teardown", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
+		Teardown(func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
 			_, err := util.MakeUndeploy()
 			if err != nil {
 				t.Error("Could not undeploy eraser", err)
