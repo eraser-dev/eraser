@@ -409,6 +409,34 @@ func DeployEraserManifest(namespace string, args ...string) env.Func {
 	}
 }
 
+func MakeDeployEraser(namespace string, args ...string) env.Func {
+	return func(ctx context.Context, cfg *envconf.Config) (context.Context, error) {
+		if _, err := MakeDeploy(); err != nil {
+			return ctx, err
+		}
+
+		client, err := cfg.NewClient()
+		if err != nil {
+			klog.ErrorS(err, "Failed to create new Client")
+			return ctx, err
+		}
+
+		// wait for the deployment to finish becoming available
+		eraserManagerDep := appsv1.Deployment{
+			ObjectMeta: metav1.ObjectMeta{Name: "eraser-controller-manager", Namespace: namespace},
+		}
+
+		if err = wait.For(conditions.New(client.Resources()).DeploymentConditionMatch(&eraserManagerDep, appsv1.DeploymentAvailable, corev1.ConditionTrue),
+			wait.WithTimeout(time.Minute*1)); err != nil {
+			klog.ErrorS(err, "failed to deploy eraser manager")
+
+			return ctx, err
+		}
+
+		return ctx, nil
+	}
+}
+
 func CreateExclusionList(namespace string, list pkgUtil.ExclusionList) env.Func {
 	return func(ctx context.Context, cfg *envconf.Config) (context.Context, error) {
 		c, err := cfg.NewClient()

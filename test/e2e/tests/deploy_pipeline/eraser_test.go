@@ -57,14 +57,6 @@ func TestCollectScanErasePipeline(t *testing.T) {
 
 			return ctx
 		}).
-		Teardown(func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
-			_, err := util.MakeUndeploy()
-			if err != nil {
-				t.Error("Could not undeploy eraser", err)
-			}
-
-			return ctx
-		}).
 		Feature()
 
 	util.Testenv.Test(t, collectScanErasePipelineFeat)
