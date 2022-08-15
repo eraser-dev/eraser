@@ -121,24 +121,22 @@ func NewPod(namespace, image, name, nodeName string) *corev1.Pod {
 }
 
 // deploy eraser config.
-func DeployEraserConfig(namespace, resourcePath, fileName string) env.Func {
-	return func(ctx context.Context, cfg *envconf.Config) (context.Context, error) {
-		wd, err := os.Getwd()
-		if err != nil {
-			return ctx, err
-		}
-
-		exampleResourceAbsolutePath, err := filepath.Abs(filepath.Join(wd, resourcePath))
-		if err != nil {
-			return ctx, err
-		}
-		errApply := KubectlApply(cfg.KubeconfigFile(), namespace, []string{"-f", filepath.Join(exampleResourceAbsolutePath, fileName)})
-		if errApply != nil {
-			return ctx, errApply
-		}
-
-		return ctx, nil
+func DeployEraserConfig(kubeConfig, namespace, resourcePath, fileName string) error {
+	wd, err := os.Getwd()
+	if err != nil {
+		return err
 	}
+
+	exampleResourceAbsolutePath, err := filepath.Abs(filepath.Join(wd, resourcePath))
+	if err != nil {
+		return err
+	}
+	errApply := KubectlApply(kubeConfig, namespace, []string{"-f", filepath.Join(exampleResourceAbsolutePath, fileName)})
+	if errApply != nil {
+		return errApply
+	}
+
+	return nil
 }
 
 func ContainerNotPresentOnNode(nodeName, containerName string) func() (bool, error) {
@@ -385,6 +383,16 @@ func DeployEraserManifest(namespace string, args ...string) env.Func {
 			wait.WithTimeout(time.Minute*1)); err != nil {
 			klog.ErrorS(err, "failed to deploy eraser manager")
 
+			return ctx, err
+		}
+
+		return ctx, nil
+	}
+}
+
+func DeployEraserNonHelm(namespace, resourcePath, fileName string) env.Func {
+	return func(ctx context.Context, cfg *envconf.Config) (context.Context, error) {
+		if err := DeployEraserConfig(cfg.KubeconfigFile(), namespace, resourcePath, fileName); err != nil {
 			return ctx, err
 		}
 
