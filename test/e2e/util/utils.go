@@ -409,7 +409,7 @@ func DeployEraserManifest(namespace string, args ...string) env.Func {
 	}
 }
 
-func MakeDeployEraser(namespace string, args ...string) env.Func {
+func MakeDeployEraser(namespace string) env.Func {
 	return func(ctx context.Context, cfg *envconf.Config) (context.Context, error) {
 		if _, err := MakeDeploy(); err != nil {
 			return ctx, err
