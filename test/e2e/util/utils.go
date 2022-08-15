@@ -121,22 +121,24 @@ func NewPod(namespace, image, name, nodeName string) *corev1.Pod {
 }
 
 // deploy eraser config.
-func DeployEraserConfig(kubeConfig, namespace, resourcePath, fileName string) error {
-	wd, err := os.Getwd()
-	if err != nil {
-		return err
-	}
+func DeployEraserConfig(namespace, resourcePath, fileName string) env.Func {
+	return func(ctx context.Context, cfg *envconf.Config) (context.Context, error) {
+		wd, err := os.Getwd()
+		if err != nil {
+			return ctx, err
+		}
 
-	exampleResourceAbsolutePath, err := filepath.Abs(filepath.Join(wd, resourcePath))
-	if err != nil {
-		return err
-	}
-	errApply := KubectlApply(kubeConfig, namespace, []string{"-f", filepath.Join(exampleResourceAbsolutePath, fileName)})
-	if errApply != nil {
-		return errApply
-	}
+		exampleResourceAbsolutePath, err := filepath.Abs(filepath.Join(wd, resourcePath))
+		if err != nil {
+			return ctx, err
+		}
+		errApply := KubectlApply(cfg.KubeconfigFile(), namespace, []string{"-f", filepath.Join(exampleResourceAbsolutePath, fileName)})
+		if errApply != nil {
+			return ctx, errApply
+		}
 
-	return nil
+		return ctx, nil
+	}
 }
 
 func ContainerNotPresentOnNode(nodeName, containerName string) func() (bool, error) {
@@ -384,34 +386,6 @@ func DeployEraserManifest(namespace string, args ...string) env.Func {
 		allArgs := []string{providerResourceAbsolutePath}
 		allArgs = append(allArgs, args...)
 		if err := HelmInstall(cfg.KubeconfigFile(), namespace, allArgs); err != nil {
-			return ctx, err
-		}
-
-		client, err := cfg.NewClient()
-		if err != nil {
-			klog.ErrorS(err, "Failed to create new Client")
-			return ctx, err
-		}
-
-		// wait for the deployment to finish becoming available
-		eraserManagerDep := appsv1.Deployment{
-			ObjectMeta: metav1.ObjectMeta{Name: "eraser-controller-manager", Namespace: namespace},
-		}
-
-		if err = wait.For(conditions.New(client.Resources()).DeploymentConditionMatch(&eraserManagerDep, appsv1.DeploymentAvailable, corev1.ConditionTrue),
-			wait.WithTimeout(time.Minute*1)); err != nil {
-			klog.ErrorS(err, "failed to deploy eraser manager")
-
-			return ctx, err
-		}
-
-		return ctx, nil
-	}
-}
-
-func MakeDeployEraser(namespace string) env.Func {
-	return func(ctx context.Context, cfg *envconf.Config) (context.Context, error) {
-		if _, err := MakeDeploy(); err != nil {
 			return ctx, err
 		}
 

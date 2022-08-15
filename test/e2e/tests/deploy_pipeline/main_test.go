@@ -29,7 +29,7 @@ func TestMain(m *testing.M) {
 		envfuncs.LoadDockerImageToCluster(util.KindClusterName, util.ScannerImage),
 		envfuncs.LoadDockerImageToCluster(util.KindClusterName, util.CollectorImage),
 		envfuncs.LoadDockerImageToCluster(util.KindClusterName, util.VulnerableImage),
-		util.MakeDeployEraser(util.EraserNamespace),
+		util.DeployEraserConfig(util.EraserNamespace, "../../../../manifest_staging/deploy", "eraser.yaml"),
 	).Finish(
 		envfuncs.DestroyKindCluster(util.KindClusterName),
 	)

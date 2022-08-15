@@ -143,8 +143,12 @@ func Helm(args []string) (string, error) {
 	return output, err
 }
 
-func MakeDeploy() (string, error) {
-	cmd := exec.Command("make", "deploy")
+func MakeDeploy(args []string) (string, error) {
+	args = append([]string{
+		"deploy",
+	}, args...)
+
+	cmd := exec.Command("make", args...)
 
 	stdoutStderr, err := cmd.CombinedOutput()
 	output := strings.TrimSpace(string(stdoutStderr))
