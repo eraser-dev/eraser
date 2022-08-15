@@ -142,3 +142,27 @@ func Helm(args []string) (string, error) {
 
 	return output, err
 }
+
+func MakeDeploy() (string, error) {
+	cmd := exec.Command("make deploy")
+
+	stdoutStderr, err := cmd.CombinedOutput()
+	output := strings.TrimSpace(string(stdoutStderr))
+	if err != nil {
+		err = fmt.Errorf("%w: %s", err, output)
+	}
+
+	return output, err
+}
+
+func MakeUndeploy() (string, error) {
+	cmd := exec.Command("make undeploy")
+
+	stdoutStderr, err := cmd.CombinedOutput()
+	output := strings.TrimSpace(string(stdoutStderr))
+	if err != nil {
+		err = fmt.Errorf("%w: %s", err, output)
+	}
+
+	return output, err
+}
