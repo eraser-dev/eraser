@@ -163,25 +163,6 @@ func ImagejobNotInCluster(kubeconfigPath string) func() (bool, error) {
 	}
 }
 
-// delete eraser config.
-func DeleteEraserConfig(kubeConfig, namespace, resourcePath, fileName string) error {
-	wd, err := os.Getwd()
-	if err != nil {
-		return err
-	}
-
-	exampleResourceAbsolutePath, err := filepath.Abs(filepath.Join(wd, resourcePath))
-	if err != nil {
-		return err
-	}
-	errDelete := KubectlDelete(kubeConfig, namespace, []string{"-f", filepath.Join(exampleResourceAbsolutePath, fileName)})
-	if errDelete != nil {
-		return errDelete
-	}
-
-	return nil
-}
-
 func ListNodeContainers(nodeName string) (string, error) {
 	args := []string{
 		"exec",
