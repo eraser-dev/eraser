@@ -350,7 +350,7 @@ func DeleteStringFromSlice(strings []string, s string) []string {
 	return strings
 }
 
-func DeployEraserManifest(namespace string, args ...string) env.Func {
+func DeployEraserHelm(namespace string, args ...string) env.Func {
 	return func(ctx context.Context, cfg *envconf.Config) (context.Context, error) {
 		wd, err := os.Getwd()
 		if err != nil {
@@ -390,7 +390,7 @@ func DeployEraserManifest(namespace string, args ...string) env.Func {
 	}
 }
 
-func DeployEraserNonHelm(namespace, resourcePath, fileName string) env.Func {
+func DeployEraserManifest(namespace, resourcePath, fileName string) env.Func {
 	return func(ctx context.Context, cfg *envconf.Config) (context.Context, error) {
 		if err := DeployEraserConfig(cfg.KubeconfigFile(), namespace, resourcePath, fileName); err != nil {
 			return ctx, err

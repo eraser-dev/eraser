@@ -38,7 +38,7 @@ func TestMain(m *testing.M) {
 		util.CreateExclusionList(util.EraserNamespace, pkgUtil.ExclusionList{
 			Excluded: []string{util.NonVulnerableImage},
 		}),
-		util.DeployEraserManifest(util.EraserNamespace, "--set", "scanner.image.repository="),
+		util.DeployEraserHelm(util.EraserNamespace, "--set", "scanner.image.repository="),
 	).Finish(
 		envfuncs.DestroyKindCluster(util.KindClusterName),
 	)
