@@ -26,7 +26,8 @@ import (
 )
 
 const (
-	providerResourceDirectory = "manifest_staging/charts"
+	providerResourceChartDir  = "manifest_staging/charts"
+	providerResourceDeployDir = "manifest_staging/deploy"
 
 	KindClusterName  = "eraser-e2e-test"
 	ProviderResource = "eraser.yaml"
@@ -357,7 +358,7 @@ func DeployEraserHelm(namespace string, args ...string) env.Func {
 			return ctx, err
 		}
 
-		providerResourceAbsolutePath, err := filepath.Abs(filepath.Join(wd, "../../../../", providerResourceDirectory, "eraser"))
+		providerResourceAbsolutePath, err := filepath.Abs(filepath.Join(wd, "../../../../", providerResourceChartDir, "eraser"))
 		if err != nil {
 			return ctx, err
 		}
@@ -390,9 +391,19 @@ func DeployEraserHelm(namespace string, args ...string) env.Func {
 	}
 }
 
-func DeployEraserManifest(namespace, resourcePath, fileName string) env.Func {
+func DeployEraserManifest(namespace, fileName string) env.Func {
 	return func(ctx context.Context, cfg *envconf.Config) (context.Context, error) {
-		if err := DeployEraserConfig(cfg.KubeconfigFile(), namespace, resourcePath, fileName); err != nil {
+		wd, err := os.Getwd()
+		if err != nil {
+			return ctx, err
+		}
+
+		providerResourceAbsolutePath, err := filepath.Abs(filepath.Join(wd, "../../../../", providerResourceDeployDir, "eraser"))
+		if err != nil {
+			return ctx, err
+		}
+
+		if err := DeployEraserConfig(cfg.KubeconfigFile(), namespace, providerResourceAbsolutePath, fileName); err != nil {
 			return ctx, err
 		}
 
