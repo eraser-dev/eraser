@@ -38,6 +38,7 @@ const sidebars = {
         'releasing',
       ]
     },
+    'faq',
     'contributing',
     'code-of-conduct',
   ]
