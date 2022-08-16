@@ -393,15 +393,7 @@ func DeployEraserHelm(namespace string, args ...string) env.Func {
 
 func DeployEraserManifest(namespace, fileName string) env.Func {
 	return func(ctx context.Context, cfg *envconf.Config) (context.Context, error) {
-		wd, err := os.Getwd()
-		if err != nil {
-			return ctx, err
-		}
-
-		providerResourceAbsolutePath, err := filepath.Abs(filepath.Join(wd, "../../../../", providerResourceDeployDir))
-		if err != nil {
-			return ctx, err
-		}
+		providerResourceAbsolutePath := "../../../../" + providerResourceDeployDir
 
 		if err := DeployEraserConfig(cfg.KubeconfigFile(), namespace, providerResourceAbsolutePath, fileName); err != nil {
 			return ctx, err
