@@ -398,7 +398,7 @@ func DeployEraserManifest(namespace, fileName string) env.Func {
 			return ctx, err
 		}
 
-		providerResourceAbsolutePath, err := filepath.Abs(filepath.Join(wd, "../../../../", providerResourceDeployDir, "eraser"))
+		providerResourceAbsolutePath, err := filepath.Abs(filepath.Join(wd, "../../../../", providerResourceDeployDir))
 		if err != nil {
 			return ctx, err
 		}
