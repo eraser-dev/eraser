@@ -393,7 +393,7 @@ func DeployEraserHelm(namespace string, args ...string) env.Func {
 	}
 }
 
-func GetManagerLogs(cfg *envconf.Config, ctx context.Context) (string, error) {
+func GetManagerLogs(ctx context.Context, cfg *envconf.Config) (string, error) {
 	c, err := cfg.NewClient()
 	if err != nil {
 		return "", err

@@ -134,7 +134,7 @@ func TestEnsureAliasedImageRemoved(t *testing.T) {
 			defer cancel()
 			util.CheckImageRemoved(ctxT, t, []string{nodeName}, util.Nginx)
 
-			managerLogs, err := util.GetManagerLogs(cfg, ctx)
+			managerLogs, err := util.GetManagerLogs(ctx, cfg)
 			if err != nil {
 				t.Error("error getting manager logs", err)
 			}

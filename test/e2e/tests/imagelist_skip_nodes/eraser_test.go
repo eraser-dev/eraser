@@ -141,7 +141,7 @@ func TestSkipNodes(t *testing.T) {
 			// the imagejob has done its work, so now we can check the node to make sure it didn't remove the image
 			util.CheckImagesExist(ctx, t, []string{util.FilterNodeName}, util.Nginx)
 
-			managerLogs, err := util.GetManagerLogs(cfg, ctx)
+			managerLogs, err := util.GetManagerLogs(ctx, cfg)
 			if err != nil {
 				t.Error("error getting manager logs", err)
 			}

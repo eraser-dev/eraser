@@ -121,7 +121,7 @@ func TestExclusionList(t *testing.T) {
 				t.Errorf("error waiting for pods to be deleted: %v", err)
 			}
 
-			managerLogs, err := util.GetManagerLogs(cfg, ctx)
+			managerLogs, err := util.GetManagerLogs(ctx, cfg)
 			if err != nil {
 				t.Error("error getting manager logs", err)
 			}
