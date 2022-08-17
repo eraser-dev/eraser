@@ -440,6 +440,7 @@ func GetEraserLogs(ctx context.Context, cfg *envconf.Config) (string, error) {
 	finalOutput := ""
 
 	for _, pod := range ls.Items {
+		finalOutput += "pod name: " + pod.Name + "\n"
 		output, err := KubectlLogs(cfg.KubeconfigFile(), pod.Name, "", EraserNamespace)
 		if err != nil {
 			return "", err
