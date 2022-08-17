@@ -42,19 +42,18 @@ func TestDisableScanner(t *testing.T) {
 			if err != nil {
 				t.Errorf("could not list pods: %v", err)
 			}
-			t.Log("HERE")
-			for _, pod := range ls.Items {
-				t.Log("HERE")
-				temp, _ := util.KubectlLogs(cfg.KubeconfigFile(), pod.Name, "eraser", util.EraserNamespace)
-				t.Log(temp)
-				temp, _ = util.KubectlLogs(cfg.KubeconfigFile(), pod.Name, "scanner", util.EraserNamespace)
-				t.Log(temp)
-			}
 
 			err = wait.For(conditions.New(c.Resources()).ResourcesDeleted(&ls), wait.WithTimeout(time.Minute))
 			if err != nil {
 				t.Errorf("error waiting for pods to be deleted: %v", err)
 			}
+
+			managerLogs, err := util.GetManagerLogs(cfg, ctx)
+			if err != nil {
+				t.Error("error getting manager logs", err)
+			}
+
+			t.Log("manager logs\n", managerLogs)
 
 			return ctx
 		}).

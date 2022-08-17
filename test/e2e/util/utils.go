@@ -3,6 +3,7 @@ package util
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -14,6 +15,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/e2e-framework/klient/wait"
@@ -407,6 +409,36 @@ func DeployEraserManifest(namespace string, args ...string) env.Func {
 
 		return ctx, nil
 	}
+}
+
+func GetManagerLogs(cfg *envconf.Config, ctx context.Context) (string, error) {
+	c, err := cfg.NewClient()
+	if err != nil {
+		return "", err
+	}
+
+	var pods corev1.PodList
+	err = c.Resources().List(ctx, &pods, func(o *metav1.ListOptions) {
+		o.LabelSelector = labels.SelectorFromSet(map[string]string{"control-plane": "controller-manager"}).String()
+	})
+	if err != nil {
+		return "", err
+	}
+
+	if len(pods.Items) > 1 {
+		return "", errors.New("only one manager pod should be present")
+	} else if len(pods.Items) == 0 {
+		return "", errors.New("no manager pod present")
+	}
+
+	manager := pods.Items[0]
+
+	output, err := KubectlLogs(cfg.KubeconfigFile(), manager.Name, "", EraserNamespace)
+	if err != nil {
+		return "", err
+	}
+
+	return output, nil
 }
 
 func CreateExclusionList(namespace string, list pkgUtil.ExclusionList) env.Func {
