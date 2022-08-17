@@ -28,7 +28,8 @@ import (
 )
 
 const (
-	providerResourceDirectory = "manifest_staging/charts"
+	providerResourceChartDir  = "manifest_staging/charts"
+	providerResourceDeployDir = "manifest_staging/deploy"
 
 	KindClusterName  = "eraser-e2e-test"
 	ProviderResource = "eraser.yaml"
@@ -161,25 +162,6 @@ func ImagejobNotInCluster(kubeconfigPath string) func() (bool, error) {
 
 		return strings.Contains(output, "No resources"), nil
 	}
-}
-
-// delete eraser config.
-func DeleteEraserConfig(kubeConfig, namespace, resourcePath, fileName string) error {
-	wd, err := os.Getwd()
-	if err != nil {
-		return err
-	}
-
-	exampleResourceAbsolutePath, err := filepath.Abs(filepath.Join(wd, resourcePath))
-	if err != nil {
-		return err
-	}
-	errDelete := KubectlDelete(kubeConfig, namespace, []string{"-f", filepath.Join(exampleResourceAbsolutePath, fileName)})
-	if errDelete != nil {
-		return errDelete
-	}
-
-	return nil
 }
 
 func ListNodeContainers(nodeName string) (string, error) {
@@ -371,14 +353,14 @@ func DeleteStringFromSlice(strings []string, s string) []string {
 	return strings
 }
 
-func DeployEraserManifest(namespace string, args ...string) env.Func {
+func DeployEraserHelm(namespace string, args ...string) env.Func {
 	return func(ctx context.Context, cfg *envconf.Config) (context.Context, error) {
 		wd, err := os.Getwd()
 		if err != nil {
 			return ctx, err
 		}
 
-		providerResourceAbsolutePath, err := filepath.Abs(filepath.Join(wd, "../../../../", providerResourceDirectory, "eraser"))
+		providerResourceAbsolutePath, err := filepath.Abs(filepath.Join(wd, "../../../../", providerResourceChartDir, "eraser"))
 		if err != nil {
 			return ctx, err
 		}
@@ -439,6 +421,18 @@ func GetManagerLogs(cfg *envconf.Config, ctx context.Context) (string, error) {
 	}
 
 	return output, nil
+}
+
+func DeployEraserManifest(namespace, fileName string) env.Func {
+	return func(ctx context.Context, cfg *envconf.Config) (context.Context, error) {
+		providerResourceAbsolutePath := "../../../../" + providerResourceDeployDir
+
+		if err := DeployEraserConfig(cfg.KubeconfigFile(), namespace, providerResourceAbsolutePath, fileName); err != nil {
+			return ctx, err
+		}
+
+		return ctx, nil
+	}
 }
 
 func CreateExclusionList(namespace string, list pkgUtil.ExclusionList) env.Func {
