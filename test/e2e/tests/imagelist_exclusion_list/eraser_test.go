@@ -95,10 +95,26 @@ func TestExclusionList(t *testing.T) {
 				t.Error("Failed to deploy image list config", err)
 			}
 
-			ctxT, cancel := context.WithTimeout(ctx, time.Minute)
+			ctxT, cancel := context.WithTimeout(ctx, time.Minute*3)
 			defer cancel()
 			// since docker.io/library/* was excluded, nginx should still exist following deletion
 			util.CheckImagesExist(ctxT, t, util.GetClusterNodes(t), util.Nginx)
+
+			return ctx
+		}).
+		Assess("Pods from imagejobs are cleaned up", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
+			c, err := cfg.NewClient()
+			if err != nil {
+				t.Error("Failed to create new client", err)
+			}
+
+			var ls corev1.PodList
+			err = c.Resources().List(ctx, &ls, func(o *metav1.ListOptions) {
+				o.LabelSelector = labels.SelectorFromSet(map[string]string{"name": "eraser"}).String()
+			})
+			if err != nil {
+				t.Errorf("could not list pods: %v", err)
+			}
 
 			// get logs
 			eraserLogs, err := util.GetEraserLogs(ctx, cfg)
@@ -112,6 +128,11 @@ func TestExclusionList(t *testing.T) {
 				t.Error("error getting manager logs", err)
 			}
 			t.Log("manager logs\n", managerLogs)
+
+			err = wait.For(conditions.New(c.Resources()).ResourcesDeleted(&ls), wait.WithTimeout(time.Minute*3))
+			if err != nil {
+				t.Errorf("error waiting for pods to be deleted: %v", err)
+			}
 
 			return ctx
 		}).
