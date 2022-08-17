@@ -88,32 +88,17 @@ func TestImageListTriggersEraserImageJob(t *testing.T) {
 			defer cancel()
 			util.CheckImageRemoved(ctxT, t, util.GetClusterNodes(t), util.Nginx)
 
-			return ctx
-		}).
-		Assess("Pods from imagejobs are cleaned up", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
-			c, err := cfg.NewClient()
+			// get logs
+			eraserLogs, err := util.GetEraserLogs(ctx, cfg)
 			if err != nil {
-				t.Error("Failed to create new client", err)
+				t.Error("error getting eraser logs", err)
 			}
-
-			var ls corev1.PodList
-			err = c.Resources().List(ctx, &ls, func(o *metav1.ListOptions) {
-				o.LabelSelector = labels.SelectorFromSet(map[string]string{"name": "eraser"}).String()
-			})
-			if err != nil {
-				t.Errorf("could not list pods: %v", err)
-			}
-
-			err = wait.For(conditions.New(c.Resources()).ResourcesDeleted(&ls), wait.WithTimeout(time.Minute))
-			if err != nil {
-				t.Errorf("error waiting for pods to be deleted: %v", err)
-			}
+			t.Log("eraser logs\n", eraserLogs)
 
 			managerLogs, err := util.GetManagerLogs(ctx, cfg)
 			if err != nil {
 				t.Error("error getting manager logs", err)
 			}
-
 			t.Log("manager logs\n", managerLogs)
 
 			return ctx

@@ -20,7 +20,7 @@ import (
 )
 
 func TestCollectorExcluded(t *testing.T) {
-	collectorExcluded := features.New("ImageCollector should not remove excluded images from imagecollector-shared").
+	collectorExcluded := features.New("ImageCollector should not remove excluded images").
 		Assess("Alpine image is not removed", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
 			ctxT, cancel := context.WithTimeout(ctx, time.Minute*5)
 			defer cancel()
@@ -47,6 +47,22 @@ func TestCollectorExcluded(t *testing.T) {
 			})
 			if err != nil {
 				t.Errorf("could not list pods: %v", err)
+			}
+
+			for _, pod := range ls.Items {
+				var output string
+
+				output, err = util.KubectlLogs(cfg.KubeconfigFile(), pod.Name, "collector", util.EraserNamespace)
+				if err != nil {
+					t.Error("could not get collector container output", err)
+				}
+				t.Log("collector output\n", output)
+
+				output, err := util.KubectlLogs(cfg.KubeconfigFile(), pod.Name, "eraser", util.EraserNamespace)
+				if err != nil {
+					t.Error("could not get eraser container output", err)
+				}
+				t.Log("eraser output\n", output)
 			}
 
 			err = wait.For(conditions.New(c.Resources()).ResourcesDeleted(&ls), wait.WithTimeout(time.Minute))

@@ -423,6 +423,33 @@ func GetManagerLogs(ctx context.Context, cfg *envconf.Config) (string, error) {
 	return output, nil
 }
 
+func GetEraserLogs(ctx context.Context, cfg *envconf.Config) (string, error) {
+	c, err := cfg.NewClient()
+	if err != nil {
+		return "", err
+	}
+
+	var ls corev1.PodList
+	err = c.Resources().List(ctx, &ls, func(o *metav1.ListOptions) {
+		o.LabelSelector = labels.SelectorFromSet(map[string]string{"name": "eraser"}).String()
+	})
+	if err != nil {
+		return "", err
+	}
+
+	output := ""
+
+	for _, pod := range ls.Items {
+		output, err := KubectlLogs(cfg.KubeconfigFile(), pod.Name, "", EraserNamespace)
+		if err != nil {
+			return "", err
+		}
+		output += output + "\n"
+	}
+
+	return output, nil
+}
+
 func DeployEraserManifest(namespace, fileName string) env.Func {
 	return func(ctx context.Context, cfg *envconf.Config) (context.Context, error) {
 		providerResourceAbsolutePath := "../../../../" + providerResourceDeployDir

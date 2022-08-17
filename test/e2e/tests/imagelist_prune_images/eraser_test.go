@@ -156,11 +156,17 @@ func TestPrune(t *testing.T) {
 			// Make sure nginx is still there
 			util.CheckImagesExist(ctx, t, util.GetClusterNodes(t), util.Nginx)
 
+			// get logs
+			eraserLogs, err := util.GetEraserLogs(ctx, cfg)
+			if err != nil {
+				t.Error("error getting eraser logs", err)
+			}
+			t.Log("eraser logs\n", eraserLogs)
+
 			managerLogs, err := util.GetManagerLogs(ctx, cfg)
 			if err != nil {
 				t.Error("error getting manager logs", err)
 			}
-
 			t.Log("manager logs\n", managerLogs)
 
 			return ctx

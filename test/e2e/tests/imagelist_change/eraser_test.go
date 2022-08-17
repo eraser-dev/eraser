@@ -135,11 +135,17 @@ func TestUpdateImageList(t *testing.T) {
 			defer cancel()
 			util.CheckImageRemoved(ctxT, t, util.GetClusterNodes(t), util.Redis)
 
+			// get logs
+			eraserLogs, err := util.GetEraserLogs(ctx, cfg)
+			if err != nil {
+				t.Error("error getting eraser logs", err)
+			}
+			t.Log("eraser logs\n", eraserLogs)
+
 			managerLogs, err := util.GetManagerLogs(ctx, cfg)
 			if err != nil {
 				t.Error("error getting manager logs", err)
 			}
-
 			t.Log("manager logs\n", managerLogs)
 
 			return ctx

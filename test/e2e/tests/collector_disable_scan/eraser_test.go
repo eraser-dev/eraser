@@ -37,10 +37,26 @@ func TestDisableScanner(t *testing.T) {
 
 			var ls corev1.PodList
 			err = c.Resources().List(ctx, &ls, func(o *metav1.ListOptions) {
-				o.LabelSelector = labels.SelectorFromSet(map[string]string{"name": "eraser"}).String()
+				o.LabelSelector = labels.SelectorFromSet(map[string]string{"name": "collector"}).String()
 			})
 			if err != nil {
 				t.Errorf("could not list pods: %v", err)
+			}
+
+			for _, pod := range ls.Items {
+				var output string
+
+				output, err = util.KubectlLogs(cfg.KubeconfigFile(), pod.Name, "collector", util.EraserNamespace)
+				if err != nil {
+					t.Error("could not get collector container output", err)
+				}
+				t.Log("collector output\n", output)
+
+				output, err := util.KubectlLogs(cfg.KubeconfigFile(), pod.Name, "eraser", util.EraserNamespace)
+				if err != nil {
+					t.Error("could not get eraser container output", err)
+				}
+				t.Log("eraser output\n", output)
 			}
 
 			err = wait.For(conditions.New(c.Resources()).ResourcesDeleted(&ls), wait.WithTimeout(time.Minute))
