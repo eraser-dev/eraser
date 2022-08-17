@@ -44,6 +44,7 @@ func TestDisableScanner(t *testing.T) {
 			}
 
 			for _, pod := range ls.Items {
+				t.Log("pod name", pod.Name)
 				var output string
 
 				output, err = util.KubectlLogs(cfg.KubeconfigFile(), pod.Name, "collector", util.EraserNamespace)
