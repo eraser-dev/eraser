@@ -122,7 +122,7 @@ jobs:
   e2e-test:
     name: "E2E Tests"
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     needs:
       - build-e2e-test-list
     strategy:
