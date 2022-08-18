@@ -49,7 +49,7 @@ func TestDisableScanner(t *testing.T) {
 				t.Error(err)
 			}
 
-			err = wait.For(conditions.New(client.Resources()).JobCompleted(job), wait.WithTimeout(time.Minute*2))
+			err = wait.For(conditions.New(c.Resources()).JobCompleted(job), wait.WithTimeout(time.Minute*2))
 			if err != nil {
 				t.Error("error waiting for imagejob completion")
 			}

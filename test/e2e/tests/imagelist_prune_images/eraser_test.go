@@ -131,6 +131,11 @@ func TestPrune(t *testing.T) {
 			return ctx
 		}).
 		Assess("All non-running images are removed from the cluster", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
+			client, err := cfg.NewClient()
+			if err != nil {
+				t.Error("Failed to create new client", err)
+			}
+
 			imgList := &eraserv1alpha1.ImageList{
 				ObjectMeta: metav1.ObjectMeta{Name: util.Prune},
 				Spec: eraserv1alpha1.ImageListSpec{
