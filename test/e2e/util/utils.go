@@ -437,18 +437,23 @@ func GetEraserLogs(ctx context.Context, cfg *envconf.Config) (string, error) {
 		return "", err
 	}
 
-	finalOutput := ""
+	var finalOutput strings.Builder
 
 	for _, pod := range ls.Items {
-		finalOutput += "pod name: " + pod.Name + "\n"
+		for {
+			if string(pod.Status.Phase) == "Succeeded" || string(pod.Status.Phase) == "Failed" {
+				break
+			}
+		}
+		finalOutput.WriteString("pod name: " + pod.Name + "\n")
 		output, err := KubectlLogs(cfg.KubeconfigFile(), pod.Name, "", EraserNamespace)
 		if err != nil {
 			return "", err
 		}
-		finalOutput += output + "\n"
+		finalOutput.WriteString(output + "\n")
 	}
 
-	return finalOutput, nil
+	return finalOutput.String(), nil
 }
 
 func DeployEraserManifest(namespace, fileName string) env.Func {
