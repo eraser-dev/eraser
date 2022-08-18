@@ -84,7 +84,7 @@ func TestImageListTriggersEraserImageJob(t *testing.T) {
 				t.Error("Failed to deploy image list config", err)
 			}
 
-			ctxT, cancel := context.WithTimeout(ctx, time.Minute)
+			ctxT, cancel := context.WithTimeout(ctx, time.Minute*3)
 			defer cancel()
 			util.CheckImageRemoved(ctxT, t, util.GetClusterNodes(t), util.Nginx)
 

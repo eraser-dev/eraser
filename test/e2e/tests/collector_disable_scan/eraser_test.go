@@ -60,7 +60,7 @@ func TestDisableScanner(t *testing.T) {
 				t.Log("eraser output\n", output)
 			}
 
-			err = wait.For(conditions.New(c.Resources()).ResourcesDeleted(&ls), wait.WithTimeout(time.Minute))
+			err = wait.For(conditions.New(c.Resources()).ResourcesDeleted(&ls), wait.WithTimeout(time.Minute*3))
 			if err != nil {
 				t.Errorf("error waiting for pods to be deleted: %v", err)
 			}
