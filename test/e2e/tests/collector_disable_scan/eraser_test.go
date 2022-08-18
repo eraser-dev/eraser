@@ -43,7 +43,7 @@ func TestDisableScanner(t *testing.T) {
 				t.Errorf("could not list pods: %v", err)
 			}
 
-			// get logs after job completion
+			// get logs
 			for _, pod := range ls.Items {
 				t.Log("pod name", pod.Name)
 				var output string
@@ -68,7 +68,7 @@ func TestDisableScanner(t *testing.T) {
 
 			managerLogs, err := util.GetManagerLogs(ctx, cfg)
 			if err != nil {
-				t.Error("error getting manager logs", err)
+				t.Errorf("error getting manager logs %v", err)
 			}
 
 			t.Log("manager logs\n", managerLogs)

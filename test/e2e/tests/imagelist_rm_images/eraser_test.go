@@ -115,7 +115,7 @@ func TestImageListTriggersEraserImageJob(t *testing.T) {
 
 			managerLogs, err := util.GetManagerLogs(ctx, cfg)
 			if err != nil {
-				t.Error("error getting manager logs", err)
+				t.Errorf("error getting manager logs %v", err)
 			}
 
 			t.Log("manager logs\n", managerLogs)
