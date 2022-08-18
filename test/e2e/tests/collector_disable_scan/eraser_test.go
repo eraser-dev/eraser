@@ -48,7 +48,7 @@ func TestDisableScanner(t *testing.T) {
 				t.Log("pod name", pod.Name)
 				var output string
 
-				err = wait.For(conditions.New(client.Resources()).PodPhaseMatch(pod, corev1.PodSucceeded), wait.WithTimeout(time.Minute*2))
+				err = wait.For(conditions.New(c.Resources()).PodPhaseMatch(pod, corev1.PodSucceeded), wait.WithTimeout(time.Minute*2))
 				if err != nil {
 					t.Error("error waiting for pod completion")
 				}
