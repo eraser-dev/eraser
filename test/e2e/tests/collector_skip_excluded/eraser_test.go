@@ -50,19 +50,14 @@ func TestCollectorExcluded(t *testing.T) {
 			}
 
 			// get logs after job completion
-			job, err := util.GetImageJob(ctx, cfg)
-			if err != nil {
-				t.Error(err)
-			}
-
-			err = wait.For(conditions.New(c.Resources()).JobCompleted(job), wait.WithTimeout(time.Minute*2))
-			if err != nil {
-				t.Error("error waiting for imagejob completion")
-			}
-
 			for _, pod := range ls.Items {
 				t.Log("pod name", pod.Name)
 				var output string
+
+				err = wait.For(conditions.New(client.Resources()).PodPhaseMatch(pod, corev1.PodSucceeded), wait.WithTimeout(time.Minute*2))
+				if err != nil {
+					t.Error("error waiting for pod completion")
+				}
 
 				output, err = util.KubectlLogs(cfg.KubeconfigFile(), pod.Name, "collector", util.EraserNamespace)
 				if err != nil {
