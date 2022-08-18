@@ -32,7 +32,7 @@ func TestDisableScanner(t *testing.T) {
 		Assess("Pods from imagejobs are cleaned up", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
 			c, err := cfg.NewClient()
 			if err != nil {
-				t.Error("Failed to create new client", err)
+				t.Fatal("Failed to create new client", err)
 			}
 
 			var ls corev1.PodList
@@ -43,15 +43,20 @@ func TestDisableScanner(t *testing.T) {
 				t.Errorf("could not list pods: %v", err)
 			}
 
+			// get logs after job completion
+			job, err := util.GetImageJob(ctx, cfg)
+			if err != nil {
+				t.Error(err)
+			}
+
+			err = wait.For(conditions.New(client.Resources()).JobCompleted(job), wait.WithTimeout(time.Minute*2))
+			if err != nil {
+				t.Error("error waiting for imagejob completion")
+			}
+
 			for _, pod := range ls.Items {
 				t.Log("pod name", pod.Name)
 				var output string
-
-				for {
-					if string(pod.Status.Phase) == "Succeeded" || string(pod.Status.Phase) == "Failed" {
-						break
-					}
-				}
 
 				output, err = util.KubectlLogs(cfg.KubeconfigFile(), pod.Name, "collector", util.EraserNamespace)
 				if err != nil {
@@ -64,11 +69,6 @@ func TestDisableScanner(t *testing.T) {
 					t.Error("could not get eraser container output", err)
 				}
 				t.Log("eraser output\n", output)
-			}
-
-			err = wait.For(conditions.New(c.Resources()).ResourcesDeleted(&ls), wait.WithTimeout(time.Minute*3))
-			if err != nil {
-				t.Errorf("error waiting for pods to be deleted: %v", err)
 			}
 
 			managerLogs, err := util.GetManagerLogs(ctx, cfg)

@@ -141,11 +141,17 @@ func TestSkipNodes(t *testing.T) {
 			// the imagejob has done its work, so now we can check the node to make sure it didn't remove the image
 			util.CheckImagesExist(ctx, t, []string{util.FilterNodeName}, util.Nginx)
 
-			ctxT, cancel := context.WithTimeout(ctx, time.Minute*2)
-			defer cancel()
-			util.ImageJobComplete(ctx, cfg)
+			// get logs after job completion
+			job, err := util.GetImageJob(ctx, cfg)
+			if err != nil {
+				t.Error(err)
+			}
 
-			// get logs
+			err = wait.For(conditions.New(client.Resources()).JobCompleted(job), wait.WithTimeout(time.Minute*2))
+			if err != nil {
+				t.Error("error waiting for imagejob completion")
+			}
+
 			eraserLogs, err := util.GetEraserLogs(ctx, cfg)
 			if err != nil {
 				t.Error("error getting eraser logs", err)

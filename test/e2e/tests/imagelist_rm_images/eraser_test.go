@@ -88,11 +88,17 @@ func TestImageListTriggersEraserImageJob(t *testing.T) {
 			defer cancel()
 			util.CheckImageRemoved(ctxT, t, util.GetClusterNodes(t), util.Nginx)
 
-			ctxT, cancel := context.WithTimeout(ctx, time.Minute*2)
-			defer cancel()
-			util.ImageJobComplete(ctx, cfg)
+			// get logs after job completion
+			job, err := util.GetImageJob(ctx, cfg)
+			if err != nil {
+				t.Error(err)
+			}
 
-			// get logs
+			err = wait.For(conditions.New(client.Resources()).JobCompleted(job), wait.WithTimeout(time.Minute*2))
+			if err != nil {
+				t.Error("error waiting for imagejob completion")
+			}
+
 			eraserLogs, err := util.GetEraserLogs(ctx, cfg)
 			if err != nil {
 				t.Error("error getting eraser logs", err)

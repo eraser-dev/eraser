@@ -166,24 +166,23 @@ func ImagejobNotInCluster(kubeconfigPath string) func() (bool, error) {
 	}
 }
 
-func ImageJobComplete(ctx context.Context, cfg *envconf.Config) (bool, error) {
+func GetImageJob(ctx context.Context, cfg *envconf.Config) (eraserv1alpha1.ImageJob, error) {
 	c, err := cfg.NewClient()
 	if err != nil {
-		return false, err
+		return eraserv1alpha1.ImageJob{}, err
 	}
 
 	var ls eraserv1alpha1.ImageJobList
 	err = c.Resources().List(ctx, &ls)
+	if err != nil {
+		return eraserv1alpha1.ImageJob{}, err
+	}
+
 	if len(ls.Items) != 1 {
-		return false, errors.New("only one imagejob should be present")
+		return eraserv1alpha1.ImageJob{}, errors.New("only one imagejob should be present")
 	}
 
-	phase := ls.Items[0].Status.Phase
-	if phase == eraserv1alpha1.PhaseCompleted || phase == eraserv1alpha1.PhaseFailed {
-		return true, nil
-	}
-
-	return false, nil
+	return ls.Items[0], nil
 }
 
 func ListNodeContainers(nodeName string) (string, error) {
