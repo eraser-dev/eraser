@@ -47,6 +47,12 @@ func TestDisableScanner(t *testing.T) {
 				t.Log("pod name", pod.Name)
 				var output string
 
+				for {
+					if string(pod.Status.Phase) == "Succeeded" || string(pod.Status.Phase) == "Failed" {
+						break
+					}
+				}
+
 				output, err = util.KubectlLogs(cfg.KubeconfigFile(), pod.Name, "collector", util.EraserNamespace)
 				if err != nil {
 					t.Error("could not get collector container output", err)
