@@ -135,17 +135,41 @@ func TestUpdateImageList(t *testing.T) {
 			defer cancel()
 			util.CheckImageRemoved(ctxT, t, util.GetClusterNodes(t), util.Redis)
 
-			// get logs after job completion
-			eraserLogs, err := util.GetEraserLogs(ctx, cfg)
+			c, err := cfg.NewClient()
 			if err != nil {
-				t.Error("error getting eraser logs", err)
+				t.Fatal("Failed to create new client", err)
 			}
-			t.Log("eraser logs\n", eraserLogs)
+
+			// get logs
+			var ls corev1.PodList
+			err = c.Resources().List(ctx, &ls, func(o *metav1.ListOptions) {
+				o.LabelSelector = labels.SelectorFromSet(map[string]string{"name": "eraser"}).String()
+			})
+			if err != nil {
+				t.Errorf("could not list pods: %v", err)
+			}
+
+			for _, pod := range ls.Items {
+				t.Log("pod name", pod.Name)
+				var output string
+
+				err = wait.For(conditions.New(c.Resources()).PodPhaseMatch(&pod, corev1.PodSucceeded), wait.WithTimeout(time.Minute*2))
+				if err != nil {
+					t.Error("error waiting for pod completion")
+				}
+
+				output, err = util.KubectlLogs(cfg.KubeconfigFile(), pod.Name, "", util.EraserNamespace)
+				if err != nil {
+					t.Error("could not get pod output", err)
+				}
+				t.Log("eraser output\n", output)
+			}
 
 			managerLogs, err := util.GetManagerLogs(ctx, cfg)
 			if err != nil {
 				t.Error("error getting manager logs", err)
 			}
+
 			t.Log("manager logs\n", managerLogs)
 
 			return ctx

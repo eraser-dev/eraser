@@ -108,6 +108,7 @@ func TestExclusionList(t *testing.T) {
 				t.Error("Failed to create new client", err)
 			}
 
+			// get logs
 			var ls corev1.PodList
 			err = c.Resources().List(ctx, &ls, func(o *metav1.ListOptions) {
 				o.LabelSelector = labels.SelectorFromSet(map[string]string{"name": "eraser"}).String()
@@ -116,17 +117,27 @@ func TestExclusionList(t *testing.T) {
 				t.Errorf("could not list pods: %v", err)
 			}
 
-			// get logs after job completion
-			eraserLogs, err := util.GetEraserLogs(ctx, cfg)
-			if err != nil {
-				t.Error("error getting eraser logs", err)
+			for _, pod := range ls.Items {
+				t.Log("pod name", pod.Name)
+				var output string
+
+				err = wait.For(conditions.New(c.Resources()).PodPhaseMatch(&pod, corev1.PodSucceeded), wait.WithTimeout(time.Minute*2))
+				if err != nil {
+					t.Error("error waiting for pod completion")
+				}
+
+				output, err = util.KubectlLogs(cfg.KubeconfigFile(), pod.Name, "", util.EraserNamespace)
+				if err != nil {
+					t.Error("could not get pod output", err)
+				}
+				t.Log("eraser output\n", output)
 			}
-			t.Log("eraser logs\n", eraserLogs)
 
 			managerLogs, err := util.GetManagerLogs(ctx, cfg)
 			if err != nil {
 				t.Error("error getting manager logs", err)
 			}
+
 			t.Log("manager logs\n", managerLogs)
 
 			return ctx
