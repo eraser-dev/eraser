@@ -24,6 +24,8 @@ import (
 	"sigs.k8s.io/e2e-framework/pkg/envconf"
 	"sigs.k8s.io/kind/pkg/cluster"
 
+	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
+
 	pkgUtil "github.com/Azure/eraser/pkg/utils"
 )
 
@@ -162,6 +164,26 @@ func ImagejobNotInCluster(kubeconfigPath string) func() (bool, error) {
 
 		return strings.Contains(output, "No resources"), nil
 	}
+}
+
+func ImageJobComplete(ctx context.Context, cfg *envconf.Config) (bool, error) {
+	c, err := cfg.NewClient()
+	if err != nil {
+		return false, err
+	}
+
+	var ls eraserv1alpha1.ImageJobList
+	err = c.Resources().List(ctx, &ls)
+	if len(ls.Items) != 1 {
+		return false, errors.New("only one imagejob should be present")
+	}
+
+	phase := ls.Items[0].Status.Phase
+	if phase == eraserv1alpha1.PhaseCompleted || phase == eraserv1alpha1.PhaseFailed {
+		return true, nil
+	}
+
+	return false, nil
 }
 
 func ListNodeContainers(nodeName string) (string, error) {

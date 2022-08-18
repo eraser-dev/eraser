@@ -138,6 +138,10 @@ func TestIncludeNodes(t *testing.T) {
 			// the imagejob has done its work, so now we can check the node to make sure it didn't remove the images from the remaining nodes
 			util.CheckImagesExist(ctx, t, clusterNodes, util.Nginx)
 
+			ctxT, cancel := context.WithTimeout(ctx, time.Minute*2)
+			defer cancel()
+			util.ImageJobComplete(ctx, cfg)
+
 			// get logs
 			eraserLogs, err := util.GetEraserLogs(ctx, cfg)
 			if err != nil {

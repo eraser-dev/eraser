@@ -135,6 +135,10 @@ func TestUpdateImageList(t *testing.T) {
 			defer cancel()
 			util.CheckImageRemoved(ctxT, t, util.GetClusterNodes(t), util.Redis)
 
+			ctxT, cancel := context.WithTimeout(ctx, time.Minute*2)
+			defer cancel()
+			util.ImageJobComplete(ctx, cfg)
+
 			// get logs
 			managerLogs, err := util.GetManagerLogs(ctx, cfg)
 			if err != nil {

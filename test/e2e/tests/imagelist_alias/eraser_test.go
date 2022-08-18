@@ -134,6 +134,10 @@ func TestEnsureAliasedImageRemoved(t *testing.T) {
 			defer cancel()
 			util.CheckImageRemoved(ctxT, t, []string{nodeName}, util.Nginx)
 
+			ctxT, cancel := context.WithTimeout(ctx, time.Minute*2)
+			defer cancel()
+			util.ImageJobComplete(ctx, cfg)
+
 			// get logs
 			eraserLogs, err := util.GetEraserLogs(ctx, cfg)
 			if err != nil {

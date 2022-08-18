@@ -116,6 +116,10 @@ func TestExclusionList(t *testing.T) {
 				t.Errorf("could not list pods: %v", err)
 			}
 
+			ctxT, cancel := context.WithTimeout(ctx, time.Minute*2)
+			defer cancel()
+			util.ImageJobComplete(ctx, cfg)
+
 			// get logs
 			eraserLogs, err := util.GetEraserLogs(ctx, cfg)
 			if err != nil {
