@@ -1,0 +1,16 @@
+{"level":"info","ts":1660943890.8019917,"logger":"setup","msg":"setting up manager","userAgent":"eraser/manager/v0.4.0-19-2f235cd20eb262-dirty (linux/amd64) 2f235cd20eb2621e18222ed4877338e0247e727c/1660761211"}
+{"level":"info","ts":1660943890.9980683,"logger":"controller-runtime.metrics","msg":"Metrics server is starting to listen","addr":":8080"}
+{"level":"info","ts":1660943890.9982471,"logger":"setup","msg":"setup controllers"}
+{"level":"info","ts":1660943890.998275,"logger":"controllerRuntimeLogger","msg":"set up with manager"}
+{"level":"info","ts":1660943890.9983509,"logger":"setup","msg":"starting manager"}
+{"level":"info","ts":1660943890.998689,"msg":"Starting server","path":"/metrics","kind":"metrics","addr":"[::]:8080"}
+{"level":"info","ts":1660943890.9987113,"msg":"Starting server","kind":"health probe","addr":"[::]:8081"}
+{"level":"info","ts":1660943890.998871,"logger":"controller.imagelist-controller","msg":"Starting EventSource","source":"kind source: *v1alpha1.ImageList"}
+{"level":"info","ts":1660943890.9989486,"logger":"controller.imagelist-controller","msg":"Starting EventSource","source":"kind source: *v1alpha1.ImageJob"}
+{"level":"info","ts":1660943890.998954,"logger":"controller.imagelist-controller","msg":"Starting Controller"}
+{"level":"info","ts":1660943890.9989202,"logger":"controller.imagejob-controller","msg":"Starting EventSource","source":"kind source: *v1alpha1.ImageJob"}
+{"level":"info","ts":1660943890.9990592,"logger":"controller.imagejob-controller","msg":"Starting EventSource","source":"kind source: *v1.Pod"}
+{"level":"info","ts":1660943890.9990656,"logger":"controller.imagejob-controller","msg":"Starting Controller"}
+{"level":"info","ts":1660943891.1999571,"logger":"controller.imagejob-controller","msg":"Starting workers","worker count":1}
+{"level":"info","ts":1660943891.2000058,"logger":"controller.imagelist-controller","msg":"Starting workers","worker count":1}
+{"level":"info","ts":1660943975.6963549,"logger":"controller","msg":"creating imagejob","process":"imagelist-controller","job":"imagejob-p9pgq"}

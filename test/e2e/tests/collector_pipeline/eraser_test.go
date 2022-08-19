@@ -47,13 +47,12 @@ func TestCollectScanErasePipeline(t *testing.T) {
 				t.Errorf("error waiting for pods to be deleted: %v", err)
 			}
 
-			// get logs
-			managerLogs, err := util.GetManagerLogs(ctx, cfg)
-			if err != nil {
-				t.Errorf("error getting manager logs %v", err)
+			return ctx
+		}).
+		Assess("Get logs", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
+			if err := util.GetManagerLogs(ctx, cfg, t); err != nil {
+				t.Error("error getting manager logs", err)
 			}
-
-			t.Log("manager logs\n", managerLogs)
 
 			return ctx
 		}).

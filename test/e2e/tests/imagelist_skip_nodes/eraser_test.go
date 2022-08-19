@@ -129,7 +129,6 @@ func TestSkipNodes(t *testing.T) {
 			defer cancel()
 
 			// ensure images are removed from all nodes except the one we are skipping. remove the node we are skipping from the list of nodes.
-
 			util.CheckImageRemoved(ctxT, t, clusterNodes, util.Nginx)
 
 			// Wait for the imagejob to be completed by checking for its nonexistence in the cluster
@@ -141,37 +140,16 @@ func TestSkipNodes(t *testing.T) {
 			// the imagejob has done its work, so now we can check the node to make sure it didn't remove the image
 			util.CheckImagesExist(ctx, t, []string{util.FilterNodeName}, util.Nginx)
 
-			// get logs
-			var ls corev1.PodList
-			err = client.Resources().List(ctx, &ls, func(o *metav1.ListOptions) {
-				o.LabelSelector = labels.SelectorFromSet(map[string]string{"name": "eraser"}).String()
-			})
-			if err != nil {
-				t.Errorf("could not list pods: %v", err)
+			return ctx
+		}).
+		Assess("Get logs", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
+			if err := util.GetPodLogs(ctx, cfg, t, true); err != nil {
+				t.Error("error getting collector pod logs", err)
 			}
 
-			for _, pod := range ls.Items {
-				t.Log("pod name", pod.Name)
-				var output string
-
-				err = wait.For(conditions.New(client.Resources()).PodPhaseMatch(&pod, corev1.PodSucceeded), wait.WithTimeout(time.Minute*2))
-				if err != nil {
-					t.Error("error waiting for pod completion")
-				}
-
-				output, err = util.KubectlLogs(cfg.KubeconfigFile(), pod.Name, "", util.EraserNamespace)
-				if err != nil {
-					t.Error("could not get pod output", err)
-				}
-				t.Log("eraser output\n", output)
+			if err := util.GetManagerLogs(ctx, cfg, t); err != nil {
+				t.Error("error getting manager logs", err)
 			}
-
-			managerLogs, err := util.GetManagerLogs(ctx, cfg)
-			if err != nil {
-				t.Errorf("error getting manager logs %v", err)
-			}
-
-			t.Log("manager logs\n", managerLogs)
 
 			return ctx
 		}).

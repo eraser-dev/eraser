@@ -14,8 +14,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 
-	"sigs.k8s.io/e2e-framework/klient/wait"
-	"sigs.k8s.io/e2e-framework/klient/wait/conditions"
 	"sigs.k8s.io/e2e-framework/pkg/envconf"
 	"sigs.k8s.io/e2e-framework/pkg/features"
 )
@@ -135,16 +133,16 @@ func TestUpdateImageList(t *testing.T) {
 			defer cancel()
 			util.CheckImageRemoved(ctxT, t, util.GetClusterNodes(t), util.Redis)
 
-			// get logs
-			managerLogs, err := util.GetManagerLogs(ctx, cfg)
-			if err != nil {
-				t.Errorf("error getting manager logs %v", err)
+			return ctx
+		}).
+		Assess("Get logs", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
+			if err := util.GetManagerLogs(ctx, cfg, t); err != nil {
+				t.Error("error getting manager logs", err)
 			}
 
-			t.Log("manager logs\n", managerLogs)
-
 			return ctx
-		}).Feature()
+		}).
+		Feature()
 
 	util.Testenv.Test(t, imglistChangeFeat)
 }

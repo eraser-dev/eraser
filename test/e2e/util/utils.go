@@ -50,6 +50,8 @@ const (
 	FilterNodeSelector   = "kubernetes.io/hostname=eraser-e2e-test-worker"
 	FilterLabelKey       = "eraser.sh/cleanup.filter"
 	FilterLabelValue     = "true"
+	TestLogDir           = "../eraser_logs"
+	filemode             = 0644
 )
 
 var (
@@ -414,10 +416,10 @@ func DeployEraserHelm(namespace string, args ...string) env.Func {
 	}
 }
 
-func GetManagerLogs(ctx context.Context, cfg *envconf.Config) (string, error) {
+func GetManagerLogs(ctx context.Context, cfg *envconf.Config, t *testing.T) error {
 	c, err := cfg.NewClient()
 	if err != nil {
-		return "", err
+		return err
 	}
 
 	var pods corev1.PodList
@@ -425,23 +427,162 @@ func GetManagerLogs(ctx context.Context, cfg *envconf.Config) (string, error) {
 		o.LabelSelector = labels.SelectorFromSet(map[string]string{"control-plane": "controller-manager"}).String()
 	})
 	if err != nil {
-		return "", err
+		return err
 	}
 
 	if len(pods.Items) > 1 {
-		return "", errors.New("only one manager pod should be present")
+		return errors.New("only one manager pod should be present")
 	} else if len(pods.Items) == 0 {
-		return "", errors.New("no manager pod present")
+		return errors.New("no manager pod present")
 	}
 
 	manager := pods.Items[0]
 
 	output, err := KubectlLogs(cfg.KubeconfigFile(), manager.Name, "", EraserNamespace)
 	if err != nil {
-		return "", err
+		return err
 	}
 
-	return output, nil
+	wd, err := os.Getwd()
+	if err != nil {
+		return err
+	}
+
+	// get log output file path
+	path := filepath.Join(wd, TestLogDir, t.Name())
+
+	var file *os.File
+	if !fileExists(filepath.Join(path, manager.Name)) {
+		if err := os.MkdirAll(path, 0644); err != nil {
+			return err
+		}
+		file, err = os.Create(filepath.Join(path, manager.Name))
+		if err != nil {
+			return err
+		}
+	}
+
+	file, err = os.OpenFile(filepath.Join(path, manager.Name), os.O_APPEND|os.O_WRONLY, filemode)
+	if err != nil {
+		return err
+	}
+
+	// write manager logs
+	if _, err := file.WriteString(output); err != nil {
+		t.Errorf("error writing manager logs %s %v", path, err)
+	}
+
+	// close log output file
+	if err := file.Close(); err != nil {
+		t.Errorf("error closing file %s %v", path, err)
+	}
+
+	return nil
+}
+
+func GetPodLogs(ctx context.Context, cfg *envconf.Config, t *testing.T, imagelistTest bool) error {
+	c, err := cfg.NewClient()
+	if err != nil {
+		return err
+	}
+
+	wd, err := os.Getwd()
+	if err != nil {
+		return err
+	}
+
+	var ls corev1.PodList
+	if imagelistTest {
+		err = c.Resources().List(ctx, &ls, func(o *metav1.ListOptions) {
+			o.LabelSelector = labels.SelectorFromSet(map[string]string{"name": "eraser"}).String()
+		})
+		if err != nil {
+			t.Errorf("could not list pods: %v", err)
+		}
+	} else {
+		err = c.Resources().List(ctx, &ls, func(o *metav1.ListOptions) {
+			o.LabelSelector = labels.SelectorFromSet(map[string]string{"name": "collector"}).String()
+		})
+		if err != nil {
+			t.Errorf("could not list pods: %v", err)
+		}
+	}
+
+	t.Log("PODLIST", ls.Items)
+
+	for _, pod := range ls.Items {
+		var output string
+
+		// get log output file path
+		path := filepath.Join(wd, TestLogDir, t.Name())
+
+		var file *os.File
+		if !fileExists(filepath.Join(path, pod.Name)) {
+			if err := os.MkdirAll(path, 0644); err != nil {
+				return err
+			}
+			file, err = os.Create(filepath.Join(path, pod.Name))
+			if err != nil {
+				return err
+			}
+		}
+
+		file, err = os.OpenFile(filepath.Join(path, pod.Name), os.O_APPEND|os.O_WRONLY, filemode)
+		if err != nil {
+			return err
+		}
+
+		// wait for current pod to complete
+		err = wait.For(conditions.New(c.Resources()).PodPhaseMatch(&pod, corev1.PodSucceeded), wait.WithTimeout(time.Minute*2))
+		if err != nil {
+			t.Errorf("error waiting for pod completion %s %v", pod.Name, err)
+		}
+
+		if !imagelistTest {
+			// get collector container logs
+			output, err = KubectlLogs(cfg.KubeconfigFile(), pod.Name, "collector", EraserNamespace)
+			if err != nil {
+				t.Errorf("could not get collector container logs %s %v", pod.Name, err)
+			}
+
+			if _, err := file.WriteString(output); err != nil {
+				t.Errorf("error writing collector logs %s %v", path, err)
+			}
+
+			// get eraser container logs
+			output, err = KubectlLogs(cfg.KubeconfigFile(), pod.Name, "eraser", EraserNamespace)
+			if err != nil {
+				t.Errorf("could not get eraser container logs %s %v", pod.Name, err)
+			}
+
+			if _, err := file.WriteString("\n" + output); err != nil {
+				t.Errorf("error writing eraser logs %s %v", path, err)
+			}
+		} else {
+			// get eraser pog logs
+			output, err = KubectlLogs(cfg.KubeconfigFile(), pod.Name, "", EraserNamespace)
+			if err != nil {
+				t.Error("could not get pod output", err)
+			}
+			if _, err := file.WriteString(output); err != nil {
+				t.Errorf("error writing eraser logs %s %v", path, err)
+			}
+		}
+
+		// close log output file
+		if err := file.Close(); err != nil {
+			t.Errorf("error closing file %s %v", path, err)
+		}
+	}
+
+	return nil
+}
+
+func fileExists(path string) bool {
+	if _, err := os.Stat(path); errors.Is(err, os.ErrNotExist) {
+		return false
+	}
+	return true
 }
 
 func DeployEraserManifest(namespace, fileName string) env.Func {

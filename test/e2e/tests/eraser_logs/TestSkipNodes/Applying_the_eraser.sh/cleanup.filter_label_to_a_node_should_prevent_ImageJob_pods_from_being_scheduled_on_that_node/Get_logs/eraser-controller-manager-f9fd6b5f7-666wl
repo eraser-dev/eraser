@@ -1,0 +1,21 @@
+{"level":"info","ts":1660942758.0971913,"logger":"setup","msg":"setting up manager","userAgent":"eraser/manager/v0.4.0-19-2f235cd20eb262-dirty (linux/amd64) 2f235cd20eb2621e18222ed4877338e0247e727c/1660761211"}
+{"level":"info","ts":1660942758.2996724,"logger":"controller-runtime.metrics","msg":"Metrics server is starting to listen","addr":":8080"}
+{"level":"info","ts":1660942758.299864,"logger":"setup","msg":"setup controllers"}
+{"level":"info","ts":1660942758.299892,"logger":"controllerRuntimeLogger","msg":"set up with manager"}
+{"level":"info","ts":1660942758.299974,"logger":"setup","msg":"starting manager"}
+{"level":"info","ts":1660942758.3953083,"msg":"Starting server","path":"/metrics","kind":"metrics","addr":"[::]:8080"}
+{"level":"info","ts":1660942758.3953662,"msg":"Starting server","kind":"health probe","addr":"[::]:8081"}
+{"level":"info","ts":1660942758.395441,"logger":"controller.imagejob-controller","msg":"Starting EventSource","source":"kind source: *v1alpha1.ImageJob"}
+{"level":"info","ts":1660942758.3954818,"logger":"controller.imagejob-controller","msg":"Starting EventSource","source":"kind source: *v1.Pod"}
+{"level":"info","ts":1660942758.3954384,"logger":"controller.imagelist-controller","msg":"Starting EventSource","source":"kind source: *v1alpha1.ImageList"}
+{"level":"info","ts":1660942758.3954852,"logger":"controller.imagejob-controller","msg":"Starting Controller"}
+{"level":"info","ts":1660942758.3956828,"logger":"controller.imagelist-controller","msg":"Starting EventSource","source":"kind source: *v1alpha1.ImageJob"}
+{"level":"info","ts":1660942758.395704,"logger":"controller.imagelist-controller","msg":"Starting Controller"}
+{"level":"info","ts":1660942758.597301,"logger":"controller.imagejob-controller","msg":"Starting workers","worker count":1}
+{"level":"info","ts":1660942758.597375,"logger":"controller.imagelist-controller","msg":"Starting workers","worker count":1}
+{"level":"info","ts":1660942838.1972973,"logger":"controller","msg":"creating imagejob","process":"imagelist-controller","job":"imagejob-dxm66"}
+{"level":"info","ts":1660942838.495858,"logger":"controller","msg":"node will be skipped because it matched the specified labels","process":"imagejob-controller","node":"eraser-e2e-test-worker","nodeName":"eraser-e2e-test-worker","labels":{"beta.kubernetes.io/arch":"amd64","beta.kubernetes.io/os":"linux","eraser.sh/cleanup.filter":"true","kubernetes.io/arch":"amd64","kubernetes.io/hostname":"eraser-e2e-test-worker","kubernetes.io/os":"linux"},"specifiedSelectors":["eraser.sh/cleanup.filter","kubernetes.io/os=windows"]}
+{"level":"info","ts":1660942838.5048552,"logger":"controller","msg":"Started eraser pod on node","process":"imagejob-controller","job":"imagejob-dxm66","node":"eraser-e2e-test-control-plane","nodeName":"eraser-e2e-test-control-plane"}
+{"level":"info","ts":1660942838.508298,"logger":"controller","msg":"Started eraser pod on node","process":"imagejob-controller","job":"imagejob-dxm66","node":"eraser-e2e-test-worker2","nodeName":"eraser-e2e-test-worker2"}
+{"level":"info","ts":1660942854.1882489,"logger":"controller","msg":"Delaying imagejob delete","process":"imagelist-controller","job":"imagejob-dxm66","deleteAter":"2022-08-19 21:01:54 +0000 UTC"}
+{"level":"info","ts":1660942914.0060663,"logger":"controller","msg":"Deleting imagejob","process":"imagelist-controller","job":"imagejob-dxm66"}
