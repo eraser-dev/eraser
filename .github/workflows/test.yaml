@@ -4,10 +4,12 @@ on:
     paths-ignore:
       - "**.md"
       - "hack/**"
+      - "docs/**"
   pull_request:
     paths-ignore:
       - "**.md"
       - "hack/**"
+      - "docs/**"
 env:
   REGISTRY: ghcr.io
 
