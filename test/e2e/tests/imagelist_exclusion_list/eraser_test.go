@@ -39,7 +39,7 @@ func TestExclusionList(t *testing.T) {
 					Namespace: util.EraserNamespace,
 					Labels:    map[string]string{"eraser.sh/exclude.list": "true"},
 				},
-				Data: map[string]string{"excluded": "{\"excluded\": [\"docker.io/library/*\"]}"},
+				Data: map[string]string{"test.json": "{\"excluded\": [\"docker.io/library/*\"]}"},
 			}
 			if err := cfg.Client().Resources().Create(ctx, &excluded); err != nil {
 				t.Error("failed to create excluded configmap", err)
