@@ -51,7 +51,7 @@ const (
 	FilterLabelKey       = "eraser.sh/cleanup.filter"
 	FilterLabelValue     = "true"
 	TestLogDir           = "../eraser_logs"
-	filemode             = 0644
+	filemode             = 0o644
 )
 
 var (
