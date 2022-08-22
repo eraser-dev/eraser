@@ -155,6 +155,10 @@ jobs:
           path: |
             ~/go/pkg/mod
             ~/.cache/go-build
+      - uses: actions/upload-artifact@v3
+        with:
+          name: eraser_logs
+          path: ~/eraser/test/e2e/tests/eraser_logs/*
       - uses: crazy-max/ghaction-github-runtime@v2
       - name: Build eraser-manager
         run: make docker-build-manager
