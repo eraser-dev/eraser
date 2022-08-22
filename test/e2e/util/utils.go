@@ -448,8 +448,10 @@ func GetManagerLogs(ctx context.Context, cfg *envconf.Config, t *testing.T) erro
 		return err
 	}
 
+	testName := strings.Split(t.Name(), "/")[0]
+
 	// get log output file path
-	path := filepath.Join(wd, TestLogDir, t.Name())
+	path := filepath.Join(wd, TestLogDir, testName)
 
 	var file *os.File
 	if !fileExists(filepath.Join(path, manager.Name)) {
@@ -501,7 +503,7 @@ func GetPodLogs(ctx context.Context, cfg *envconf.Config, t *testing.T, imagelis
 				return false, err
 			}
 			return len(ls.Items) > 0, nil
-		}, wait.WithTimeout(time.Minute*3))
+		}, wait.WithTimeout(time.Minute))
 		if err != nil {
 			t.Errorf("could not list pods: %v", err)
 		}
@@ -514,7 +516,7 @@ func GetPodLogs(ctx context.Context, cfg *envconf.Config, t *testing.T, imagelis
 				return false, err
 			}
 			return len(ls.Items) > 0, nil
-		}, wait.WithTimeout(time.Minute*3))
+		}, wait.WithTimeout(time.Minute))
 		if err != nil {
 			t.Errorf("could not list pods: %v", err)
 		}
@@ -523,8 +525,10 @@ func GetPodLogs(ctx context.Context, cfg *envconf.Config, t *testing.T, imagelis
 	for _, pod := range ls.Items {
 		var output string
 
+		testName := strings.Split(t.Name(), "/")[0]
+
 		// get log output file path
-		path := filepath.Join(wd, TestLogDir, t.Name())
+		path := filepath.Join(wd, TestLogDir, testName)
 
 		var file *os.File
 		if !fileExists(filepath.Join(path, pod.Name)) {
