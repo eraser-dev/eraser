@@ -493,22 +493,32 @@ func GetPodLogs(ctx context.Context, cfg *envconf.Config, t *testing.T, imagelis
 
 	var ls corev1.PodList
 	if imagelistTest {
-		err = c.Resources().List(ctx, &ls, func(o *metav1.ListOptions) {
-			o.LabelSelector = labels.SelectorFromSet(map[string]string{"name": "eraser"}).String()
-		})
+		err = wait.For(func() (bool, error) {
+			err = c.Resources().List(ctx, &ls, func(o *metav1.ListOptions) {
+				o.LabelSelector = labels.SelectorFromSet(map[string]string{"name": "eraser"}).String()
+			})
+			if err != nil {
+				return false, err
+			}
+			return len(ls.Items) > 0, nil
+		}, wait.WithTimeout(time.Minute*3))
 		if err != nil {
 			t.Errorf("could not list pods: %v", err)
 		}
 	} else {
-		err = c.Resources().List(ctx, &ls, func(o *metav1.ListOptions) {
-			o.LabelSelector = labels.SelectorFromSet(map[string]string{"name": "collector"}).String()
-		})
+		err = wait.For(func() (bool, error) {
+			err = c.Resources().List(ctx, &ls, func(o *metav1.ListOptions) {
+				o.LabelSelector = labels.SelectorFromSet(map[string]string{"name": "collector"}).String()
+			})
+			if err != nil {
+				return false, err
+			}
+			return len(ls.Items) > 0, nil
+		}, wait.WithTimeout(time.Minute*3))
 		if err != nil {
 			t.Errorf("could not list pods: %v", err)
 		}
 	}
-
-	t.Log("PODLIST", ls.Items)
 
 	for _, pod := range ls.Items {
 		var output string
