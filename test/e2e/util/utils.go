@@ -455,10 +455,10 @@ func GetManagerLogs(ctx context.Context, cfg *envconf.Config, t *testing.T) erro
 
 	var file *os.File
 	if !fileExists(filepath.Join(path, manager.Name)) {
-		if err := os.MkdirAll(path, 0644); err != nil {
+		if err := os.MkdirAll(path, filemode); err != nil {
 			return err
 		}
-		file, err = os.Create(filepath.Join(path, manager.Name))
+		_, err = os.Create(filepath.Join(path, manager.Name))
 		if err != nil {
 			return err
 		}
@@ -522,8 +522,9 @@ func GetPodLogs(ctx context.Context, cfg *envconf.Config, t *testing.T, imagelis
 		}
 	}
 
-	for _, pod := range ls.Items {
+	for idx := range ls.Items {
 		var output string
+		pod := ls.Items[idx]
 
 		testName := strings.Split(t.Name(), "/")[0]
 
@@ -532,10 +533,10 @@ func GetPodLogs(ctx context.Context, cfg *envconf.Config, t *testing.T, imagelis
 
 		var file *os.File
 		if !fileExists(filepath.Join(path, pod.Name)) {
-			if err := os.MkdirAll(path, 0644); err != nil {
+			if err := os.MkdirAll(path, filemode); err != nil {
 				return err
 			}
-			file, err = os.Create(filepath.Join(path, pod.Name))
+			_, err = os.Create(filepath.Join(path, pod.Name))
 			if err != nil {
 				return err
 			}

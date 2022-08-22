@@ -133,6 +133,8 @@ func TestEnsureAliasedImageRemoved(t *testing.T) {
 			ctxT, cancel := context.WithTimeout(ctx, time.Minute)
 			defer cancel()
 			util.CheckImageRemoved(ctxT, t, []string{nodeName}, util.Nginx)
+
+			return ctx
 		}).
 		Assess("Get logs", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
 			if err := util.GetPodLogs(ctx, cfg, t, true); err != nil {
