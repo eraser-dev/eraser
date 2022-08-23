@@ -137,7 +137,7 @@ jobs:
           uses: actions/upload-artifact@v3
           with:
             name: eraser_logs
-            path: ${GITHUB_WORKSPACE}/test/e2e/eraser_logs/*
+            path: ${GITHUB_WORKSPACE}/test/e2e/tests/eraser_logs/*
             retention-days: 1
         - name: Harden Runner
           uses: step-security/harden-runner@dd2c410b088af7c0dc8046f3ac9a8f4148492a95
