@@ -35,7 +35,11 @@ func main() {
 
 	if *enableProfile {
 		go func() {
-			err := http.ListenAndServe(fmt.Sprintf("localhost:%d", *profilePort), nil)
+			server := &http.Server{
+				Addr:              fmt.Sprintf("localhost:%d", *profilePort),
+				ReadHeaderTimeout: 3 * time.Second,
+			}
+			err := server.ListenAndServe()
 			log.Error(err, "pprof server failed")
 		}()
 	}

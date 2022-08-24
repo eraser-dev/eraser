@@ -22,6 +22,7 @@ import (
 	"net/http"
 	_ "net/http/pprof"
 	"os"
+	"time"
 
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
@@ -70,7 +71,11 @@ func main() {
 
 	if *enableProfile {
 		go func() {
-			err := http.ListenAndServe(fmt.Sprintf("localhost:%d", *profilePort), nil)
+			server := &http.Server{
+				Addr:              fmt.Sprintf("localhost:%d", *profilePort),
+				ReadHeaderTimeout: 3 * time.Second,
+			}
+			err := server.ListenAndServe()
 			setupLog.Error(err, "pprof server failed")
 		}()
 	}
