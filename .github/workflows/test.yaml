@@ -133,12 +133,6 @@ jobs:
           KUBERNETES_VERSION: ["1.22.9", "1.23.6", "1.24.1"]
           E2E_TEST: ${{ fromJson(needs.build-e2e-test-list.outputs.e2e-tests) }}
       steps:
-        - name: Upload artifacts
-          uses: actions/upload-artifact@v3
-          with:
-            name: eraser_logs
-            path: ${GITHUB_WORKSPACE}/test/e2e/tests/eraser_logs/*
-            retention-days: 1
         - name: Harden Runner
           uses: step-security/harden-runner@dd2c410b088af7c0dc8046f3ac9a8f4148492a95
           with:
@@ -171,7 +165,15 @@ jobs:
         - name: Build trivy-scanner
           run: make docker-build-trivy-scanner
         - name: Run e2e test
+          permissions:
+             contents: write
           run: make e2e-test KUBERNETES_VERSION=${{ matrix.KUBERNETES_VERSION }} E2E_TESTS=${{ matrix.E2E_TEST }}
+        - name: Upload artifacts
+          uses: actions/upload-artifact@v3
+          with:
+            name: eraser_logs
+            path: ${GITHUB_WORKSPACE}/test/e2e/tests/eraser_logs/*
+            retention-days: 1
 
   scan_vulnerabilities:
     name: "[Trivy] Scan for vulnerabilities"
