@@ -5,14 +5,19 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net"
 	"net/url"
 	"os"
 	"strings"
+	"time"
 
+	"golang.org/x/sys/unix"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
+
+	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
 )
 
 const (
@@ -287,4 +292,56 @@ func readConfigMap(path string) ([]string, error) {
 	images = append(images, result.Excluded...)
 
 	return images, nil
+}
+
+func ReadCollectScanPipe() (error, []eraserv1alpha1.Image) {
+	var f *os.File
+	for {
+		var err error
+
+		f, err = os.OpenFile(CollectScanPath, os.O_RDONLY, 0)
+		if err == nil {
+			break
+		}
+		if !os.IsNotExist(err) {
+			return err, nil
+		}
+		time.Sleep(1 * time.Second)
+		continue
+	}
+
+	// json data is list of []eraserv1alpha1.Image
+	data, err := io.ReadAll(f)
+	if err != nil {
+		return err, nil
+	}
+
+	allImages := []eraserv1alpha1.Image{}
+	if err = json.Unmarshal(data, &allImages); err != nil {
+		return err, nil
+	}
+
+	return nil, allImages
+}
+
+func WriteScanErasePipe(vulnerableImages []eraserv1alpha1.Image) error {
+	data, err := json.Marshal(vulnerableImages)
+	if err != nil {
+		return err
+	}
+
+	if err = unix.Mkfifo(ScanErasePath, PipeMode); err != nil {
+		return err
+	}
+
+	file, err := os.OpenFile(ScanErasePath, os.O_WRONLY, 0)
+	if err != nil {
+		return err
+	}
+
+	if _, err := file.Write(data); err != nil {
+		return err
+	}
+
+	return file.Close()
 }
