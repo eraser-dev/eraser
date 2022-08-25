@@ -140,7 +140,7 @@ func main() {
 		}
 	}
 
-	err, allImages := util.ReadCollectScanPipe()
+	allImages, err := util.ReadCollectScanPipe()
 	if err != nil {
 		log.Error(err, "unable to read images from collect scan pipe")
 		os.Exit(generalErr)

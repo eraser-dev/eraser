@@ -294,7 +294,7 @@ func readConfigMap(path string) ([]string, error) {
 	return images, nil
 }
 
-func ReadCollectScanPipe() (error, []eraserv1alpha1.Image) {
+func ReadCollectScanPipe() ([]eraserv1alpha1.Image, error) {
 	var f *os.File
 	for {
 		var err error
@@ -304,7 +304,7 @@ func ReadCollectScanPipe() (error, []eraserv1alpha1.Image) {
 			break
 		}
 		if !os.IsNotExist(err) {
-			return err, nil
+			return nil, err
 		}
 		time.Sleep(1 * time.Second)
 		continue
@@ -313,15 +313,15 @@ func ReadCollectScanPipe() (error, []eraserv1alpha1.Image) {
 	// json data is list of []eraserv1alpha1.Image
 	data, err := io.ReadAll(f)
 	if err != nil {
-		return err, nil
+		return nil, err
 	}
 
 	allImages := []eraserv1alpha1.Image{}
 	if err = json.Unmarshal(data, &allImages); err != nil {
-		return err, nil
+		return nil, err
 	}
 
-	return nil, allImages
+	return allImages, nil
 }
 
 func WriteScanErasePipe(vulnerableImages []eraserv1alpha1.Image) error {
