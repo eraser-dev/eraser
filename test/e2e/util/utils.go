@@ -50,7 +50,6 @@ const (
 	FilterNodeSelector   = "kubernetes.io/hostname=eraser-e2e-test-worker"
 	FilterLabelKey       = "eraser.sh/cleanup.filter"
 	FilterLabelValue     = "true"
-	TestLogDir           = "../eraser_logs"
 	filemode             = 0o755
 )
 
@@ -65,6 +64,7 @@ var (
 	NodeVersion        = os.Getenv("NODE_VERSION")
 	TestNamespace      = envconf.RandomName("test-ns", 16)
 	EraserNamespace    = pkgUtil.GetNamespace()
+	TestLogDir         = os.Getenv("TEST_LOGDIR")
 )
 
 func IsNotFound(err error) bool {
@@ -443,15 +443,10 @@ func GetManagerLogs(ctx context.Context, cfg *envconf.Config, t *testing.T) erro
 		return err
 	}
 
-	wd, err := os.Getwd()
-	if err != nil {
-		return err
-	}
-
 	testName := strings.Split(t.Name(), "/")[0]
 
 	// get log output file path
-	path := filepath.Join(wd, TestLogDir, testName)
+	path := filepath.Join(TestLogDir, testName)
 
 	var file *os.File
 	if err := os.MkdirAll(path, filemode); err != nil {
@@ -482,11 +477,6 @@ func GetManagerLogs(ctx context.Context, cfg *envconf.Config, t *testing.T) erro
 
 func GetPodLogs(ctx context.Context, cfg *envconf.Config, t *testing.T, imagelistTest bool) error {
 	c, err := cfg.NewClient()
-	if err != nil {
-		return err
-	}
-
-	wd, err := os.Getwd()
 	if err != nil {
 		return err
 	}
@@ -527,7 +517,7 @@ func GetPodLogs(ctx context.Context, cfg *envconf.Config, t *testing.T, imagelis
 		testName := strings.Split(t.Name(), "/")[0]
 
 		// get log output file path
-		path := filepath.Join(wd, TestLogDir, testName)
+		path := filepath.Join(TestLogDir, testName)
 
 		var file *os.File
 		if err := os.MkdirAll(path, filemode); err != nil {
