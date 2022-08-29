@@ -171,8 +171,8 @@ jobs:
         - name: Upload artifacts
           uses: actions/upload-artifact@v3
           with:
-            name: eraser_logs
-            path: ${GITHUB_WORKSPACE}/test_logs/*
+            name: test_logs
+            path: ${{ github.workspace }}/test_logs/*
             retention-days: 1
 
   scan_vulnerabilities:
