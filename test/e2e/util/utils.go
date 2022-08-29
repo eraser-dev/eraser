@@ -454,14 +454,12 @@ func GetManagerLogs(ctx context.Context, cfg *envconf.Config, t *testing.T) erro
 	path := filepath.Join(wd, TestLogDir, testName)
 
 	var file *os.File
-	if !fileExists(filepath.Join(path, manager.Name)) {
-		if err := os.MkdirAll(path, filemode); err != nil {
-			return err
-		}
-		_, err = os.Create(filepath.Join(path, manager.Name))
-		if err != nil {
-			return err
-		}
+	if err := os.MkdirAll(path, filemode); err != nil {
+		return err
+	}
+	_, err = os.Create(filepath.Join(path, manager.Name))
+	if err != nil {
+		return err
 	}
 
 	file, err = os.OpenFile(filepath.Join(path, manager.Name), os.O_APPEND|os.O_WRONLY, filemode)
@@ -532,14 +530,12 @@ func GetPodLogs(ctx context.Context, cfg *envconf.Config, t *testing.T, imagelis
 		path := filepath.Join(wd, TestLogDir, testName)
 
 		var file *os.File
-		if !fileExists(filepath.Join(path, pod.Name)) {
-			if err := os.MkdirAll(path, filemode); err != nil {
-				return err
-			}
-			_, err = os.Create(filepath.Join(path, pod.Name))
-			if err != nil {
-				return err
-			}
+		if err := os.MkdirAll(path, filemode); err != nil {
+			return err
+		}
+		_, err = os.Create(filepath.Join(path, pod.Name))
+		if err != nil {
+			return err
 		}
 
 		file, err = os.OpenFile(filepath.Join(path, pod.Name), os.O_APPEND|os.O_WRONLY, filemode)
