@@ -294,7 +294,10 @@ func readConfigMap(path string) ([]string, error) {
 	return images, nil
 }
 
-func ReadCollectScanPipe() ([]eraserv1alpha1.Image, error) {
+func ReadCollectScanPipe(ctx context.Context) ([]eraserv1alpha1.Image, error) {
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
 	var f *os.File
 	for {
 		var err error
