@@ -451,12 +451,12 @@ func GetManagerLogs(ctx context.Context, cfg *envconf.Config, t *testing.T) erro
 	if err := os.MkdirAll(path, 0755); err != nil {
 		return err
 	}
-	_, err = os.Create(filepath.Join(path, manager.Name))
+	_, err = os.Create(filepath.Join(path, manager.Name+".txt"))
 	if err != nil {
 		return err
 	}
 
-	file, err = os.OpenFile(filepath.Join(path, manager.Name), os.O_APPEND|os.O_WRONLY, 0644)
+	file, err = os.OpenFile(filepath.Join(path, manager.Name+".txt"), os.O_APPEND|os.O_WRONLY, 0644)
 	if err != nil {
 		return err
 	}
@@ -522,12 +522,12 @@ func GetPodLogs(ctx context.Context, cfg *envconf.Config, t *testing.T, imagelis
 		if err := os.MkdirAll(path, 0755); err != nil {
 			return err
 		}
-		_, err = os.Create(filepath.Join(path, pod.Name))
+		_, err = os.Create(filepath.Join(path, pod.Name+".txt"))
 		if err != nil {
 			return err
 		}
 
-		file, err = os.OpenFile(filepath.Join(path, pod.Name), os.O_APPEND|os.O_WRONLY, 0644)
+		file, err = os.OpenFile(filepath.Join(path, pod.Name+".txt"), os.O_APPEND|os.O_WRONLY, 0644)
 		if err != nil {
 			return err
 		}
