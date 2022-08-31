@@ -295,8 +295,11 @@ func readConfigMap(path string) ([]string, error) {
 }
 
 func ReadCollectScanPipe(ctx context.Context) ([]eraserv1alpha1.Image, error) {
-	_, cancel := context.WithCancel(ctx)
-	defer cancel()
+	timer := time.NewTimer(time.Second)
+	if !timer.Stop() {
+		<-timer.C
+	}
+	defer timer.Stop()
 
 	var f *os.File
 	for {
@@ -309,8 +312,14 @@ func ReadCollectScanPipe(ctx context.Context) ([]eraserv1alpha1.Image, error) {
 		if !os.IsNotExist(err) {
 			return nil, err
 		}
-		time.Sleep(1 * time.Second)
-		continue
+
+		timer.Reset(time.Second)
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		case <-timer.C:
+			continue
+		}
 	}
 
 	// json data is list of []eraserv1alpha1.Image
