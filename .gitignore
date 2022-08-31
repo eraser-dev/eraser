@@ -36,3 +36,6 @@ testbin/*
 node_modules/
 .docusaurus/
 build/
+
+# e2e test log outputs
+ test/e2e/tests/eraser_logs/

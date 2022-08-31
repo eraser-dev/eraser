@@ -129,8 +129,12 @@ func TestSkipNodes(t *testing.T) {
 			defer cancel()
 
 			// ensure images are removed from all nodes except the one we are skipping. remove the node we are skipping from the list of nodes.
-
 			util.CheckImageRemoved(ctxT, t, clusterNodes, util.Nginx)
+
+			// get pod logs before imagejob is deleted
+			if err := util.GetPodLogs(ctx, cfg, t, true); err != nil {
+				t.Error("error getting collector pod logs", err)
+			}
 
 			// Wait for the imagejob to be completed by checking for its nonexistence in the cluster
 			err = wait.For(util.ImagejobNotInCluster(cfg.KubeconfigFile()), wait.WithTimeout(time.Minute*2))
@@ -140,6 +144,13 @@ func TestSkipNodes(t *testing.T) {
 
 			// the imagejob has done its work, so now we can check the node to make sure it didn't remove the image
 			util.CheckImagesExist(ctx, t, []string{util.FilterNodeName}, util.Nginx)
+
+			return ctx
+		}).
+		Assess("Get logs", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
+			if err := util.GetManagerLogs(ctx, cfg, t); err != nil {
+				t.Error("error getting manager logs", err)
+			}
 
 			return ctx
 		}).

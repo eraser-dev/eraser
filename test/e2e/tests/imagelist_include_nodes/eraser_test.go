@@ -120,6 +120,11 @@ func TestIncludeNodes(t *testing.T) {
 				t.Error("Failed to deploy image list config", err)
 			}
 
+			// get pod logs before imagejob is deleted
+			if err := util.GetPodLogs(ctx, cfg, t, true); err != nil {
+				t.Error("error getting collector pod logs", err)
+			}
+
 			ctxT, cancel := context.WithTimeout(ctx, time.Minute)
 			defer cancel()
 
@@ -137,6 +142,13 @@ func TestIncludeNodes(t *testing.T) {
 
 			// the imagejob has done its work, so now we can check the node to make sure it didn't remove the images from the remaining nodes
 			util.CheckImagesExist(ctx, t, clusterNodes, util.Nginx)
+
+			return ctx
+		}).
+		Assess("Get logs", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
+			if err := util.GetManagerLogs(ctx, cfg, t); err != nil {
+				t.Error("error getting manager logs", err)
+			}
 
 			return ctx
 		}).
