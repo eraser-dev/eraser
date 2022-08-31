@@ -10,17 +10,12 @@ import (
 
 	"github.com/Azure/eraser/test/e2e/util"
 
-	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/labels"
-	"sigs.k8s.io/e2e-framework/klient/wait"
-	"sigs.k8s.io/e2e-framework/klient/wait/conditions"
 	"sigs.k8s.io/e2e-framework/pkg/envconf"
 	"sigs.k8s.io/e2e-framework/pkg/features"
 )
 
 func TestCollectorExcluded(t *testing.T) {
-	collectorExcluded := features.New("ImageCollector should not remove excluded images from imagecollector-shared").
+	collectorExcluded := features.New("ImageCollector should not remove excluded images").
 		Assess("Alpine image is not removed", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
 			ctxT, cancel := context.WithTimeout(ctx, time.Minute*5)
 			defer cancel()
@@ -35,23 +30,13 @@ func TestCollectorExcluded(t *testing.T) {
 
 			return ctx
 		}).
-		Assess("Pods from imagejobs are cleaned up", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
-			c, err := cfg.NewClient()
-			if err != nil {
-				t.Fatal("Failed to create new client", err)
+		Assess("Get logs", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
+			if err := util.GetPodLogs(ctx, cfg, t, false); err != nil {
+				t.Error("error getting collector pod logs", err)
 			}
 
-			var ls corev1.PodList
-			err = c.Resources().List(ctx, &ls, func(o *metav1.ListOptions) {
-				o.LabelSelector = labels.SelectorFromSet(map[string]string{"name": "collector"}).String()
-			})
-			if err != nil {
-				t.Errorf("could not list pods: %v", err)
-			}
-
-			err = wait.For(conditions.New(c.Resources()).ResourcesDeleted(&ls), wait.WithTimeout(time.Minute))
-			if err != nil {
-				t.Errorf("error waiting for pods to be deleted: %v", err)
+			if err := util.GetManagerLogs(ctx, cfg, t); err != nil {
+				t.Error("error getting manager logs", err)
 			}
 
 			return ctx
