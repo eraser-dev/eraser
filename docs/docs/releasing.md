@@ -40,6 +40,12 @@ Publishing involves creating a release tag and creating a new _Release_ on GitHu
    make promote-staging-manifest
    ```
 
+1. If it's a new minor release (e.g. v0.**4**.x -> 0.**5**.0), tag docs to be versioned. Make sure to keep patch version as `.x` for a minor release.
+
+	```
+	make version-docs NEWVERSION=v0.5.x
+	```
+
 1. Preview the changes:
 
    ```
