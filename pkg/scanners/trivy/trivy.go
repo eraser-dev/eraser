@@ -2,17 +2,14 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"flag"
 	"fmt"
-	"io"
 	"net/http"
 	"os"
 	"time"
 
 	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
 	"go.uber.org/zap"
-	"golang.org/x/sys/unix"
 
 	_ "net/http/pprof"
 
@@ -143,32 +140,9 @@ func main() {
 		}
 	}
 
-	var f *os.File
-	for {
-		var err error
-
-		f, err = os.OpenFile(util.CollectScanPath, os.O_RDONLY, 0)
-		if err == nil {
-			break
-		}
-		if !os.IsNotExist(err) {
-			log.Error(err, "error opening collectScan pipe")
-			os.Exit(generalErr)
-		}
-		time.Sleep(1 * time.Second)
-		continue
-	}
-
-	// json data is list of []eraserv1alpha1.Image
-	data, err := io.ReadAll(f)
+	allImages, err := util.ReadCollectScanPipe(ctx)
 	if err != nil {
-		log.Error(err, "error reading allImages")
-		os.Exit(1)
-	}
-
-	allImages := []eraserv1alpha1.Image{}
-	if err = json.Unmarshal(data, &allImages); err != nil {
-		log.Error(err, "error in unmarshal allImages")
+		log.Error(err, "unable to read images from collect scan pipe")
 		os.Exit(generalErr)
 	}
 
@@ -261,28 +235,10 @@ func main() {
 	}
 
 	// write vulnerable images to scanErase pipe for eraser to read
-	data, err = json.Marshal(vulnerableImages)
-	if err != nil {
-		log.Error(err, "failed to encode vulnerableImages")
-		os.Exit(1)
+	if err := util.WriteScanErasePipe(vulnerableImages); err != nil {
+		log.Error(err, "unable to write non-compliant images to scan erase pipe")
+		os.Exit(generalErr)
 	}
 
-	if err = unix.Mkfifo(util.ScanErasePath, util.PipeMode); err != nil {
-		log.Error(err, "failed to create scanErase pipe")
-		os.Exit(1)
-	}
-
-	file, err := os.OpenFile(util.ScanErasePath, os.O_WRONLY, 0)
-	if err != nil {
-		log.Error(err, "failed to open scanErase pipe")
-		os.Exit(1)
-	}
-
-	if _, err := file.Write(data); err != nil {
-		log.Error(err, "failed to write to scanErase pipe")
-		os.Exit(1)
-	}
-
-	file.Close()
 	log.Info("scanning complete, exiting")
 }

@@ -8,6 +8,7 @@ COLLECTOR_IMG ?= ghcr.io/azure/collector:${VERSION}
 VULNERABLE_IMG ?= docker.io/library/alpine:3.7.3
 NON_VULNERABLE_IMG ?= ghcr.io/azure/non-vulnerable:latest
 E2E_TESTS ?= $(shell find ./test/e2e/tests/ -mindepth 1 -type d)
+TEST_LOGDIR ?= $(PWD)/test_logs
 
 KUSTOMIZE_VERSION ?= 3.8.9
 KUBERNETES_VERSION ?= 1.23.0
@@ -47,7 +48,7 @@ GOLANGCI_LINT_BIN := golangci-lint
 GOLANGCI_LINT := $(TOOLS_BIN_DIR)/$(GOLANGCI_LINT_BIN)-v$(GOLANGCI_LINT_VERSION)
 
 TEST_COUNT ?= 1
-TIMEOUT ?= 1200s
+TIMEOUT ?= 1800s
 
 $(GOLANGCI_LINT):
 	GOBIN=$(TOOLS_BIN_DIR) $(GO_INSTALL) github.com/golangci/golangci-lint/cmd/golangci-lint $(GOLANGCI_LINT_BIN) v$(GOLANGCI_LINT_VERSION)
@@ -140,6 +141,7 @@ e2e-test: vulnerable-img non-vulnerable-img
 			VULNERABLE_IMAGE=${VULNERABLE_IMG} \
 			NON_VULNERABLE_IMAGE=${NON_VULNERABLE_IMG} \
 			NODE_VERSION=kindest/node:v${KUBERNETES_VERSION} \
+			TEST_LOGDIR=${TEST_LOGDIR} \
 			go test -count=$(TEST_COUNT) -timeout=$(TIMEOUT) $(TESTFLAGS) -tags=e2e -v $$test ; \
 	done
 
