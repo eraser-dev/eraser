@@ -12,6 +12,7 @@ TEST_LOGDIR ?= $(PWD)/test_logs
 
 KUSTOMIZE_VERSION ?= 3.8.9
 KUBERNETES_VERSION ?= 1.23.0
+NODE_VERSION ?= 16-bullseye-slim
 ENVTEST_K8S_VERSION ?= 1.23
 GOLANGCI_LINT_VERSION := 1.43.0
 TRIVY_VERSION ?= $(shell go list -f '{{ .Version }}' -m github.com/aquasecurity/trivy)
@@ -254,3 +255,13 @@ __tooling-image:
 	docker build . \
 		-t eraser-tooling \
 		-f build/tooling/Dockerfile
+
+# Tags a new version for docs
+.PHONY: version-docs
+version-docs:
+	docker run \
+		-v $(shell pwd)/docs:/docs \
+		-w /docs \
+		-u $(shell id -u):$(shell id -g) \
+		node:${NODE_VERSION} \
+		sh -c "yarn install --frozen-lockfile && yarn run docusaurus docs:version ${NEWVERSION}"
