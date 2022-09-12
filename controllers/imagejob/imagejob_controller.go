@@ -21,8 +21,6 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apiserver/pkg/util/feature"
-	"k8s.io/kubernetes/pkg/features"
 	"k8s.io/kubernetes/pkg/scheduler/framework"
 	"k8s.io/kubernetes/pkg/scheduler/framework/plugins/noderesources"
 
@@ -132,7 +130,7 @@ func checkNodeFitness(pod *corev1.Pod, node *corev1.Node) bool {
 	nodeInfo := framework.NewNodeInfo()
 	nodeInfo.SetNode(node)
 
-	insufficientResource := noderesources.Fits(pod, nodeInfo, feature.DefaultFeatureGate.Enabled(features.PodOverhead))
+	insufficientResource := noderesources.Fits(pod, nodeInfo)
 
 	if len(insufficientResource) != 0 {
 		log.Error(fmt.Errorf("pod %v in namespace %v does not fit in node %v", pod.Name, pod.Namespace, node.Name), "insufficient resource")
