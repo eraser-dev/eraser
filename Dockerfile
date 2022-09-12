@@ -1,13 +1,8 @@
 # syntax=mcr.microsoft.com/oss/moby/dockerfile:1.3.1
 ARG BUILDERIMAGE="golang:1.19-bullseye"
-
 ARG STATICBASEIMAGE="gcr.io/distroless/static:latest"
 ARG STATICNONROOTBASEIMAGE="gcr.io/distroless/static:nonroot"
 
-ARG TARGETOS
-ARG TARGETARCH
-
-ARG LDFLAGS
 # Build the manager binary
 FROM --platform=$BUILDPLATFORM $BUILDERIMAGE AS builder
 WORKDIR /workspace
@@ -24,41 +19,29 @@ RUN \
     go mod download
 COPY . .
 
-FROM builder AS manager-build
 ARG LDFLAGS
 ARG TARGETOS
 ARG TARGETARCH
 
+FROM builder AS manager-build
 RUN \
     --mount=type=cache,target=${GOCACHE} \
     --mount=type=cache,target=/go/pkg/mod \
     GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build ${LDFLAGS:+-ldflags "$LDFLAGS"} -o out/manager main.go
 
 FROM builder AS trivy-scanner-build
-ARG LDFLAGS
-ARG TARGETOS
-ARG TARGETARCH
-
 RUN \
     --mount=type=cache,target=${GOCACHE} \
     --mount=type=cache,target=/go/pkg/mod \
     GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build ${LDFLAGS:+-ldflags "$LDFLAGS"} -o out/trivy-scanner ./pkg/scanners/trivy
 
 FROM builder AS eraser-build
-ARG LDFLAGS
-ARG TARGETOS
-ARG TARGETARCH
-
 RUN \
     --mount=type=cache,target=${GOCACHE} \
     --mount=type=cache,target=/go/pkg/mod \
     GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build ${LDFLAGS:+-ldflags "$LDFLAGS"} -o out/eraser ./pkg/eraser
 
 FROM builder AS collector-build
-ARG LDFLAGS
-ARG TARGETOS
-ARG TARGETARCH
-
 RUN \
     --mount=type=cache,target=${GOCACHE} \
     --mount=type=cache,target=/go/pkg/mod \
