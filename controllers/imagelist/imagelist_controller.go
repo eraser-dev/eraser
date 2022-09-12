@@ -16,7 +16,6 @@ package imagelist
 import (
 	"context"
 	"encoding/json"
-	"flag"
 	"fmt"
 	"path/filepath"
 	"time"
@@ -46,21 +45,13 @@ import (
 )
 
 const (
-	imgListPath  = "/run/eraser.sh/imagelist"
-	excludedPath = "/run/eraser.sh/excluded"
-	excludedName = "excluded"
+	imgListPath = "/run/eraser.sh/imagelist"
 )
 
 var (
-	log         = logf.Log.WithName("controller").WithValues("process", "imagelist-controller")
-	eraserImage = flag.String("eraser-image", "ghcr.io/azure/eraser:latest", "eraser image")
-	imageList   = types.NamespacedName{Name: "imagelist"}
-	eraserArgs  = utils.MultiFlag([]string{})
+	log       = logf.Log.WithName("controller").WithValues("process", "imagelist-controller")
+	imageList = types.NamespacedName{Name: "imagelist"}
 )
-
-func init() {
-	flag.Var(&eraserArgs, "eraser-arg", "An argument to be passed through to the eraser. For example, --eraser-arg=--enable-pprof=true will pass through to the eraser as --enable-pprof=true. Can be supplied multiple times.")
-}
 
 func Add(mgr manager.Manager) error {
 	return add(mgr, newReconciler(mgr))
@@ -193,7 +184,7 @@ func (r *Reconciler) handleImageListEvent(ctx context.Context, req *ctrl.Request
 			GenerateName: "imagelist-",
 			Namespace:    utils.GetNamespace(),
 		},
-		Immutable: boolPtr(true),
+		Immutable: utils.BoolPtr(true),
 		Data:      map[string]string{"images": string(imgListJSON)},
 	}
 	if err := r.Create(ctx, &configMap); err != nil {
@@ -205,7 +196,7 @@ func (r *Reconciler) handleImageListEvent(ctx context.Context, req *ctrl.Request
 		"--imagelist=" + filepath.Join(imgListPath, "images"),
 		"--log-level=" + logger.GetLevel(),
 	}
-	args = append(args, eraserArgs...)
+	args = append(args, util.EraserArgs...)
 
 	job := &eraserv1alpha1.ImageJob{
 		ObjectMeta: metav1.ObjectMeta{
@@ -224,23 +215,16 @@ func (r *Reconciler) handleImageListEvent(ctx context.Context, req *ctrl.Request
 								ConfigMap: &corev1.ConfigMapVolumeSource{LocalObjectReference: corev1.LocalObjectReference{Name: configName}},
 							},
 						},
-						{
-							Name: excludedName,
-							VolumeSource: corev1.VolumeSource{
-								ConfigMap: &corev1.ConfigMapVolumeSource{LocalObjectReference: corev1.LocalObjectReference{Name: excludedName}, Optional: boolPtr(true)},
-							},
-						},
 					},
 					RestartPolicy: corev1.RestartPolicyNever,
 					Containers: []corev1.Container{
 						{
 							Name:            "eraser",
-							Image:           *eraserImage,
+							Image:           *util.EraserImage,
 							ImagePullPolicy: corev1.PullIfNotPresent,
 							Args:            args,
 							VolumeMounts: []corev1.VolumeMount{
 								{MountPath: imgListPath, Name: configName},
-								{MountPath: excludedPath, Name: excludedName},
 							},
 							Resources: corev1.ResourceRequirements{
 								Requests: corev1.ResourceList{
@@ -252,6 +236,7 @@ func (r *Reconciler) handleImageListEvent(ctx context.Context, req *ctrl.Request
 									"memory": resource.MustParse("30Mi"),
 								},
 							},
+							SecurityContext: utils.SharedSecurityContext,
 						},
 					},
 					ServiceAccountName: "eraser-imagejob-pods",
@@ -259,6 +244,24 @@ func (r *Reconciler) handleImageListEvent(ctx context.Context, req *ctrl.Request
 			},
 		},
 	}
+
+	configmapList := &corev1.ConfigMapList{}
+	if err := r.List(ctx, configmapList); err != nil {
+		log.Info("Could not get list of configmaps")
+		return reconcile.Result{}, err
+	}
+
+	exclusionMount, exclusionVolume, err := util.GetExclusionVolume(configmapList)
+	if err != nil {
+		log.Info("Could not get exclusion mounts and volumes")
+		return reconcile.Result{}, err
+	}
+
+	for i := range job.Spec.JobTemplate.Spec.Containers {
+		job.Spec.JobTemplate.Spec.Containers[i].VolumeMounts = append(job.Spec.JobTemplate.Spec.Containers[i].VolumeMounts, exclusionMount...)
+	}
+
+	job.Spec.JobTemplate.Spec.Volumes = append(job.Spec.JobTemplate.Spec.Volumes, exclusionVolume...)
 
 	err = r.Create(ctx, job)
 	log.Info("creating imagejob", "job", job.Name)
@@ -334,8 +337,4 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	}
 
 	return nil
-}
-
-func boolPtr(b bool) *bool {
-	return &b
 }

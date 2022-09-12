@@ -3,6 +3,7 @@ package util
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -14,6 +15,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/e2e-framework/klient/wait"
@@ -22,11 +24,14 @@ import (
 	"sigs.k8s.io/e2e-framework/pkg/envconf"
 	"sigs.k8s.io/kind/pkg/cluster"
 
+	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
+
 	pkgUtil "github.com/Azure/eraser/pkg/utils"
 )
 
 const (
-	providerResourceDirectory = "manifest_staging/charts"
+	providerResourceChartDir  = "manifest_staging/charts"
+	providerResourceDeployDir = "manifest_staging/deploy"
 
 	KindClusterName  = "eraser-e2e-test"
 	ProviderResource = "eraser.yaml"
@@ -48,15 +53,17 @@ const (
 )
 
 var (
-	Testenv         env.Environment
-	Image           = os.Getenv("IMAGE")
-	ManagerImage    = os.Getenv("MANAGER_IMAGE")
-	CollectorImage  = os.Getenv("COLLECTOR_IMAGE")
-	ScannerImage    = os.Getenv("SCANNER_IMAGE")
-	VulnerableImage = os.Getenv("VULNERABLE_IMAGE")
-	NodeVersion     = os.Getenv("NODE_VERSION")
-	TestNamespace   = envconf.RandomName("test-ns", 16)
-	EraserNamespace = pkgUtil.GetNamespace()
+	Testenv            env.Environment
+	Image              = os.Getenv("IMAGE")
+	ManagerImage       = os.Getenv("MANAGER_IMAGE")
+	CollectorImage     = os.Getenv("COLLECTOR_IMAGE")
+	ScannerImage       = os.Getenv("SCANNER_IMAGE")
+	VulnerableImage    = os.Getenv("VULNERABLE_IMAGE")
+	NonVulnerableImage = os.Getenv("NON_VULNERABLE_IMAGE")
+	NodeVersion        = os.Getenv("NODE_VERSION")
+	TestNamespace      = envconf.RandomName("test-ns", 16)
+	EraserNamespace    = pkgUtil.GetNamespace()
+	TestLogDir         = os.Getenv("TEST_LOGDIR")
 )
 
 func IsNotFound(err error) bool {
@@ -160,23 +167,23 @@ func ImagejobNotInCluster(kubeconfigPath string) func() (bool, error) {
 	}
 }
 
-// delete eraser config.
-func DeleteEraserConfig(kubeConfig, namespace, resourcePath, fileName string) error {
-	wd, err := os.Getwd()
+func GetImageJob(ctx context.Context, cfg *envconf.Config) (eraserv1alpha1.ImageJob, error) {
+	c, err := cfg.NewClient()
 	if err != nil {
-		return err
+		return eraserv1alpha1.ImageJob{}, err
 	}
 
-	exampleResourceAbsolutePath, err := filepath.Abs(filepath.Join(wd, resourcePath))
+	var ls eraserv1alpha1.ImageJobList
+	err = c.Resources().List(ctx, &ls)
 	if err != nil {
-		return err
-	}
-	errDelete := KubectlDelete(kubeConfig, namespace, []string{"-f", filepath.Join(exampleResourceAbsolutePath, fileName)})
-	if errDelete != nil {
-		return errDelete
+		return eraserv1alpha1.ImageJob{}, err
 	}
 
-	return nil
+	if len(ls.Items) != 1 {
+		return eraserv1alpha1.ImageJob{}, errors.New("only one imagejob should be present")
+	}
+
+	return ls.Items[0], nil
 }
 
 func ListNodeContainers(nodeName string) (string, error) {
@@ -368,14 +375,14 @@ func DeleteStringFromSlice(strings []string, s string) []string {
 	return strings
 }
 
-func DeployEraserManifest(namespace string, args ...string) env.Func {
+func DeployEraserHelm(namespace string, args ...string) env.Func {
 	return func(ctx context.Context, cfg *envconf.Config) (context.Context, error) {
 		wd, err := os.Getwd()
 		if err != nil {
 			return ctx, err
 		}
 
-		providerResourceAbsolutePath, err := filepath.Abs(filepath.Join(wd, "../../../../", providerResourceDirectory, "eraser"))
+		providerResourceAbsolutePath, err := filepath.Abs(filepath.Join(wd, "../../../../", providerResourceChartDir, "eraser"))
 		if err != nil {
 			return ctx, err
 		}
@@ -408,6 +415,181 @@ func DeployEraserManifest(namespace string, args ...string) env.Func {
 	}
 }
 
+func GetManagerLogs(ctx context.Context, cfg *envconf.Config, t *testing.T) error {
+	c, err := cfg.NewClient()
+	if err != nil {
+		return err
+	}
+
+	var pods corev1.PodList
+	err = c.Resources().List(ctx, &pods, func(o *metav1.ListOptions) {
+		o.LabelSelector = labels.SelectorFromSet(map[string]string{"control-plane": "controller-manager"}).String()
+	})
+	if err != nil {
+		return err
+	}
+
+	if len(pods.Items) > 1 {
+		return errors.New("only one manager pod should be present")
+	} else if len(pods.Items) == 0 {
+		return errors.New("no manager pod present")
+	}
+
+	manager := pods.Items[0]
+
+	output, err := KubectlLogs(cfg.KubeconfigFile(), manager.Name, "", EraserNamespace)
+	if err != nil {
+		return err
+	}
+
+	testName := strings.Split(t.Name(), "/")[0]
+
+	// get log output file path
+	path := filepath.Join(TestLogDir, testName)
+
+	var file *os.File
+	if err := os.MkdirAll(path, 0o755); err != nil {
+		return err
+	}
+	_, err = os.Create(filepath.Join(path, manager.Name+".txt"))
+	if err != nil {
+		return err
+	}
+
+	file, err = os.OpenFile(filepath.Join(path, manager.Name+".txt"), os.O_APPEND|os.O_WRONLY, 0o644)
+	if err != nil {
+		return err
+	}
+
+	// write manager logs
+	if _, err := file.WriteString(output); err != nil {
+		t.Errorf("error writing manager logs %s %v", path, err)
+	}
+
+	// close log output file
+	if err := file.Close(); err != nil {
+		t.Errorf("error closing file %s %v", path, err)
+	}
+
+	return nil
+}
+
+func GetPodLogs(ctx context.Context, cfg *envconf.Config, t *testing.T, imagelistTest bool) error {
+	c, err := cfg.NewClient()
+	if err != nil {
+		return err
+	}
+
+	var ls corev1.PodList
+	if imagelistTest {
+		err = wait.For(func() (bool, error) {
+			err = c.Resources().List(ctx, &ls, func(o *metav1.ListOptions) {
+				o.LabelSelector = labels.SelectorFromSet(map[string]string{"name": "eraser"}).String()
+			})
+			if err != nil {
+				return false, err
+			}
+			return len(ls.Items) > 0, nil
+		}, wait.WithTimeout(time.Minute))
+		if err != nil {
+			t.Errorf("could not list pods: %v", err)
+		}
+	} else {
+		err = wait.For(func() (bool, error) {
+			err = c.Resources().List(ctx, &ls, func(o *metav1.ListOptions) {
+				o.LabelSelector = labels.SelectorFromSet(map[string]string{"name": "collector"}).String()
+			})
+			if err != nil {
+				return false, err
+			}
+			return len(ls.Items) > 0, nil
+		}, wait.WithTimeout(time.Minute))
+		if err != nil {
+			t.Errorf("could not list pods: %v", err)
+		}
+	}
+
+	for idx := range ls.Items {
+		var output string
+		pod := ls.Items[idx]
+
+		testName := strings.Split(t.Name(), "/")[0]
+
+		// get log output file path
+		path := filepath.Join(TestLogDir, testName)
+
+		var file *os.File
+		if err := os.MkdirAll(path, 0o755); err != nil {
+			return err
+		}
+		_, err = os.Create(filepath.Join(path, pod.Name+".txt"))
+		if err != nil {
+			return err
+		}
+
+		file, err = os.OpenFile(filepath.Join(path, pod.Name+".txt"), os.O_APPEND|os.O_WRONLY, 0o644)
+		if err != nil {
+			return err
+		}
+
+		// wait for current pod to complete
+		err = wait.For(conditions.New(c.Resources()).PodPhaseMatch(&pod, corev1.PodSucceeded), wait.WithTimeout(time.Minute*2))
+		if err != nil {
+			t.Errorf("error waiting for pod completion %s %v", pod.Name, err)
+		}
+
+		if !imagelistTest {
+			// get collector container logs
+			output, err = KubectlLogs(cfg.KubeconfigFile(), pod.Name, "collector", EraserNamespace)
+			if err != nil {
+				t.Errorf("could not get collector container logs %s %v", pod.Name, err)
+			}
+
+			if _, err := file.WriteString(output); err != nil {
+				t.Errorf("error writing collector logs %s %v", path, err)
+			}
+
+			// get eraser container logs
+			output, err = KubectlLogs(cfg.KubeconfigFile(), pod.Name, "eraser", EraserNamespace)
+			if err != nil {
+				t.Errorf("could not get eraser container logs %s %v", pod.Name, err)
+			}
+
+			if _, err := file.WriteString("\n" + output); err != nil {
+				t.Errorf("error writing eraser logs %s %v", path, err)
+			}
+		} else {
+			// get eraser pog logs
+			output, err = KubectlLogs(cfg.KubeconfigFile(), pod.Name, "", EraserNamespace)
+			if err != nil {
+				t.Error("could not get pod output", err)
+			}
+			if _, err := file.WriteString(output); err != nil {
+				t.Errorf("error writing eraser logs %s %v", path, err)
+			}
+		}
+
+		// close log output file
+		if err := file.Close(); err != nil {
+			t.Errorf("error closing file %s %v", path, err)
+		}
+	}
+
+	return nil
+}
+
+func DeployEraserManifest(namespace, fileName string) env.Func {
+	return func(ctx context.Context, cfg *envconf.Config) (context.Context, error) {
+		providerResourceAbsolutePath := "../../../../" + providerResourceDeployDir
+
+		if err := DeployEraserConfig(cfg.KubeconfigFile(), namespace, providerResourceAbsolutePath, fileName); err != nil {
+			return ctx, err
+		}
+
+		return ctx, nil
+	}
+}
+
 func CreateExclusionList(namespace string, list pkgUtil.ExclusionList) env.Func {
 	return func(ctx context.Context, cfg *envconf.Config) (context.Context, error) {
 		c, err := cfg.NewClient()
@@ -423,8 +605,8 @@ func CreateExclusionList(namespace string, list pkgUtil.ExclusionList) env.Func 
 		// create excluded configmap and add docker.io/library/alpine
 		excluded := corev1.ConfigMap{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      "excluded",
-				Namespace: EraserNamespace,
+				GenerateName: "excluded",
+				Namespace:    EraserNamespace,
 			},
 			Data: map[string]string{"excluded": string(b)},
 		}
@@ -434,7 +616,7 @@ func CreateExclusionList(namespace string, list pkgUtil.ExclusionList) env.Func 
 
 		cMap := corev1.ConfigMap{}
 		err = wait.For(func() (bool, error) {
-			err := c.Resources().Get(ctx, "excluded", EraserNamespace, &cMap)
+			err := c.Resources().Get(ctx, excluded.Name, EraserNamespace, &cMap)
 			if IsNotFound(err) {
 				return false, nil
 			}
@@ -443,7 +625,7 @@ func CreateExclusionList(namespace string, list pkgUtil.ExclusionList) env.Func 
 				return false, err
 			}
 
-			if cMap.ObjectMeta.Name == "excluded" {
+			if cMap.ObjectMeta.Name == excluded.Name {
 				return true, nil
 			}
 

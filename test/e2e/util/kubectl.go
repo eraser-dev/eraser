@@ -104,7 +104,7 @@ func KubectlDescribe(kubeconfigPath, podName, namespace string) (string, error) 
 	return Kubectl(args)
 }
 
-// KubectlDescribeImagejob executes "kubectl describe imagejob".
+// KubectlGet executes "kubectl get" given a list of arguments.
 func KubectlGet(kubeconfigPath string, otherArgs ...string) (string, error) {
 	args := []string{
 		fmt.Sprintf("--kubeconfig=%s", kubeconfigPath),

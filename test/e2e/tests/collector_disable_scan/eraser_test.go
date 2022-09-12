@@ -8,85 +8,29 @@ import (
 	"testing"
 	"time"
 
-	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
 	"github.com/Azure/eraser/test/e2e/util"
 
-	"sigs.k8s.io/e2e-framework/klient/wait"
 	"sigs.k8s.io/e2e-framework/pkg/envconf"
 	"sigs.k8s.io/e2e-framework/pkg/features"
 )
 
 func TestDisableScanner(t *testing.T) {
 	disableScanFeat := features.New("Scanner can be disabled").
-		Assess("ImageCollector CR is generated", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
-			c, err := cfg.NewClient()
-			if err != nil {
-				t.Error("Failed to create new client", err)
-			}
-
-			imagecollector := eraserv1alpha1.ImageCollector{}
-			wait.For(func() (bool, error) {
-				err := c.Resources().Get(ctx, util.ImageCollectorShared, "default", &imagecollector)
-				if err != nil {
-					t.Error("Could not get imagecollector-shared")
-				}
-
-				if imagecollector.ObjectMeta.Name == util.ImageCollectorShared {
-					return true, nil
-				}
-
-				return false, nil
-			}, wait.WithTimeout(time.Minute*3))
+		// non-vulnerable image should be deleted from all nodes when scanner is disabled and we prune with collector
+		Assess("Non-vulnerable image successfully deleted from all nodes", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
+			ctxT, cancel := context.WithTimeout(ctx, time.Minute*5)
+			defer cancel()
+			util.CheckImageRemoved(ctxT, t, util.GetClusterNodes(t), util.NonVulnerableImage)
 
 			return ctx
 		}).
-		Assess("ImageList Spec Contains Same Images As ImageCollector Shared", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
-			c, err := cfg.NewClient()
-			if err != nil {
-				t.Error("Failed to create new client", err)
+		Assess("Get logs", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
+			if err := util.GetPodLogs(ctx, cfg, t, false); err != nil {
+				t.Error("error getting collector pod logs", err)
 			}
 
-			// verify imagelist created
-			imagelist := eraserv1alpha1.ImageList{}
-			wait.For(func() (bool, error) {
-				err := c.Resources().Get(ctx, "imagelist", "default", &imagelist)
-				if util.IsNotFound(err) {
-					return false, nil
-				}
-
-				if err != nil {
-					return false, err
-				}
-
-				if imagelist.ObjectMeta.Name == "imagelist" {
-					return true, nil
-				}
-
-				return false, nil
-			}, wait.WithTimeout(time.Minute*3))
-
-			imagecollectorShared := eraserv1alpha1.ImageCollector{}
-			err = c.Resources().Get(ctx, util.ImageCollectorShared, "default", &imagecollectorShared)
-			if err != nil {
-				t.Error("Could not get imagecollector-shared")
-			}
-
-			// verify imagecollector-shared status fields are empty
-			if imagecollectorShared.Status.Vulnerable != nil || imagecollectorShared.Status.Failed != nil {
-				t.Error("Scan job has run, should be disabled")
-			}
-
-			imagelistSpec := make(map[string]struct{}, len(imagelist.Spec.Images))
-			for _, img := range imagelist.Spec.Images {
-				imagelistSpec[img] = struct{}{}
-			}
-
-			// verify the images in both lists match
-			for _, img := range imagecollectorShared.Spec.Images {
-				// check by digest as we add to imagelist by digest when pruning without scanner
-				if _, contains := imagelistSpec[img.Digest]; !contains {
-					t.Error("imagelist spec does not match imagecollector-shared: ", img.Digest)
-				}
+			if err := util.GetManagerLogs(ctx, cfg, t); err != nil {
+				t.Error("error getting manager logs", err)
 			}
 
 			return ctx

@@ -1,6 +1,13 @@
 version: 2
 
 updates:
+  - package-ecosystem: "npm"
+    directory: "/docs"
+    schedule:
+      interval: "weekly"
+    commit-message:
+      prefix: "chore"
+
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:

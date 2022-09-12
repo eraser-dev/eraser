@@ -16,6 +16,7 @@ import (
 
 	"sigs.k8s.io/e2e-framework/klient/wait"
 	"sigs.k8s.io/e2e-framework/klient/wait/conditions"
+
 	"sigs.k8s.io/e2e-framework/pkg/envconf"
 	"sigs.k8s.io/e2e-framework/pkg/features"
 )
@@ -136,7 +137,15 @@ func TestUpdateImageList(t *testing.T) {
 			util.CheckImageRemoved(ctxT, t, util.GetClusterNodes(t), util.Redis)
 
 			return ctx
-		}).Feature()
+		}).
+		Assess("Get logs", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
+			if err := util.GetManagerLogs(ctx, cfg, t); err != nil {
+				t.Error("error getting manager logs", err)
+			}
+
+			return ctx
+		}).
+		Feature()
 
 	util.Testenv.Test(t, imglistChangeFeat)
 }

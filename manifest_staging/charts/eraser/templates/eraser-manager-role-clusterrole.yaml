@@ -12,6 +12,14 @@ rules:
 - apiGroups:
   - ""
   resources:
+  - configmaps
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - ""
+  resources:
   - nodes
   verbs:
   - get
@@ -38,26 +46,6 @@ rules:
   - get
   - list
   - watch
-- apiGroups:
-  - eraser.sh
-  resources:
-  - imagecollectors
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - eraser.sh
-  resources:
-  - imagecollectors/status
-  verbs:
-  - get
-  - patch
-  - update
 - apiGroups:
   - eraser.sh
   resources:

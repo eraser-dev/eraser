@@ -31,10 +31,14 @@ func TestMain(m *testing.M) {
 		envfuncs.LoadDockerImageToCluster(util.KindClusterName, util.Image),
 		envfuncs.LoadDockerImageToCluster(util.KindClusterName, util.CollectorImage),
 		envfuncs.LoadDockerImageToCluster(util.KindClusterName, util.VulnerableImage),
+		envfuncs.LoadDockerImageToCluster(util.KindClusterName, util.NonVulnerableImage),
 		util.CreateExclusionList(util.EraserNamespace, pkgUtil.ExclusionList{
 			Excluded: []string{"docker.io/library/alpine:*"},
 		}),
-		util.DeployEraserManifest(util.EraserNamespace, "--set", "scanner.image.repository="),
+		util.CreateExclusionList(util.EraserNamespace, pkgUtil.ExclusionList{
+			Excluded: []string{util.NonVulnerableImage},
+		}),
+		util.DeployEraserHelm(util.EraserNamespace, "--set", `scanner.image.repository=`, "--set", `controllerManager.additionalArgs={--job-cleanup-on-success-delay=1m}`),
 	).Finish(
 		envfuncs.DestroyKindCluster(util.KindClusterName),
 	)

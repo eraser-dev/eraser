@@ -11,81 +11,6 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.9.0
   creationTimestamp: null
-  name: imagecollectors.eraser.sh
-spec:
-  group: eraser.sh
-  names:
-    kind: ImageCollector
-    listKind: ImageCollectorList
-    plural: imagecollectors
-    singular: imagecollector
-  scope: Cluster
-  versions:
-  - name: v1alpha1
-    schema:
-      openAPIV3Schema:
-        properties:
-          apiVersion:
-            description: 'APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
-            type: string
-          kind:
-            description: 'Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
-            type: string
-          metadata:
-            type: object
-          spec:
-            properties:
-              images:
-                items:
-                  properties:
-                    digest:
-                      type: string
-                    name:
-                      type: string
-                  required:
-                  - digest
-                  type: object
-                type: array
-            required:
-            - images
-            type: object
-          status:
-            properties:
-              failed:
-                items:
-                  properties:
-                    digest:
-                      type: string
-                    name:
-                      type: string
-                  required:
-                  - digest
-                  type: object
-                type: array
-              vulnerable:
-                items:
-                  properties:
-                    digest:
-                      type: string
-                    name:
-                      type: string
-                  required:
-                  - digest
-                  type: object
-                type: array
-            type: object
-        type: object
-    served: true
-    storage: true
-    subresources:
-      status: {}
----
-apiVersion: apiextensions.k8s.io/v1
-kind: CustomResourceDefinition
-metadata:
-  annotations:
-    controller-gen.kubebuilder.io/version: v0.9.0
-  creationTimestamp: null
   name: imagejobs.eraser.sh
 spec:
   group: eraser.sh
@@ -4105,7 +4030,7 @@ spec:
             description: ImageListSpec defines the desired state of ImageList.
             properties:
               images:
-                description: The list of vulnerable images to delete if non-running.
+                description: The list of non-compliant images to delete if non-running.
                 items:
                   type: string
                 type: array
@@ -4198,33 +4123,6 @@ kind: ClusterRole
 metadata:
   creationTimestamp: null
   name: eraser-imagejob-pods-cluster-role
-rules:
-- apiGroups:
-  - eraser.sh
-  resources:
-  - imagecollectors
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - eraser.sh
-  resources:
-  - imagecollectors/finalizers
-  verbs:
-  - update
-- apiGroups:
-  - eraser.sh
-  resources:
-  - imagecollectors/status
-  verbs:
-  - get
-  - patch
-  - update
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
@@ -4239,7 +4137,6 @@ rules:
   verbs:
   - get
   - list
-  - update
   - watch
 - apiGroups:
   - ""
@@ -4261,34 +4158,7 @@ rules:
   - delete
   - get
   - list
-  - update
   - watch
-- apiGroups:
-  - eraser.sh
-  resources:
-  - imagecollectors
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - eraser.sh
-  resources:
-  - imagecollectors/finalizers
-  verbs:
-  - update
-- apiGroups:
-  - eraser.sh
-  resources:
-  - imagecollectors/status
-  verbs:
-  - get
-  - patch
-  - update
 - apiGroups:
   - eraser.sh
   resources:
@@ -4301,12 +4171,6 @@ rules:
   - patch
   - update
   - watch
-- apiGroups:
-  - eraser.sh
-  resources:
-  - imagejobs/finalizers
-  verbs:
-  - update
 - apiGroups:
   - eraser.sh
   resources:
@@ -4327,12 +4191,6 @@ rules:
   - patch
   - update
   - watch
-- apiGroups:
-  - eraser.sh
-  resources:
-  - imagelists/finalizers
-  verbs:
-  - update
 - apiGroups:
   - eraser.sh
   resources:
@@ -4421,9 +4279,9 @@ spec:
       containers:
       - args:
         - --leader-elect=false
-        - --eraser-image=ghcr.io/azure/eraser:v0.3.0
-        - --collector-image=ghcr.io/azure/collector:v0.3.0
-        - --scanner-image=ghcr.io/azure/eraser-trivy-scanner:v0.3.0
+        - --eraser-image=ghcr.io/azure/eraser:v0.4.0
+        - --collector-image=ghcr.io/azure/collector:v0.4.0
+        - --scanner-image=ghcr.io/azure/eraser-trivy-scanner:v0.4.0
         command:
         - /manager
         env:
@@ -4432,7 +4290,7 @@ spec:
             fieldRef:
               apiVersion: v1
               fieldPath: metadata.namespace
-        image: ghcr.io/azure/eraser-manager:v0.3.0
+        image: ghcr.io/azure/eraser-manager:v0.4.0
         livenessProbe:
           httpGet:
             path: /healthz
@@ -4455,6 +4313,15 @@ spec:
             memory: 20Mi
         securityContext:
           allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+          runAsGroup: 65532
+          runAsNonRoot: true
+          runAsUser: 65532
+          seccompProfile:
+            type: RuntimeDefault
       nodeSelector:
         kubernetes.io/os: linux
       serviceAccountName: eraser-controller-manager

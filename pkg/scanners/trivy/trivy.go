@@ -6,18 +6,19 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"time"
 
 	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
-
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/rest"
+	"go.uber.org/zap"
 
 	_ "net/http/pprof"
 
 	"github.com/Azure/eraser/pkg/logger"
+	util "github.com/Azure/eraser/pkg/utils"
 	"github.com/aquasecurity/fanal/artifact"
 	artifactImage "github.com/aquasecurity/fanal/artifact/image"
 	fanalImage "github.com/aquasecurity/fanal/image"
+	trivylogger "github.com/aquasecurity/trivy/pkg/log"
 	"github.com/aquasecurity/trivy/pkg/scanner"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 )
@@ -37,21 +38,17 @@ const (
 	securityCheckVuln   = "vuln"
 	securityCheckConfig = "config"
 	securityCheckSecret = "secret"
-
-	apiPath         = "apis/eraser.sh/v1alpha1"
-	resourceName    = "imagecollectors"
-	subResourceName = "status"
 )
 
 var (
-	cacheDir        = flag.String("cache-dir", "/var/lib/trivy", "path to the cache dir")
-	collectorCRName = flag.String("collector-cr-name", "collector-cr", "name of the collector cr to read from and write to")
-	enableProfile   = flag.Bool("enable-pprof", false, "enable pprof profiling")
-	ignoreUnfixed   = flag.Bool("ignore-unfixed", true, "report only fixed vulnerabilities")
-	profilePort     = flag.Int("pprof-port", 6060, "port for pprof profiling. defaulted to 6060 if unspecified")
-	securityChecks  = flag.String("security-checks", "vuln,secret", "comma-separated list of what security issues to detect")
-	severity        = flag.String("severity", "CRITICAL", "list of severity levels to report")
-	vulnTypes       = flag.String("vuln-type", "os,library", "comma separated list of vulnerability types")
+	cacheDir               = flag.String("cache-dir", "/var/lib/trivy", "path to the cache dir")
+	enableProfile          = flag.Bool("enable-pprof", false, "enable pprof profiling")
+	ignoreUnfixed          = flag.Bool("ignore-unfixed", true, "report only fixed vulnerabilities")
+	profilePort            = flag.Int("pprof-port", 6060, "port for pprof profiling. defaulted to 6060 if unspecified")
+	securityChecks         = flag.String("security-checks", "vuln", "comma-separated list of what security issues to detect")
+	severity               = flag.String("severity", "CRITICAL", "list of severity levels to report")
+	vulnTypes              = flag.String("vuln-type", "os,library", "comma separated list of vulnerability types")
+	deleteScanFailedImages = flag.Bool("delete-scan-failed-images", true, "whether or not to delete images for which scanning has failed")
 
 	// Will be modified by parseCommaSeparatedOptions() to reflect the
 	// `severity` CLI flag These are the only recognized severities and the
@@ -91,14 +88,30 @@ func main() {
 	flag.Parse()
 	ctx := context.Background()
 
-	if err := logger.Configure(); err != nil {
-		fmt.Fprintln(os.Stderr, "Error setting up logger:", err)
+	var err error
+
+	if err = logger.Configure(); err != nil {
+		fmt.Fprintln(os.Stderr, "error setting up logger:", err)
 		os.Exit(generalErr)
 	}
 
+	// creating new logger for JSON output with trivy scanner as trivy logs are not JSON encoded
+	logger, err := zap.NewProduction()
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "error setting up trivy logger:", err)
+		os.Exit(generalErr)
+	}
+
+	sugar := logger.Sugar()
+	trivylogger.Logger = sugar
+
 	if *enableProfile {
 		go func() {
-			err := http.ListenAndServe(fmt.Sprintf("localhost:%d", *profilePort), nil)
+			server := &http.Server{
+				Addr:              fmt.Sprintf("localhost:%d", *profilePort),
+				ReadHeaderTimeout: 3 * time.Second,
+			}
+			err := server.ListenAndServe()
 			log.Error(err, "pprof server failed")
 		}()
 	}
@@ -127,28 +140,9 @@ func main() {
 		}
 	}
 
-	cfg, err := rest.InClusterConfig()
+	allImages, err := util.ReadCollectScanPipe(ctx)
 	if err != nil {
-		log.Error(err, "unable to get in-cluster config")
-		os.Exit(generalErr)
-	}
-
-	clientset, err := kubernetes.NewForConfig(cfg)
-	if err != nil {
-		log.Error(err, "unable to get REST client")
-		os.Exit(generalErr)
-	}
-
-	result := eraserv1alpha1.ImageCollector{}
-
-	err = clientset.RESTClient().Get().
-		AbsPath(apiPath).
-		Resource(resourceName).
-		Name(*collectorCRName).
-		Do(context.Background()).
-		Into(&result)
-	if err != nil {
-		log.Error(err, "RESTClient GET request failed", "apiPath", apiPath, "recourceName", resourceName, "collectorCRName", *collectorCRName)
+		log.Error(err, "unable to read images from collect scan pipe")
 		os.Exit(generalErr)
 	}
 
@@ -168,12 +162,10 @@ func main() {
 	}
 
 	resultClient := initializeResultClient()
-	vulnerableImages := make([]eraserv1alpha1.Image, 0, len(result.Spec.Images))
-	failedImages := make([]eraserv1alpha1.Image, 0, len(result.Spec.Images))
+	vulnerableImages := make([]eraserv1alpha1.Image, 0, len(allImages))
+	failedImages := make([]eraserv1alpha1.Image, 0, len(allImages))
 
-	for k := range result.Spec.Images {
-		img := result.Spec.Images[k]
-
+	for _, img := range allImages {
 		imageRef := img.Name
 		if imageRef == "" {
 			log.Info("found image with no name", "img", img)
@@ -231,18 +223,20 @@ func main() {
 		cleanup()
 	}
 
-	err = updateStatus(&statusUpdate{
-		apiPath:          apiPath,
-		ctx:              ctx,
-		clientset:        clientset,
-		collectorCRName:  *collectorCRName,
-		resourceName:     resourceName,
-		subResourceName:  subResourceName,
-		vulnerableImages: vulnerableImages,
-		failedImages:     failedImages,
-	})
-	if err != nil {
-		log.Error(err, "error updating ImageCollectorStatus", "images", vulnerableImages)
+	if len(failedImages) > 0 {
+		log.Info("Failed", "Images", failedImages)
+	}
+
+	log.Info("Vulnerable", "Images", vulnerableImages)
+
+	// if deleteScanFailedImages is true, we want to pass failed images as vulnerable to be deleted
+	if *deleteScanFailedImages {
+		vulnerableImages = append(vulnerableImages, failedImages...)
+	}
+
+	// write vulnerable images to scanErase pipe for eraser to read
+	if err := util.WriteScanErasePipe(vulnerableImages); err != nil {
+		log.Error(err, "unable to write non-compliant images to scan erase pipe")
 		os.Exit(generalErr)
 	}
 

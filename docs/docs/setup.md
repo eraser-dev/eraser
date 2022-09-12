@@ -33,16 +33,17 @@ To test your changes on a cluster:
 make generate
 
 # build applicable images
-make docker-build-manager
-make docker-build-eraser
-make docker-build-collector
-make docker-build-trivy-scanner
+make docker-build-manager MANAGER_IMG=eraser-manager:dev
+make docker-build-eraser ERASER_IMG=eraser:dev
+make docker-build-collector COLLECTOR_IMG=collector:dev
+make docker-build-trivy-scanner TRIVY_SCANNER_IMG=eraser-trivy-scanner:dev
 
 # make sure updated image is present on cluster (e.g., see kind example below)
-kind load docker-image ghcr.io/azure/eraser-manager:v0.2.0
-kind load docker-image ghcr.io/azure/eraser:v0.2.0
-kind load docker-image ghcr.io/azure/collector:v0.2.0
-kind load docker-image ghcr.io/azure/eraser-trivy-scanner:v0.2.0
+kind load docker-image \
+        eraser-manager:dev \
+        eraser-trivy-scanner:dev \
+        eraser:dev \
+        collector:dev
 
 make manifests
 make deploy
@@ -67,7 +68,7 @@ docker build . \
 [+] Building 7.8s (8/8) FINISHED
  => => naming to docker.io/library/eraser-tooling                           0.0s
 docker run -v /home/eraser/config:/config -w /config/manager \
-        k8s.gcr.io/kustomize/kustomize:v3.8.9 edit set image controller=ghcr.io/azure/eraser-manager:v0.2.0
+        k8s.gcr.io/kustomize/kustomize:v3.8.9 edit set image controller=eraser-manager:dev
 docker run -v /home/eraser:/eraser eraser-tooling controller-gen \
         crd \
         rbac:roleName=manager-role \

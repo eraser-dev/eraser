@@ -38,6 +38,17 @@ const sidebars = {
         'releasing',
       ]
     },
+    {
+      type: 'category',
+      label: 'Scanning',
+      collapsible: true,
+      collapsed: false,
+      items: [
+        'custom-scanner',
+        'trivy',
+      ]
+    },
+    'faq',
     'contributing',
     'code-of-conduct',
   ]

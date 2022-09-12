@@ -56,8 +56,11 @@ const config = {
         },
         items: [
           {
+            type: 'docsVersionDropdown',
+            position: 'right',
+          },
+          {
             href: 'https://github.com/azure/eraser',
-            label: 'GitHub',
             position: 'right',
             className: 'header-github-link',
             'aria-label': 'GitHub repository',

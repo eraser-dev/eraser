@@ -5,19 +5,27 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net"
 	"net/url"
 	"os"
 	"strings"
+	"time"
 
+	"golang.org/x/sys/unix"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
+
+	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
 )
 
 const (
 	// unixProtocol is the network protocol of unix socket.
-	unixProtocol = "unix"
+	unixProtocol    = "unix"
+	PipeMode        = 0o644
+	ScanErasePath   = "/run/eraser.sh/shared-data/scanErase"
+	CollectScanPath = "/run/eraser.sh/shared-data/collectScan"
 )
 
 type ExclusionList struct {
@@ -222,25 +230,130 @@ func ParseImageList(path string) ([]string, error) {
 	return imagelist, nil
 }
 
-// read values from excluded configmap.
-func ParseExcluded(path string) (map[string]struct{}, error) {
-	excluded := make(map[string]struct{})
-	data, err := os.ReadFile(path)
+func ParseExcluded() (map[string]struct{}, error) {
+	excludedMap := make(map[string]struct{})
+	var excludedList []string
+
+	files, err := os.ReadDir("./")
+	if err != nil {
+		return nil, err
+	}
+
+	for _, file := range files {
+		if strings.HasPrefix(file.Name(), "exclude-") {
+			temp, err := readConfigMap(file.Name())
+			if err != nil {
+				return nil, err
+			}
+			excludedList = append(excludedList, temp...)
+		}
+	}
+
+	for _, img := range excludedList {
+		excludedMap[img] = struct{}{}
+	}
+
+	return excludedMap, nil
+}
+
+func BoolPtr(b bool) *bool {
+	return &b
+}
+
+func readConfigMap(path string) ([]string, error) {
+	var fileName string
+
+	files, err := os.ReadDir(path)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, f := range files {
+		if strings.HasSuffix(f.Name(), ".json") {
+			fileName = f.Name()
+			break
+		}
+	}
+
+	var images []string
+	data, err := os.ReadFile(path + "/" + fileName)
 
 	if os.IsNotExist(err) {
-		return excluded, nil
+		return nil, err
 	} else if err != nil {
-		return excluded, err
+		return nil, err
 	}
 
 	var result ExclusionList
 	if err := json.Unmarshal(data, &result); err != nil {
-		return excluded, err
+		return nil, err
 	}
 
-	for _, img := range result.Excluded {
-		excluded[img] = struct{}{}
+	images = append(images, result.Excluded...)
+
+	return images, nil
+}
+
+func ReadCollectScanPipe(ctx context.Context) ([]eraserv1alpha1.Image, error) {
+	timer := time.NewTimer(time.Second)
+	if !timer.Stop() {
+		<-timer.C
+	}
+	defer timer.Stop()
+
+	var f *os.File
+	for {
+		var err error
+
+		f, err = os.OpenFile(CollectScanPath, os.O_RDONLY, 0)
+		if err == nil {
+			break
+		}
+		if !os.IsNotExist(err) {
+			return nil, err
+		}
+
+		timer.Reset(time.Second)
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		case <-timer.C:
+			continue
+		}
 	}
 
-	return excluded, nil
+	// json data is list of []eraserv1alpha1.Image
+	data, err := io.ReadAll(f)
+	if err != nil {
+		return nil, err
+	}
+
+	allImages := []eraserv1alpha1.Image{}
+	if err = json.Unmarshal(data, &allImages); err != nil {
+		return nil, err
+	}
+
+	return allImages, nil
+}
+
+func WriteScanErasePipe(vulnerableImages []eraserv1alpha1.Image) error {
+	data, err := json.Marshal(vulnerableImages)
+	if err != nil {
+		return err
+	}
+
+	if err = unix.Mkfifo(ScanErasePath, PipeMode); err != nil {
+		return err
+	}
+
+	file, err := os.OpenFile(ScanErasePath, os.O_WRONLY, 0)
+	if err != nil {
+		return err
+	}
+
+	if _, err := file.Write(data); err != nil {
+		return err
+	}
+
+	return file.Close()
 }
