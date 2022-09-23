@@ -27,7 +27,7 @@ spec:
     spec:
       containers:
       - name: alpine
-        image:docker.io/library/alpine:3.7.3
+        image: docker.io/library/alpine:3.7.3
 EOF
 ```
 
