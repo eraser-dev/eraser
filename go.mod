@@ -8,7 +8,7 @@ require (
 	github.com/aquasecurity/trivy-db v0.0.0-20220327074450-74195d9604b2
 	github.com/go-logr/logr v1.2.3
 	github.com/onsi/ginkgo v1.16.5
-	github.com/onsi/gomega v1.19.0
+	github.com/onsi/gomega v1.20.1
 	go.uber.org/zap v1.21.0
 	golang.org/x/net v0.0.0-20220906165146-f3363e06e74c // indirect; CVE-2022-27664
 	golang.org/x/sys v0.0.0-20220728004956-3c1f35247d10
@@ -18,7 +18,7 @@ require (
 	k8s.io/client-go v0.25.0
 	k8s.io/cri-api v0.25.0
 	k8s.io/klog/v2 v2.70.1
-	k8s.io/kubernetes v1.25.0
+	k8s.io/kubernetes v1.25.2
 	sigs.k8s.io/controller-runtime v0.13.0
 	sigs.k8s.io/e2e-framework v0.0.7
 	sigs.k8s.io/kind v0.15.0
