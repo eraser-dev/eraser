@@ -47,30 +47,6 @@ jobs:
           echo "TAG=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
           echo "REPO_OWNER=$(echo $GITHUB_REPOSITORY_OWNER | awk '{print tolower($0)}')" >> $GITHUB_ENV
 
-      - name: Build eraser-manager
-        run: make docker-build-manager \
-          CACHE_FROM=type=gha,scope=eraser-manager \
-          CACHE_TO=type=gha,scope=eraser-manager,mode=max \
-          MANAGER_IMG=${{ env.REGISTRY }}/${REPO_OWNER}/eraser-manager:${TAG}
-
-      - name: Build eraser
-        run: make docker-build-eraser \
-          CACHE_FROM=type=gha,scope=eraser-node \
-          CACHE_TO=type=gha,scope=eraser-node,mode=max \
-          ERASER_IMG=${{ env.REGISTRY }}/${REPO_OWNER}/eraser:${TAG}
-
-      - name: Build collector
-        run: make docker-build-collector \
-          CACHE_FROM=type=gha,scope=collector \
-          CACHE_TO=type=gha,scope=collector,mode=max \
-          COLLECTOR_IMG=${{ env.REGISTRY }}/${REPO_OWNER}/collector:${TAG}
-
-      - name: Build Trivy scanner
-        run: make docker-build-trivy-scanner \
-          CACHE_FROM=type=gha,scope=trivy-scanner \
-          CACHE_TO=type=gha,scope=trivy-scanner,mode=max \
-          TRIVY_SCANNER_IMG=${{ env.REGISTRY }}/${REPO_OWNER}/eraser-trivy-scanner:${TAG}
-
       - name: Log in to the GHCR
         uses: docker/login-action@v2
         with:
@@ -78,12 +54,37 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Publish
-        run: |
-          make docker-push-manager MANAGER_IMG=${{ env.REGISTRY }}/${REPO_OWNER}/eraser-manager:${TAG}
-          make docker-push-eraser ERASER_IMG=${{ env.REGISTRY }}/${REPO_OWNER}/eraser:${TAG}
-          make docker-push-collector COLLECTOR_IMG=${{ env.REGISTRY }}/${REPO_OWNER}/collector:${TAG}
-          make docker-push-trivy-scanner TRIVY_SCANNER_IMG=${{ env.REGISTRY }}/${REPO_OWNER}/eraser-trivy-scanner:${TAG}
+      - name: Build eraser-manager
+        run: make docker-build-manager \
+          CACHE_FROM=type=gha,scope=eraser-manager \
+          CACHE_TO=type=gha,scope=eraser-manager,mode=max \
+          PLATFORM="linux/amd64,linux/arm64,linux/arm/v7" \
+          OUTPUT_TYPE=type=registry \
+          MANAGER_IMG=${{ env.REGISTRY }}/${REPO_OWNER}/eraser-manager:${TAG}
+
+      - name: Build eraser
+        run: make docker-build-eraser \
+          CACHE_FROM=type=gha,scope=eraser-node \
+          CACHE_TO=type=gha,scope=eraser-node,mode=max \
+          PLATFORM="linux/amd64,linux/arm64,linux/arm/v7" \
+          OUTPUT_TYPE=type=registry \
+          ERASER_IMG=${{ env.REGISTRY }}/${REPO_OWNER}/eraser:${TAG}
+
+      - name: Build collector
+        run: make docker-build-collector \
+          CACHE_FROM=type=gha,scope=collector \
+          CACHE_TO=type=gha,scope=collector,mode=max \
+          PLATFORM="linux/amd64,linux/arm64,linux/arm/v7" \
+          OUTPUT_TYPE=type=registry \
+          COLLECTOR_IMG=${{ env.REGISTRY }}/${REPO_OWNER}/collector:${TAG}
+
+      - name: Build Trivy scanner
+        run: make docker-build-trivy-scanner \
+          CACHE_FROM=type=gha,scope=trivy-scanner \
+          CACHE_TO=type=gha,scope=trivy-scanner,mode=max \
+          PLATFORM="linux/amd64,linux/arm64,linux/arm/v7" \
+          OUTPUT_TYPE=type=registry \
+          TRIVY_SCANNER_IMG=${{ env.REGISTRY }}/${REPO_OWNER}/eraser-trivy-scanner:${TAG}
 
       - name: Create GitHub release
         uses: "marvinpinto/action-automatic-releases@v1.2.1"

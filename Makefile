@@ -170,12 +170,6 @@ docker-build-trivy-scanner: ## Build docker image for trivy-scanner image.
 		-t ${TRIVY_SCANNER_IMG} \
 		--target trivy-scanner .
 
-docker-push-trivy-scanner: ## Push docker image with the manager.
-	docker push ${TRIVY_SCANNER_IMG}
-
-docker-push-manager: ## Push docker image for the eraser manager.
-	docker push ${MANAGER_IMG}
-
 docker-build-eraser: ## Build docker image for eraser image.
 	docker buildx build \
 		$(_CACHE_FROM) $(_CACHE_TO) \
@@ -185,9 +179,6 @@ docker-build-eraser: ## Build docker image for eraser image.
 		-t ${ERASER_IMG} \
 		--target eraser .
 
-docker-push-eraser: ## Push docker image for eraser.
-	docker push ${ERASER_IMG}
-
 docker-build-collector:
 	docker buildx build \
 		$(_CACHE_FROM) $(_CACHE_TO) \
@@ -196,9 +187,6 @@ docker-build-collector:
 		--output=$(OUTPUT_TYPE) \
 		-t ${COLLECTOR_IMG} \
 		--target collector .
-
-docker-push-collector:
-	docker push ${COLLECTOR_IMG}
 
 ##@ Deployment
 
