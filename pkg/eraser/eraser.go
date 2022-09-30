@@ -10,8 +10,14 @@ import (
 	"net/http"
 	_ "net/http/pprof"
 	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetrichttp"
+	"go.opentelemetry.io/otel/metric/global"
+	"go.opentelemetry.io/otel/metric/instrument"
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 
@@ -19,6 +25,7 @@ import (
 
 	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
 	util "github.com/Azure/eraser/pkg/utils"
+	sdkmetric "go.opentelemetry.io/otel/sdk/metric"
 )
 
 var (
@@ -165,4 +172,44 @@ func main() {
 
 		file.Close()
 	}
+
+	// configure eraser metrics
+	ctxB := context.Background()
+	ctx, cancel := signal.NotifyContext(ctxB, os.Interrupt, syscall.SIGTERM)
+	defer cancel()
+
+	exporter, err := otlpmetrichttp.New(ctx, otlpmetrichttp.WithInsecure(), otlpmetrichttp.WithEndpoint("otelcollector:9090"))
+	if err != nil {
+		panic(err)
+	}
+
+	reader := sdkmetric.NewPeriodicReader(exporter)
+	provider := sdkmetric.NewMeterProvider(sdkmetric.WithReader(reader))
+	defer func() {
+		fmt.Fprintln(os.Stderr, "collecting final metrics...")
+		m, err := reader.Collect(ctxB)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "failed to collect metrics:", err)
+			return
+		}
+		if err := exporter.Export(ctxB, m); err != nil {
+			fmt.Fprintln(os.Stderr, "failed to export metrics:", err)
+		}
+		if err := provider.Shutdown(ctxB); err != nil {
+			fmt.Fprintln(os.Stderr, err)
+		}
+	}()
+	global.SetMeterProvider(provider)
+
+	recordMetrics(ctx)
+}
+
+func recordMetrics(ctx context.Context) {
+	p := global.MeterProvider()
+	counter, err := p.Meter("test").SyncInt64().Counter("testdata.counter", instrument.WithDescription("test counter"), instrument.WithUnit("1"))
+	if err != nil {
+		panic(err)
+	}
+
+	counter.Add(ctx, int64(getTotalRemoved()), attribute.String("foo", "bar"))
 }
