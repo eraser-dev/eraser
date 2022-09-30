@@ -6,7 +6,13 @@ import (
 	util "github.com/Azure/eraser/pkg/utils"
 )
 
+var (
+	removed int
+)
+
 func removeImages(c Client, targetImages []string) error {
+	removed = 0
+
 	backgroundContext, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
@@ -66,6 +72,7 @@ func removeImages(c Client, targetImages []string) error {
 
 			deletedImages[imgDigestOrTag] = struct{}{}
 			log.Info("removed image", "given", imgDigestOrTag, "digest", digest, "name", idToTagListMap[digest])
+			removed++
 			continue
 		}
 
@@ -97,6 +104,7 @@ func removeImages(c Client, targetImages []string) error {
 			}
 			log.Info("removed image", "digest", digest, "name", idToTagListMap[digest])
 			deletedImages[digest] = struct{}{}
+			removed++
 		}
 		if success {
 			log.Info("prune successful")
@@ -106,4 +114,8 @@ func removeImages(c Client, targetImages []string) error {
 	}
 
 	return nil
+}
+
+func getTotalRemoved() int{
+	return removed
 }
