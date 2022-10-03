@@ -36,7 +36,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@dd2c410b088af7c0dc8046f3ac9a8f4148492a95
+        uses: step-security/harden-runner@2e205a28d0e1da00c5f53b161f4067b052c61f34
         with:
           egress-policy: audit
       - uses: actions/checkout@v3
@@ -73,7 +73,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@dd2c410b088af7c0dc8046f3ac9a8f4148492a95
+        uses: step-security/harden-runner@2e205a28d0e1da00c5f53b161f4067b052c61f34
         with:
           egress-policy: audit
       - name: Set up Go 1.19
@@ -105,7 +105,7 @@ jobs:
     timeout-minutes: 5
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@dd2c410b088af7c0dc8046f3ac9a8f4148492a95
+        uses: step-security/harden-runner@2e205a28d0e1da00c5f53b161f4067b052c61f34
         with:
           egress-policy: audit
       - name: Check out code into the Go module directory
@@ -136,7 +136,7 @@ jobs:
           E2E_TEST: ${{ fromJson(needs.build-e2e-test-list.outputs.e2e-tests) }}
       steps:
         - name: Harden Runner
-          uses: step-security/harden-runner@dd2c410b088af7c0dc8046f3ac9a8f4148492a95
+          uses: step-security/harden-runner@2e205a28d0e1da00c5f53b161f4067b052c61f34
           with:
             egress-policy: audit
         - name: Check out code into the Go module directory
@@ -183,7 +183,7 @@ jobs:
       contents: read
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@dd2c410b088af7c0dc8046f3ac9a8f4148492a95
+        uses: step-security/harden-runner@2e205a28d0e1da00c5f53b161f4067b052c61f34
         with:
           egress-policy: audit
 
