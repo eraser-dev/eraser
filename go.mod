@@ -8,7 +8,7 @@ require (
 	github.com/aquasecurity/trivy-db v0.0.0-20220327074450-74195d9604b2
 	github.com/go-logr/logr v1.2.3
 	github.com/onsi/ginkgo v1.16.5
-	github.com/onsi/gomega v1.20.1
+	github.com/onsi/gomega v1.20.2
 	go.uber.org/zap v1.21.0
 	golang.org/x/net v0.0.0-20220906165146-f3363e06e74c // indirect; CVE-2022-27664
 	golang.org/x/sys v0.0.0-20220728004956-3c1f35247d10
