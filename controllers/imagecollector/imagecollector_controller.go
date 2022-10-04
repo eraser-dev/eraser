@@ -252,6 +252,8 @@ func (r *Reconciler) createImageJob(ctx context.Context, req ctrl.Request, argsC
 								},
 							},
 							SecurityContext: utils.SharedSecurityContext,
+							// pass ottel metrics endpoint
+							Env: []corev1.EnvVar{{Name: "OTEL_EXPORTER_OTLP_ENDPOINT", Value: "collector:4318"}},
 						},
 					},
 					ServiceAccountName: "eraser-imagejob-pods",

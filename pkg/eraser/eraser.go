@@ -144,10 +144,25 @@ func main() {
 	ctx, cancel := signal.NotifyContext(ctxB, os.Interrupt, syscall.SIGTERM)
 	defer cancel()
 
-	exporter, err := otlpmetrichttp.New(ctx, otlpmetrichttp.WithInsecure(), otlpmetrichttp.WithEndpoint("otelcollector:9090"))
+	exporter, err := otlpmetrichttp.New(ctx, otlpmetrichttp.WithInsecure(), otlpmetrichttp.WithEndpoint(os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT")))
 	if err != nil {
 		panic(err)
 	}
+
+	// otlp http endpoint
+
+	/*
+		http.HandleFunc("/metrics", promhttp.Handler().ServeHTTP)
+		go func() {
+			server := &http.Server{
+				Addr:              "localhost:9090",
+				ReadHeaderTimeout: 5 * time.Second,
+			}
+			if err := server.ListenAndServe(); err != nil {
+				log.Error(err, "failed to register prometheus endpoint", "metricsAddress", "localhost:9090")
+				os.Exit(1)
+			}
+		}()*/
 
 	reader := sdkmetric.NewPeriodicReader(exporter)
 	provider := sdkmetric.NewMeterProvider(sdkmetric.WithReader(reader))
