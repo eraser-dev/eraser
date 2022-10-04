@@ -252,4 +252,4 @@ version-docs:
 		-w /docs \
 		-u $(shell id -u):$(shell id -g) \
 		node:${NODE_VERSION} \
-		sh -c "yarn install --frozen-lockfile && yarn run docusaurus docs:version ${NEWVERSION}"
+		sh -c "yarn install && yarn run docusaurus docs:version ${NEWVERSION}"
