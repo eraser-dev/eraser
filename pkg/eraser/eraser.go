@@ -178,7 +178,7 @@ func main() {
 	ctx, cancel := signal.NotifyContext(ctxB, os.Interrupt, syscall.SIGTERM)
 	defer cancel()
 
-	exporter, err := otlpmetrichttp.New(ctx, otlpmetrichttp.WithInsecure(), otlpmetrichttp.WithEndpoint(os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT")))
+	exporter, err := otlpmetrichttp.New(ctx, otlpmetrichttp.WithInsecure(), otlpmetrichttp.WithEndpoint("otel-collector:4318"))
 	if err != nil {
 		panic(err)
 	}
