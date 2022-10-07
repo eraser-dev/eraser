@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
@@ -20,6 +22,11 @@ import (
 	fanalImage "github.com/aquasecurity/fanal/image"
 	trivylogger "github.com/aquasecurity/trivy/pkg/log"
 	"github.com/aquasecurity/trivy/pkg/scanner"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetrichttp"
+	"go.opentelemetry.io/otel/metric/global"
+	"go.opentelemetry.io/otel/metric/instrument"
+	sdkmetric "go.opentelemetry.io/otel/sdk/metric"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
@@ -240,5 +247,45 @@ func main() {
 		os.Exit(generalErr)
 	}
 
+	// configure scanner metrics
+	ctxB := context.Background()
+	ctx, cancel := signal.NotifyContext(ctxB, os.Interrupt, syscall.SIGTERM)
+	defer cancel()
+
+	exporter, err := otlpmetrichttp.New(ctx, otlpmetrichttp.WithInsecure(), otlpmetrichttp.WithEndpoint(os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT")))
+	if err != nil {
+		panic(err)
+	}
+
+	reader := sdkmetric.NewPeriodicReader(exporter)
+	provider := sdkmetric.NewMeterProvider(sdkmetric.WithReader(reader))
+	defer func() {
+		fmt.Fprintln(os.Stderr, "collecting final metrics...")
+		m, err := reader.Collect(ctxB)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "failed to collect metrics:", err)
+			return
+		}
+		if err := exporter.Export(ctxB, m); err != nil {
+			fmt.Fprintln(os.Stderr, "failed to export metrics:", err)
+		}
+		if err := provider.Shutdown(ctxB); err != nil {
+			fmt.Fprintln(os.Stderr, err)
+		}
+	}()
+	global.SetMeterProvider(provider)
+
+	recordMetrics(ctx, len(vulnerableImages))
+
 	log.Info("scanning complete, exiting")
+}
+
+func recordMetrics(ctx context.Context, totalVulnerable int) {
+	p := global.MeterProvider()
+	counter, err := p.Meter("eraser").SyncInt64().Counter("VulnerableImages", instrument.WithDescription("total vulnerable images"), instrument.WithUnit("1"))
+	if err != nil {
+		panic(err)
+	}
+
+	counter.Add(ctx, int64(totalVulnerable), attribute.String("node name", os.Getenv("NODE_NAME")))
 }
