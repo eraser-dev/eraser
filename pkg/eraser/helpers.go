@@ -6,9 +6,7 @@ import (
 	util "github.com/Azure/eraser/pkg/utils"
 )
 
-var (
-	removed int
-)
+var removed int
 
 func removeImages(c Client, targetImages []string) error {
 	removed = 0
@@ -116,6 +114,6 @@ func removeImages(c Client, targetImages []string) error {
 	return nil
 }
 
-func getTotalRemoved() int{
+func getTotalRemoved() int {
 	return removed
 }
