@@ -21,9 +21,16 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"os"
+	"os/signal"
 	"strconv"
+	"syscall"
 	"time"
 
+	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetrichttp"
+	"go.opentelemetry.io/otel/metric/global"
+	"go.opentelemetry.io/otel/metric/instrument"
+	"go.opentelemetry.io/otel/metric/unit"
 	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -37,6 +44,7 @@ import (
 	"github.com/Azure/eraser/controllers/util"
 	"github.com/Azure/eraser/pkg/utils"
 
+	sdkmetric "go.opentelemetry.io/otel/sdk/metric"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
@@ -55,6 +63,7 @@ var (
 	deleteScanFailedImages = flag.Bool("delete-scan-failed-images", true, "whether or not to delete images for which scanning has failed")
 	scannerArgs            = utils.MultiFlag([]string{})
 	collectorArgs          = utils.MultiFlag([]string{})
+	startTime              time.Time
 )
 
 func init() {
@@ -72,6 +81,7 @@ func Add(mgr manager.Manager) error {
 	if *collectorImage == "" {
 		return nil
 	}
+
 	return add(mgr, newReconciler(mgr))
 }
 
@@ -198,6 +208,7 @@ func (r *Reconciler) handleJobDeletion(ctx context.Context, job *eraserv1alpha1.
 
 func (r *Reconciler) createImageJob(ctx context.Context, req ctrl.Request, argsCollector []string) (ctrl.Result, error) {
 	scanDisabled := *scannerImage == ""
+	startTime = time.Now()
 
 	job := &eraserv1alpha1.ImageJob{
 		ObjectMeta: metav1.ObjectMeta{
@@ -252,8 +263,7 @@ func (r *Reconciler) createImageJob(ctx context.Context, req ctrl.Request, argsC
 								},
 							},
 							SecurityContext: utils.SharedSecurityContext,
-							// pass ottel metrics endpoint
-							Env: []corev1.EnvVar{{Name: "OTEL_EXPORTER_OTLP_ENDPOINT", Value: "collector:4318"}},
+							Env:             []corev1.EnvVar{{Name: "OTEL_EXPORTER_OTLP_ENDPOINT", Value: os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT")}, {Name: "NODE_NAME", ValueFrom: &corev1.EnvVarSource{FieldRef: &corev1.ObjectFieldSelector{FieldPath: "spec.nodeName"}}}},
 						},
 					},
 					ServiceAccountName: "eraser-imagejob-pods",
@@ -288,6 +298,8 @@ func (r *Reconciler) createImageJob(ctx context.Context, req ctrl.Request, argsC
 					},
 				},
 			},
+			// env vars for exporting metrics
+			Env: []corev1.EnvVar{{Name: "OTEL_EXPORTER_OTLP_ENDPOINT", Value: os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT")}, {Name: "NODE_NAME", ValueFrom: &corev1.EnvVarSource{FieldRef: &corev1.ObjectFieldSelector{FieldPath: "spec.nodeName"}}}},
 		}
 		job.Spec.JobTemplate.Spec.Containers = append(job.Spec.JobTemplate.Spec.Containers, scannerContainer)
 	}
@@ -333,6 +345,35 @@ func (r *Reconciler) handleCompletedImageJob(ctx context.Context, req ctrl.Reque
 			return ctrl.Result{}, nil
 		}
 
+		// record  metrics
+		ctxB := context.Background()
+		ctx, cancel := signal.NotifyContext(ctxB, os.Interrupt, syscall.SIGTERM)
+		defer cancel()
+
+		exporter, err := otlpmetrichttp.New(ctx, otlpmetrichttp.WithInsecure(), otlpmetrichttp.WithEndpoint(os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT")))
+		if err != nil {
+			panic(err)
+		}
+
+		reader := sdkmetric.NewPeriodicReader(exporter)
+		provider := sdkmetric.NewMeterProvider(sdkmetric.WithReader(reader))
+		defer func() {
+			fmt.Fprintln(os.Stderr, "collecting final metrics...")
+			m, err := reader.Collect(ctxB)
+			if err != nil {
+				fmt.Fprintln(os.Stderr, "failed to collect metrics:", err)
+				return
+			}
+			if err := exporter.Export(ctxB, m); err != nil {
+				fmt.Fprintln(os.Stderr, "failed to export metrics:", err)
+			}
+			if err := provider.Shutdown(ctxB); err != nil {
+				fmt.Fprintln(os.Stderr, err)
+			}
+		}()
+		global.SetMeterProvider(provider)
+		recordMetrics(ctx, float64(time.Since(startTime).Milliseconds()), int64(childJob.Status.Succeeded), int64(childJob.Status.Failed))
+
 		if res, err := r.handleJobDeletion(ctx, childJob); err != nil || res.RequeueAfter > 0 {
 			return res, err
 		}
@@ -354,4 +395,32 @@ func (r *Reconciler) handleCompletedImageJob(ctx context.Context, req ctrl.Reque
 	}
 
 	return ctrl.Result{RequeueAfter: *repeatPeriod}, err
+}
+
+func recordMetrics(ctx context.Context, jobDuration float64, podsCompleted int64, podsFailed int64) {
+	p := global.MeterProvider()
+
+	duration, err := p.Meter("eraser").SyncFloat64().Histogram("ImageJobCollectorDuration", instrument.WithDescription("duration of collector imagejob"), instrument.WithUnit(unit.Milliseconds))
+	if err != nil {
+		panic(err)
+	}
+	duration.Record(ctx, jobDuration)
+
+	completed, err := p.Meter("eraser").SyncInt64().Counter("PodsCompleted", instrument.WithDescription("total pods completed"), instrument.WithUnit("1"))
+	if err != nil {
+		panic(err)
+	}
+	completed.Add(ctx, podsCompleted)
+
+	failed, err := p.Meter("eraser").SyncInt64().Counter("PodsFailed", instrument.WithDescription("total pods failed"), instrument.WithUnit("1"))
+	if err != nil {
+		panic(err)
+	}
+	failed.Add(ctx, podsFailed)
+
+	jobTotal, err := p.Meter("eraser").SyncInt64().Counter("ImageJobCollectorTotal", instrument.WithDescription("total number of collector imagejobs completed"), instrument.WithUnit("1"))
+	if err != nil {
+		panic(err)
+	}
+	jobTotal.Add(ctx, 1)
 }

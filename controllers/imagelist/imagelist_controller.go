@@ -17,9 +17,15 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"os"
+	"os/signal"
 	"path/filepath"
+	"syscall"
 	"time"
 
+	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetrichttp"
+	"go.opentelemetry.io/otel/metric/global"
+	"go.opentelemetry.io/otel/metric/instrument"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -42,6 +48,8 @@ import (
 	"github.com/Azure/eraser/controllers/util"
 	"github.com/Azure/eraser/pkg/logger"
 	"github.com/Azure/eraser/pkg/utils"
+	"go.opentelemetry.io/otel/metric/unit"
+	sdkmetric "go.opentelemetry.io/otel/sdk/metric"
 )
 
 const (
@@ -51,6 +59,7 @@ const (
 var (
 	log       = logf.Log.WithName("controller").WithValues("process", "imagelist-controller")
 	imageList = types.NamespacedName{Name: "imagelist"}
+	startTime time.Time
 )
 
 func Add(mgr manager.Manager) error {
@@ -151,6 +160,35 @@ func (r *Reconciler) handleJobListEvent(ctx context.Context, imageList *eraserv1
 			return ctrl.Result{}, nil
 		}
 
+		// record metrics
+		ctxB := context.Background()
+		ctx, cancel := signal.NotifyContext(ctxB, os.Interrupt, syscall.SIGTERM)
+		defer cancel()
+
+		exporter, err := otlpmetrichttp.New(ctx, otlpmetrichttp.WithInsecure(), os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT"))
+		if err != nil {
+			panic(err)
+		}
+
+		reader := sdkmetric.NewPeriodicReader(exporter)
+		provider := sdkmetric.NewMeterProvider(sdkmetric.WithReader(reader))
+		defer func() {
+			fmt.Fprintln(os.Stderr, "collecting final metrics...")
+			m, err := reader.Collect(ctxB)
+			if err != nil {
+				fmt.Fprintln(os.Stderr, "failed to collect metrics:", err)
+				return
+			}
+			if err := exporter.Export(ctxB, m); err != nil {
+				fmt.Fprintln(os.Stderr, "failed to export metrics:", err)
+			}
+			if err := provider.Shutdown(ctxB); err != nil {
+				fmt.Fprintln(os.Stderr, err)
+			}
+		}()
+		global.SetMeterProvider(provider)
+		recordMetrics(ctx, float64(time.Since(startTime).Milliseconds()), int64(job.Status.Succeeded), int64(job.Status.Failed))
+
 		return r.handleJobDeletion(ctx, job)
 	}
 
@@ -237,6 +275,7 @@ func (r *Reconciler) handleImageListEvent(ctx context.Context, req *ctrl.Request
 								},
 							},
 							SecurityContext: utils.SharedSecurityContext,
+							Env:             []corev1.EnvVar{{Name: "OTEL_EXPORTER_OTLP_ENDPOINT", Value: os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT")}, {Name: "NODE_NAME", ValueFrom: &corev1.EnvVarSource{FieldRef: &corev1.ObjectFieldSelector{FieldPath: "spec.nodeName"}}}},
 						},
 					},
 					ServiceAccountName: "eraser-imagejob-pods",
@@ -264,7 +303,9 @@ func (r *Reconciler) handleImageListEvent(ctx context.Context, req *ctrl.Request
 	job.Spec.JobTemplate.Spec.Volumes = append(job.Spec.JobTemplate.Spec.Volumes, exclusionVolume...)
 
 	err = r.Create(ctx, job)
+	startTime = time.Now()
 	log.Info("creating imagejob", "job", job.Name)
+
 	if err != nil {
 		if errors.IsNotFound(err) {
 			return reconcile.Result{}, nil
@@ -337,4 +378,32 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	}
 
 	return nil
+}
+
+func recordMetrics(ctx context.Context, jobDuration float64, podsCompleted int64, podsFailed int64) {
+	p := global.MeterProvider()
+
+	duration, err := p.Meter("eraser").SyncFloat64().Histogram("ImageJobEraserDuration", instrument.WithDescription("duration of eraser imagejob"), instrument.WithUnit(unit.Milliseconds))
+	if err != nil {
+		panic(err)
+	}
+	duration.Record(ctx, jobDuration)
+
+	completed, err := p.Meter("eraser").SyncInt64().Counter("PodsCompleted", instrument.WithDescription("total pods completed"), instrument.WithUnit("1"))
+	if err != nil {
+		panic(err)
+	}
+	completed.Add(ctx, podsCompleted)
+
+	failed, err := p.Meter("eraser").SyncInt64().Counter("PodsFailed", instrument.WithDescription("total pods failed"), instrument.WithUnit("1"))
+	if err != nil {
+		panic(err)
+	}
+	failed.Add(ctx, podsFailed)
+
+	jobTotal, err := p.Meter("eraser").SyncInt64().Counter("ImageJobEraserTotal", instrument.WithDescription("total number of eraser imagejobs completed"), instrument.WithUnit("1"))
+	if err != nil {
+		panic(err)
+	}
+	jobTotal.Add(ctx, 1)
 }
