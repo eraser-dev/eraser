@@ -173,17 +173,17 @@ func (r *Reconciler) handleJobListEvent(ctx context.Context, imageList *eraserv1
 		reader := sdkmetric.NewPeriodicReader(exporter)
 		provider := sdkmetric.NewMeterProvider(sdkmetric.WithReader(reader))
 		defer func() {
-			fmt.Fprintln(os.Stderr, "collecting final metrics...")
+			log.Info("collecting final metrics...")
 			m, err := reader.Collect(ctxB)
 			if err != nil {
-				fmt.Fprintln(os.Stderr, "failed to collect metrics:", err)
+				log.Info("failed to collect metrics:", err)
 				return
 			}
 			if err := exporter.Export(ctxB, m); err != nil {
-				fmt.Fprintln(os.Stderr, "failed to export metrics:", err)
+				log.Info("failed to export metrics:", err)
 			}
 			if err := provider.Shutdown(ctxB); err != nil {
-				fmt.Fprintln(os.Stderr, err)
+				log.Info("error during metric shutdown", err)
 			}
 		}()
 		global.SetMeterProvider(provider)
