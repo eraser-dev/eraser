@@ -105,43 +105,64 @@ func toRepoTag(ref registry.Reference) RepoTag {
 }
 
 func parsedImages(eraserImage, managerImage, collectorImage, scannerImage string) (*Images, error) {
-	var eraserImageParsed, collectorImageParsed, managerImageParsed, scannerImageParsed registry.Reference
-	var err error
-
-	if eraserImage != "" {
-		eraserImageParsed, err = registry.ParseReference(eraserImage)
-		if err != nil {
-			return nil, err
-		}
+	eraserRepoTag, err := parseRepoTag(eraserImage)
+	if err != nil {
+		return nil, err
 	}
 
-	if collectorImage != "" {
-		collectorImageParsed, err = registry.ParseReference(collectorImage)
-		if err != nil {
-			return nil, err
-		}
+	collectorRepoTag, err := parseRepoTag(collectorImage)
+	if err != nil {
+		return nil, err
 	}
 
-	if managerImage != "" {
-		managerImageParsed, err = registry.ParseReference(managerImage)
-		if err != nil {
-			return nil, err
-		}
+	managerRepoTag, err := parseRepoTag(managerImage)
+	if err != nil {
+		return nil, err
 	}
 
-	if scannerImage != "" {
-		scannerImageParsed, err = registry.ParseReference(scannerImage)
-		if err != nil {
-			return nil, err
-		}
+	scannerRepoTag, err := parseRepoTag(scannerImage)
+	if err != nil {
+		return nil, err
 	}
 
 	return &Images{
-		CollectorImage: toRepoTag(collectorImageParsed),
-		EraserImage:    toRepoTag(eraserImageParsed),
-		ManagerImage:   toRepoTag(managerImageParsed),
-		ScannerImage:   toRepoTag(scannerImageParsed),
+		CollectorImage: collectorRepoTag,
+		EraserImage:    eraserRepoTag,
+		ManagerImage:   managerRepoTag,
+		ScannerImage:   scannerRepoTag,
 	}, nil
+}
+
+func parseRepoTag(img string) (RepoTag, error) {
+	if img == "" {
+		return RepoTag{}, nil
+	}
+
+	parts := strings.Split(img, "/")
+
+	repo := ""
+	if len(parts) == 1 {
+		repo = parts[0]
+		tag := ""
+
+		colonParts := strings.Split(img, ":")
+		if len(colonParts) > 1 {
+			repo = colonParts[0]
+			tag = colonParts[len(colonParts)-1]
+		}
+
+		return RepoTag{
+			Repo: repo,
+			Tag:  tag,
+		}, nil
+	}
+
+	ref, err := registry.ParseReference(img)
+	if err != nil {
+		return RepoTag{}, err
+	}
+
+	return toRepoTag(ref), nil
 }
 
 func IsNotFound(err error) bool {
