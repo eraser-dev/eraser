@@ -267,7 +267,7 @@ func main() {
 
 	exporter, err := otlpmetrichttp.New(ctx, otlpmetrichttp.WithInsecure(), otlpmetrichttp.WithEndpoint(os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT")))
 	if err != nil {
-		panic(err)
+		log.Error(err, "error getting metric exporter")
 	}
 
 	reader := sdkmetric.NewPeriodicReader(exporter)
@@ -276,19 +276,21 @@ func main() {
 		log.Info("collecting final metrics...")
 		m, err := reader.Collect(ctxB)
 		if err != nil {
-			log.Info("failed to collect metrics:", err)
+			log.Error(err, "failed to collect metrics")
 			return
 		}
 		if err := exporter.Export(ctxB, m); err != nil {
-			log.Info("failed to export metrics:", err)
+			log.Error(err, "failed to export metrics")
 		}
 		if err := provider.Shutdown(ctxB); err != nil {
-			log.Info("error during metric shutdown", err)
+			log.Error(err, "error during metric shutdown")
 		}
 	}()
 	global.SetMeterProvider(provider)
 
-	recordMetrics(ctx, len(vulnerableImages))
+	if err := recordMetrics(ctx, len(vulnerableImages)); err != nil {
+		log.Error(err, "error recording metrics")
+	}
 
 	file, err := os.OpenFile(util.EraseCompleteScanPath, os.O_RDONLY, 0)
 	if err != nil {
@@ -311,12 +313,13 @@ func main() {
 	log.Info("scanning complete, exiting")
 }
 
-func recordMetrics(ctx context.Context, totalVulnerable int) {
+func recordMetrics(ctx context.Context, totalVulnerable int) error {
 	p := global.MeterProvider()
 	counter, err := p.Meter("eraser").SyncInt64().Counter("VulnerableImages", instrument.WithDescription("total vulnerable images"), instrument.WithUnit("1"))
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	counter.Add(ctx, int64(totalVulnerable), attribute.String("node name", os.Getenv("NODE_NAME")))
+	return nil
 }
