@@ -4,6 +4,7 @@
 package e2e
 
 import (
+	"fmt"
 	"os"
 	"testing"
 
@@ -19,6 +20,9 @@ import (
 func TestMain(m *testing.M) {
 	utilruntime.Must(eraserv1alpha1.AddToScheme(scheme.Scheme))
 
+	eraserImage := util.ParsedImages.EraserImage
+	managerImage := util.ParsedImages.ManagerImage
+
 	util.Testenv = env.NewWithConfig(envconf.New())
 	// Create KinD Cluster
 	util.Testenv.Setup(
@@ -26,7 +30,14 @@ func TestMain(m *testing.M) {
 		envfuncs.CreateNamespace(util.TestNamespace),
 		envfuncs.LoadDockerImageToCluster(util.KindClusterName, util.ManagerImage),
 		envfuncs.LoadDockerImageToCluster(util.KindClusterName, util.Image),
-		util.DeployEraserHelm(util.EraserNamespace, "--set", `collector.image.repository=`),
+		util.DeployEraserHelm(util.EraserNamespace,
+			"--set", `collector.image.repository=`,
+			"--set", `scanner.image.repository=`,
+			"--set", fmt.Sprintf("eraser.image.repository=%s", eraserImage.Repo),
+			"--set", fmt.Sprintf("eraser.image.tag=%s", eraserImage.Tag),
+			"--set", fmt.Sprintf("controllerManager.image.repository=%s", managerImage.Repo),
+			"--set", fmt.Sprintf("controllerManager.image.tag=%s", managerImage.Tag),
+		),
 	).Finish(
 		envfuncs.DestroyKindCluster(util.KindClusterName),
 	)

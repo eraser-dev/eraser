@@ -36,7 +36,7 @@ func TestMain(m *testing.M) {
 			"--set", `scanner.image.repository=`,
 			"--set", fmt.Sprintf("eraser.image.repository=%s", eraserImage.Repo),
 			"--set", fmt.Sprintf("eraser.image.tag=%s", eraserImage.Tag),
-			"--set", fmt.Sprintf("controllerManager.image.repository=%s", controllerManger.Repo),
+			"--set", fmt.Sprintf("controllerManager.image.repository=%s", managerImage.Repo),
 			"--set", fmt.Sprintf("controllerManager.image.tag=%s", managerImage.Tag),
 			"--set", `controllerManager.additionalArgs={--job-cleanup-on-success-delay=1m}`),
 	).Finish(

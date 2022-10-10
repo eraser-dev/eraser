@@ -4,6 +4,7 @@
 package e2e
 
 import (
+	"fmt"
 	"os"
 	"testing"
 
@@ -20,6 +21,10 @@ import (
 
 func TestMain(m *testing.M) {
 	utilruntime.Must(eraserv1alpha1.AddToScheme(scheme.Scheme))
+
+	eraserImage := util.ParsedImages.EraserImage
+	managerImage := util.ParsedImages.ManagerImage
+	collectorImage := util.ParsedImages.CollectorImage
 
 	util.Testenv = env.NewWithConfig(envconf.New())
 	// Create KinD Cluster
@@ -38,7 +43,15 @@ func TestMain(m *testing.M) {
 		util.CreateExclusionList(util.EraserNamespace, pkgUtil.ExclusionList{
 			Excluded: []string{util.NonVulnerableImage},
 		}),
-		util.DeployEraserHelm(util.EraserNamespace, "--set", `scanner.image.repository=`, "--set", `controllerManager.additionalArgs={--job-cleanup-on-success-delay=1m}`),
+		util.DeployEraserHelm(util.EraserNamespace,
+			"--set", `scanner.image.repository=`,
+			"--set", fmt.Sprintf("eraser.image.repository=%s", eraserImage.Repo),
+			"--set", fmt.Sprintf("eraser.image.tag=%s", eraserImage.Tag),
+			"--set", fmt.Sprintf("collector.image.repository=%s", collectorImage.Repo),
+			"--set", fmt.Sprintf("collector.image.tag=%s", collectorImage.Tag),
+			"--set", fmt.Sprintf("controllerManager.image.repository=%s", managerImage.Repo),
+			"--set", fmt.Sprintf("controllerManager.image.tag=%s", managerImage.Tag),
+			"--set", `controllerManager.additionalArgs={--job-cleanup-on-success-delay=1m}`),
 	).Finish(
 		envfuncs.DestroyKindCluster(util.KindClusterName),
 	)
