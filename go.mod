@@ -9,8 +9,11 @@ require (
 	github.com/go-logr/logr v1.2.3
 	github.com/onsi/ginkgo v1.16.5
 	github.com/onsi/gomega v1.20.2
+	go.opentelemetry.io/otel v1.10.0
+	go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetrichttp v0.32.1
+	go.opentelemetry.io/otel/metric v0.32.1
+	go.opentelemetry.io/otel/sdk/metric v0.32.1
 	go.uber.org/zap v1.21.0
-	golang.org/x/net v0.0.0-20220906165146-f3363e06e74c // indirect; CVE-2022-27664
 	golang.org/x/sys v0.0.0-20220728004956-3c1f35247d10
 	google.golang.org/grpc v1.49.0
 	k8s.io/api v0.25.0
@@ -69,6 +72,7 @@ require (
 	github.com/briandowns/spinner v1.12.0 // indirect
 	github.com/caarlos0/env/v6 v6.9.1 // indirect
 	github.com/cenkalti/backoff v2.2.1+incompatible // indirect
+	github.com/cenkalti/backoff/v4 v4.1.3 // indirect
 	github.com/cespare/xxhash/v2 v2.1.2 // indirect
 	github.com/cheggaaa/pb/v3 v3.0.8 // indirect
 	github.com/containerd/stargz-snapshotter/estargz v0.10.1 // indirect
@@ -91,6 +95,7 @@ require (
 	github.com/go-git/gcfg v1.5.0 // indirect
 	github.com/go-git/go-billy/v5 v5.3.1 // indirect
 	github.com/go-git/go-git/v5 v5.4.2 // indirect
+	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-logr/zapr v1.2.3 // indirect
 	github.com/go-openapi/jsonpointer v0.19.5 // indirect
 	github.com/go-openapi/jsonreference v0.19.5 // indirect
@@ -108,6 +113,7 @@ require (
 	github.com/google/uuid v1.3.0 // indirect
 	github.com/google/wire v0.5.0 // indirect
 	github.com/googleapis/gax-go/v2 v2.1.1 // indirect
+	github.com/grpc-ecosystem/grpc-gateway/v2 v2.7.0 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
 	github.com/hashicorp/go-getter v1.6.1 // indirect
@@ -194,12 +200,17 @@ require (
 	github.com/zclconf/go-cty-yaml v1.0.2 // indirect
 	go.etcd.io/bbolt v1.3.6 // indirect
 	go.opencensus.io v0.23.0 // indirect
-	go.opentelemetry.io/otel/sdk/metric v0.32.1
+	go.opentelemetry.io/otel/exporters/otlp/internal/retry v1.10.0 // indirect
+	go.opentelemetry.io/otel/exporters/otlp/otlpmetric v0.32.1 // indirect
+	go.opentelemetry.io/otel/sdk v1.10.0 // indirect
+	go.opentelemetry.io/otel/trace v1.10.0 // indirect
+	go.opentelemetry.io/proto/otlp v0.19.0 // indirect
 	go.uber.org/atomic v1.7.0 // indirect
 	go.uber.org/multierr v1.6.0 // indirect
 	golang.org/x/crypto v0.0.0-20220525230936-793ad666bf5e // indirect
 	golang.org/x/exp v0.0.0-20220407100705-7b9b53b0aca4 // indirect
 	golang.org/x/mod v0.6.0-dev.0.20220419223038-86c51ed26bb4 // indirect
+	golang.org/x/net v0.0.0-20220906165146-f3363e06e74c // indirect; CVE-2022-27664
 	golang.org/x/oauth2 v0.0.0-20220223155221-ee480838109b // indirect
 	golang.org/x/sync v0.0.0-20220722155255-886fb9371eb4 // indirect
 	golang.org/x/term v0.0.0-20210927222741-03fcf44c2211 // indirect
@@ -238,23 +249,6 @@ require (
 	sigs.k8s.io/json v0.0.0-20220713155537-f223a00ba0e2 // indirect
 	sigs.k8s.io/structured-merge-diff/v4 v4.2.3 // indirect
 	sigs.k8s.io/yaml v1.3.0 // indirect
-)
-
-require (
-	github.com/go-logr/stdr v1.2.2 // indirect
-	go.opentelemetry.io/otel v1.10.0
-	go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetrichttp v0.32.1
-	go.opentelemetry.io/otel/metric v0.32.1
-	go.opentelemetry.io/otel/sdk v1.10.0 // indirect
-	go.opentelemetry.io/otel/trace v1.10.0 // indirect
-)
-
-require (
-	github.com/cenkalti/backoff/v4 v4.1.3 // indirect
-	github.com/grpc-ecosystem/grpc-gateway/v2 v2.7.0 // indirect
-	go.opentelemetry.io/otel/exporters/otlp/internal/retry v1.10.0 // indirect
-	go.opentelemetry.io/otel/exporters/otlp/otlpmetric v0.32.1 // indirect
-	go.opentelemetry.io/proto/otlp v0.19.0 // indirect
 )
 
 replace (
