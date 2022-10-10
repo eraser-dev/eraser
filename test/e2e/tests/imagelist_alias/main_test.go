@@ -4,6 +4,7 @@
 package e2e
 
 import (
+	"fmt"
 	"os"
 	"testing"
 
@@ -21,12 +22,23 @@ func TestMain(m *testing.M) {
 
 	util.Testenv = env.NewWithConfig(envconf.New())
 	// Create KinD Cluster
+
+	eraserImage := util.ParsedImages.EraserImage
+	managerImage := util.ParsedImages.ManagerImage
+
 	util.Testenv.Setup(
 		envfuncs.CreateKindClusterWithConfig(util.KindClusterName, util.NodeVersion, "../../kind-config.yaml"),
 		envfuncs.CreateNamespace(util.TestNamespace),
 		envfuncs.LoadDockerImageToCluster(util.KindClusterName, util.ManagerImage),
 		envfuncs.LoadDockerImageToCluster(util.KindClusterName, util.Image),
-		util.DeployEraserHelm(util.EraserNamespace, "--set", `collector.image.repository=`, "--set", `controllerManager.additionalArgs={--job-cleanup-on-success-delay=1m}`),
+		util.DeployEraserHelm(util.EraserNamespace,
+			"--set", `collector.image.repository=`,
+			"--set", `scanner.image.repository=`,
+			"--set", fmt.Sprintf("eraser.image.repository=%s", eraserImage.Repo),
+			"--set", fmt.Sprintf("eraser.image.tag=%s", eraserImage.Tag),
+			"--set", fmt.Sprintf("controllerManager.image.repository=%s", controllerManger.Repo),
+			"--set", fmt.Sprintf("controllerManager.image.tag=%s", managerImage.Tag),
+			"--set", `controllerManager.additionalArgs={--job-cleanup-on-success-delay=1m}`),
 	).Finish(
 		envfuncs.DestroyKindCluster(util.KindClusterName),
 	)
