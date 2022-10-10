@@ -17,6 +17,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/klog/v2"
+	"oras.land/oras-go/pkg/registry"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/e2e-framework/klient/wait"
 	"sigs.k8s.io/e2e-framework/klient/wait/conditions"
@@ -64,7 +65,84 @@ var (
 	TestNamespace      = envconf.RandomName("test-ns", 16)
 	EraserNamespace    = pkgUtil.GetNamespace()
 	TestLogDir         = os.Getenv("TEST_LOGDIR")
+
+	ParsedImages *Images
 )
+
+type (
+	RepoTag struct {
+		Repo string
+		Tag  string
+	}
+
+	Images struct {
+		CollectorImage RepoTag
+		EraserImage    RepoTag
+		ManagerImage   RepoTag
+		ScannerImage   RepoTag
+	}
+)
+
+func init() {
+	var err error
+	ParsedImages, err = parsedImages(Image, ManagerImage, CollectorImage, ScannerImage)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		panic(err)
+	}
+}
+
+func toRepoTag(ref registry.Reference) RepoTag {
+	var repoTag RepoTag
+
+	repoTag.Repo = fmt.Sprintf("%s/%s", ref.Registry, ref.Repository)
+	if repoTag.Repo == "/" {
+		repoTag.Repo = ""
+	}
+
+	repoTag.Tag = ref.Reference
+	return repoTag
+}
+
+func parsedImages(eraserImage, managerImage, collectorImage, scannerImage string) (*Images, error) {
+	var eraserImageParsed, collectorImageParsed, managerImageParsed, scannerImageParsed registry.Reference
+	var err error
+
+	if eraserImage != "" {
+		eraserImageParsed, err = registry.ParseReference(eraserImage)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	if collectorImage != "" {
+		collectorImageParsed, err = registry.ParseReference(collectorImage)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	if managerImage != "" {
+		managerImageParsed, err = registry.ParseReference(managerImage)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	if scannerImage != "" {
+		scannerImageParsed, err = registry.ParseReference(scannerImage)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return &Images{
+		CollectorImage: toRepoTag(collectorImageParsed),
+		EraserImage:    toRepoTag(eraserImageParsed),
+		ManagerImage:   toRepoTag(managerImageParsed),
+		ScannerImage:   toRepoTag(scannerImageParsed),
+	}, nil
+}
 
 func IsNotFound(err error) bool {
 	return err != nil && client.IgnoreNotFound(err) == nil
