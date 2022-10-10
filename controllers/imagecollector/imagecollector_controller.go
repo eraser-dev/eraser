@@ -352,7 +352,7 @@ func (r *Reconciler) handleCompletedImageJob(ctx context.Context, req ctrl.Reque
 
 		exporter, err := otlpmetrichttp.New(ctx, otlpmetrichttp.WithInsecure(), otlpmetrichttp.WithEndpoint(os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT")))
 		if err != nil {
-			panic(err)
+			log.Error(err, "error getting metric exporter")
 		}
 
 		reader := sdkmetric.NewPeriodicReader(exporter)
@@ -361,18 +361,20 @@ func (r *Reconciler) handleCompletedImageJob(ctx context.Context, req ctrl.Reque
 			log.Info("collecting final metrics...")
 			m, err := reader.Collect(ctxB)
 			if err != nil {
-				log.Info("failed to collect metrics:", err)
+				log.Error(err, "failed to collect metrics")
 				return
 			}
 			if err := exporter.Export(ctxB, m); err != nil {
-				log.Info("failed to export metrics:", err)
+				log.Error(err, "failed to export metrics")
 			}
 			if err := provider.Shutdown(ctxB); err != nil {
-				log.Info("error during metric shutdown", err)
+				log.Error(err, "error during metric shutdown", err)
 			}
 		}()
 		global.SetMeterProvider(provider)
-		recordMetrics(ctx, float64(time.Since(startTime).Milliseconds()), int64(childJob.Status.Succeeded), int64(childJob.Status.Failed))
+		if err := recordMetrics(ctx, float64(time.Since(startTime).Milliseconds()), int64(childJob.Status.Succeeded), int64(childJob.Status.Failed)); err != nil {
+			log.Error(err, "error recording metrics")
+		}
 
 		if res, err := r.handleJobDeletion(ctx, childJob); err != nil || res.RequeueAfter > 0 {
 			return res, err
@@ -397,30 +399,32 @@ func (r *Reconciler) handleCompletedImageJob(ctx context.Context, req ctrl.Reque
 	return ctrl.Result{RequeueAfter: *repeatPeriod}, err
 }
 
-func recordMetrics(ctx context.Context, jobDuration float64, podsCompleted int64, podsFailed int64) {
+func recordMetrics(ctx context.Context, jobDuration float64, podsCompleted int64, podsFailed int64) error {
 	p := global.MeterProvider()
 
 	duration, err := p.Meter("eraser").SyncFloat64().Histogram("ImageJobCollectorDuration", instrument.WithDescription("duration of collector imagejob"), instrument.WithUnit(unit.Milliseconds))
 	if err != nil {
-		panic(err)
+		return err
 	}
 	duration.Record(ctx, jobDuration)
 
 	completed, err := p.Meter("eraser").SyncInt64().Counter("PodsCompleted", instrument.WithDescription("total pods completed"), instrument.WithUnit("1"))
 	if err != nil {
-		panic(err)
+		return err
 	}
 	completed.Add(ctx, podsCompleted)
 
 	failed, err := p.Meter("eraser").SyncInt64().Counter("PodsFailed", instrument.WithDescription("total pods failed"), instrument.WithUnit("1"))
 	if err != nil {
-		panic(err)
+		return err
 	}
 	failed.Add(ctx, podsFailed)
 
 	jobTotal, err := p.Meter("eraser").SyncInt64().Counter("ImageJobCollectorTotal", instrument.WithDescription("total number of collector imagejobs completed"), instrument.WithUnit("1"))
 	if err != nil {
-		panic(err)
+		return err
 	}
 	jobTotal.Add(ctx, 1)
+
+	return nil
 }
