@@ -677,6 +677,28 @@ func GetPodLogs(ctx context.Context, cfg *envconf.Config, t *testing.T, imagelis
 	return nil
 }
 
+func MakeDeploy(env map[string]string) env.Func {
+	return func(ctx context.Context, cfg *envconf.Config) (context.Context, error) {
+		args := []string{"deploy"}
+		for k, v := range env {
+			args = append(args, fmt.Sprintf("%s=%s", k, v))
+		}
+
+		cmd := exec.Command("make", args...)
+		cmd.Dir = "../../../.."
+
+		out, err := cmd.CombinedOutput()
+		if err != nil {
+			fmt.Fprint(os.Stderr, string(out))
+			return ctx, err
+		}
+
+		fmt.Println(string(out))
+
+		return ctx, nil
+	}
+}
+
 func DeployEraserManifest(namespace, fileName string) env.Func {
 	return func(ctx context.Context, cfg *envconf.Config) (context.Context, error) {
 		providerResourceAbsolutePath := "../../../../" + providerResourceDeployDir

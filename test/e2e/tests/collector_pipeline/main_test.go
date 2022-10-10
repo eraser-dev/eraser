@@ -29,7 +29,12 @@ func TestMain(m *testing.M) {
 		envfuncs.LoadDockerImageToCluster(util.KindClusterName, util.ScannerImage),
 		envfuncs.LoadDockerImageToCluster(util.KindClusterName, util.CollectorImage),
 		envfuncs.LoadDockerImageToCluster(util.KindClusterName, util.VulnerableImage),
-		util.DeployEraserManifest(util.EraserNamespace, util.ProviderResource),
+		util.MakeDeploy(map[string]string{
+			"ERASER_IMG":        util.Image,
+			"MANAGER_IMG":       util.ManagerImage,
+			"TRIVY_SCANNER_IMG": util.ScannerImage,
+			"COLLECTOR_IMAGE":   util.CollectorImage,
+		}),
 	).Finish(
 		envfuncs.DestroyKindCluster(util.KindClusterName),
 	)
