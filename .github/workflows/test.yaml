@@ -158,16 +158,22 @@ jobs:
               ~/go/pkg/mod
               ~/.cache/go-build
         - uses: crazy-max/ghaction-github-runtime@v2
+        - name: Set env
+          run: |
+            echo "ERASER_IMG=eraser:test" >> $GITHUB_ENV
+            echo "MANAGER_IMG=manager:test" >> $GITHUB_ENV
+            echo "COLLECTOR_IMG=collector:test" >> $GITHUB_ENV
+            echo "SCANNER_IMG=scanner:test" >> $GITHUB_ENV
         - name: Build eraser-manager
-          run: make docker-build-manager
+          run: make docker-build-manager MANAGER_IMG="${MANAGER_IMG}"
         - name: Build eraser
-          run: make docker-build-eraser
+          run: make docker-build-eraser ERASER_IMG="${ERASER_IMG}"
         - name: Build collector
-          run: make docker-build-collector
+          run: make docker-build-collector COLLECTOR_IMG="${COLLECTOR_IMG}"
         - name: Build trivy-scanner
-          run: make docker-build-trivy-scanner
+          run: make docker-build-trivy-scanner TRIVY_SCANNER_IMG="${SCANNER_IMG}"
         - name: Run e2e test
-          run: make e2e-test KUBERNETES_VERSION=${{ matrix.KUBERNETES_VERSION }} E2E_TESTS=${{ matrix.E2E_TEST }}
+          run: make e2e-test KUBERNETES_VERSION="${{ matrix.KUBERNETES_VERSION }}" E2E_TESTS="${{ matrix.E2E_TEST }}" ERASER_IMG="${ERASER_IMG}" MANAGER_IMG="${MANAGER_IMG}" COLLECTOR_IMG="${COLLECTOR_IMG}" TRIVY_SCANNER_IMG="${SCANNER_IMG}"
         - name: Upload artifacts
           uses: actions/upload-artifact@v3
           with:
