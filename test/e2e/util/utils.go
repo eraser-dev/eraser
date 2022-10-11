@@ -87,7 +87,7 @@ func init() {
 	var err error
 	ParsedImages, err = parsedImages(Image, ManagerImage, CollectorImage, ScannerImage)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
+		klog.Error(err)
 		panic(err)
 	}
 }
@@ -693,7 +693,7 @@ func MakeDeploy(env map[string]string) env.Func {
 			return ctx, err
 		}
 
-		fmt.Println(string(out))
+		klog.Info(string(out))
 
 		return ctx, nil
 	}
