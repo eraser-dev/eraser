@@ -256,7 +256,7 @@ func (r *Reconciler) handleImageListEvent(ctx context.Context, req *ctrl.Request
 								},
 							},
 							SecurityContext: utils.SharedSecurityContext,
-							Env:             []corev1.EnvVar{{Name: "OTEL_EXPORTER_OTLP_ENDPOINT", Value: os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT")}, {Name: "NODE_NAME", ValueFrom: &corev1.EnvVarSource{FieldRef: &corev1.ObjectFieldSelector{FieldPath: "spec.nodeName"}}}},
+							Env:             []corev1.EnvVar{{Name: "OTEL_EXPORTER_OTLP_ENDPOINT", Value: *util.OtlpEndpoint}, {Name: "NODE_NAME", ValueFrom: &corev1.EnvVarSource{FieldRef: &corev1.ObjectFieldSelector{FieldPath: "spec.nodeName"}}}},
 						},
 					},
 					ServiceAccountName: "eraser-imagejob-pods",
