@@ -51,6 +51,15 @@ const (
 	FilterNodeSelector   = "kubernetes.io/hostname=eraser-e2e-test-worker"
 	FilterLabelKey       = "eraser.sh/cleanup.filter"
 	FilterLabelValue     = "true"
+
+	ScannerImageRepo   = HelmPath("scanner.image.repository")
+	ScannerImageTag    = HelmPath("scanner.image.tag")
+	CollectorImageRepo = HelmPath("collector.image.repository")
+	CollectorImageTag  = HelmPath("collector.image.tag")
+	ManagerImageRepo   = HelmPath("manager.image.repository")
+	ManagerImageTag    = HelmPath("manager.image.tag")
+	EraserImageRepo    = HelmPath("eraser.image.repository")
+	EraserImageTag     = HelmPath("eraser.image.tag")
 )
 
 var (
@@ -81,7 +90,13 @@ type (
 		ManagerImage   RepoTag
 		ScannerImage   RepoTag
 	}
+
+	HelmPath string
 )
+
+func (hp HelmPath) Set(val string) string {
+	return fmt.Sprintf("%s=%s", hp, val)
+}
 
 func init() {
 	var err error
