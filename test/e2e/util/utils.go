@@ -158,14 +158,11 @@ func parseRepoTag(img string) (RepoTag, error) {
 		return toRepoTag(ref), nil
 	}
 
-	repo := ""
-	tag := ""
-
 	if parts := strings.Split(img, "/"); len(parts) == 1 {
-		repo = parts[0]
+		repo := parts[0]
 
 		if atParts := strings.Split(img, "@"); len(atParts) > 1 {
-			tag = atParts[len(atParts)-1]
+			tag := atParts[len(atParts)-1]
 			repo = strings.TrimSuffix(img, fmt.Sprintf("@%s", tag))
 
 			return RepoTag{
@@ -177,7 +174,7 @@ func parseRepoTag(img string) (RepoTag, error) {
 		colonParts := strings.Split(img, ":")
 		if len(colonParts) > 1 {
 			repo = colonParts[0]
-			tag = colonParts[len(colonParts)-1]
+			tag := colonParts[len(colonParts)-1]
 			return RepoTag{
 				Repo: repo,
 				Tag:  tag,
