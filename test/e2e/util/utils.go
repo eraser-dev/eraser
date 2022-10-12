@@ -153,31 +153,39 @@ func parseRepoTag(img string) (RepoTag, error) {
 		return RepoTag{}, nil
 	}
 
-	parts := strings.Split(img, "/")
+	ref, err := registry.ParseReference(img)
+	if err == nil {
+		return toRepoTag(ref), nil
+	}
 
 	repo := ""
-	if len(parts) == 1 {
+	tag := ""
+
+	if parts := strings.Split(img, "/"); len(parts) == 1 {
 		repo = parts[0]
-		tag := ""
+
+		if atParts := strings.Split(img, "@"); len(atParts) > 1 {
+			tag = atParts[len(atParts)-1]
+			repo = strings.TrimSuffix(img, fmt.Sprintf("@%s", tag))
+
+			return RepoTag{
+				Repo: repo,
+				Tag:  tag,
+			}, nil
+		}
 
 		colonParts := strings.Split(img, ":")
 		if len(colonParts) > 1 {
 			repo = colonParts[0]
 			tag = colonParts[len(colonParts)-1]
+			return RepoTag{
+				Repo: repo,
+				Tag:  tag,
+			}, nil
 		}
-
-		return RepoTag{
-			Repo: repo,
-			Tag:  tag,
-		}, nil
 	}
 
-	ref, err := registry.ParseReference(img)
-	if err != nil {
-		return RepoTag{}, err
-	}
-
-	return toRepoTag(ref), nil
+	return RepoTag{}, err
 }
 
 func IsNotFound(err error) bool {

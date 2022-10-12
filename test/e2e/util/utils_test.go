@@ -37,6 +37,54 @@ func TestParseRepoTag(t *testing.T) {
 			expectErr: false,
 		},
 		{
+			input: "eraser@sha256:4dca0fd5f424a31b03ab807cbae77eb32bf2d089eed1cee154b3afed458de0dc",
+			expected: RepoTag{
+				Repo: "eraser",
+				Tag:  "sha256:4dca0fd5f424a31b03ab807cbae77eb32bf2d089eed1cee154b3afed458de0dc",
+			},
+			expectErr: false,
+		},
+		{
+			input: "docker.io/nginx@sha256:4dca0fd5f424a31b03ab807cbae77eb32bf2d089eed1cee154b3afed458de0dc",
+			expected: RepoTag{
+				Repo: "docker.io/nginx",
+				Tag:  "sha256:4dca0fd5f424a31b03ab807cbae77eb32bf2d089eed1cee154b3afed458de0dc",
+			},
+			expectErr: false,
+		},
+		{
+			input: "docker.io/library/nginx@sha256:4dca0fd5f424a31b03ab807cbae77eb32bf2d089eed1cee154b3afed458de0dc",
+			expected: RepoTag{
+				Repo: "docker.io/library/nginx",
+				Tag:  "sha256:4dca0fd5f424a31b03ab807cbae77eb32bf2d089eed1cee154b3afed458de0dc",
+			},
+			expectErr: false,
+		},
+		{
+			input: "docker.io/nginx@sha256:4dca0fd5f4",
+			expected: RepoTag{
+				Repo: "",
+				Tag:  "",
+			},
+			expectErr: true,
+		},
+		{
+			input: "docker.io/nginx@sha256:gggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggg",
+			expected: RepoTag{
+				Repo: "",
+				Tag:  "",
+			},
+			expectErr: true,
+		},
+		{
+			input: "docker.io/library/nginx@sha123:4dca0fd5f424a31b03ab807cbae77eb32bf2d089eed1cee154b3afed458de0dc",
+			expected: RepoTag{
+				Repo: "",
+				Tag:  "",
+			},
+			expectErr: true,
+		},
+		{
 			input: "",
 			expected: RepoTag{
 				Repo: "",
