@@ -45,6 +45,22 @@ func TestParseRepoTag(t *testing.T) {
 			expectErr: false,
 		},
 		{
+			input: "eraser:sha256:4dca0fd5f424a31b03ab807cbae77eb32bf2d089eed1cee154b3afed458de0dc",
+			expected: RepoTag{
+				Repo: "eraser",
+				Tag:  "sha256:4dca0fd5f424a31b03ab807cbae77eb32bf2d089eed1cee154b3afed458de0dc",
+			},
+			expectErr: false,
+		},
+		{
+			input: "eraser@sha256:4dca0fd5f4:4a31b03ab807cbae77eb32bf2d089eed1cee154b3afed458de0dc",
+			expected: RepoTag{
+				Repo: "",
+				Tag:  "",
+			},
+			expectErr: true,
+		},
+		{
 			input: "docker.io/nginx@sha256:4dca0fd5f424a31b03ab807cbae77eb32bf2d089eed1cee154b3afed458de0dc",
 			expected: RepoTag{
 				Repo: "docker.io/nginx",
@@ -98,7 +114,7 @@ func TestParseRepoTag(t *testing.T) {
 				Repo: "",
 				Tag:  "",
 			},
-			expectErr: false,
+			expectErr: true,
 		},
 		{
 			input: "/",
@@ -117,12 +133,17 @@ func TestParseRepoTag(t *testing.T) {
 				continue
 			}
 
-			klog.Errorf("error from parsing function: %#v\nexpected: %#v\ngot:      %#v", err, c.expected, result)
+			klog.Errorf("error from parsing function: %#v\ninput: %s\nexpected: %#v\ngot:      %#v", err, c.input, c.expected, result)
 			t.FailNow()
 		}
 
+		if c.expectErr {
+			klog.Errorf("expected error parsing reference `%s`, but did not receive one", c.input)
+			t.Fail()
+		}
+
 		if result.Repo != c.expected.Repo || result.Tag != c.expected.Tag {
-			klog.Errorf("wrong result\nexpected: %#v\ngot:      %#v", c.expected, result)
+			klog.Errorf("wrong result\ninput: %s\nexpected: %#v\ngot:      %#v", c.input, c.expected, result)
 			t.Fail()
 		}
 	}

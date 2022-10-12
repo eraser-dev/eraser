@@ -158,24 +158,16 @@ func parseRepoTag(img string) (RepoTag, error) {
 		return toRepoTag(ref), nil
 	}
 
+	// if true, this is an "unpublished" image, without a registry
 	if parts := strings.Split(img, "/"); len(parts) == 1 {
-		if atParts := strings.Split(img, "@"); len(atParts) > 1 {
-			tag := atParts[len(atParts)-1]
-			repo := strings.TrimSuffix(img, fmt.Sprintf("@%s", tag))
-
+		// the parser doesn't like unpublished images, so supply a dummy registry and pass it back to the parser
+		var result registry.Reference
+		result, err = registry.ParseReference(fmt.Sprintf("dummy.co/%s", img))
+		if err == nil {
 			return RepoTag{
-				Repo: repo,
-				Tag:  tag,
-			}, nil
-		}
-
-		colonParts := strings.Split(img, ":")
-		if len(colonParts) > 1 {
-			repo := colonParts[0]
-			tag := colonParts[len(colonParts)-1]
-			return RepoTag{
-				Repo: repo,
-				Tag:  tag,
+				// the registry info is discarded since it was a dummy registry
+				Repo: result.Repository,
+				Tag:  result.Reference,
 			}, nil
 		}
 	}
