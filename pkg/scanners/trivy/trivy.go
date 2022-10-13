@@ -25,10 +25,8 @@ import (
 	trivylogger "github.com/aquasecurity/trivy/pkg/log"
 	"github.com/aquasecurity/trivy/pkg/scanner"
 	"go.opentelemetry.io/otel/attribute"
-	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetrichttp"
 	"go.opentelemetry.io/otel/metric/global"
 	"go.opentelemetry.io/otel/metric/instrument"
-	sdkmetric "go.opentelemetry.io/otel/sdk/metric"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
@@ -260,33 +258,14 @@ func main() {
 		os.Exit(generalErr)
 	}
 
-	// configure scanner metrics
-	ctxB := context.Background()
-	ctx, cancel := signal.NotifyContext(ctxB, os.Interrupt, syscall.SIGTERM)
+	// record  metrics
+	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer cancel()
 
-	exporter, err := otlpmetrichttp.New(ctx, otlpmetrichttp.WithInsecure(), otlpmetrichttp.WithEndpoint(os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT")))
-	if err != nil {
-		log.Error(err, "error getting metric exporter")
-	}
-
-	reader := sdkmetric.NewPeriodicReader(exporter)
-	provider := sdkmetric.NewMeterProvider(sdkmetric.WithReader(reader))
-	defer func() {
-		log.Info("collecting final metrics...")
-		m, err := reader.Collect(ctxB)
-		if err != nil {
-			log.Error(err, "failed to collect metrics")
-			return
-		}
-		if err := exporter.Export(ctxB, m); err != nil {
-			log.Error(err, "failed to export metrics")
-		}
-		if err := provider.Shutdown(ctxB); err != nil {
-			log.Error(err, "error during metric shutdown")
-		}
-	}()
+	exporter, reader, provider := util.ConfigureMetrics(ctx, log, os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT"))
 	global.SetMeterProvider(provider)
+
+	defer util.ExportMetrics(log, exporter, reader, provider)
 
 	if err := recordMetrics(ctx, len(vulnerableImages)); err != nil {
 		log.Error(err, "error recording metrics")
