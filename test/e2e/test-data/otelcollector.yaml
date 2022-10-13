@@ -85,7 +85,7 @@ spec:
             cpu: 200m
             memory: 400Mi
         ports:
-        - containerPort: 4317 # Default endpoint for OpenTelemetry receiver.
+        - containerPort: 4318 # Default endpoint for OpenTelemetry receiver.
         - containerPort: 8889  # Default endpoint for querying metrics.
         volumeMounts:
         - name: otel-collector-config-vol
