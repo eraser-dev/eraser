@@ -28,6 +28,8 @@ require (
 	sigs.k8s.io/kind v0.15.0
 )
 
+require github.com/grpc-ecosystem/grpc-gateway/v2 v2.7.0 // indirect
+
 require (
 	cloud.google.com/go v0.99.0 // indirect
 	cloud.google.com/go/storage v1.14.0 // indirect
