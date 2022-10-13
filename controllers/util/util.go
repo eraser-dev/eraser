@@ -144,7 +144,7 @@ func GetExclusionVolume(configmapList *corev1.ConfigMapList) ([]corev1.VolumeMou
 }
 
 func ConfigureMetrics(ctx context.Context, log logr.Logger) (sdkmetric.Exporter, sdkmetric.Reader, *sdkmetric.MeterProvider) {
-	exporter, err := otlpmetrichttp.New(ctx, otlpmetrichttp.WithInsecure(), otlpmetrichttp.WithEndpoint("10.96.71.55:4318"))
+	exporter, err := otlpmetrichttp.New(ctx, otlpmetrichttp.WithInsecure(), otlpmetrichttp.WithEndpoint(*OtlpEndpoint))
 	if err != nil {
 		log.Error(err, "error initializing exporter")
 		return nil, nil, nil
