@@ -25,6 +25,8 @@ require (
 	sigs.k8s.io/kind v0.15.0
 )
 
+require github.com/grpc-ecosystem/grpc-gateway/v2 v2.7.0 // indirect
+
 require (
 	go.opentelemetry.io/otel v1.11.1
 	go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetrichttp v0.33.0
