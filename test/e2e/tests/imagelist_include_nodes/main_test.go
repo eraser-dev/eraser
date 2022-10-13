@@ -19,6 +19,9 @@ import (
 func TestMain(m *testing.M) {
 	utilruntime.Must(eraserv1alpha1.AddToScheme(scheme.Scheme))
 
+	eraserImage := util.ParsedImages.EraserImage
+	managerImage := util.ParsedImages.ManagerImage
+
 	util.Testenv = env.NewWithConfig(envconf.New())
 	// Create KinD Cluster
 	util.Testenv.Setup(
@@ -26,7 +29,14 @@ func TestMain(m *testing.M) {
 		envfuncs.CreateNamespace(util.TestNamespace),
 		envfuncs.LoadDockerImageToCluster(util.KindClusterName, util.ManagerImage),
 		envfuncs.LoadDockerImageToCluster(util.KindClusterName, util.Image),
-		util.DeployEraserHelm(util.EraserNamespace, "--set", `collector.image.repository=`, "--set", `controllerManager.additionalArgs={--filter-nodes=include, --job-cleanup-on-success-delay=1m}`),
+		util.DeployEraserHelm(util.EraserNamespace,
+			"--set", util.CollectorImageRepo.Set(""),
+			"--set", util.ScannerImageRepo.Set(""),
+			"--set", util.EraserImageRepo.Set(eraserImage.Repo),
+			"--set", util.EraserImageTag.Set(eraserImage.Tag),
+			"--set", util.ManagerImageRepo.Set(managerImage.Repo),
+			"--set", util.ManagerImageTag.Set(managerImage.Tag),
+			"--set", `controllerManager.additionalArgs={--filter-nodes=include, --job-cleanup-on-success-delay=1m}`),
 	).Finish(
 		envfuncs.DestroyKindCluster(util.KindClusterName),
 	)

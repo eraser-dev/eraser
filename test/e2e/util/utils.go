@@ -17,6 +17,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/klog/v2"
+	"oras.land/oras-go/pkg/registry"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/e2e-framework/klient/wait"
 	"sigs.k8s.io/e2e-framework/klient/wait/conditions"
@@ -50,6 +51,15 @@ const (
 	FilterNodeSelector   = "kubernetes.io/hostname=eraser-e2e-test-worker"
 	FilterLabelKey       = "eraser.sh/cleanup.filter"
 	FilterLabelValue     = "true"
+
+	ScannerImageRepo   = HelmPath("scanner.image.repository")
+	ScannerImageTag    = HelmPath("scanner.image.tag")
+	CollectorImageRepo = HelmPath("collector.image.repository")
+	CollectorImageTag  = HelmPath("collector.image.tag")
+	ManagerImageRepo   = HelmPath("manager.image.repository")
+	ManagerImageTag    = HelmPath("manager.image.tag")
+	EraserImageRepo    = HelmPath("eraser.image.repository")
+	EraserImageTag     = HelmPath("eraser.image.tag")
 )
 
 var (
@@ -64,7 +74,106 @@ var (
 	TestNamespace      = envconf.RandomName("test-ns", 16)
 	EraserNamespace    = pkgUtil.GetNamespace()
 	TestLogDir         = os.Getenv("TEST_LOGDIR")
+
+	ParsedImages *Images
 )
+
+type (
+	RepoTag struct {
+		Repo string
+		Tag  string
+	}
+
+	Images struct {
+		CollectorImage RepoTag
+		EraserImage    RepoTag
+		ManagerImage   RepoTag
+		ScannerImage   RepoTag
+	}
+
+	HelmPath string
+)
+
+func (hp HelmPath) Set(val string) string {
+	return fmt.Sprintf("%s=%s", hp, val)
+}
+
+func init() {
+	var err error
+	ParsedImages, err = parsedImages(Image, ManagerImage, CollectorImage, ScannerImage)
+	if err != nil {
+		klog.Error(err)
+		panic(err)
+	}
+}
+
+func toRepoTag(ref registry.Reference) RepoTag {
+	var repoTag RepoTag
+
+	repoTag.Repo = fmt.Sprintf("%s/%s", ref.Registry, ref.Repository)
+	if repoTag.Repo == "/" {
+		repoTag.Repo = ""
+	}
+
+	repoTag.Tag = ref.Reference
+	return repoTag
+}
+
+func parsedImages(eraserImage, managerImage, collectorImage, scannerImage string) (*Images, error) {
+	eraserRepoTag, err := parseRepoTag(eraserImage)
+	if err != nil {
+		return nil, err
+	}
+
+	collectorRepoTag, err := parseRepoTag(collectorImage)
+	if err != nil {
+		return nil, err
+	}
+
+	managerRepoTag, err := parseRepoTag(managerImage)
+	if err != nil {
+		return nil, err
+	}
+
+	scannerRepoTag, err := parseRepoTag(scannerImage)
+	if err != nil {
+		return nil, err
+	}
+
+	return &Images{
+		CollectorImage: collectorRepoTag,
+		EraserImage:    eraserRepoTag,
+		ManagerImage:   managerRepoTag,
+		ScannerImage:   scannerRepoTag,
+	}, nil
+}
+
+func parseRepoTag(img string) (RepoTag, error) {
+	if img == "" {
+		return RepoTag{}, nil
+	}
+
+	ref, err := registry.ParseReference(img)
+	if err == nil {
+		return toRepoTag(ref), nil
+	}
+
+	// if true, this is an "unpublished" image, without a registry
+	if parts := strings.Split(img, "/"); len(parts) == 1 {
+		// the parser doesn't like unpublished images, so supply a dummy registry and pass it back to the parser
+		var result registry.Reference
+		result, err = registry.ParseReference(fmt.Sprintf("dummy.co/%s", img))
+		if err == nil {
+			return RepoTag{
+				// the registry info is discarded since it was a dummy registry
+				Repo: result.Repository,
+				Tag:  result.Reference,
+			}, nil
+		}
+	}
+
+	return RepoTag{}, err
+}
 
 func IsNotFound(err error) bool {
 	return err != nil && client.IgnoreNotFound(err) == nil
@@ -576,6 +685,28 @@ func GetPodLogs(ctx context.Context, cfg *envconf.Config, t *testing.T, imagelis
 	}
 
 	return nil
+}
+
+func MakeDeploy(env map[string]string) env.Func {
+	return func(ctx context.Context, cfg *envconf.Config) (context.Context, error) {
+		args := []string{"deploy"}
+		for k, v := range env {
+			args = append(args, fmt.Sprintf("%s=%s", k, v))
+		}
+
+		cmd := exec.Command("make", args...)
+		cmd.Dir = "../../../.."
+
+		out, err := cmd.CombinedOutput()
+		if err != nil {
+			fmt.Fprint(os.Stderr, string(out))
+			return ctx, err
+		}
+
+		klog.Info(string(out))
+
+		return ctx, nil
+	}
 }
 
 func DeployEraserManifest(namespace, fileName string) env.Func {
