@@ -16,6 +16,7 @@ import (
 	_ "net/http/pprof"
 
 	"github.com/Azure/eraser/pkg/logger"
+	"github.com/Azure/eraser/pkg/metrics"
 	util "github.com/Azure/eraser/pkg/utils"
 	"github.com/aquasecurity/fanal/artifact"
 	artifactImage "github.com/aquasecurity/fanal/artifact/image"
@@ -249,10 +250,10 @@ func main() {
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer cancel()
 
-	exporter, reader, provider := util.ConfigureMetrics(ctx, log, os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT"))
+	exporter, reader, provider := metrics.ConfigureMetrics(ctx, log, os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT"))
 	global.SetMeterProvider(provider)
 
-	defer util.ExportMetrics(log, exporter, reader, provider)
+	defer metrics.ExportMetrics(log, exporter, reader, provider)
 
 	if err := recordMetrics(ctx, len(vulnerableImages)); err != nil {
 		log.Error(err, "error recording metrics")

@@ -46,6 +46,7 @@ import (
 	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
 	"github.com/Azure/eraser/controllers/util"
 	"github.com/Azure/eraser/pkg/logger"
+	"github.com/Azure/eraser/pkg/metrics"
 	"github.com/Azure/eraser/pkg/utils"
 	"go.opentelemetry.io/otel/metric/unit"
 )
@@ -161,10 +162,10 @@ func (r *Reconciler) handleJobListEvent(ctx context.Context, imageList *eraserv1
 		ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 		defer cancel()
 
-		exporter, reader, provider := util.ConfigureMetrics(ctx, log)
+		exporter, reader, provider := metrics.ConfigureMetrics(ctx, log, *util.OtlpEndpoint)
 		global.SetMeterProvider(provider)
 
-		defer util.ExportMetrics(log, exporter, reader, provider)
+		defer metrics.ExportMetrics(log, exporter, reader, provider)
 
 		if err := recordMetrics(ctx, float64(time.Since(startTime).Milliseconds()), int64(job.Status.Succeeded), int64(job.Status.Failed)); err != nil {
 			log.Error(err, "error recording metrics")

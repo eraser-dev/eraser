@@ -1,15 +1,11 @@
 package util
 
 import (
-	"context"
 	"flag"
 	"time"
 
 	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
 	"github.com/Azure/eraser/pkg/utils"
-	"github.com/go-logr/logr"
-	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetrichttp"
-	sdkmetric "go.opentelemetry.io/otel/sdk/metric"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -141,33 +137,4 @@ func GetExclusionVolume(configmapList *corev1.ConfigMapList) ([]corev1.VolumeMou
 	}
 
 	return exclusionMount, exclusionVolume, nil
-}
-
-func ConfigureMetrics(ctx context.Context, log logr.Logger) (sdkmetric.Exporter, sdkmetric.Reader, *sdkmetric.MeterProvider) {
-	exporter, err := otlpmetrichttp.New(ctx, otlpmetrichttp.WithInsecure(), otlpmetrichttp.WithEndpoint(*OtlpEndpoint))
-	if err != nil {
-		log.Error(err, "error initializing exporter")
-		return nil, nil, nil
-	}
-
-	reader := sdkmetric.NewPeriodicReader(exporter)
-	provider := sdkmetric.NewMeterProvider(sdkmetric.WithReader(reader))
-
-	return exporter, reader, provider
-}
-
-func ExportMetrics(log logr.Logger, exporter sdkmetric.Exporter, reader sdkmetric.Reader, provider *sdkmetric.MeterProvider) {
-	ctxB := context.Background()
-
-	m, err := reader.Collect(ctxB)
-	if err != nil {
-		log.Error(err, "failed to collect metrics")
-		return
-	}
-	if err := exporter.Export(ctxB, m); err != nil {
-		log.Error(err, "failed to export metrics")
-	}
-	if err := provider.Shutdown(ctxB); err != nil {
-		log.Error(err, "error during metric shutdown", err)
-	}
 }
