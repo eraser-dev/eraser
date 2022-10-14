@@ -17,17 +17,15 @@ data:
       logging:
         loglevel: debug
 
-      prometheus:
-        endpoint: "0.0.0.0:8889"
-        namespace: "default"
-
     service:
+      telemetry:
+        logs:
+          encoding: json
       pipelines:
         metrics:
           receivers:
             - otlp
           exporters:
-            - prometheus
             - logging
 ---
 apiVersion: v1
@@ -43,9 +41,6 @@ spec:
   - name: otlp-http # Default endpoint for OpenTelemetry HTTP receiver.
     port: 4318
     protocol: TCP
-    targetPort: 4318
-  - name: metrics # Default endpoint for querying metrics.
-    port: 8889
   selector:
     component: otel-collector
 ---
@@ -86,7 +81,6 @@ spec:
             memory: 400Mi
         ports:
         - containerPort: 4318 # Default endpoint for OpenTelemetry receiver.
-        - containerPort: 8889  # Default endpoint for querying metrics.
         volumeMounts:
         - name: otel-collector-config-vol
           mountPath: /conf
