@@ -368,6 +368,20 @@ func (r *Reconciler) handleCompletedImageJob(ctx context.Context, req ctrl.Reque
 			}
 			return ctrl.Result{}, nil
 		}
+
+		// record  metrics
+		ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+		defer cancel()
+
+		exporter, reader, provider := util.ConfigureMetrics(ctx, log)
+		global.SetMeterProvider(provider)
+
+		defer util.ExportMetrics(log, exporter, reader, provider)
+
+		if err := recordMetrics(ctx, float64(time.Since(startTime).Milliseconds()), int64(childJob.Status.Succeeded), int64(childJob.Status.Failed)); err != nil {
+			log.Error(err, "error recording metrics")
+		}
+
 		if res, err := r.handleJobDeletion(ctx, childJob); err != nil || res.RequeueAfter > 0 {
 			return res, err
 		}
