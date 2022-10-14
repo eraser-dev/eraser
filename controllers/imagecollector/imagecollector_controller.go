@@ -49,6 +49,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	"github.com/Azure/eraser/pkg/logger"
+	"github.com/Azure/eraser/pkg/metrics"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -347,10 +348,10 @@ func (r *Reconciler) handleCompletedImageJob(ctx context.Context, req ctrl.Reque
 		ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 		defer cancel()
 
-		exporter, reader, provider := util.ConfigureMetrics(ctx, log)
+		exporter, reader, provider := metrics.ConfigureMetrics(ctx, log, *util.OtlpEndpoint)
 		global.SetMeterProvider(provider)
 
-		defer util.ExportMetrics(log, exporter, reader, provider)
+		defer metrics.ExportMetrics(log, exporter, reader, provider)
 
 		if err := recordMetrics(ctx, float64(time.Since(startTime).Milliseconds()), int64(childJob.Status.Succeeded), int64(childJob.Status.Failed)); err != nil {
 			log.Error(err, "error recording metrics")
@@ -373,10 +374,10 @@ func (r *Reconciler) handleCompletedImageJob(ctx context.Context, req ctrl.Reque
 		ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 		defer cancel()
 
-		exporter, reader, provider := util.ConfigureMetrics(ctx, log)
+		exporter, reader, provider := metrics.ConfigureMetrics(ctx, log, *util.OtlpEndpoint)
 		global.SetMeterProvider(provider)
 
-		defer util.ExportMetrics(log, exporter, reader, provider)
+		defer metrics.ExportMetrics(log, exporter, reader, provider)
 
 		if err := recordMetrics(ctx, float64(time.Since(startTime).Milliseconds()), int64(childJob.Status.Succeeded), int64(childJob.Status.Failed)); err != nil {
 			log.Error(err, "error recording metrics")
