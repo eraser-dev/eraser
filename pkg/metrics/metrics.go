@@ -33,6 +33,6 @@ func ExportMetrics(log logr.Logger, exporter sdkmetric.Exporter, reader sdkmetri
 		log.Error(err, "failed to export metrics")
 	}
 	if err := provider.Shutdown(ctxB); err != nil {
-		log.Error(err, "error during metric shutdown", err)
+		log.Error(err, "error during metric shutdown")
 	}
 }
