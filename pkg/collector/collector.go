@@ -90,51 +90,49 @@ func main() {
 	}
 
 	path := util.CollectScanPath
-	pipeName := "scanErase"
 
 	if *scanDisabled {
 		path = util.ScanErasePath
-		pipeName = "collectScan"
 	}
 
 	if err := unix.Mkfifo(path, util.PipeMode); err != nil {
-		log.Error(err, "failed to create pipe", "pipeName", pipeName)
+		log.Error(err, "failed to create pipe", "pipeFile", path)
 		os.Exit(1)
 	}
 
 	file, err := os.OpenFile(path, os.O_WRONLY, 0)
 	if err != nil {
-		log.Error(err, "failed to open pipe", "pipeName", pipeName)
+		log.Error(err, "failed to open pipe", "pipeFile", path)
 		os.Exit(1)
 	}
 
 	if _, err := file.Write(data); err != nil {
-		log.Error(err, "failed to write to pipe", "pipeName", pipeName)
+		log.Error(err, "failed to write to pipe", "pipeFile", path)
 		os.Exit(1)
 	}
 
 	file.Close()
 	if err := unix.Mkfifo(util.EraseCompleteCollectPath, util.PipeMode); err != nil {
-		log.Error(err, "failed to create pipe", "pipeName", "eraseComplete")
+		log.Error(err, "failed to create pipe", "pipeFile", util.EraseCompleteCollectPath)
 		os.Exit(1)
 	}
 
 	file, err = os.OpenFile(util.EraseCompleteCollectPath, os.O_RDONLY, 0)
 	if err != nil {
-		log.Error(err, "failed to open pipe", "pipeName", "eraseComplete")
+		log.Error(err, "failed to open pipe", "pipeFile", util.EraseCompleteCollectPath)
 		os.Exit(1)
 	}
 
 	data, err = io.ReadAll(file)
 	if err != nil {
-		log.Error(err, "failed to read pipe", "pipeName", "eraseComplete")
+		log.Error(err, "failed to read pipe", "pipeFile", util.EraseCompleteCollectPath)
 		os.Exit(1)
 	}
 
 	file.Close()
 
 	if string(data) != util.EraseCompleteMessage {
-		log.Info("garbage in pipe", "pipeName", "eraseComplete", "in_pipe", string(data))
+		log.Info("garbage in pipe", "pipeFile", util.EraseCompleteCollectPath, "in_pipe", string(data))
 		os.Exit(1)
 	}
 }

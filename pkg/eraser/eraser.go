@@ -134,29 +134,35 @@ func main() {
 		os.Exit(generalErr)
 	}
 
-	file, err := os.OpenFile(util.EraseCompleteCollectPath, os.O_WRONLY, 0)
-	if err != nil {
-		log.Error(err, "unable to open pipe", "pipeName", "eraseComplete")
-		os.Exit(generalErr)
+	if *imageListPtr == "" {
+		file, err := os.OpenFile(util.EraseCompleteCollectPath, os.O_WRONLY, 0)
+		if err != nil {
+			log.Error(err, "unable to open pipe", "pipeFile", util.EraseCompleteCollectPath)
+			os.Exit(generalErr)
+		}
+
+		if _, err := file.Write([]byte(util.EraseCompleteMessage)); err != nil {
+			log.Error(err, "unable to write to pipe", "pipeFile", util.EraseCompleteCollectPath)
+			os.Exit(generalErr)
+		}
+
+		file.Close()
+
+		file, err = os.OpenFile(util.EraseCompleteScanPath, os.O_WRONLY, fs.ModeNamedPipe)
+		// if the scanner is disabled
+		if os.IsNotExist(err) {
+			return
+		}
+		if err != nil {
+			log.Error(err, "unable to open pipe", "pipeFile", util.EraseCompleteCollectPath)
+			os.Exit(generalErr)
+		}
+
+		if _, err := file.Write([]byte(util.EraseCompleteMessage)); err != nil {
+			log.Error(err, "unable to write to pipe", "pipeFile", util.EraseCompleteCollectPath)
+			os.Exit(generalErr)
+		}
+
+		file.Close()
 	}
-
-	if _, err := file.Write([]byte(util.EraseCompleteMessage)); err != nil {
-		log.Error(err, "unable to write to pipe", "pipeName", "eraseComplete")
-		os.Exit(generalErr)
-	}
-
-	file.Close()
-
-	file, err = os.OpenFile(util.EraseCompleteScanPath, os.O_WRONLY, fs.ModeNamedPipe)
-	if err != nil {
-		log.Error(err, "unable to open pipe", "pipeName", "eraseComplete")
-		os.Exit(generalErr)
-	}
-
-	if _, err := file.Write([]byte(util.EraseCompleteMessage)); err != nil {
-		log.Error(err, "unable to write to pipe", "pipeName", "eraseComplete")
-		os.Exit(generalErr)
-	}
-
-	file.Close()
 }
