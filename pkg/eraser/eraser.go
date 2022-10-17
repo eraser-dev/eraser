@@ -141,7 +141,7 @@ func main() {
 			os.Exit(generalErr)
 		}
 
-		if _, err := file.Write([]byte(util.EraseCompleteMessage)); err != nil {
+		if _, err := file.WriteString(util.EraseCompleteMessage); err != nil {
 			log.Error(err, "unable to write to pipe", "pipeFile", util.EraseCompleteCollectPath)
 			os.Exit(generalErr)
 		}
@@ -158,7 +158,7 @@ func main() {
 			os.Exit(generalErr)
 		}
 
-		if _, err := file.Write([]byte(util.EraseCompleteMessage)); err != nil {
+		if _, err := file.WriteString(util.EraseCompleteMessage); err != nil {
 			log.Error(err, "unable to write to pipe", "pipeFile", util.EraseCompleteCollectPath)
 			os.Exit(generalErr)
 		}

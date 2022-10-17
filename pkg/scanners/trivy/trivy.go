@@ -108,10 +108,15 @@ func main() {
 	trivylogger.Logger = sugar
 
 	if err := unix.Mkfifo(util.EraseCompleteScanPath, util.PipeMode); err != nil {
-		log.Error(err, "failed to create pipe", "pipeName", "eraseCompleteScan")
+		log.Error(err, "failed to create pipe", "pipeName", util.EraseCompleteScanPath)
 		os.Exit(1)
 	}
-	os.Chmod(util.EraseCompleteScanPath, 0o666)
+
+	err = os.Chmod(util.EraseCompleteScanPath, 0o666)
+	if err != nil {
+		log.Error(err, "unable to enable pipe for writing", "pipeName", util.EraseCompleteScanPath)
+		os.Exit(1)
+	}
 
 	if *enableProfile {
 		go func() {
@@ -250,20 +255,20 @@ func main() {
 
 	file, err := os.OpenFile(util.EraseCompleteScanPath, os.O_RDONLY, 0)
 	if err != nil {
-		log.Error(err, "failed to open pipe", "pipeName", "eraseCompleteScan")
+		log.Error(err, "failed to open pipe", "pipeName", util.EraseCompleteScanPath)
 		os.Exit(1)
 	}
 
 	data, err := io.ReadAll(file)
 	if err != nil {
-		log.Error(err, "failed to read pipe", "pipeName", "eraseCompleteScan")
+		log.Error(err, "failed to read pipe", "pipeName", util.EraseCompleteScanPath)
 		os.Exit(1)
 	}
 
 	file.Close()
 
 	if string(data) != util.EraseCompleteMessage {
-		log.Info("garbage in pipe", "pipeName", "eraseCompleteScan", "in_pipe", string(data))
+		log.Info("garbage in pipe", "pipeName", util.EraseCompleteScanPath, "in_pipe", string(data))
 		os.Exit(1)
 	}
 	log.Info("scanning complete, exiting")

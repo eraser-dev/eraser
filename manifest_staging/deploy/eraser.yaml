@@ -4417,8 +4417,8 @@ spec:
       containers:
       - args:
         - --leader-elect=false
-        - --eraser-image=eraser:test
-        - --collector-image=collector:test
+        - --eraser-image=ghcr.io/azure/eraser:v0.4.0
+        - --collector-image=ghcr.io/azure/collector:v0.4.0
         - --scanner-image=ghcr.io/azure/eraser-trivy-scanner:v0.4.0
         command:
         - /manager
