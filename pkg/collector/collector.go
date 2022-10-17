@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"io"
 	"net/http"
 	_ "net/http/pprof"
 	"os"
@@ -88,41 +89,52 @@ func main() {
 		os.Exit(1)
 	}
 
+	path := util.CollectScanPath
+	pipeName := "scanErase"
+
 	if *scanDisabled {
-		if err := unix.Mkfifo(util.ScanErasePath, util.PipeMode); err != nil {
-			log.Error(err, "failed to create scanErase pipe")
-			os.Exit(1)
-		}
+		path = util.ScanErasePath
+		pipeName = "collectScan"
+	}
 
-		file, err := os.OpenFile(util.ScanErasePath, os.O_WRONLY, 0)
-		if err != nil {
-			log.Error(err, "failed to open scanErase pipe")
-			os.Exit(1)
-		}
+	if err := unix.Mkfifo(path, util.PipeMode); err != nil {
+		log.Error(err, "failed to create pipe", "pipeName", pipeName)
+		os.Exit(1)
+	}
 
-		if _, err := file.Write(data); err != nil {
-			log.Error(err, "failed to write to scanErase pipe")
-			os.Exit(1)
-		}
+	file, err := os.OpenFile(path, os.O_WRONLY, 0)
+	if err != nil {
+		log.Error(err, "failed to open pipe", "pipeName", pipeName)
+		os.Exit(1)
+	}
 
-		file.Close()
-	} else {
-		if err := unix.Mkfifo(util.CollectScanPath, util.PipeMode); err != nil {
-			log.Error(err, "failed to create collectScan pipe")
-			os.Exit(1)
-		}
+	if _, err := file.Write(data); err != nil {
+		log.Error(err, "failed to write to pipe", "pipeName", pipeName)
+		os.Exit(1)
+	}
 
-		file, err := os.OpenFile(util.CollectScanPath, os.O_WRONLY, 0)
-		if err != nil {
-			log.Error(err, "failed to open collectScan pipe")
-			os.Exit(1)
-		}
+	file.Close()
+	if err := unix.Mkfifo(util.EraseCompleteCollectPath, util.PipeMode); err != nil {
+		log.Error(err, "failed to create pipe", "pipeName", "eraseComplete")
+		os.Exit(1)
+	}
 
-		if _, err := file.Write(data); err != nil {
-			log.Error(err, "failed to write to collectScan pipe")
-			os.Exit(1)
-		}
+	file, err = os.OpenFile(util.EraseCompleteCollectPath, os.O_RDONLY, 0)
+	if err != nil {
+		log.Error(err, "failed to open pipe", "pipeName", "eraseComplete")
+		os.Exit(1)
+	}
 
-		file.Close()
+	data, err = io.ReadAll(file)
+	if err != nil {
+		log.Error(err, "failed to read pipe", "pipeName", "eraseComplete")
+		os.Exit(1)
+	}
+
+	file.Close()
+
+	if string(data) != util.EraseCompleteMessage {
+		log.Info("garbage in pipe", "pipeName", "eraseComplete", "in_pipe", string(data))
+		os.Exit(1)
 	}
 }

@@ -4,12 +4,14 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"time"
 
 	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
 	"go.uber.org/zap"
+	"golang.org/x/sys/unix"
 
 	_ "net/http/pprof"
 
@@ -104,6 +106,12 @@ func main() {
 
 	sugar := logger.Sugar()
 	trivylogger.Logger = sugar
+
+	if err := unix.Mkfifo(util.EraseCompleteScanPath, util.PipeMode); err != nil {
+		log.Error(err, "failed to create pipe", "pipeName", "eraseCompleteScan")
+		os.Exit(1)
+	}
+	os.Chmod(util.EraseCompleteScanPath, 0o666)
 
 	if *enableProfile {
 		go func() {
@@ -240,5 +248,23 @@ func main() {
 		os.Exit(generalErr)
 	}
 
+	file, err := os.OpenFile(util.EraseCompleteScanPath, os.O_RDONLY, 0)
+	if err != nil {
+		log.Error(err, "failed to open pipe", "pipeName", "eraseCompleteScan")
+		os.Exit(1)
+	}
+
+	data, err := io.ReadAll(file)
+	if err != nil {
+		log.Error(err, "failed to read pipe", "pipeName", "eraseCompleteScan")
+		os.Exit(1)
+	}
+
+	file.Close()
+
+	if string(data) != util.EraseCompleteMessage {
+		log.Info("garbage in pipe", "pipeName", "eraseCompleteScan", "in_pipe", string(data))
+		os.Exit(1)
+	}
 	log.Info("scanning complete, exiting")
 }
