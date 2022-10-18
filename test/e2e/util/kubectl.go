@@ -104,6 +104,18 @@ func KubectlDescribe(kubeconfigPath, podName, namespace string) (string, error) 
 	return Kubectl(args)
 }
 
+// KubectlDescribe executes "kubectl describe" given a list of arguments.
+func KubectlDescribeService(kubeconfigPath, serviceName, namespace string) (string, error) {
+	args := []string{
+		"describe",
+		"service",
+		serviceName,
+		fmt.Sprintf("--kubeconfig=%s", kubeconfigPath),
+		fmt.Sprintf("--namespace=%s", namespace),
+	}
+	return Kubectl(args)
+}
+
 // KubectlGet executes "kubectl get" given a list of arguments.
 func KubectlGet(kubeconfigPath string, otherArgs ...string) (string, error) {
 	args := []string{
