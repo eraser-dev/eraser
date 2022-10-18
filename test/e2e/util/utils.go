@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"testing"
 	"time"
@@ -505,6 +506,81 @@ func DeployEraserHelm(namespace string, args ...string) env.Func {
 		client, err := cfg.NewClient()
 		if err != nil {
 			klog.ErrorS(err, "Failed to create new Client")
+			return ctx, err
+		}
+
+		// wait for the deployment to finish becoming available
+		eraserManagerDep := appsv1.Deployment{
+			ObjectMeta: metav1.ObjectMeta{Name: "eraser-controller-manager", Namespace: namespace},
+		}
+
+		if err = wait.For(conditions.New(client.Resources()).DeploymentConditionMatch(&eraserManagerDep, appsv1.DeploymentAvailable, corev1.ConditionTrue),
+			wait.WithTimeout(time.Minute*1)); err != nil {
+			klog.ErrorS(err, "failed to deploy eraser manager")
+
+			return ctx, err
+		}
+
+		return ctx, nil
+	}
+}
+
+func DeployEraserHelmMetrics(namespace string) env.Func {
+	return func(ctx context.Context, cfg *envconf.Config) (context.Context, error) {
+		// set up otel collector
+		wd, err := os.Getwd()
+		if err != nil {
+			return ctx, err
+		}
+
+		otelCollectorAbsolutePath, err := filepath.Abs(filepath.Join(wd, "../../", "test-data/otelcollector.yaml"))
+		if err != nil {
+			return ctx, err
+		}
+		// start otelcollector deployment
+		otelargs := []string{"-f", otelCollectorAbsolutePath}
+		if err := KubectlApply(cfg.KubeconfigFile(), namespace, otelargs); err != nil {
+			return ctx, err
+		}
+
+		client, err := cfg.NewClient()
+		if err != nil {
+			klog.ErrorS(err, "Failed to create new Client")
+			return ctx, err
+		}
+
+		// wait for the deployment to finish becoming available
+		otelCollectorDep := appsv1.Deployment{
+			ObjectMeta: metav1.ObjectMeta{Name: "otel-collector", Namespace: namespace},
+		}
+
+		if err = wait.For(conditions.New(client.Resources()).DeploymentConditionMatch(&otelCollectorDep, appsv1.DeploymentAvailable, corev1.ConditionTrue),
+			wait.WithTimeout(time.Minute*1)); err != nil {
+			klog.ErrorS(err, "failed to deploy otelcollector")
+
+			return ctx, err
+		}
+
+		service, err := KubectlDescribeService(cfg.KubeconfigFile(), "otel-collector", "eraser-system")
+		if err != nil {
+			klog.Error("could not get otel collector service")
+		}
+
+		regex := regexp.MustCompile(`IP:\s+(\d+.\d+.\d+.\d+)`)
+		match := regex.FindStringSubmatch(service)
+
+		otelEndpoint := match[1] + ":4318"
+
+		// deploy eraser with endpoint
+		providerResourceAbsolutePath, err := filepath.Abs(filepath.Join(wd, "../../../../", providerResourceChartDir, "eraser"))
+		if err != nil {
+			return ctx, err
+		}
+		// start deployment
+		allArgs := []string{providerResourceAbsolutePath}
+		allArgs = append(allArgs, "--set", "controllerManager.additionalArgs={--otlp-endpoint="+otelEndpoint+"}")
+
+		if err := HelmInstall(cfg.KubeconfigFile(), namespace, allArgs); err != nil {
 			return ctx, err
 		}
 
