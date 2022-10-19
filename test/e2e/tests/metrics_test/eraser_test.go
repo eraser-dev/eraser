@@ -22,8 +22,7 @@ import (
 func TestMetrics(t *testing.T) {
 	metrics := features.New("ImagesRemoved and VulnerableImages metrics should report 1").
 		Assess("Alpine image is removed", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
-			// change
-			ctxT, cancel := context.WithTimeout(ctx, time.Minute*2)
+			ctxT, cancel := context.WithTimeout(ctx, time.Minute*5)
 			defer cancel()
 			util.CheckImageRemoved(ctxT, t, util.GetClusterNodes(t), util.VulnerableImage)
 
