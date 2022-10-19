@@ -590,7 +590,7 @@ func DeployEraserHelmMetrics(namespace string) env.Func {
 		}
 
 		if err = wait.For(conditions.New(client.Resources()).DeploymentConditionMatch(&eraserManagerDep, appsv1.DeploymentAvailable, corev1.ConditionTrue),
-			wait.WithTimeout(time.Minute*1)); err != nil {
+			wait.WithTimeout(time.Minute*5)); err != nil {
 			klog.ErrorS(err, "failed to deploy eraser manager")
 
 			return ctx, err
