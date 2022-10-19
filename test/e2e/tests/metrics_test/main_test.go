@@ -25,11 +25,12 @@ func TestMain(m *testing.M) {
 		envfuncs.CreateKindClusterWithConfig(util.KindClusterName, util.NodeVersion, "../../kind-config.yaml"),
 		envfuncs.CreateNamespace(util.TestNamespace),
 		envfuncs.CreateNamespace(util.EraserNamespace),
+		util.DeployOtelCollector(util.EraserNamespace),
 		envfuncs.LoadDockerImageToCluster(util.KindClusterName, util.ManagerImage),
 		envfuncs.LoadDockerImageToCluster(util.KindClusterName, util.Image),
 		envfuncs.LoadDockerImageToCluster(util.KindClusterName, util.CollectorImage),
 		envfuncs.LoadDockerImageToCluster(util.KindClusterName, util.VulnerableImage),
-		util.DeployEraserHelmMetrics(util.EraserNamespace),
+		util.DeployEraserHelm(util.EraserNamespace, "--set", `controllerManager.additionalArgs={--job-cleanup-on-success-delay=1m,--otlp-endpoint=otel-collector:4318}`),
 	).Finish(
 		envfuncs.DestroyKindCluster(util.KindClusterName),
 	)
