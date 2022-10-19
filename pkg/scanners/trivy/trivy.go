@@ -17,9 +17,9 @@ import (
 
 	"github.com/Azure/eraser/pkg/logger"
 	util "github.com/Azure/eraser/pkg/utils"
-	"github.com/aquasecurity/fanal/artifact"
-	artifactImage "github.com/aquasecurity/fanal/artifact/image"
-	fanalImage "github.com/aquasecurity/fanal/image"
+	"github.com/aquasecurity/trivy/pkg/fanal/artifact"
+	artifactImage "github.com/aquasecurity/trivy/pkg/fanal/artifact/image"
+	fanalImage "github.com/aquasecurity/trivy/pkg/fanal/image"
 	trivylogger "github.com/aquasecurity/trivy/pkg/log"
 	"github.com/aquasecurity/trivy/pkg/scanner"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"

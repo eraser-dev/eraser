@@ -1,8 +1,8 @@
 package main
 
 import (
-	"github.com/aquasecurity/fanal/cache"
-	fanalTypes "github.com/aquasecurity/fanal/types"
+	"github.com/aquasecurity/trivy/pkg/fanal/cache"
+	fanalTypes "github.com/aquasecurity/trivy/pkg/fanal/types"
 	"github.com/aquasecurity/trivy/pkg/scanner/local"
 	trivyTypes "github.com/aquasecurity/trivy/pkg/types"
 )
