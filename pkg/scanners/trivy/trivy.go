@@ -174,7 +174,6 @@ func main() {
 		os.Exit(generalErr)
 	}
 
-	resultClient := initializeResultClient()
 	vulnerableImages := make([]eraserv1alpha1.Image, 0, len(allImages))
 	failedImages := make([]eraserv1alpha1.Image, 0, len(allImages))
 
@@ -200,6 +199,7 @@ func main() {
 			if err != nil { // could not locate image
 				log.Error(err, "could not find image by reference", "imageID", img.ImageID, "reference", ref)
 				cleanup()
+				failedImages = append(failedImages, img)
 				continue
 			}
 
@@ -219,11 +219,8 @@ func main() {
 			}
 
 			imageScanFailed = false
-
 		outer:
 			for i := range report.Results {
-				resultClient.FillVulnerabilityInfo(report.Results[i].Vulnerabilities, report.Results[i].Type)
-
 				for j := range report.Results[i].Vulnerabilities {
 					if *ignoreUnfixed && report.Results[i].Vulnerabilities[j].FixedVersion == "" {
 						continue
