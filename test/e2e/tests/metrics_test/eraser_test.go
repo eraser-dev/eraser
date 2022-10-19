@@ -71,6 +71,49 @@ func TestMetrics(t *testing.T) {
 
 			return ctx
 		}).
+		Assess("Check VulnerableImages metric", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
+			c, err := cfg.NewClient()
+			if err != nil {
+				t.Fatal("Failed to create new client", err)
+			}
+
+			var ls corev1.PodList
+			err = c.Resources().List(ctx, &ls, func(o *metav1.ListOptions) {
+				o.LabelSelector = labels.SelectorFromSet(map[string]string{"component": "otel-collector"}).String()
+			})
+			if err != nil {
+				t.Errorf("could not list pods: %v", err)
+			}
+
+			otelcollector := ls.Items[0]
+
+			output, err := util.KubectlLogs(cfg.KubeconfigFile(), otelcollector.Name, "", util.EraserNamespace)
+			if err != nil {
+				t.Errorf("could not get otelcollector logs: %v", err)
+			}
+
+			split := strings.Split(output, "}")
+
+			count := 0
+			for _, s := range split {
+				if strings.Contains(s, "VulnerableImages") {
+					temp := strings.Split(s, "Value: ")[1]
+					value := strings.Split(temp, "\\n")[0]
+
+					v, err := strconv.Atoi(value)
+					if err != nil {
+						t.Error("could not covert metrics value to int")
+					}
+					count += v
+				}
+			}
+
+			if count != 3 {
+				t.Error("VulnerableImages is not 3: ", count)
+			}
+
+			return ctx
+		}).
 		Feature()
 
 	util.Testenv.Test(t, metrics)
