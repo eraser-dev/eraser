@@ -22,6 +22,11 @@ import (
 func TestMetrics(t *testing.T) {
 	metrics := features.New("ImagesRemoved and VulnerableImages metrics should report 1").
 		Assess("Alpine image is removed", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
+			// deploy imagelist config
+			if err := util.DeployEraserConfig(cfg.KubeconfigFile(), util.EraserNamespace, "../../test-data", "imagelist_alpine.yaml"); err != nil {
+				t.Error("Failed to deploy image list config", err)
+			}
+
 			ctxT, cancel := context.WithTimeout(ctx, time.Minute*5)
 			defer cancel()
 			util.CheckImageRemoved(ctxT, t, util.GetClusterNodes(t), util.VulnerableImage)
@@ -49,8 +54,6 @@ func TestMetrics(t *testing.T) {
 				t.Errorf("could not get otelcollector logs: %v", err)
 			}
 
-			t.Log("OUTPUT ", output)
-
 			split := strings.Split(output, "}")
 
 			count := 0
@@ -69,17 +72,6 @@ func TestMetrics(t *testing.T) {
 
 			if count != 3 {
 				t.Error("ImagesRemoved is not 3: ", count)
-			}
-
-			return ctx
-		}).
-		Assess("Get logs", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
-			if err := util.GetPodLogs(ctx, cfg, t, false); err != nil {
-				t.Error("error getting collector pod logs", err)
-			}
-
-			if err := util.GetManagerLogs(ctx, cfg, t); err != nil {
-				t.Error("error getting manager logs", err)
 			}
 
 			return ctx

@@ -19,6 +19,9 @@ import (
 func TestMain(m *testing.M) {
 	utilruntime.Must(eraserv1alpha1.AddToScheme(scheme.Scheme))
 
+	eraserImage := util.ParsedImages.EraserImage
+	managerImage := util.ParsedImages.ManagerImage
+
 	util.Testenv = env.NewWithConfig(envconf.New())
 	// Create KinD Cluster
 	util.Testenv.Setup(
@@ -28,9 +31,15 @@ func TestMain(m *testing.M) {
 		util.DeployOtelCollector(util.EraserNamespace),
 		envfuncs.LoadDockerImageToCluster(util.KindClusterName, util.ManagerImage),
 		envfuncs.LoadDockerImageToCluster(util.KindClusterName, util.Image),
-		envfuncs.LoadDockerImageToCluster(util.KindClusterName, util.CollectorImage),
 		envfuncs.LoadDockerImageToCluster(util.KindClusterName, util.VulnerableImage),
-		util.DeployEraserHelm(util.EraserNamespace, "--set", `controllerManager.additionalArgs={--job-cleanup-on-success-delay=1m,--otlp-endpoint=otel-collector:4318}`),
+		util.DeployEraserHelm(util.EraserNamespace,
+			"--set", util.CollectorImageRepo.Set(""),
+			"--set", util.ScannerImageRepo.Set(""),
+			"--set", util.EraserImageRepo.Set(eraserImage.Repo),
+			"--set", util.EraserImageTag.Set(eraserImage.Tag),
+			"--set", util.ManagerImageRepo.Set(managerImage.Repo),
+			"--set", util.ManagerImageTag.Set(managerImage.Tag),
+			"--set", `controllerManager.additionalArgs={--job-cleanup-on-success-delay=1m,--otlp-endpoint=otel-collector:4318}`),
 	).Finish(
 		envfuncs.DestroyKindCluster(util.KindClusterName),
 	)
