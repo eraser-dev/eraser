@@ -23,7 +23,7 @@ func TestMetrics(t *testing.T) {
 	metrics := features.New("ImagesRemoved and VulnerableImages metrics should report 1").
 		Assess("Alpine image is removed", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
 			// deploy imagelist config
-			if err := util.DeployEraserConfig(cfg.KubeconfigFile(), util.EraserNamespace, "../../test-data", "imagelist_alpine.yaml"); err != nil {
+			if err := util.DeployEraserConfig(cfg.KubeconfigFile(), util.TestNamespace, "../../test-data", "imagelist_alpine.yaml"); err != nil {
 				t.Error("Failed to deploy image list config", err)
 			}
 
@@ -49,7 +49,7 @@ func TestMetrics(t *testing.T) {
 
 			otelcollector := ls.Items[0]
 
-			output, err := util.KubectlLogs(cfg.KubeconfigFile(), otelcollector.Name, "", util.EraserNamespace)
+			output, err := util.KubectlLogs(cfg.KubeconfigFile(), otelcollector.Name, "", util.TestNamespace)
 			if err != nil {
 				t.Errorf("could not get otelcollector logs: %v", err)
 			}

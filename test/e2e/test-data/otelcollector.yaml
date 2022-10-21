@@ -2,7 +2,6 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: otel-collector-conf
-  namespace: eraser-system
   labels:
     app: opentelemetry
     component: otel-collector-conf
@@ -32,7 +31,6 @@ apiVersion: v1
 kind: Service
 metadata:
   name: otel-collector
-  namespace: eraser-system
   labels:
     app: opentelemetry
     component: otel-collector
@@ -48,7 +46,6 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: otel-collector
-  namespace: eraser-system
   labels:
     app: opentelemetry
     component: otel-collector
