@@ -1,8 +1,6 @@
 ---
 title: Architecture
 ---
-# Eraser architecture
-
 At a high level, Eraser has two main modes of operation: manual and automated.
 
 Manual image removal involves supplying a list of images to remove; Eraser then
