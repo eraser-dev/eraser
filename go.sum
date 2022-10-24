@@ -2865,8 +2865,9 @@ mvdan.cc/lint v0.0.0-20170908181259-adc824a0674b/go.mod h1:2odslEg/xrtNQqCYg2/jC
 mvdan.cc/unparam v0.0.0-20190720180237-d51796306d8f/go.mod h1:4G1h5nDURzA3bwVMZIVpwbkw+04kSxk3rAtzlimaUJw=
 mvdan.cc/unparam v0.0.0-20200501210554-b37ab49443f7/go.mod h1:HGC5lll35J70Y5v7vCGb9oLhHoScFwkHDJm/05RdSTc=
 mvdan.cc/unparam v0.0.0-20211214103731-d0ef000c54e5/go.mod h1:b8RRCBm0eeiWR8cfN88xeq2G5SG3VKGO+5UPWi5FSOY=
-oras.land/oras-go v1.2.0 h1:yoKosVIbsPoFMqAIFHTnrmOuafHal+J/r+I5bdbVWu4=
 oras.land/oras-go v1.2.0/go.mod h1:pFNs7oHp2dYsYMSS82HaX5l4mpnGO7hbpPN6EWH2ltc=
+oras.land/oras-go v1.2.1 h1:/VcGS8FUy3eEXLl/1vC4QypLHwrfSmgW7ygsoklqKK8=
+oras.land/oras-go v1.2.1/go.mod h1:3N11Z5E3c4ZzOjroCl1RtAdB4yNAYl7A27j2SVf913A=
 pack.ag/amqp v0.11.2/go.mod h1:4/cbmt4EJXSKlG6LCfWHoqmN0uFdy5i/+YFz+fTfhV4=
 rsc.io/binaryregexp v0.2.0/go.mod h1:qTv7/COck+e2FymRvadv62gMdZztPaShugOCi3I+8D8=
 rsc.io/pdf v0.1.1/go.mod h1:n8OzWcQ6Sp37PL01nO98y4iUCRdTGarVfzxY20ICaU4=
