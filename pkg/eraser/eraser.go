@@ -6,6 +6,7 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"io/fs"
 	"net/http"
 	_ "net/http/pprof"
 	"os"
@@ -95,6 +96,7 @@ func main() {
 			log.Error(err, "error reading non-compliant images")
 			os.Exit(generalErr)
 		}
+		f.Close()
 
 		nonCompliantImages := []eraserv1alpha1.Image{}
 		if err = json.Unmarshal(data, &nonCompliantImages); err != nil {
@@ -130,5 +132,37 @@ func main() {
 	if err := removeImages(&client, imagelist); err != nil {
 		log.Error(err, "failed to remove images")
 		os.Exit(generalErr)
+	}
+
+	if *imageListPtr == "" {
+		file, err := os.OpenFile(util.EraseCompleteCollectPath, os.O_WRONLY, 0)
+		if err != nil {
+			log.Error(err, "unable to open pipe", "pipeFile", util.EraseCompleteCollectPath)
+			os.Exit(generalErr)
+		}
+
+		if _, err := file.WriteString(util.EraseCompleteMessage); err != nil {
+			log.Error(err, "unable to write to pipe", "pipeFile", util.EraseCompleteCollectPath)
+			os.Exit(generalErr)
+		}
+
+		file.Close()
+
+		file, err = os.OpenFile(util.EraseCompleteScanPath, os.O_WRONLY, fs.ModeNamedPipe)
+		// if the scanner is disabled
+		if os.IsNotExist(err) {
+			return
+		}
+		if err != nil {
+			log.Error(err, "unable to open pipe", "pipeFile", util.EraseCompleteCollectPath)
+			os.Exit(generalErr)
+		}
+
+		if _, err := file.WriteString(util.EraseCompleteMessage); err != nil {
+			log.Error(err, "unable to write to pipe", "pipeFile", util.EraseCompleteCollectPath)
+			os.Exit(generalErr)
+		}
+
+		file.Close()
 	}
 }
