@@ -174,7 +174,7 @@ func main() {
 		file.Close()
 	}
 
-	// record  metrics
+	// record metrics
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer cancel()
 
