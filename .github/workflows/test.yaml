@@ -163,10 +163,10 @@ jobs:
         - uses: crazy-max/ghaction-github-runtime@v2
         - name: Set env
           run: |
-            echo ERASER_IMG=eraser:test >> $GITHUB_ENV
-            echo MANAGER_IMG=manager:test >> $GITHUB_ENV
-            echo COLLECTOR_IMG=collector:test >> $GITHUB_ENV
-            echo SCANNER_IMG=scanner:test >> $GITHUB_ENV
+            echo ERASER_IMG=eraser:new >> $GITHUB_ENV
+            echo MANAGER_IMG=manager:new >> $GITHUB_ENV
+            echo COLLECTOR_IMG=collector:new >> $GITHUB_ENV
+            echo SCANNER_IMG=scanner:new >> $GITHUB_ENV
         - name: Build eraser-manager
           run: make docker-build-manager MANAGER_IMG=${MANAGER_IMG}
         - name: Build eraser
@@ -191,7 +191,8 @@ jobs:
                _test_ns="$(kubectl get namespaces | awk '/test/{print $1}')"
                echo "namespace: $_test_ns"
                kubectl get pods -A -owide || true
-               kubectl logs --tail=-1 -n "$_test_ns" -l "control-plane=controller-manager" | grep 'CHANGE' || true
+               kubectl describe pod -n "$_test_ns" -l "control-plane=controller-manager" || true
+               kubectl logs --tail=-1 -n "$_test_ns" -l "control-plane=controller-manager" || true
                sleep 3
             done
         - name: Upload artifacts
