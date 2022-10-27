@@ -135,6 +135,9 @@ jobs:
           KUBERNETES_VERSION: ["1.22.9", "1.23.6", "1.24.1"]
           E2E_TEST: ${{ fromJson(needs.build-e2e-test-list.outputs.e2e-tests) }}
       steps:
+        - name: get helm version
+          run: |
+            helm version
         - name: Harden Runner
           uses: step-security/harden-runner@2e205a28d0e1da00c5f53b161f4067b052c61f34
           with:
@@ -174,6 +177,8 @@ jobs:
           run: make docker-build-trivy-scanner TRIVY_SCANNER_IMG=${SCANNER_IMG}
         - name: Run e2e test
           run: |
+            helm version
+
             make e2e-test \
               KUBERNETES_VERSION=${{ matrix.KUBERNETES_VERSION }} \
               E2E_TESTS=${{ matrix.E2E_TEST }} \
