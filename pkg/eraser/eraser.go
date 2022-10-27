@@ -40,7 +40,9 @@ var (
 )
 
 const (
-	generalErr = 1
+	generalErr               = 1
+	ImagesRemovedCounter     = "ImagesRemoved"
+	ImagesRemovedDescription = "total images removed"
 )
 
 func main() {
@@ -188,7 +190,7 @@ func main() {
 
 func recordMetrics(ctx context.Context) error {
 	p := global.MeterProvider()
-	counter, err := p.Meter("eraser").SyncInt64().Counter("ImagesRemoved", instrument.WithDescription("total images removed"), instrument.WithUnit("1"))
+	counter, err := p.Meter("eraser").SyncInt64().Counter(ImagesRemovedCounter, instrument.WithDescription(ImagesRemovedDescription), instrument.WithUnit("1"))
 	if err != nil {
 		return err
 	}
