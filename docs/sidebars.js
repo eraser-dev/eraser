@@ -17,6 +17,7 @@ const sidebars = {
     'introduction',
     'installation',
     'quick-start',
+    'architecture',
     {
       type: 'category',
       label: 'Topics',
