@@ -183,7 +183,7 @@ jobs:
               TRIVY_SCANNER_IMG=${SCANNER_IMG} &
 
             while pgrep make; do
-               kubectl get pods -A -owide
+               kubectl get pods -A -owide || true
                sleep 3
             done
         - name: Upload artifacts
