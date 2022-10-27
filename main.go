@@ -38,6 +38,7 @@ import (
 
 	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
 	"github.com/Azure/eraser/controllers"
+	_ "github.com/Azure/eraser/controllers/util"
 	"github.com/Azure/eraser/version"
 	//+kubebuilder:scaffold:imports
 )
