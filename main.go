@@ -63,6 +63,7 @@ func init() {
 }
 
 func main() {
+	fmt.Println("A CHANGE HAS BEEN MADE")
 	otlpEndpointHost := flag.String("otlp-host", "", "otel exporter otlp endpoint host")
 	otlpEndpointPort := flag.String("otlp-port", "", "otel exporter otlp endpoint port")
 	flag.Parse()
