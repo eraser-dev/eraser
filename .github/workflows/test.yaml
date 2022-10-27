@@ -186,7 +186,7 @@ jobs:
                _test_ns="$(kubectl get namespaces | awk '/test/{print $1}')"
                echo "namespace: $_test_ns"
                kubectl get pods -A -owide || true
-               kubectl logs -n "$_test_ns" -l "control-plane=controller-manager" || true
+               kubectl logs --tail=-1 -n "$_test_ns" -l "control-plane=controller-manager" || true
                sleep 3
             done
         - name: Upload artifacts
