@@ -38,7 +38,7 @@ import (
 
 	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
 	"github.com/Azure/eraser/controllers"
-	_ "github.com/Azure/eraser/controllers/util"
+	"github.com/Azure/eraser/controllers/util"
 	"github.com/Azure/eraser/version"
 	//+kubebuilder:scaffold:imports
 )
@@ -53,6 +53,7 @@ var (
 			"Enabling this will ensure there is only one active controller manager.")
 	enableProfile = flag.Bool("enable-pprof", false, "enable pprof profiling")
 	profilePort   = flag.Int("pprof-port", 6060, "port for pprof profiling. defaulted to 6060 if unspecified")
+	otlpEndpoint  = flag.String("otlp-endpoint", "", "otel exporter otlp endpoint")
 )
 
 func init() {
@@ -64,6 +65,7 @@ func init() {
 
 func main() {
 	flag.Parse()
+	*util.OtlpEndpoint = *otlpEndpoint
 
 	if err := logger.Configure(); err != nil {
 		setupLog.Error(err, "unable to configure logger")

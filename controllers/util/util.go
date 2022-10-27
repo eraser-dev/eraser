@@ -24,7 +24,7 @@ var (
 
 	EraserImage  = flag.String("eraser-image", "ghcr.io/azure/eraser:latest", "eraser image")
 	EraserArgs   = utils.MultiFlag([]string{})
-	OtlpEndpoint = flag.String("otlp-endpoint", "", "otel exporter otlp endpoint")
+	OtlpEndpoint *string
 )
 
 const (
