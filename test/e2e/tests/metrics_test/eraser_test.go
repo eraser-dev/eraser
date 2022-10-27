@@ -64,7 +64,7 @@ func TestMetrics(t *testing.T) {
 
 					v, err := strconv.Atoi(value)
 					if err != nil {
-						t.Error("could not covert metrics value to int")
+						t.Error("could not convert metrics value to int")
 					}
 					count += v
 				}
