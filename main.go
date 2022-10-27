@@ -48,7 +48,8 @@ var (
 	setupLog             = ctrl.Log.WithName("setup")
 	metricsAddr          = flag.String("metrics-bind-address", ":8080", "The address the metric endpoint binds to.")
 	probeAddr            = flag.String("health-probe-bind-address", ":8081", "The address the probe endpoint binds to.")
-	otlpEndpoint         = flag.String("otlp-endpoint", "", "otel exporter otlp endpoint")
+	otlpEndpointHost     = flag.String("otlp-host", "", "otel exporter otlp endpoint host")
+	otlpEndpointPort     = flag.String("otlp-port", "", "otel exporter otlp endpoint port")
 	enableLeaderElection = flag.Bool("leader-elect", false,
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.")
@@ -65,7 +66,7 @@ func init() {
 
 func main() {
 	flag.Parse()
-	*util.OtlpEndpoint = *otlpEndpoint
+	*util.OtlpEndpoint = fmt.Sprintf("%s:%s", *otlpEndpointHost, *otlpEndpointPort)
 
 	if err := logger.Configure(); err != nil {
 		setupLog.Error(err, "unable to configure logger")
