@@ -19,6 +19,10 @@ import (
 	"strings"
 )
 
+const (
+	ExpectedImagesRemoved = 3
+)
+
 func TestMetrics(t *testing.T) {
 	metrics := features.New("ImagesRemoved and VulnerableImages metrics should report 1").
 		Assess("Alpine image is removed", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
@@ -71,7 +75,7 @@ func TestMetrics(t *testing.T) {
 			}
 
 			if count != 3 {
-				t.Error("ImagesRemoved is not 3: ", count)
+				t.Error("Expected ImagesRemoved to be ", ExpectedImagesRemoved, ", got ", count)
 			}
 
 			return ctx
