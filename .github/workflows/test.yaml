@@ -180,7 +180,12 @@ jobs:
               ERASER_IMG=${ERASER_IMG} \
               MANAGER_IMG=${MANAGER_IMG} \
               COLLECTOR_IMG=${COLLECTOR_IMG} \
-              TRIVY_SCANNER_IMG=${SCANNER_IMG}
+              TRIVY_SCANNER_IMG=${SCANNER_IMG} &
+
+            while pgrep make; do
+               kubectl get pods -A -owide
+               sleep 3
+            done
         - name: Upload artifacts
           uses: actions/upload-artifact@v3
           with:
