@@ -172,9 +172,6 @@ func main() {
 		file.Close()
 	}
 
-	// configure eraser metrics
-	ctxB := context.Background()
-	ctx, cancel := signal.NotifyContext(ctxB, os.Interrupt, syscall.SIGTERM)
 	// record  metrics
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer cancel()
