@@ -217,7 +217,7 @@ func (r *Reconciler) createImageJob(ctx context.Context, req ctrl.Request, argsC
 						{
 							Name:            "collector",
 							Image:           *collectorImage,
-							ImagePullPolicy: corev1.PullIfNotPresent,
+							ImagePullPolicy: util.CollectorPullPolicy,
 							Args:            append(collectorArgs, "--scan-disabled="+strconv.FormatBool(scanDisabled)),
 							VolumeMounts: []corev1.VolumeMount{
 								{MountPath: "/run/eraser.sh/shared-data", Name: "shared-data"},
@@ -236,7 +236,7 @@ func (r *Reconciler) createImageJob(ctx context.Context, req ctrl.Request, argsC
 						{
 							Name:            "eraser",
 							Image:           *util.EraserImage,
-							ImagePullPolicy: corev1.PullIfNotPresent,
+							ImagePullPolicy: util.EraserPullPolicy,
 							Args:            append(util.EraserArgs, "--log-level="+logger.GetLevel()),
 							VolumeMounts: []corev1.VolumeMount{
 								{MountPath: "/run/eraser.sh/shared-data", Name: "shared-data"},
@@ -262,9 +262,10 @@ func (r *Reconciler) createImageJob(ctx context.Context, req ctrl.Request, argsC
 
 	if !scanDisabled {
 		scannerContainer := corev1.Container{
-			Name:  "trivy-scanner",
-			Image: *scannerImage,
-			Args:  append(scannerArgs, "delete-scan-failed-images="+strconv.FormatBool(*deleteScanFailedImages)),
+			Name:            "trivy-scanner",
+			Image:           *scannerImage,
+			ImagePullPolicy: util.ScannerPullPolicy,
+			Args:            append(scannerArgs, "delete-scan-failed-images="+strconv.FormatBool(*deleteScanFailedImages)),
 			VolumeMounts: []corev1.VolumeMount{
 				{MountPath: "/run/eraser.sh/shared-data", Name: "shared-data"},
 			},

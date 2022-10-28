@@ -24,6 +24,10 @@ var (
 
 	EraserImage = flag.String("eraser-image", "ghcr.io/azure/eraser:latest", "eraser image")
 	EraserArgs  = utils.MultiFlag([]string{})
+
+	EraserPullPolicy    corev1.PullPolicy
+	CollectorPullPolicy corev1.PullPolicy
+	ScannerPullPolicy   corev1.PullPolicy
 )
 
 const (
@@ -32,6 +36,7 @@ const (
 
 func init() {
 	flag.Var(&EraserArgs, "eraser-arg", "An argument to be passed through to the eraser. For example, --eraser-arg=--enable-pprof=true will pass through to the eraser as --enable-pprof=true. Can be supplied multiple times.")
+
 }
 
 func NeverOnCreate(_ event.CreateEvent) bool {

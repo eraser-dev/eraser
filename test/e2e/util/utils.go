@@ -98,6 +98,33 @@ func (hp HelmPath) Set(val string) string {
 	return fmt.Sprintf("%s=%s", hp, val)
 }
 
+func (ca *ComplexArgs) Set(val string) *ComplexArgs {
+	ca.args = append(ca.args, val)
+
+	return ca
+}
+
+func (ca *ComplexArgs) String() string {
+	if len(ca.args) == 0 {
+		return ""
+	}
+
+	sb := new(strings.Builder)
+	sb.WriteString(ca.key)
+	sb.WriteString("={")
+	lastIndex := len(ca.args) - 1
+
+	for i, s := range ca.args {
+		sb.WriteString(s)
+		if i < lastIndex {
+			sb.WriteRune(',')
+		}
+	}
+
+	sb.WriteRune('}')
+	return sb.String()
+}
+
 func init() {
 	var err error
 	ParsedImages, err = parsedImages(Image, ManagerImage, CollectorImage, ScannerImage)
