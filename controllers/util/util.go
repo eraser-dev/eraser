@@ -36,7 +36,6 @@ const (
 
 func init() {
 	flag.Var(&EraserArgs, "eraser-arg", "An argument to be passed through to the eraser. For example, --eraser-arg=--enable-pprof=true will pass through to the eraser as --enable-pprof=true. Can be supplied multiple times.")
-
 }
 
 func NeverOnCreate(_ event.CreateEvent) bool {
