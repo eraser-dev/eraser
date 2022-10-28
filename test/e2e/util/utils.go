@@ -554,7 +554,7 @@ func DeployEraserHelm(namespace string, args ...string) env.Func {
 	}
 }
 
-func GetManagerLogs(ctx context.Context, cfg *envconf.Config, t *testing.T) error {
+func GetManagerLogs(ctx context.Context, cfg *envconf.Config, namespace string, t *testing.T) error {
 	c, err := cfg.NewClient()
 	if err != nil {
 		return err
@@ -576,7 +576,7 @@ func GetManagerLogs(ctx context.Context, cfg *envconf.Config, t *testing.T) erro
 
 	manager := pods.Items[0]
 
-	output, err := KubectlLogs(cfg.KubeconfigFile(), manager.Name, "", TestNamespace)
+	output, err := KubectlLogs(cfg.KubeconfigFile(), manager.Name, "", namespace)
 	if err != nil {
 		return err
 	}
@@ -613,7 +613,7 @@ func GetManagerLogs(ctx context.Context, cfg *envconf.Config, t *testing.T) erro
 	return nil
 }
 
-func GetPodLogs(ctx context.Context, cfg *envconf.Config, t *testing.T, imagelistTest bool) error {
+func GetPodLogs(ctx context.Context, cfg *envconf.Config, namespace string, t *testing.T, imagelistTest bool) error {
 	c, err := cfg.NewClient()
 	if err != nil {
 		return err
@@ -679,7 +679,7 @@ func GetPodLogs(ctx context.Context, cfg *envconf.Config, t *testing.T, imagelis
 
 		if !imagelistTest {
 			// get collector container logs
-			output, err = KubectlLogs(cfg.KubeconfigFile(), pod.Name, "collector", TestNamespace)
+			output, err = KubectlLogs(cfg.KubeconfigFile(), pod.Name, "collector", namespace)
 			if err != nil {
 				t.Errorf("could not get collector container logs %s %v", pod.Name, err)
 			}
@@ -689,7 +689,7 @@ func GetPodLogs(ctx context.Context, cfg *envconf.Config, t *testing.T, imagelis
 			}
 
 			// get eraser container logs
-			output, err = KubectlLogs(cfg.KubeconfigFile(), pod.Name, "eraser", TestNamespace)
+			output, err = KubectlLogs(cfg.KubeconfigFile(), pod.Name, "eraser", namespace)
 			if err != nil {
 				t.Errorf("could not get eraser container logs %s %v", pod.Name, err)
 			}
@@ -699,7 +699,7 @@ func GetPodLogs(ctx context.Context, cfg *envconf.Config, t *testing.T, imagelis
 			}
 		} else {
 			// get eraser pog logs
-			output, err = KubectlLogs(cfg.KubeconfigFile(), pod.Name, "", TestNamespace)
+			output, err = KubectlLogs(cfg.KubeconfigFile(), pod.Name, "", namespace)
 			if err != nil {
 				t.Error("could not get pod output", err)
 			}
