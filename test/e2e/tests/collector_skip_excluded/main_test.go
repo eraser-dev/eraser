@@ -30,19 +30,19 @@ func TestMain(m *testing.M) {
 	util.Testenv.Setup(
 		envfuncs.CreateKindClusterWithConfig(util.KindClusterName, util.NodeVersion, "../../kind-config.yaml"),
 		envfuncs.CreateNamespace(util.TestNamespace),
-		envfuncs.CreateNamespace(util.EraserNamespace),
+		envfuncs.CreateNamespace(util.TestNamespace),
 		envfuncs.LoadDockerImageToCluster(util.KindClusterName, util.ManagerImage),
 		envfuncs.LoadDockerImageToCluster(util.KindClusterName, util.Image),
 		envfuncs.LoadDockerImageToCluster(util.KindClusterName, util.CollectorImage),
 		envfuncs.LoadDockerImageToCluster(util.KindClusterName, util.VulnerableImage),
 		envfuncs.LoadDockerImageToCluster(util.KindClusterName, util.NonVulnerableImage),
-		util.CreateExclusionList(util.EraserNamespace, pkgUtil.ExclusionList{
+		util.CreateExclusionList(util.TestNamespace, pkgUtil.ExclusionList{
 			Excluded: []string{"docker.io/library/alpine:*"},
 		}),
-		util.CreateExclusionList(util.EraserNamespace, pkgUtil.ExclusionList{
+		util.CreateExclusionList(util.TestNamespace, pkgUtil.ExclusionList{
 			Excluded: []string{util.NonVulnerableImage},
 		}),
-		util.DeployEraserHelm(util.EraserNamespace,
+		util.DeployEraserHelm(util.TestNamespace,
 			"--set", util.ScannerImageRepo.Set(""),
 			"--set", util.EraserImageRepo.Set(eraserImage.Repo),
 			"--set", util.EraserImageTag.Set(eraserImage.Tag),
