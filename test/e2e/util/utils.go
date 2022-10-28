@@ -589,7 +589,7 @@ func GetManagerLogs(ctx context.Context, cfg *envconf.Config, t *testing.T) erro
 
 	manager := pods.Items[0]
 
-	output, err := KubectlLogs(cfg.KubeconfigFile(), manager.Name, "", EraserNamespace)
+	output, err := KubectlLogs(cfg.KubeconfigFile(), manager.Name, "", TestNamespace)
 	if err != nil {
 		return err
 	}
@@ -692,7 +692,7 @@ func GetPodLogs(ctx context.Context, cfg *envconf.Config, t *testing.T, imagelis
 
 		if !imagelistTest {
 			// get collector container logs
-			output, err = KubectlLogs(cfg.KubeconfigFile(), pod.Name, "collector", EraserNamespace)
+			output, err = KubectlLogs(cfg.KubeconfigFile(), pod.Name, "collector", TestNamespace)
 			if err != nil {
 				t.Errorf("could not get collector container logs %s %v", pod.Name, err)
 			}
@@ -702,7 +702,7 @@ func GetPodLogs(ctx context.Context, cfg *envconf.Config, t *testing.T, imagelis
 			}
 
 			// get eraser container logs
-			output, err = KubectlLogs(cfg.KubeconfigFile(), pod.Name, "eraser", EraserNamespace)
+			output, err = KubectlLogs(cfg.KubeconfigFile(), pod.Name, "eraser", TestNamespace)
 			if err != nil {
 				t.Errorf("could not get eraser container logs %s %v", pod.Name, err)
 			}
@@ -712,7 +712,7 @@ func GetPodLogs(ctx context.Context, cfg *envconf.Config, t *testing.T, imagelis
 			}
 		} else {
 			// get eraser pog logs
-			output, err = KubectlLogs(cfg.KubeconfigFile(), pod.Name, "", EraserNamespace)
+			output, err = KubectlLogs(cfg.KubeconfigFile(), pod.Name, "", TestNamespace)
 			if err != nil {
 				t.Error("could not get pod output", err)
 			}
@@ -780,7 +780,7 @@ func CreateExclusionList(namespace string, list pkgUtil.ExclusionList) env.Func 
 		excluded := corev1.ConfigMap{
 			ObjectMeta: metav1.ObjectMeta{
 				GenerateName: "excluded",
-				Namespace:    EraserNamespace,
+				Namespace:    TestNamespace,
 			},
 			Data: map[string]string{"excluded": string(b)},
 		}
@@ -790,7 +790,7 @@ func CreateExclusionList(namespace string, list pkgUtil.ExclusionList) env.Func 
 
 		cMap := corev1.ConfigMap{}
 		err = wait.For(func() (bool, error) {
-			err := c.Resources().Get(ctx, excluded.Name, EraserNamespace, &cMap)
+			err := c.Resources().Get(ctx, excluded.Name, TestNamespace, &cMap)
 			if IsNotFound(err) {
 				return false, nil
 			}
