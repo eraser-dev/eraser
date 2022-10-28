@@ -6,7 +6,6 @@ package e2e
 import (
 	"context"
 	"testing"
-	"time"
 
 	"github.com/Azure/eraser/test/e2e/util"
 	corev1 "k8s.io/api/core/v1"
