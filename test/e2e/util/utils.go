@@ -78,7 +78,7 @@ var (
 	TestLogDir         = os.Getenv("TEST_LOGDIR")
 
 	ManagerAdditionalArgs = ComplexArgs{
-		key: "controllerManager.image.additionalArgs",
+		key: "controllerManager.additionalArgs",
 		args: []string{
 			"--eraser-pull-policy=Never",
 			"--collector-pull-policy=Never",
@@ -124,20 +124,7 @@ func (ca *ComplexArgs) String() string {
 		return ""
 	}
 
-	sb := new(strings.Builder)
-	sb.WriteString(ca.key)
-	sb.WriteString("={")
-	lastIndex := len(ca.args) - 1
-
-	for i, s := range ca.args {
-		sb.WriteString(s)
-		if i < lastIndex {
-			sb.WriteRune(',')
-		}
-	}
-
-	sb.WriteRune('}')
-	return sb.String()
+	return fmt.Sprintf("%s={%s}", ca.key, strings.Join(ca.args, ","))
 }
 
 func init() {
