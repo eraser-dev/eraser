@@ -22,7 +22,7 @@ import (
 func TestCollectScanErasePipeline(t *testing.T) {
 	collectScanErasePipelineFeat := features.New("Collector pods should run automatically, trigger the scanner, then the eraser pods. Manifest deployment test.").
 		Assess("Vulnerable Image successfully deleted from all nodes", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
-			ctxT, cancel := context.WithTimeout(ctx, 3*time.Minute)
+			ctxT, cancel := context.WithTimeout(ctx, util.Timeout)
 			defer cancel()
 			util.CheckImageRemoved(ctxT, t, util.GetClusterNodes(t), util.Alpine)
 
@@ -42,7 +42,7 @@ func TestCollectScanErasePipeline(t *testing.T) {
 				t.Errorf("could not list pods: %v", err)
 			}
 
-			err = wait.For(conditions.New(c.Resources()).ResourcesDeleted(&ls), wait.WithTimeout(time.Minute))
+			err = wait.For(conditions.New(c.Resources()).ResourcesDeleted(&ls), wait.WithTimeout(util.Timeout))
 			if err != nil {
 				t.Errorf("error waiting for pods to be deleted: %v", err)
 			}

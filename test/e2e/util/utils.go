@@ -76,6 +76,7 @@ var (
 	TestLogDir         = os.Getenv("TEST_LOGDIR")
 
 	ParsedImages *Images
+	Timeout      = time.Minute * 5
 )
 
 type (
@@ -514,7 +515,7 @@ func DeployEraserHelm(namespace string, args ...string) env.Func {
 		}
 
 		if err = wait.For(conditions.New(client.Resources()).DeploymentConditionMatch(&eraserManagerDep, appsv1.DeploymentAvailable, corev1.ConditionTrue),
-			wait.WithTimeout(time.Minute*1)); err != nil {
+			wait.WithTimeout(Timeout)); err != nil {
 			klog.ErrorS(err, "failed to deploy eraser manager")
 
 			return ctx, err
@@ -555,7 +556,7 @@ func DeployOtelCollector(namespace string) env.Func {
 		}
 
 		if err = wait.For(conditions.New(client.Resources()).DeploymentConditionMatch(&otelCollectorDep, appsv1.DeploymentAvailable, corev1.ConditionTrue),
-			wait.WithTimeout(time.Minute*1)); err != nil {
+			wait.WithTimeout(Timeout)); err != nil {
 			klog.ErrorS(err, "failed to deploy otelcollector")
 
 			return ctx, err
@@ -640,7 +641,7 @@ func GetPodLogs(ctx context.Context, cfg *envconf.Config, t *testing.T, imagelis
 				return false, err
 			}
 			return len(ls.Items) > 0, nil
-		}, wait.WithTimeout(time.Minute))
+		}, wait.WithTimeout(Timeout))
 		if err != nil {
 			t.Errorf("could not list pods: %v", err)
 		}
@@ -653,7 +654,7 @@ func GetPodLogs(ctx context.Context, cfg *envconf.Config, t *testing.T, imagelis
 				return false, err
 			}
 			return len(ls.Items) > 0, nil
-		}, wait.WithTimeout(time.Minute))
+		}, wait.WithTimeout(Timeout))
 		if err != nil {
 			t.Errorf("could not list pods: %v", err)
 		}
@@ -683,7 +684,7 @@ func GetPodLogs(ctx context.Context, cfg *envconf.Config, t *testing.T, imagelis
 		}
 
 		// wait for current pod to complete
-		err = wait.For(conditions.New(c.Resources()).PodPhaseMatch(&pod, corev1.PodSucceeded), wait.WithTimeout(time.Minute*2))
+		err = wait.For(conditions.New(c.Resources()).PodPhaseMatch(&pod, corev1.PodSucceeded), wait.WithTimeout(Timeout))
 		if err != nil {
 			t.Errorf("error waiting for pod completion %s %v", pod.Name, err)
 		}
@@ -802,7 +803,7 @@ func CreateExclusionList(namespace string, list pkgUtil.ExclusionList) env.Func 
 			}
 
 			return false, nil
-		}, wait.WithTimeout(time.Minute*3))
+		}, wait.WithTimeout(Timeout))
 		if err != nil {
 			return ctx, err
 		}

@@ -17,14 +17,14 @@ import (
 func TestCollectorExcluded(t *testing.T) {
 	collectorExcluded := features.New("ImageCollector should not remove excluded images").
 		Assess("Alpine image is not removed", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
-			ctxT, cancel := context.WithTimeout(ctx, time.Minute*5)
+			ctxT, cancel := context.WithTimeout(ctx, util.Timeout)
 			defer cancel()
 			util.CheckImagesExist(ctxT, t, util.GetClusterNodes(t), util.VulnerableImage)
 
 			return ctx
 		}).
 		Assess("Non-vulnerable image is not removed", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
-			ctxT, cancel := context.WithTimeout(ctx, time.Minute*5)
+			ctxT, cancel := context.WithTimeout(ctx, util.Timeout)
 			defer cancel()
 			util.CheckImagesExist(ctxT, t, util.GetClusterNodes(t), util.NonVulnerableImage)
 

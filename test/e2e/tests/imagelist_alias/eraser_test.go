@@ -77,7 +77,7 @@ func TestEnsureAliasedImageRemoved(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{Name: "nginxone", Namespace: cfg.Namespace()},
 			}
 
-			err = wait.For(conditions.New(client.Resources()).PodConditionMatch(&resultPod, corev1.PodReady, corev1.ConditionTrue), wait.WithTimeout(time.Minute*3))
+			err = wait.For(conditions.New(client.Resources()).PodConditionMatch(&resultPod, corev1.PodReady, corev1.ConditionTrue), wait.WithTimeout(util.Timeout))
 			if err != nil {
 				t.Error("pod not deployed", err)
 			}
@@ -86,7 +86,7 @@ func TestEnsureAliasedImageRemoved(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{Name: "nginxtwo", Namespace: cfg.Namespace()},
 			}
 
-			err = wait.For(conditions.New(client.Resources()).PodConditionMatch(&resultPod, corev1.PodReady, corev1.ConditionTrue), wait.WithTimeout(time.Minute*3))
+			err = wait.For(conditions.New(client.Resources()).PodConditionMatch(&resultPod, corev1.PodReady, corev1.ConditionTrue), wait.WithTimeout(util.Timeout))
 			if err != nil {
 				t.Error("pod not deployed", err)
 			}
@@ -98,7 +98,7 @@ func TestEnsureAliasedImageRemoved(t *testing.T) {
 			}
 
 			nodeName := ctx.Value("nodeName").(string)
-			err = wait.For(util.ContainerNotPresentOnNode(nodeName, "nginxone"), wait.WithTimeout(time.Minute*2))
+			err = wait.For(util.ContainerNotPresentOnNode(nodeName, "nginxone"), wait.WithTimeout(util.Timeout))
 			if err != nil {
 				// Let's not mark this as an error
 				// We only have this to prevent race conditions with the eraser spinning up
@@ -109,7 +109,7 @@ func TestEnsureAliasedImageRemoved(t *testing.T) {
 			if err := client.Resources().Delete(ctx, nginxTwoPod); err != nil {
 				t.Error("Failed to delete the dep", err)
 			}
-			err = wait.For(util.ContainerNotPresentOnNode(nodeName, "nginxtwo"), wait.WithTimeout(time.Minute*2))
+			err = wait.For(util.ContainerNotPresentOnNode(nodeName, "nginxtwo"), wait.WithTimeout(util.Timeout))
 			if err != nil {
 				// Let's not mark this as an error
 				// We only have this to prevent race conditions with the eraser spinning up
@@ -130,7 +130,7 @@ func TestEnsureAliasedImageRemoved(t *testing.T) {
 			}
 
 			nodeName := ctx.Value("nodeName").(string)
-			ctxT, cancel := context.WithTimeout(ctx, time.Minute)
+			ctxT, cancel := context.WithTimeout(ctx, util.Timeout)
 			defer cancel()
 			util.CheckImageRemoved(ctxT, t, []string{nodeName}, util.Nginx)
 
