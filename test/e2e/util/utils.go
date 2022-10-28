@@ -51,15 +51,17 @@ const (
 	FilterNodeSelector   = "kubernetes.io/hostname=eraser-e2e-test-worker"
 	FilterLabelKey       = "eraser.sh/cleanup.filter"
 	FilterLabelValue     = "true"
+	PullPolicyNever      = "Never"
 
-	ScannerImageRepo   = HelmPath("scanner.image.repository")
-	ScannerImageTag    = HelmPath("scanner.image.tag")
-	CollectorImageRepo = HelmPath("collector.image.repository")
-	CollectorImageTag  = HelmPath("collector.image.tag")
-	ManagerImageRepo   = HelmPath("controllerManager.image.repository")
-	ManagerImageTag    = HelmPath("controllerManager.image.tag")
-	EraserImageRepo    = HelmPath("eraser.image.repository")
-	EraserImageTag     = HelmPath("eraser.image.tag")
+	ScannerImageRepo       = HelmPath("scanner.image.repository")
+	ScannerImageTag        = HelmPath("scanner.image.tag")
+	CollectorImageRepo     = HelmPath("collector.image.repository")
+	CollectorImageTag      = HelmPath("collector.image.tag")
+	ManagerImageRepo       = HelmPath("controllerManager.image.repository")
+	ManagerImageTag        = HelmPath("controllerManager.image.tag")
+	ManagerImagePullPolicy = HelmPath("controllerManager.image.pullPolicy")
+	EraserImageRepo        = HelmPath("eraser.image.repository")
+	EraserImageTag         = HelmPath("eraser.image.tag")
 )
 
 var (
@@ -74,6 +76,15 @@ var (
 	TestNamespace      = envconf.RandomName("test-ns", 16)
 	EraserNamespace    = pkgUtil.GetNamespace()
 	TestLogDir         = os.Getenv("TEST_LOGDIR")
+
+	ManagerAdditionalArgs = ComplexArgs{
+		key: "controllerManager.image.additionalArgs",
+		args: []string{
+			"--eraser-pull-policy=Never",
+			"--collector-pull-policy=Never",
+			"--scanner-pull-policy=Never",
+		},
+	}
 
 	ParsedImages *Images
 )
@@ -91,7 +102,11 @@ type (
 		ScannerImage   RepoTag
 	}
 
-	HelmPath string
+	HelmPath    string
+	ComplexArgs struct {
+		key  string
+		args []string
+	}
 )
 
 func (hp HelmPath) Set(val string) string {
@@ -525,6 +540,7 @@ func DeployEraserHelm(namespace string, args ...string) env.Func {
 		// start deployment
 		allArgs := []string{providerResourceAbsolutePath}
 		allArgs = append(allArgs, args...)
+		allArgs = append(allArgs, "--set", ManagerImagePullPolicy.Set(PullPolicyNever))
 		if err := HelmInstall(cfg.KubeconfigFile(), namespace, allArgs); err != nil {
 			return ctx, err
 		}
