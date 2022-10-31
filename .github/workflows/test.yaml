@@ -26,7 +26,7 @@ jobs:
         run: |
           readarray -d '' test_dirs < <(find ./test/e2e/tests -mindepth 1 -type d -print0)
           json_array="$(printf "%s\n" "${test_dirs[@]}" | jq -R . | jq -cs)"
-          echo "::set-output name=e2e-tests::${json_array}"
+          echo "e2e-tests=${json_array}" > $GITHUB_OUTPUT
     outputs:
       e2e-tests: ${{ steps.set-test-matrix.outputs.e2e-tests }}
 
