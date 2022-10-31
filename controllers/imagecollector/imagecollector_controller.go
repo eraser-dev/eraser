@@ -28,8 +28,6 @@ import (
 	"time"
 
 	"go.opentelemetry.io/otel/metric/global"
-	"go.opentelemetry.io/otel/metric/instrument"
-	"go.opentelemetry.io/otel/metric/unit"
 	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -353,7 +351,7 @@ func (r *Reconciler) handleCompletedImageJob(ctx context.Context, req ctrl.Reque
 
 		defer metrics.ExportMetrics(log, exporter, reader, provider)
 
-		if err := recordMetrics(ctx, float64(time.Since(startTime).Milliseconds()), int64(childJob.Status.Succeeded), int64(childJob.Status.Failed)); err != nil {
+		if err := metrics.RecordMetricsController(ctx, global.MeterProvider(), float64(time.Since(startTime).Milliseconds()), int64(childJob.Status.Succeeded), int64(childJob.Status.Failed)); err != nil {
 			log.Error(err, "error recording metrics")
 		}
 
@@ -379,7 +377,7 @@ func (r *Reconciler) handleCompletedImageJob(ctx context.Context, req ctrl.Reque
 
 		defer metrics.ExportMetrics(log, exporter, reader, provider)
 
-		if err := recordMetrics(ctx, float64(time.Since(startTime).Milliseconds()), int64(childJob.Status.Succeeded), int64(childJob.Status.Failed)); err != nil {
+		if err := metrics.RecordMetricsController(ctx, global.MeterProvider(), float64(time.Since(startTime).Milliseconds()), int64(childJob.Status.Succeeded), int64(childJob.Status.Failed)); err != nil {
 			log.Error(err, "error recording metrics")
 		}
 
@@ -392,34 +390,4 @@ func (r *Reconciler) handleCompletedImageJob(ctx context.Context, req ctrl.Reque
 	}
 
 	return ctrl.Result{RequeueAfter: *repeatPeriod}, err
-}
-
-func recordMetrics(ctx context.Context, jobDuration float64, podsCompleted int64, podsFailed int64) error {
-	p := global.MeterProvider()
-
-	duration, err := p.Meter("eraser").SyncFloat64().Histogram("ImageJobCollectorDuration", instrument.WithDescription("duration of collector imagejob"), instrument.WithUnit(unit.Milliseconds))
-	if err != nil {
-		return err
-	}
-	duration.Record(ctx, jobDuration)
-
-	completed, err := p.Meter("eraser").SyncInt64().Counter("PodsCompleted", instrument.WithDescription("total pods completed"), instrument.WithUnit("1"))
-	if err != nil {
-		return err
-	}
-	completed.Add(ctx, podsCompleted)
-
-	failed, err := p.Meter("eraser").SyncInt64().Counter("PodsFailed", instrument.WithDescription("total pods failed"), instrument.WithUnit("1"))
-	if err != nil {
-		return err
-	}
-	failed.Add(ctx, podsFailed)
-
-	jobTotal, err := p.Meter("eraser").SyncInt64().Counter("ImageJobCollectorTotal", instrument.WithDescription("total number of collector imagejobs completed"), instrument.WithUnit("1"))
-	if err != nil {
-		return err
-	}
-	jobTotal.Add(ctx, 1)
-
-	return nil
 }

@@ -25,9 +25,7 @@ import (
 	fanalImage "github.com/aquasecurity/fanal/image"
 	trivylogger "github.com/aquasecurity/trivy/pkg/log"
 	"github.com/aquasecurity/trivy/pkg/scanner"
-	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric/global"
-	"go.opentelemetry.io/otel/metric/instrument"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
@@ -287,20 +285,9 @@ func main() {
 
 	defer metrics.ExportMetrics(log, exporter, reader, provider)
 
-	if err := recordMetrics(ctx, len(vulnerableImages)); err != nil {
+	if err := metrics.RecordMetricsScanner(ctx, global.MeterProvider(), len(vulnerableImages)); err != nil {
 		log.Error(err, "error recording metrics")
 	}
 
 	log.Info("scanning complete, exiting")
-}
-
-func recordMetrics(ctx context.Context, totalVulnerable int) error {
-	p := global.MeterProvider()
-	counter, err := p.Meter("eraser").SyncInt64().Counter("VulnerableImages", instrument.WithDescription("total vulnerable images"), instrument.WithUnit("1"))
-	if err != nil {
-		return err
-	}
-
-	counter.Add(ctx, int64(totalVulnerable), attribute.String("node name", os.Getenv("NODE_NAME")))
-	return nil
 }

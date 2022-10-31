@@ -14,9 +14,7 @@ import (
 	"syscall"
 	"time"
 
-	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric/global"
-	"go.opentelemetry.io/otel/metric/instrument"
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 
@@ -40,9 +38,7 @@ var (
 )
 
 const (
-	generalErr               = 1
-	ImagesRemovedCounter     = "ImagesRemoved"
-	ImagesRemovedDescription = "total images removed"
+	generalErr = 1
 )
 
 func main() {
@@ -183,18 +179,7 @@ func main() {
 
 	defer metrics.ExportMetrics(log, exporter, reader, provider)
 
-	if err := recordMetrics(ctx); err != nil {
+	if err := metrics.RecordMetricsEraser(ctx, global.MeterProvider(), int64(getTotalRemoved())); err != nil {
 		log.Error(err, "error recording metrics")
 	}
-}
-
-func recordMetrics(ctx context.Context) error {
-	p := global.MeterProvider()
-	counter, err := p.Meter("eraser").SyncInt64().Counter(ImagesRemovedCounter, instrument.WithDescription(ImagesRemovedDescription), instrument.WithUnit("1"))
-	if err != nil {
-		return err
-	}
-
-	counter.Add(ctx, int64(getTotalRemoved()), attribute.String("node name", os.Getenv("NODE_NAME")))
-	return nil
 }

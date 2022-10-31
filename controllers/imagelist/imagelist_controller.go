@@ -24,7 +24,6 @@ import (
 	"time"
 
 	"go.opentelemetry.io/otel/metric/global"
-	"go.opentelemetry.io/otel/metric/instrument"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -48,7 +47,6 @@ import (
 	"github.com/Azure/eraser/pkg/logger"
 	"github.com/Azure/eraser/pkg/metrics"
 	"github.com/Azure/eraser/pkg/utils"
-	"go.opentelemetry.io/otel/metric/unit"
 )
 
 const (
@@ -167,7 +165,7 @@ func (r *Reconciler) handleJobListEvent(ctx context.Context, imageList *eraserv1
 
 		defer metrics.ExportMetrics(log, exporter, reader, provider)
 
-		if err := recordMetrics(ctx, float64(time.Since(startTime).Milliseconds()), int64(job.Status.Succeeded), int64(job.Status.Failed)); err != nil {
+		if err := metrics.RecordMetricsController(ctx, global.MeterProvider(), float64(time.Since(startTime).Milliseconds()), int64(job.Status.Succeeded), int64(job.Status.Failed)); err != nil {
 			log.Error(err, "error recording metrics")
 		}
 
@@ -358,36 +356,6 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	if err != nil {
 		return err
 	}
-
-	return nil
-}
-
-func recordMetrics(ctx context.Context, jobDuration float64, podsCompleted int64, podsFailed int64) error {
-	p := global.MeterProvider()
-
-	duration, err := p.Meter("eraser").SyncFloat64().Histogram("ImageJobEraserDuration", instrument.WithDescription("duration of eraser imagejob"), instrument.WithUnit(unit.Milliseconds))
-	if err != nil {
-		return err
-	}
-	duration.Record(ctx, jobDuration)
-
-	completed, err := p.Meter("eraser").SyncInt64().Counter("PodsCompleted", instrument.WithDescription("total pods completed"), instrument.WithUnit("1"))
-	if err != nil {
-		return err
-	}
-	completed.Add(ctx, podsCompleted)
-
-	failed, err := p.Meter("eraser").SyncInt64().Counter("PodsFailed", instrument.WithDescription("total pods failed"), instrument.WithUnit("1"))
-	if err != nil {
-		return err
-	}
-	failed.Add(ctx, podsFailed)
-
-	jobTotal, err := p.Meter("eraser").SyncInt64().Counter("ImageJobEraserTotal", instrument.WithDescription("total number of eraser imagejobs completed"), instrument.WithUnit("1"))
-	if err != nil {
-		return err
-	}
-	jobTotal.Add(ctx, 1)
 
 	return nil
 }
