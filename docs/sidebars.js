@@ -37,6 +37,7 @@ const sidebars = {
       items: [
         'setup',
         'releasing',
+        'metrics'
       ]
     },
     {
