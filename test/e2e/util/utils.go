@@ -767,7 +767,7 @@ func CreateExclusionList(namespace string, list pkgUtil.ExclusionList) env.Func 
 		excluded := corev1.ConfigMap{
 			ObjectMeta: metav1.ObjectMeta{
 				GenerateName: "excluded",
-				Namespace:    TestNamespace,
+				Namespace:    namespace,
 			},
 			Data: map[string]string{"excluded": string(b)},
 		}
@@ -777,7 +777,7 @@ func CreateExclusionList(namespace string, list pkgUtil.ExclusionList) env.Func 
 
 		cMap := corev1.ConfigMap{}
 		err = wait.For(func() (bool, error) {
-			err := c.Resources().Get(ctx, excluded.Name, TestNamespace, &cMap)
+			err := c.Resources().Get(ctx, excluded.Name, namespace, &cMap)
 			if IsNotFound(err) {
 				return false, nil
 			}
