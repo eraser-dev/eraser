@@ -31,7 +31,6 @@ import (
 
 	"github.com/Azure/eraser/controllers/util"
 	"github.com/Azure/eraser/pkg/logger"
-	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
@@ -52,11 +51,8 @@ var (
 	enableLeaderElection = flag.Bool("leader-elect", false,
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.")
-	enableProfile       = flag.Bool("enable-pprof", false, "enable pprof profiling")
-	profilePort         = flag.Int("pprof-port", 6060, "port for pprof profiling. defaulted to 6060 if unspecified")
-	eraserPullPolicy    = flag.String("eraser-pull-policy", string(corev1.PullIfNotPresent), "pull policy for eraser image")
-	collectorPullPolicy = flag.String("collector-pull-policy", string(corev1.PullIfNotPresent), "pull policy for collector image")
-	scannerPullPolicy   = flag.String("scanner-pull-policy", string(corev1.PullIfNotPresent), "pull policy for scanner image")
+	enableProfile = flag.Bool("enable-pprof", false, "enable pprof profiling")
+	profilePort   = flag.Int("pprof-port", 6060, "port for pprof profiling. defaulted to 6060 if unspecified")
 )
 
 func init() {
@@ -74,6 +70,11 @@ func main() {
 		os.Exit(1)
 	}
 
+	if err := util.ValidatePullPolicies(); err != nil {
+		setupLog.Error(err, "unable to set pull policies")
+		os.Exit(1)
+	}
+
 	if *enableProfile {
 		go func() {
 			server := &http.Server{
@@ -83,21 +84,6 @@ func main() {
 			err := server.ListenAndServe()
 			setupLog.Error(err, "pprof server failed")
 		}()
-	}
-
-	pullPolicies := map[string]*corev1.PullPolicy{
-		*eraserPullPolicy:    &util.EraserPullPolicy,
-		*collectorPullPolicy: &util.CollectorPullPolicy,
-		*scannerPullPolicy:   &util.ScannerPullPolicy,
-	}
-
-	for pp, dst := range pullPolicies {
-		switch val := corev1.PullPolicy(pp); val {
-		case corev1.PullAlways, corev1.PullNever, corev1.PullIfNotPresent:
-			*dst = val
-		default:
-			setupLog.Error(fmt.Errorf("error"), "unrecognized pull policy", "pullPolicy", pp)
-		}
 	}
 
 	config := ctrl.GetConfigOrDie()

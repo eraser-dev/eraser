@@ -2,6 +2,7 @@ package util
 
 import (
 	"flag"
+	"fmt"
 	"time"
 
 	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
@@ -25,9 +26,9 @@ var (
 	EraserImage = flag.String("eraser-image", "ghcr.io/azure/eraser:latest", "eraser image")
 	EraserArgs  = utils.MultiFlag([]string{})
 
-	EraserPullPolicy    corev1.PullPolicy
-	CollectorPullPolicy corev1.PullPolicy
-	ScannerPullPolicy   corev1.PullPolicy
+	eraserPullPolicy    = flag.String("eraser-pull-policy", string(corev1.PullIfNotPresent), "pull policy for eraser image")
+	collectorPullPolicy = flag.String("collector-pull-policy", string(corev1.PullIfNotPresent), "pull policy for collector image")
+	scannerPullPolicy   = flag.String("scanner-pull-policy", string(corev1.PullIfNotPresent), "pull policy for scanner image")
 )
 
 const (
@@ -36,6 +37,37 @@ const (
 
 func init() {
 	flag.Var(&EraserArgs, "eraser-arg", "An argument to be passed through to the eraser. For example, --eraser-arg=--enable-pprof=true will pass through to the eraser as --enable-pprof=true. Can be supplied multiple times.")
+}
+
+func ValidatePullPolicies() error {
+	policies := map[string]string{
+		"eraser":    *eraserPullPolicy,
+		"collector": *collectorPullPolicy,
+		"scanner":   *scannerPullPolicy,
+	}
+
+	for key, pp := range policies {
+		switch policy := corev1.PullPolicy(pp); policy {
+		case corev1.PullNever, corev1.PullIfNotPresent, corev1.PullAlways:
+			continue
+		default:
+			return fmt.Errorf("invalid pull policy value for %s: %s", key, pp)
+		}
+	}
+
+	return nil
+}
+
+func EraserPullPolicy() corev1.PullPolicy {
+	return corev1.PullPolicy(*eraserPullPolicy)
+}
+
+func CollectorPullPolicy() corev1.PullPolicy {
+	return corev1.PullPolicy(*collectorPullPolicy)
+}
+
+func ScannerPullPolicy() corev1.PullPolicy {
+	return corev1.PullPolicy(*scannerPullPolicy)
 }
 
 func NeverOnCreate(_ event.CreateEvent) bool {

@@ -221,7 +221,7 @@ func (r *Reconciler) handleImageListEvent(ctx context.Context, req *ctrl.Request
 						{
 							Name:            "eraser",
 							Image:           *util.EraserImage,
-							ImagePullPolicy: util.EraserPullPolicy,
+							ImagePullPolicy: util.EraserPullPolicy(),
 							Args:            args,
 							VolumeMounts: []corev1.VolumeMount{
 								{MountPath: imgListPath, Name: configName},
