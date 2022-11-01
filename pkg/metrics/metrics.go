@@ -68,7 +68,7 @@ func RecordMetricsScanner(ctx context.Context, p metric.MeterProvider, totalVuln
 }
 
 func RecordMetricsController(ctx context.Context, p metric.MeterProvider, jobDuration float64, podsCompleted int64, podsFailed int64) error {
-	duration, err := p.Meter("eraser").SyncFloat64().Histogram("ImageJobCollectorDuration", instrument.WithDescription("duration of collector imagejob"), instrument.WithUnit(unit.Milliseconds))
+	duration, err := p.Meter("eraser").SyncFloat64().Histogram("ImageJobDuration", instrument.WithDescription("duration of imagejob"), instrument.WithUnit(unit.Milliseconds))
 	if err != nil {
 		return err
 	}
@@ -86,7 +86,7 @@ func RecordMetricsController(ctx context.Context, p metric.MeterProvider, jobDur
 	}
 	failed.Add(ctx, podsFailed)
 
-	jobTotal, err := p.Meter("eraser").SyncInt64().Counter("ImageJobCollectorTotal", instrument.WithDescription("total number of collector imagejobs completed"), instrument.WithUnit("1"))
+	jobTotal, err := p.Meter("eraser").SyncInt64().Counter("ImageJobTotal", instrument.WithDescription("total number of imagejobs completed"), instrument.WithUnit("1"))
 	if err != nil {
 		return err
 	}
