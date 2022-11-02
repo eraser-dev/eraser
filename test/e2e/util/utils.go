@@ -19,6 +19,8 @@ import (
 	"k8s.io/klog/v2"
 	"oras.land/oras-go/pkg/registry"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/e2e-framework/klient"
+	"sigs.k8s.io/e2e-framework/klient/k8s/resources"
 	"sigs.k8s.io/e2e-framework/klient/wait"
 	"sigs.k8s.io/e2e-framework/klient/wait/conditions"
 	"sigs.k8s.io/e2e-framework/pkg/env"
@@ -254,6 +256,18 @@ func DeployEraserConfig(kubeConfig, namespace, resourcePath, fileName string) er
 	return nil
 }
 
+func NumPodsPresentForLabel(ctx context.Context, client klient.Client, num int, label string) func() (bool, error) {
+	return func() (bool, error) {
+		var pods corev1.PodList
+		err := client.Resources().List(ctx, &pods, resources.WithLabelSelector(label))
+		if err != nil {
+			return false, err
+		}
+
+		return len(pods.Items) == num, nil
+	}
+}
+
 func ContainerNotPresentOnNode(nodeName, containerName string) func() (bool, error) {
 	return func() (bool, error) {
 		output, err := ListNodeContainers(nodeName)
@@ -372,6 +386,29 @@ func CheckImagesExist(ctx context.Context, t *testing.T, nodes []string, images 
 				t.Errorf("image %s missing on node %s", image, node)
 			}
 		}
+	}
+}
+
+func CheckDeploymentCleanedUp(ctx context.Context, t *testing.T, client klient.Client) {
+	t.Helper()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		default:
+			var pods corev1.PodList
+			err := client.Resources().List(ctx, &pods, resources.WithLabelSelector("name=eraser"))
+			if err != nil {
+				t.Fatalf("error listing images: %s", err)
+			}
+
+			if len(pods.Items) > 0 {
+				t.Errorf("imagejob got restarted when it shouldn't: %d eraser pods still present", len(pods.Items))
+				t.FailNow()
+			}
+		}
+		time.Sleep(time.Second * 2)
 	}
 }
 
