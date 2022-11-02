@@ -217,7 +217,7 @@ func (r *Reconciler) createImageJob(ctx context.Context, req ctrl.Request, argsC
 		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: "imagejob-",
 			Labels: map[string]string{
-				ownerLabelKey: ownerLabelValue,
+				util.ImageJobOwnerLabelKey: ownerLabelValue,
 			},
 		},
 		Spec: eraserv1alpha1.ImageJobSpec{

@@ -213,6 +213,9 @@ func (r *Reconciler) handleImageListEvent(ctx context.Context, req *ctrl.Request
 	job := &eraserv1alpha1.ImageJob{
 		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: "imagejob-",
+			Labels: map[string]string{
+				util.ImageJobOwnerLabelKey: ownerLabelValue,
+			},
 			OwnerReferences: []metav1.OwnerReference{
 				*metav1.NewControllerRef(imageList, imageList.GroupVersionKind()),
 			},
