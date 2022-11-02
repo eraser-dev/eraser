@@ -24,6 +24,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
@@ -45,13 +46,24 @@ import (
 )
 
 const (
-	imgListPath = "/run/eraser.sh/imagelist"
+	imgListPath     = "/run/eraser.sh/imagelist"
+	ownerLabelValue = "imagelist-controller"
 )
 
 var (
-	log       = logf.Log.WithName("controller").WithValues("process", "imagelist-controller")
-	imageList = types.NamespacedName{Name: "imagelist"}
+	log        = logf.Log.WithName("controller").WithValues("process", "imagelist-controller")
+	imageList  = types.NamespacedName{Name: "imagelist"}
+	ownerLabel labels.Selector
 )
+
+func init() {
+	var err error
+	ownerLabelString := fmt.Sprintf("%s=%s", util.ImageJobOwnerLabelKey, ownerLabelValue)
+	ownerLabel, err = labels.Parse(ownerLabelString)
+	if err != nil {
+		panic(err)
+	}
+}
 
 func Add(mgr manager.Manager) error {
 	return add(mgr, newReconciler(mgr))
@@ -325,7 +337,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 			GenericFunc: util.NeverOnGeneric,
 			UpdateFunc: func(e event.UpdateEvent) bool {
 				if job, ok := e.ObjectNew.(*eraserv1alpha1.ImageJob); ok && util.IsCompletedOrFailed(job.Status.Phase) {
-					return true
+					return ownerLabel.Matches(labels.Set(job.ObjectMeta.Labels))
 				}
 
 				return false
