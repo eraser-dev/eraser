@@ -1,0 +1,60 @@
+# This file exists to prevent regression in the tests. A situation arose in
+# which the helm keys were wrong in the e2e tests, resulting in helm receiving
+# the default values for image repository and tag. This resulted in false
+# positives because the cluster used in the e2e test would pull in the default
+# image from a registry.
+#
+# For all e2e tests using helm, this file should be provided on the command
+# line using `helm install -f`. This ensures that the default values are never
+# used. The correct values will be supplied by `--set` flags further to the
+# right on the command line.
+#
+# Below, randomized names are used to guarantee that if the wrong helm keys are
+# used, the test will fail.
+
+controllerManager:
+
+  image:
+    repository: "qaayobtdigggvnjl"
+    pullPolicy: Never
+    # Overrides the image tag whose default is the chart appVersion.
+    tag: "ybfnvjkbgrskjhjp"
+  additionalArgs: []
+
+  securityContext:
+    allowPrivilegeEscalation: false
+
+  resources:
+    limits:
+      cpu: 100m
+      memory: 30Mi
+    requests:
+      cpu: 100m
+      memory: 20Mi
+
+  nodeSelector:
+    kubernetes.io/os: linux
+
+  tolerations: []
+
+  affinity: {}
+
+eraser:
+  image:
+    repository: "xtmzzqtxjawdhpng"
+    tag: "wpuuhecvmgolvekf"
+    args: []
+
+collector:
+  image:
+    repository: "ivabadgndcofefsd"
+    tag: "bgalqxraifqszhxy"
+    args: []
+
+scanner:
+  image:
+    repository: "ybdyaiidvgbyrybu"
+    tag: "nixsyzngdgmpwyol"
+    args: []
+
+nameOverride: ""
