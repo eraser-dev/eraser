@@ -26,14 +26,14 @@ jobs:
         run: |
           readarray -d '' test_dirs < <(find ./test/e2e/tests -mindepth 1 -type d -print0)
           json_array="$(printf "%s\n" "${test_dirs[@]}" | jq -R . | jq -cs)"
-          echo "::set-output name=e2e-tests::${json_array}"
+          echo "e2e-tests=${json_array}" > $GITHUB_OUTPUT
     outputs:
       e2e-tests: ${{ steps.set-test-matrix.outputs.e2e-tests }}
 
   lint:
     name: "Lint"
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 40
     steps:
       - name: Harden Runner
         uses: step-security/harden-runner@2e205a28d0e1da00c5f53b161f4067b052c61f34
@@ -48,29 +48,33 @@ jobs:
         uses: golangci/golangci-lint-action@v3
         with:
           version: latest
+          args: --timeout=10m
       - name: lint eraser
         uses: golangci/golangci-lint-action@v3
         with:
           version: latest
           working-directory: pkg/eraser
           skip-pkg-cache: true
+          args: --timeout=10m
       - name: lint collector
         uses: golangci/golangci-lint-action@v3
         with:
           version: latest
           working-directory: pkg/collector
           skip-pkg-cache: true
+          args: --timeout=10m
       - name: lint trivvy scanner
         uses: golangci/golangci-lint-action@v3
         with:
           version: latest
           working-directory: pkg/scanners/trivy
           skip-pkg-cache: true
+          args: --timeout=10m
 
   unit-test:
     name: "Unit Tests"
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 20
     steps:
       - name: Harden Runner
         uses: step-security/harden-runner@2e205a28d0e1da00c5f53b161f4067b052c61f34
