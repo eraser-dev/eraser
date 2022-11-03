@@ -14,10 +14,16 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 
+	"sigs.k8s.io/e2e-framework/klient/k8s/resources"
 	"sigs.k8s.io/e2e-framework/klient/wait"
 	"sigs.k8s.io/e2e-framework/klient/wait/conditions"
 	"sigs.k8s.io/e2e-framework/pkg/envconf"
 	"sigs.k8s.io/e2e-framework/pkg/features"
+)
+
+const (
+	collectorLabel = "name=collector"
+	eraserLabel    = "name=eraser"
 )
 
 func TestImageListTriggersEraserImageJob(t *testing.T) {
@@ -28,9 +34,32 @@ func TestImageListTriggersEraserImageJob(t *testing.T) {
 			if err := cfg.Client().Resources().Create(ctx, nginxDep); err != nil {
 				t.Error("Failed to create the dep", err)
 			}
+
+			client := cfg.Client()
+			// wait for all collector pods to be present before removing them
+			err := wait.For(
+				util.NumPodsPresentForLabel(ctx, client, 3, collectorLabel),
+				wait.WithTimeout(time.Minute*2),
+				wait.WithInterval(time.Millisecond*500),
+			)
+			if err != nil {
+				t.Fatal(err)
+			}
+
 			if err := util.DeleteImageListsAndJobs(cfg.KubeconfigFile()); err != nil {
 				t.Error("Failed to clean eraser obejcts ", err)
 			}
+
+			// wait for collector deployment to be removed, to prevent conflicts or races
+			err = wait.For(
+				util.NumPodsPresentForLabel(ctx, client, 0, collectorLabel),
+				wait.WithTimeout(time.Minute*2),
+				wait.WithInterval(time.Millisecond*500),
+			)
+			if err != nil {
+				t.Fatal(err)
+			}
+
 			return ctx
 		}).
 		Assess("deployment successfully deployed", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
@@ -84,17 +113,74 @@ func TestImageListTriggersEraserImageJob(t *testing.T) {
 				t.Error("Failed to deploy image list config", err)
 			}
 
+			podNames := []string{}
+			// get eraser pod name
+			err = wait.For(func() (bool, error) {
+				l := corev1.PodList{}
+				err = client.Resources().List(ctx, &l, resources.WithLabelSelector("name=eraser"))
+				if err != nil {
+					return false, err
+				}
+
+				if len(l.Items) != 3 {
+					return false, nil
+				}
+
+				for _, pod := range l.Items {
+					podNames = append(podNames, pod.ObjectMeta.Name)
+				}
+				return true, nil
+			}, wait.WithTimeout(time.Minute*2), wait.WithInterval(time.Millisecond*500))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			// wait for those specific pods to no longer exist, so that when we
+			// check later for an accidental redeployment, we are sure it is
+			// actually a new deployment.
+			err = wait.For(func() (bool, error) {
+				var l corev1.PodList
+				err = client.Resources().List(ctx, &l, resources.WithLabelSelector("name=eraser"))
+				if err != nil {
+					return false, err
+				}
+
+				if len(l.Items) == 0 {
+					return true, nil
+				}
+
+				for _, name := range podNames {
+					for _, pod := range l.Items {
+						if name == pod.ObjectMeta.Name {
+							return false, nil
+						}
+					}
+				}
+
+				return true, nil
+			}, wait.WithTimeout(time.Minute*2), wait.WithInterval(time.Millisecond*500))
+			if err != nil {
+				t.Fatal(err)
+			}
+			t.Logf("initial eraser deployment cleaned up")
+
 			ctxT, cancel := context.WithTimeout(ctx, time.Minute*3)
 			defer cancel()
 			util.CheckImageRemoved(ctxT, t, util.GetClusterNodes(t), util.Nginx)
 
 			return ctx
 		}).
-		Assess("Get logs", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
-			if err := util.GetPodLogs(ctx, cfg, t, true); err != nil {
-				t.Error("error getting collector pod logs", err)
-			}
+		Assess("Eraser job was not restarted", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
+			// until a timeout is reached, make sure there are no pods matching
+			// the selector name=eraser
+			client := cfg.Client()
+			ctxT2, cancel := context.WithTimeout(ctx, time.Minute*1)
+			defer cancel()
+			util.CheckDeploymentCleanedUp(ctxT2, t, client)
 
+			return ctx
+		}).
+		Assess("Get logs", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
 			if err := util.GetManagerLogs(ctx, cfg, t); err != nil {
 				t.Error("error getting manager logs", err)
 			}
