@@ -4417,9 +4417,9 @@ spec:
       containers:
       - args:
         - --leader-elect=false
-        - --eraser-image=ghcr.io/azure/eraser:v0.4.0
-        - --collector-image=ghcr.io/azure/collector:v0.4.0
-        - --scanner-image=ghcr.io/azure/eraser-trivy-scanner:v0.4.0
+        - --eraser-image=ghcr.io/azure/eraser:v0.5.0
+        - --collector-image=ghcr.io/azure/collector:v0.5.0
+        - --scanner-image=ghcr.io/azure/eraser-trivy-scanner:v0.5.0
         command:
         - /manager
         env:
@@ -4428,7 +4428,7 @@ spec:
             fieldRef:
               apiVersion: v1
               fieldPath: metadata.namespace
-        image: ghcr.io/azure/eraser-manager:v0.4.0
+        image: ghcr.io/azure/eraser-manager:v0.5.0
         livenessProbe:
           httpGet:
             path: /healthz
