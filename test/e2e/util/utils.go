@@ -495,8 +495,14 @@ func DeployEraserHelm(namespace string, args ...string) env.Func {
 		if err != nil {
 			return ctx, err
 		}
+
+		emptyValuesPath, err := filepath.Abs(filepath.Join(wd, "../../test-data/helm-empty-values.yaml"))
+		if err != nil {
+			return ctx, err
+		}
+
 		// start deployment
-		allArgs := []string{providerResourceAbsolutePath}
+		allArgs := []string{providerResourceAbsolutePath, "-f", emptyValuesPath}
 		allArgs = append(allArgs, args...)
 		if err := HelmInstall(cfg.KubeconfigFile(), namespace, allArgs); err != nil {
 			return ctx, err
