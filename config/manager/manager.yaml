@@ -37,6 +37,8 @@ spec:
             fieldRef:
               apiVersion: v1
               fieldPath: metadata.namespace
+        - name: OTEL_SERVICE_NAME
+          value: controller-service
         securityContext:
           allowPrivilegeEscalation: false
           readOnlyRootFilesystem: true
