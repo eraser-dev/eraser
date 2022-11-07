@@ -2,6 +2,8 @@
 
 Eraser helps Kubernetes admins remove a list of non-running images from all Kubernetes nodes in a cluster.
 
+<p align="center"><img src="logo/Eraser_logo.png" width="200" height="200"></p>
+
 > 🚨 **This project is currently in development. Please see the `Support` section of the README.** 🚨
 
 ## Getting started
