@@ -8,25 +8,25 @@ Below is the list of metrics provided by Eraser:
 
 #### Eraser
 - count
-	- name: ImagesRemoved
+	- name: images_removed_total
 
 		- description: Total images removed by eraser
 
  #### Scanner
 - count
-	- name: VulnerableImages
+	- name: vulnerable_images_total
 
 		- description: Total vulnerable images detected
   
  #### ImageJob
  - count
-	- name: ImageJobTotal
+	- name: imagejob_total
 		- description: Total ImageJobs scheduled
 
-	- name: PodsCompleted
+	- name: pods_completed_total
 		- description: Total pods completed
-	-  name: PodsFailed
+	-  name: pods_failed_total
 		- description: Total pods failed
 - summary
-	- name: ImageJobDuration
+	- name: imagejob_duration_seconds
 		- description: Total time for ImageJobs scheduled to complete
