@@ -65,9 +65,7 @@ require (
 	github.com/aquasecurity/go-npm-version v0.0.0-20201110091526-0b796d180798 // indirect
 	github.com/aquasecurity/go-pep440-version v0.0.0-20210121094942-22b2f8951d46 // indirect
 	github.com/aquasecurity/go-version v0.0.0-20210121072130-637058cfe492 // indirect
-	github.com/aquasecurity/memoryfs v1.4.4 // indirect
 	github.com/aquasecurity/table v1.8.0 // indirect
-	github.com/aquasecurity/tml v0.6.1 // indirect
 	github.com/asaskevich/govalidator v0.0.0-20210307081110-f21760c49a8d // indirect
 	github.com/aws/aws-sdk-go v1.44.114 // indirect
 	github.com/aws/smithy-go v1.13.3 // indirect
@@ -186,6 +184,7 @@ require (
 	github.com/liamg/iamgo v0.0.9 // indirect
 	github.com/liamg/jfather v0.0.7 // indirect
 	github.com/liamg/memoryfs v1.4.3 // indirect
+	github.com/liamg/tml v0.6.0 // indirect
 	github.com/lib/pq v1.10.6 // indirect
 	github.com/liggitt/tabwriter v0.0.0-20181228230101-89fcab3d43de // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect
@@ -332,6 +331,7 @@ require (
 )
 
 replace (
+	github.com/aquasecurity/trivy => github.com/pmengelbert/trivy v0.0.0-20221020114533-9f5113a92051
 	golang.org/x/crypto => golang.org/x/crypto v0.0.0-20220315160706-3147a52a75dd // CVE-2022-27191
 	k8s.io/api => k8s.io/api v0.25.3
 	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.25.3

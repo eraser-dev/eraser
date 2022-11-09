@@ -13,10 +13,10 @@ import (
 	image2 "github.com/aquasecurity/trivy/pkg/fanal/artifact/image"
 	"github.com/aquasecurity/trivy/pkg/fanal/cache"
 	"github.com/aquasecurity/trivy/pkg/fanal/image"
+	"github.com/aquasecurity/trivy/pkg/fanal/types"
 	fanalTypes "github.com/aquasecurity/trivy/pkg/fanal/types"
 	"github.com/aquasecurity/trivy/pkg/scanner"
 	"github.com/aquasecurity/trivy/pkg/scanner/local"
-	"github.com/aquasecurity/trivy/pkg/types"
 	trivyTypes "github.com/aquasecurity/trivy/pkg/types"
 	"github.com/aquasecurity/trivy/pkg/vulnerability"
 )
@@ -67,27 +67,6 @@ func downloadDB(cacheDir string) error {
 	return nil
 }
 
-// func scan(ctx context.Context, opts flag.Options, initializeScanner InitializeScanner, cacheClient cache.Cache) (
-// 	types.Report, error) {
-//
-// 	scannerConfig, scanOptions, err := initScannerConfig(opts, cacheClient)
-// 	if err != nil {
-// 		return types.Report{}, err
-// 	}
-//
-// 	s, cleanup, err := initializeScanner(ctx, scannerConfig)
-// 	if err != nil {
-// 		return types.Report{}, xerrors.Errorf("unable to initialize a scanner: %w", err)
-// 	}
-// 	defer cleanup()
-//
-// 	report, err := s.ScanArtifact(ctx, scanOptions)
-// 	if err != nil {
-// 		return types.Report{}, xerrors.Errorf("scan failed: %w", err)
-// 	}
-// 	return report, nil
-// }
-
 func initializeDockerScanner(ctx context.Context, imageName string, artifactCache cache.ArtifactCache, localArtifactCache cache.Cache, dockerOpt fanalTypes.DockerOption, artifactOption artifact.Option) (scanner.Scanner, func(), error) {
 	v := []applier.Option(nil)
 	applierApplier := applier.NewApplier(localArtifactCache, v...)
@@ -121,11 +100,6 @@ func setupScanner(cacheDir string, vulnTypes, securityChecks []string) (scannerS
 	app := applier.NewApplier(filesystemCache)
 	det := ospkg.Detector{}
 
-	dopts, err := types.GetDockerOption(false)
-	if err != nil {
-		return scannerSetup{}, err
-	}
-
 	vc := vulnerability.NewClient(db.Config{})
 	scan := local.NewScanner(app, det, vc)
 
@@ -139,7 +113,7 @@ func setupScanner(cacheDir string, vulnTypes, securityChecks []string) (scannerS
 	return scannerSetup{
 		localScanner:  scan,
 		scanOptions:   sopts,
-		dockerOptions: dopts,
+		dockerOptions: types.DockerOption{},
 		fscache:       filesystemCache,
 	}, nil
 }
