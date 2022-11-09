@@ -28,6 +28,8 @@ var (
 )
 
 const (
+	ImageJobOwnerLabelKey = "eraser.sh/job-owner"
+
 	exclusionLabel = "eraser.sh/exclude.list=true"
 )
 

@@ -50,6 +50,11 @@ import (
 	"github.com/Azure/eraser/pkg/metrics"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
+)
+
+const (
+	ownerLabelValue = "imagecollector"
 )
 
 var (
@@ -61,11 +66,20 @@ var (
 	scannerArgs            = utils.MultiFlag([]string{})
 	collectorArgs          = utils.MultiFlag([]string{})
 	startTime              time.Time
+	ownerLabel             labels.Selector
 )
 
 func init() {
+	var err error
+
 	flag.Var(&scannerArgs, "scanner-arg", "An argument to be passed through to the scanner. For example, --scanner-arg=--severity=CRITICAL,HIGH will be passed through to the scanner as --severity=CRITICAL,HIGH. Can be supplied multiple times.")
 	flag.Var(&collectorArgs, "collector-arg", "An argument to be passed through to the collector. For example, --collector-arg=--enable-pprof=true will pass through to the collector as --enable-pprof=true. Can be supplied multiple times.")
+
+	ownerLabelString := fmt.Sprintf("%s=%s", util.ImageJobOwnerLabelKey, ownerLabelValue)
+	ownerLabel, err = labels.Parse(ownerLabelString)
+	if err != nil {
+		panic(err)
+	}
 }
 
 // ImageCollectorReconciler reconciles a ImageCollector object.
@@ -109,7 +123,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 			GenericFunc: util.NeverOnGeneric,
 			UpdateFunc: func(e event.UpdateEvent) bool {
 				if job, ok := e.ObjectNew.(*eraserv1alpha1.ImageJob); ok && util.IsCompletedOrFailed(job.Status.Phase) {
-					return true
+					return ownerLabel.Matches(labels.Set(job.ObjectMeta.Labels))
 				}
 
 				return false
@@ -210,6 +224,9 @@ func (r *Reconciler) createImageJob(ctx context.Context, req ctrl.Request, argsC
 	job := &eraserv1alpha1.ImageJob{
 		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: "imagejob-",
+			Labels: map[string]string{
+				util.ImageJobOwnerLabelKey: ownerLabelValue,
+			},
 		},
 		Spec: eraserv1alpha1.ImageJobSpec{
 			JobTemplate: corev1.PodTemplateSpec{

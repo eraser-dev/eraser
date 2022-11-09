@@ -1,4 +1,4 @@
-VERSION := v0.4.0
+VERSION := v0.5.0
 
 # Image URL to use all building/pushing image targets
 TRIVY_SCANNER_IMG ?= ghcr.io/azure/eraser-trivy-scanner:${VERSION}
@@ -11,9 +11,9 @@ E2E_TESTS ?= $(shell find ./test/e2e/tests/ -mindepth 1 -type d)
 TEST_LOGDIR ?= $(PWD)/test_logs
 
 KUSTOMIZE_VERSION ?= 3.8.9
-KUBERNETES_VERSION ?= 1.23.0
+KUBERNETES_VERSION ?= 1.25.3
 NODE_VERSION ?= 16-bullseye-slim
-ENVTEST_K8S_VERSION ?= 1.23
+ENVTEST_K8S_VERSION ?= 1.25
 GOLANGCI_LINT_VERSION := 1.43.0
 TRIVY_VERSION ?= $(shell go list -f '{{ .Version }}' -m github.com/aquasecurity/trivy)
 
