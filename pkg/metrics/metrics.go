@@ -10,11 +10,14 @@ import (
 	metric "go.opentelemetry.io/otel/metric"
 	"go.opentelemetry.io/otel/metric/instrument"
 	"go.opentelemetry.io/otel/metric/unit"
+	"go.opentelemetry.io/otel/sdk/instrumentation"
 	sdkmetric "go.opentelemetry.io/otel/sdk/metric"
+	"go.opentelemetry.io/otel/sdk/metric/aggregation"
+	"go.opentelemetry.io/otel/sdk/metric/view"
 )
 
 const (
-	ImagesRemovedCounter     = "ImagesRemoved"
+	ImagesRemovedCounter     = "images_removed_total"
 	ImagesRemovedDescription = "total images removed"
 )
 
@@ -26,7 +29,27 @@ func ConfigureMetrics(ctx context.Context, log logr.Logger, endpoint string) (sd
 	}
 
 	reader := sdkmetric.NewPeriodicReader(exporter)
-	provider := sdkmetric.NewMeterProvider(sdkmetric.WithReader(reader))
+
+	// Histogram view to specify duration buckets
+	histogramView, err := view.New(
+		view.MatchInstrumentName("imagejob_duration_seconds"),
+		view.MatchInstrumentationScope(instrumentation.Scope{Name: "eraser"}),
+		view.WithSetAggregation(aggregation.ExplicitBucketHistogram{
+			Boundaries: []float64{0, 10, 20, 30, 40, 50, 60},
+		}),
+	)
+	if err != nil {
+		log.Error(err, "failed to create histogram bucket view")
+		return nil, nil, nil
+	}
+
+	// Default view for counter instruments
+	counterView, err := view.New(view.MatchInstrumentName("*"))
+	if err != nil {
+		log.Error(err, "failed to create default view")
+	}
+
+	provider := sdkmetric.NewMeterProvider(sdkmetric.WithReader(reader, histogramView, counterView))
 
 	return exporter, reader, provider
 }
@@ -58,7 +81,7 @@ func RecordMetricsEraser(ctx context.Context, p metric.MeterProvider, totalRemov
 }
 
 func RecordMetricsScanner(ctx context.Context, p metric.MeterProvider, totalVulnerable int) error {
-	counter, err := p.Meter("eraser").SyncInt64().Counter("VulnerableImages", instrument.WithDescription("total vulnerable images"), instrument.WithUnit("1"))
+	counter, err := p.Meter("eraser").SyncInt64().Counter("vulnerable_images_total", instrument.WithDescription("total vulnerable images"), instrument.WithUnit("1"))
 	if err != nil {
 		return err
 	}
@@ -68,25 +91,25 @@ func RecordMetricsScanner(ctx context.Context, p metric.MeterProvider, totalVuln
 }
 
 func RecordMetricsController(ctx context.Context, p metric.MeterProvider, jobDuration float64, podsCompleted int64, podsFailed int64) error {
-	duration, err := p.Meter("eraser").SyncFloat64().Histogram("ImageJobDuration", instrument.WithDescription("duration of imagejob"), instrument.WithUnit(unit.Milliseconds))
+	duration, err := p.Meter("eraser").SyncFloat64().Histogram("imagejob_duration_seconds", instrument.WithDescription("duration of imagejob"), instrument.WithUnit(unit.Unit("s")))
 	if err != nil {
 		return err
 	}
 	duration.Record(ctx, jobDuration)
 
-	completed, err := p.Meter("eraser").SyncInt64().Counter("PodsCompleted", instrument.WithDescription("total pods completed"), instrument.WithUnit("1"))
+	completed, err := p.Meter("eraser").SyncInt64().Counter("pods_completed_total", instrument.WithDescription("total pods completed"), instrument.WithUnit("1"))
 	if err != nil {
 		return err
 	}
 	completed.Add(ctx, podsCompleted)
 
-	failed, err := p.Meter("eraser").SyncInt64().Counter("PodsFailed", instrument.WithDescription("total pods failed"), instrument.WithUnit("1"))
+	failed, err := p.Meter("eraser").SyncInt64().Counter("pods_failed_total", instrument.WithDescription("total pods failed"), instrument.WithUnit("1"))
 	if err != nil {
 		return err
 	}
 	failed.Add(ctx, podsFailed)
 
-	jobTotal, err := p.Meter("eraser").SyncInt64().Counter("ImageJobTotal", instrument.WithDescription("total number of imagejobs completed"), instrument.WithUnit("1"))
+	jobTotal, err := p.Meter("eraser").SyncInt64().Counter("imagejob_total", instrument.WithDescription("total number of imagejobs completed"), instrument.WithUnit("1"))
 	if err != nil {
 		return err
 	}
