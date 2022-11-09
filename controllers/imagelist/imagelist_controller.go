@@ -165,7 +165,7 @@ func (r *Reconciler) handleJobListEvent(ctx context.Context, imageList *eraserv1
 
 		defer metrics.ExportMetrics(log, exporter, reader, provider)
 
-		if err := metrics.RecordMetricsController(ctx, global.MeterProvider(), float64(time.Since(startTime).Milliseconds()), int64(job.Status.Succeeded), int64(job.Status.Failed)); err != nil {
+		if err := metrics.RecordMetricsController(ctx, global.MeterProvider(), float64(time.Since(startTime).Seconds()), int64(job.Status.Succeeded), int64(job.Status.Failed)); err != nil {
 			log.Error(err, "error recording metrics")
 		}
 
@@ -256,7 +256,7 @@ func (r *Reconciler) handleImageListEvent(ctx context.Context, req *ctrl.Request
 							},
 							SecurityContext: utils.SharedSecurityContext,
 							// env vars for exporting metrics
-							Env: []corev1.EnvVar{{Name: "OTEL_EXPORTER_OTLP_ENDPOINT", Value: *util.OtlpEndpoint}, {Name: "OTEL_SERVICE_NAME", Value: "controller-service"}, {Name: "NODE_NAME", ValueFrom: &corev1.EnvVarSource{FieldRef: &corev1.ObjectFieldSelector{FieldPath: "spec.nodeName"}}}},
+							Env: []corev1.EnvVar{{Name: "OTEL_EXPORTER_OTLP_ENDPOINT", Value: *util.OtlpEndpoint}, {Name: "OTEL_SERVICE_NAME", Value: "controller-service"}},
 						},
 					},
 					ServiceAccountName: "eraser-imagejob-pods",
