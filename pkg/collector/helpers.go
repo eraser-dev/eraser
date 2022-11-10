@@ -15,6 +15,7 @@ func getImages(c Client) ([]eraserv1alpha1.Image, error) {
 	if err != nil {
 		return nil, err
 	}
+	log.Info("list of images including those with running containers", "images", images)
 
 	allImages := make([]eraserv1alpha1.Image, 0, len(images))
 	// map with key: imageID, value: repoTag list (contains full name of image)
@@ -44,6 +45,7 @@ func getImages(c Client) ([]eraserv1alpha1.Image, error) {
 	if err != nil {
 		return nil, err
 	}
+	log.Info("list of containers before they're preocessed", "containers", containers)
 
 	// Images that are running
 	// map of (digest | name) -> imageID
