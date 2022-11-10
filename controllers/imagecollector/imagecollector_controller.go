@@ -303,6 +303,12 @@ func (r *Reconciler) createImageJob(ctx context.Context, req ctrl.Request, argsC
 					},
 				},
 			},
+			Env: []corev1.EnvVar{
+				{
+					Name:  "CONTAINERD_NAMESPACE",
+					Value: "k8s.io",
+				},
+			},
 		}
 		job.Spec.JobTemplate.Spec.Containers = append(job.Spec.JobTemplate.Spec.Containers, scannerContainer)
 	}

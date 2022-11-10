@@ -83,6 +83,7 @@ func main() {
 		os.Exit(1)
 	}
 
+	log.Info("finalImages", "finalImages", finalImages)
 	data, err := json.Marshal(finalImages)
 	if err != nil {
 		log.Error(err, "failed to encode finalImages")
