@@ -20,7 +20,7 @@ require (
 	k8s.io/klog/v2 v2.70.1
 	k8s.io/kubernetes v1.25.3
 	oras.land/oras-go v1.2.1
-	sigs.k8s.io/controller-runtime v0.13.0
+	sigs.k8s.io/controller-runtime v0.13.1
 	sigs.k8s.io/e2e-framework v0.0.8
 	sigs.k8s.io/kind v0.15.0
 )
