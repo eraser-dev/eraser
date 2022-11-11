@@ -62,16 +62,28 @@ func KubectlDelete(kubeconfigPath, namespace string, args []string) error {
 	return err
 }
 
-// KubectlExec executes "kubectl exec" given a list of arguments.
-func KubectlExec(kubeconfigPath, podName, namespace string, args []string) (string, error) {
-	args = append([]string{
+func KubectlExecCurl(kubeconfigPath, podName string, endpoint string) (string, error) {
+	args := []string{
 		"exec",
-		fmt.Sprintf("--kubeconfig=%s", kubeconfigPath),
-		fmt.Sprintf("--namespace=%s", namespace),
-		"--request-timeout=5s",
+		"-i",
 		podName,
 		"--",
-	}, args...)
+		"curl",
+		endpoint,
+	}
+
+	return Kubectl(args)
+}
+
+func KubectlWait(kubeconfigPath, podName string) (string, error) {
+	args := []string{
+		"wait",
+		"--for=condition=Ready",
+		fmt.Sprintf("--kubeconfig=%s", kubeconfigPath),
+		"--timeout=120s",
+		"pod",
+		podName,
+	}
 
 	return Kubectl(args)
 }
@@ -105,6 +117,21 @@ func KubectlDescribe(kubeconfigPath, podName, namespace string) (string, error) 
 }
 
 // KubectlDescribe executes "kubectl describe" given a list of arguments.
+func KubectlCurlPod(kubeconfigPath string) (string, error) {
+	args := []string{
+		"run",
+		"temp",
+		"--image",
+		"curlimages/curl",
+		"--",
+		"tail",
+		"-f",
+		"/dev/null",
+	}
+	return Kubectl(args)
+}
+
+// KubectlDescribe executes "kubectl describe" given a list of arguments.
 func KubectlDescribeService(kubeconfigPath, serviceName, namespace string) (string, error) {
 	args := []string{
 		"describe",
@@ -114,6 +141,19 @@ func KubectlDescribeService(kubeconfigPath, serviceName, namespace string) (stri
 		fmt.Sprintf("--namespace=%s", namespace),
 	}
 	return Kubectl(args)
+}
+
+// TESTT
+// KubectlDescribe executes "kubectl describe" given a list of arguments.
+func KubectlPortForward(kubeconfigPath, podName, namespace string) error {
+	args := []string{
+		"port-forward",
+		podName,
+		fmt.Sprintf("--kubeconfig=%s", kubeconfigPath),
+		fmt.Sprintf("--namespace=%s", namespace),
+		"8889:8889",
+	}
+	return KubectlBackground(args)
 }
 
 // KubectlGet executes "kubectl get" given a list of arguments.
@@ -139,6 +179,19 @@ func Kubectl(args []string) (string, error) {
 	}
 
 	return output, err
+}
+
+func KubectlBackground(args []string) error {
+	klog.Infof("kubectl %s", strings.Join(args, " "))
+
+	cmd := exec.Command("kubectl", args...)
+
+	if err := cmd.Start(); err != nil {
+		fmt.Errorf("failed to start cmd: %v", err)
+		return err
+	}
+
+	return nil
 }
 
 func Helm(args []string) (string, error) {

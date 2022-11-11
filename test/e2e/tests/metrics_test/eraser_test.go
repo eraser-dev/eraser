@@ -12,10 +12,10 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
+	"regexp"
 	"sigs.k8s.io/e2e-framework/pkg/envconf"
 	"sigs.k8s.io/e2e-framework/pkg/features"
 	"strconv"
-	"strings"
 )
 
 const (
@@ -52,29 +52,44 @@ func TestMetrics(t *testing.T) {
 
 			otelcollector := ls.Items[0]
 
-			output, err := util.KubectlLogs(cfg.KubeconfigFile(), otelcollector.Name, "", util.TestNamespace)
+			if err := util.KubectlPortForward(cfg.KubeconfigFile(), otelcollector.Name, util.TestNamespace); err != nil {
+				t.Error(err, "error in kubectl port-forward otel-collector")
+			}
+
+			if _, err := util.KubectlCurlPod(cfg.KubeconfigFile()); err != nil {
+				t.Error(err, "error running curl pod")
+			}
+
+			if _, err := util.KubectlWait(cfg.KubeconfigFile(), "temp"); err != nil {
+				t.Error(err, "error waiting for temp curl pod")
+			}
+
+			service, err := util.KubectlDescribeService(cfg.KubeconfigFile(), "otel-collector", util.TestNamespace)
 			if err != nil {
-				t.Errorf("could not get otelcollector logs: %v", err)
+				t.Error(err, "could not get otel collector service")
 			}
 
-			split := strings.Split(output, "}")
+			regex := regexp.MustCompile(`IP:\s+(\d+.\d+.\d+.\d+)`)
+			match := regex.FindStringSubmatch(service)
 
-			count := 0
-			for _, s := range split {
-				if strings.Contains(s, "ImagesRemoved") {
-					temp := strings.Split(s, "Value: ")[1]
-					value := strings.Split(temp, "\\n")[0]
+			otelEndpoint := "http://" + match[1] + ":8889/metrics"
 
-					v, err := strconv.Atoi(value)
-					if err != nil {
-						t.Error("could not convert metrics value to int")
-					}
-					count += v
-				}
+			output, err := util.KubectlExecCurl(cfg.KubeconfigFile(), "temp", otelEndpoint)
+			if err != nil {
+				t.Error(err, "error with otlp curl request")
 			}
 
-			if count != 3 {
-				t.Error("Expected ImagesRemoved to be ", ExpectedImagesRemoved, ", got ", count)
+			r := regexp.MustCompile(`images_removed_total{job="controller-service",node_name=".+"} (\d+)`)
+			results := r.FindAllStringSubmatch(output, -1)
+
+			totalRemoved := 0
+			for i, _ := range results {
+				val, _ := strconv.Atoi(results[i][1])
+				totalRemoved += val
+			}
+
+			if totalRemoved != 3 {
+				t.Error("images_removed_total incorrect, expected 3, got", totalRemoved)
 			}
 
 			return ctx
