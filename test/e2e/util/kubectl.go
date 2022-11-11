@@ -131,7 +131,6 @@ func KubectlCurlPod(kubeconfigPath string) (string, error) {
 	return Kubectl(args)
 }
 
-// KubectlDescribe executes "kubectl describe" given a list of arguments.
 func KubectlDescribeService(kubeconfigPath, serviceName, namespace string) (string, error) {
 	args := []string{
 		"describe",
@@ -143,8 +142,6 @@ func KubectlDescribeService(kubeconfigPath, serviceName, namespace string) (stri
 	return Kubectl(args)
 }
 
-// TESTT
-// KubectlDescribe executes "kubectl describe" given a list of arguments.
 func KubectlPortForward(kubeconfigPath, podName, namespace string) error {
 	args := []string{
 		"port-forward",
