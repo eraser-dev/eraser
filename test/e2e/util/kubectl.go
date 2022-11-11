@@ -184,8 +184,7 @@ func KubectlBackground(args []string) error {
 	cmd := exec.Command("kubectl", args...)
 
 	if err := cmd.Start(); err != nil {
-		fmt.Errorf("failed to start cmd: %v", err)
-		return err
+		return fmt.Errorf("failed to start cmd: %v", err)
 	}
 
 	return nil
