@@ -22,8 +22,9 @@ import (
 )
 
 type Image struct {
-	Digest string `json:"digest"`
-	Name   string `json:"name,omitempty"`
+	ImageID string   `json:"image_id"`
+	Names   []string `json:"names,omitempty"`
+	Digests []string `json:"digests,omitempty"`
 }
 
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!

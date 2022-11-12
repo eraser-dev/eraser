@@ -179,61 +179,72 @@ func main() {
 	failedImages := make([]eraserv1alpha1.Image, 0, len(allImages))
 
 	for _, img := range allImages {
-		imageRef := img.Name
-		if imageRef == "" {
+		refs := make([]string, 0, len(img.Names)+len(img.Digests)+1)
+		refs = append(refs, img.Digests...)
+		refs = append(refs, img.Names...)
+
+		if len(refs) == 0 {
 			log.Info("found image with no name", "img", img)
 			failedImages = append(failedImages, img)
 			continue
 		}
 
-		log.Info("scanning image", "imageRef", imageRef)
+		imageScanFailed := true
+		log.Info("scanning image with id", "imageRef", img.ImageID, "refs", refs)
 
-		dockerImage, cleanup, err := fanalImage.NewDockerImage(ctx, imageRef, scanConfig.dockerOptions)
-		if err != nil {
-			log.Error(err, "error fetching manifest for image", "img", img)
-			failedImages = append(failedImages, img)
-			cleanup()
-			continue
-		}
+		for i := 0; i < len(refs) && imageScanFailed; i++ {
+			ref := refs[i]
 
-		artifactToScan, err := artifactImage.NewArtifact(dockerImage, scanConfig.fscache, artifact.Option{})
-		if err != nil {
-			log.Error(err, "error registering config for artifact", "img", img)
-			failedImages = append(failedImages, img)
-			cleanup()
-			continue
-		}
+			dockerImage, cleanup, err := fanalImage.NewDockerImage(ctx, ref, scanConfig.dockerOptions)
+			if err != nil { // could not locate image
+				log.Error(err, "could not find image by reference", "img", img, "reference", ref)
+				cleanup()
+				continue
+			}
 
-		scanner := scanner.NewScanner(scanConfig.localScanner, artifactToScan)
-		report, err := scanner.ScanArtifact(ctx, scanConfig.scanOptions)
-		if err != nil {
-			log.Error(err, "error scanning image", "img", img)
-			failedImages = append(failedImages, img)
-			cleanup()
-			continue
-		}
+			artifactToScan, err := artifactImage.NewArtifact(dockerImage, scanConfig.fscache, artifact.Option{})
+			if err != nil {
+				log.Error(err, "error registering config for artifact", "img", img, "reference", ref)
+				cleanup()
+				continue
+			}
 
-	outer:
-		for i := range report.Results {
-			resultClient.FillVulnerabilityInfo(report.Results[i].Vulnerabilities, report.Results[i].Type)
+			scanner := scanner.NewScanner(scanConfig.localScanner, artifactToScan)
+			report, err := scanner.ScanArtifact(ctx, scanConfig.scanOptions)
+			if err != nil {
+				log.Error(err, "error scanning image", "img", img, "reference", ref)
+				cleanup()
+				continue
+			}
 
-			for j := range report.Results[i].Vulnerabilities {
-				if *ignoreUnfixed && report.Results[i].Vulnerabilities[j].FixedVersion == "" {
-					continue
-				}
+			imageScanFailed = false
 
-				if report.Results[i].Vulnerabilities[j].Severity == "" {
-					report.Results[i].Vulnerabilities[j].Severity = severityUnknown
-				}
+		outer:
+			for i := range report.Results {
+				resultClient.FillVulnerabilityInfo(report.Results[i].Vulnerabilities, report.Results[i].Type)
 
-				if severityMap[report.Results[i].Vulnerabilities[j].Severity] {
-					vulnerableImages = append(vulnerableImages, img)
-					break outer
+				for j := range report.Results[i].Vulnerabilities {
+					if *ignoreUnfixed && report.Results[i].Vulnerabilities[j].FixedVersion == "" {
+						continue
+					}
+
+					if report.Results[i].Vulnerabilities[j].Severity == "" {
+						report.Results[i].Vulnerabilities[j].Severity = severityUnknown
+					}
+
+					if severityMap[report.Results[i].Vulnerabilities[j].Severity] {
+						vulnerableImages = append(vulnerableImages, img)
+						break outer
+					}
 				}
 			}
+
+			cleanup()
 		}
 
-		cleanup()
+		if imageScanFailed {
+			failedImages = append(failedImages, img)
+		}
 	}
 
 	if len(failedImages) > 0 {

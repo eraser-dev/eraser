@@ -105,7 +105,7 @@ func main() {
 		}
 
 		for _, img := range nonCompliantImages {
-			imagelist = append(imagelist, img.Digest)
+			imagelist = append(imagelist, img.ImageID)
 		}
 
 		log.Info("successfully created imagelist from scanned non-compliant images")
