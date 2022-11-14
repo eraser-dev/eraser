@@ -258,7 +258,6 @@ func IsExcluded(excluded map[string]struct{}, img string, idToImageMap map[strin
 				}
 			}
 		}
-
 	}
 
 	return false
