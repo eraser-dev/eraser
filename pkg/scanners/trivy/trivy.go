@@ -199,7 +199,6 @@ func main() {
 			if err != nil { // could not locate image
 				log.Error(err, "could not find image by reference", "imageID", img.ImageID, "reference", ref)
 				cleanup()
-				failedImages = append(failedImages, img)
 				continue
 			}
 

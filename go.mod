@@ -18,7 +18,7 @@ require (
 	k8s.io/klog/v2 v2.70.1
 	k8s.io/kubernetes v1.25.3
 	oras.land/oras-go v1.2.1
-	sigs.k8s.io/controller-runtime v0.13.1
+	sigs.k8s.io/controller-runtime v0.13.0
 	sigs.k8s.io/e2e-framework v0.0.8
 	sigs.k8s.io/kind v0.15.0
 )
@@ -70,7 +70,7 @@ require (
 	github.com/aquasecurity/tml v0.6.1 // indirect
 	github.com/asaskevich/govalidator v0.0.0-20210307081110-f21760c49a8d // indirect
 	github.com/aws/aws-sdk-go v1.44.114 // indirect
-	github.com/aws/smithy-go v1.13.3 // indirect
+	github.com/aws/smithy-go v1.13.4 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/bgentry/go-netrc v0.0.0-20140422174119-9fd32a8b3d3d // indirect
 	github.com/bmatcuk/doublestar v1.3.4 // indirect
@@ -123,7 +123,7 @@ require (
 	github.com/go-openapi/jsonpointer v0.19.5 // indirect
 	github.com/go-openapi/jsonreference v0.20.0 // indirect
 	github.com/go-openapi/loads v0.21.2 // indirect
-	github.com/go-openapi/runtime v0.24.1 // indirect
+	github.com/go-openapi/runtime v0.24.2 // indirect
 	github.com/go-openapi/spec v0.20.7 // indirect
 	github.com/go-openapi/strfmt v0.21.3 // indirect
 	github.com/go-openapi/swag v0.22.3 // indirect
@@ -245,7 +245,7 @@ require (
 	github.com/rubenv/sql-migrate v1.1.2 // indirect
 	github.com/russross/blackfriday v1.6.0 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
-	github.com/samber/lo v1.28.2 // indirect
+	github.com/samber/lo v1.33.0 // indirect
 	github.com/saracen/walker v0.0.0-20191201085201-324a081bae7e // indirect
 	github.com/secure-systems-lab/go-securesystemslib v0.4.0 // indirect
 	github.com/sergi/go-diff v1.2.0 // indirect
@@ -258,8 +258,8 @@ require (
 	github.com/spf13/cast v1.5.0 // indirect
 	github.com/spf13/cobra v1.6.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
-	github.com/stretchr/objx v0.4.0 // indirect
-	github.com/stretchr/testify v1.8.0 // indirect
+	github.com/stretchr/objx v0.5.0 // indirect
+	github.com/stretchr/testify v1.8.1 // indirect
 	github.com/tchap/go-patricia/v2 v2.3.1 // indirect
 	github.com/twitchtv/twirp v8.1.2+incompatible // indirect
 	github.com/ulikunitz/xz v0.5.10 // indirect
@@ -332,7 +332,7 @@ require (
 )
 
 replace (
-	github.com/aquasecurity/trivy => github.com/pmengelbert/trivy v0.0.0-20221101152821-bd081333623f
+	github.com/aquasecurity/trivy => github.com/pmengelbert/trivy v0.0.0-20221114170249-a0c3968b6167
 	golang.org/x/crypto => golang.org/x/crypto v0.0.0-20220315160706-3147a52a75dd // CVE-2022-27191
 	k8s.io/api => k8s.io/api v0.25.3
 	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.25.3
