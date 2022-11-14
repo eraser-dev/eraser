@@ -23,7 +23,7 @@ const (
 )
 
 func TestMetrics(t *testing.T) {
-	metrics := features.New("ImagesRemoved and VulnerableImages metrics should report 1").
+	metrics := features.New("Images_removed_run_total metric should report 1").
 		Assess("Alpine image is removed", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
 			// deploy imagelist config
 			if err := util.DeployEraserConfig(cfg.KubeconfigFile(), util.TestNamespace, "../../test-data", "imagelist_alpine.yaml"); err != nil {
@@ -36,7 +36,7 @@ func TestMetrics(t *testing.T) {
 
 			return ctx
 		}).
-		Assess("Check ImagesRemoved metric", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
+		Assess("Check images_removed_run_total metric", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
 			c, err := cfg.NewClient()
 			if err != nil {
 				t.Fatal("Failed to create new client", err)
@@ -79,7 +79,9 @@ func TestMetrics(t *testing.T) {
 				t.Error(err, "error with otlp curl request")
 			}
 
-			r := regexp.MustCompile(`images_removed_total{job="controller-service",node_name=".+"} (\d+)`)
+			t.Log("OUTPUT ", output)
+
+			r := regexp.MustCompile(`images_removed_run_total{job="controller-service",node_name=".+"} (\d+)`)
 			results := r.FindAllStringSubmatch(output, -1)
 
 			totalRemoved := 0
@@ -89,7 +91,7 @@ func TestMetrics(t *testing.T) {
 			}
 
 			if totalRemoved != 3 {
-				t.Error("images_removed_total incorrect, expected 3, got", totalRemoved)
+				t.Error("images_removed_run_total incorrect, expected 3, got", totalRemoved)
 			}
 
 			return ctx

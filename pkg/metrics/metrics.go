@@ -17,7 +17,7 @@ import (
 )
 
 const (
-	ImagesRemovedCounter     = "images_removed_total"
+	ImagesRemovedCounter     = "images_removed_run_total"
 	ImagesRemovedDescription = "total images removed"
 )
 
@@ -81,7 +81,7 @@ func RecordMetricsEraser(ctx context.Context, p metric.MeterProvider, totalRemov
 }
 
 func RecordMetricsScanner(ctx context.Context, p metric.MeterProvider, totalVulnerable int) error {
-	counter, err := p.Meter("eraser").SyncInt64().Counter("vulnerable_images_total", instrument.WithDescription("total vulnerable images"), instrument.WithUnit("1"))
+	counter, err := p.Meter("eraser").SyncInt64().Counter("vulnerable_images_run_total", instrument.WithDescription("total vulnerable images"), instrument.WithUnit("1"))
 	if err != nil {
 		return err
 	}
@@ -91,25 +91,25 @@ func RecordMetricsScanner(ctx context.Context, p metric.MeterProvider, totalVuln
 }
 
 func RecordMetricsController(ctx context.Context, p metric.MeterProvider, jobDuration float64, podsCompleted int64, podsFailed int64) error {
-	duration, err := p.Meter("eraser").SyncFloat64().Histogram("imagejob_duration_seconds", instrument.WithDescription("duration of imagejob"), instrument.WithUnit(unit.Unit("s")))
+	duration, err := p.Meter("eraser").SyncFloat64().Histogram("imagejob_duration_run_seconds", instrument.WithDescription("duration of imagejob"), instrument.WithUnit(unit.Unit("s")))
 	if err != nil {
 		return err
 	}
 	duration.Record(ctx, jobDuration)
 
-	completed, err := p.Meter("eraser").SyncInt64().Counter("pods_completed_total", instrument.WithDescription("total pods completed"), instrument.WithUnit("1"))
+	completed, err := p.Meter("eraser").SyncInt64().Counter("pods_completed_run_total", instrument.WithDescription("total pods completed"), instrument.WithUnit("1"))
 	if err != nil {
 		return err
 	}
 	completed.Add(ctx, podsCompleted)
 
-	failed, err := p.Meter("eraser").SyncInt64().Counter("pods_failed_total", instrument.WithDescription("total pods failed"), instrument.WithUnit("1"))
+	failed, err := p.Meter("eraser").SyncInt64().Counter("pods_failed_run_total", instrument.WithDescription("total pods failed"), instrument.WithUnit("1"))
 	if err != nil {
 		return err
 	}
 	failed.Add(ctx, podsFailed)
 
-	jobTotal, err := p.Meter("eraser").SyncInt64().Counter("imagejob_total", instrument.WithDescription("total number of imagejobs completed"), instrument.WithUnit("1"))
+	jobTotal, err := p.Meter("eraser").SyncInt64().Counter("imagejob_run_total", instrument.WithDescription("total number of imagejobs completed"), instrument.WithUnit("1"))
 	if err != nil {
 		return err
 	}
