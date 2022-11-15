@@ -17,8 +17,6 @@ import (
 
 	"github.com/Azure/eraser/pkg/logger"
 	util "github.com/Azure/eraser/pkg/utils"
-	"github.com/aquasecurity/trivy/pkg/fanal/analyzer"
-	"github.com/aquasecurity/trivy/pkg/fanal/artifact"
 	artifactImage "github.com/aquasecurity/trivy/pkg/fanal/artifact/image"
 	fanalImage "github.com/aquasecurity/trivy/pkg/fanal/image"
 	trivylogger "github.com/aquasecurity/trivy/pkg/log"
@@ -178,16 +176,6 @@ func main() {
 	vulnerableImages := make([]eraserv1alpha1.Image, 0, len(allImages))
 	failedImages := make([]eraserv1alpha1.Image, 0, len(allImages))
 
-	// loop := true
-
-	// log.Info("here1")
-	// time.Sleep(25 * time.Second)
-	// log.Info("here2")
-	// for loop {
-	// 	time.Sleep(1 * time.Second)
-	// }
-	// log.Info("here2")
-
 	for _, img := range allImages {
 		refs := make([]string, 0, len(img.Names)+len(img.Digests))
 		refs = append(refs, img.Digests...)
@@ -206,7 +194,11 @@ func main() {
 			ref := refs[i]
 			log.Info("scanning image with ref", "ref", ref)
 
-			dockerImage, cleanup, err := fanalImage.NewDockerImage(ctx, ref, scanConfig.dockerOptions)
+			dockerImage, cleanup, err := fanalImage.NewContainerImage(ctx, ref, scanConfig.dockerOptions,
+				fanalImage.DisablePodman(),
+				fanalImage.DisableDockerd(),
+				fanalImage.DisableRemote(),
+			)
 			if err != nil { // could not locate image
 				log.Error(err, "could not find image by reference", "imageID", img.ImageID, "reference", ref)
 				cleanup()
@@ -214,31 +206,7 @@ func main() {
 			}
 			log.Info("found image with id under reference", "imageID", img.ImageID, "ref", ref)
 
-			ao := artifact.Option{
-				DisabledAnalyzers: []analyzer.Type{
-					"bundler",
-					"npm",
-					"yarn",
-					"pnpm",
-					"pip",
-					"pipenv",
-					"poetry",
-					"gomod",
-					"pom",
-					"conan-lock",
-					"gradle-lockfile",
-					"apk-command",
-					"yaml",
-					"json",
-					"dockerfile",
-					"terraform",
-					"cloudFormation",
-					"helm",
-					"license-file",
-					"executable",
-				},
-			}
-			artifactToScan, err := artifactImage.NewArtifact(dockerImage, scanConfig.fscache, ao)
+			artifactToScan, err := artifactImage.NewArtifact(dockerImage, scanConfig.fscache, defaulArtifactOptions)
 			if err != nil {
 				log.Error(err, "error registering config for artifact", "imageID", img.ImageID, "reference", ref)
 				cleanup()

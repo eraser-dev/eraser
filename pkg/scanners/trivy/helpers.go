@@ -8,6 +8,7 @@ import (
 	"github.com/aquasecurity/trivy-db/pkg/db"
 	dlDb "github.com/aquasecurity/trivy/pkg/db"
 	"github.com/aquasecurity/trivy/pkg/detector/ospkg"
+	"github.com/aquasecurity/trivy/pkg/fanal/analyzer"
 	"github.com/aquasecurity/trivy/pkg/fanal/applier"
 	"github.com/aquasecurity/trivy/pkg/fanal/artifact"
 	image2 "github.com/aquasecurity/trivy/pkg/fanal/artifact/image"
@@ -19,6 +20,33 @@ import (
 	"github.com/aquasecurity/trivy/pkg/scanner/local"
 	trivyTypes "github.com/aquasecurity/trivy/pkg/types"
 	"github.com/aquasecurity/trivy/pkg/vulnerability"
+)
+
+var (
+	defaulArtifactOptions = artifact.Option{
+		DisabledAnalyzers: []analyzer.Type{
+			"bundler",
+			"npm",
+			"yarn",
+			"pnpm",
+			"pip",
+			"pipenv",
+			"poetry",
+			"gomod",
+			"pom",
+			"conan-lock",
+			"gradle-lockfile",
+			"apk-command",
+			"yaml",
+			"json",
+			"dockerfile",
+			"terraform",
+			"cloudFormation",
+			"helm",
+			"license-file",
+			"executable",
+		},
+	}
 )
 
 // side effects: map `m` will be modified according to the values in `commaSeparatedList`.
