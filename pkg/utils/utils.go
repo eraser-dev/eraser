@@ -404,3 +404,25 @@ func WriteScanErasePipe(vulnerableImages []eraserv1alpha1.Image) error {
 
 	return file.Close()
 }
+
+func ProcessRepoDigests(repoDigests []string) ([]string, []error) {
+	digests := []string{}
+	errs := []error{}
+
+	digestSet := make(map[string]struct{})
+	for _, repoDigest := range repoDigests {
+		s := strings.Split(repoDigest, "@")
+		if len(s) < 2 {
+			errs = append(errs, fmt.Errorf("repoDigest not formatted correctly: %s", repoDigest))
+			continue
+		}
+		digest := s[1]
+		digestSet[digest] = struct{}{}
+	}
+
+	for digest := range digestSet {
+		digests = append(digests, digest)
+	}
+
+	return digests, errs
+}

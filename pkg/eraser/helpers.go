@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"strings"
 
 	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
 	util "github.com/Azure/eraser/pkg/utils"
@@ -24,31 +23,20 @@ func removeImages(c Client, targetImages []string) (int, error) {
 	idToImageMap := make(map[string]eraserv1alpha1.Image)
 
 	for _, img := range images {
-		repoTags := img.RepoTags
-		if len(repoTags) == 0 {
-			repoTags = []string{}
-		}
+		repoTags := []string{}
+		repoTags = append(repoTags, img.RepoTags...)
 
 		newImg := eraserv1alpha1.Image{
 			ImageID: img.Id,
 			Names:   repoTags,
 		}
 
-		digests := make(map[string]struct{})
-		for _, repoDigest := range img.RepoDigests {
-			s := strings.Split(repoDigest, "@")
-			if len(s) < 2 {
-				log.Info("repoDigest not formatted as image@digest", "repodigest", repoDigest)
-				continue
-			}
-			digest := s[1]
-			digests[digest] = struct{}{}
+		digests, errs := util.ProcessRepoDigests(img.RepoDigests)
+		for _, err := range errs {
+			log.Error(err, "error processing digest")
 		}
 
-		for digest := range digests {
-			newImg.Digests = append(newImg.Digests, digest)
-		}
-
+		newImg.Digests = append(newImg.Digests, digests...)
 		allImages = append(allImages, newImg)
 		idToImageMap[img.Id] = newImg
 	}
