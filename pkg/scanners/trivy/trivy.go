@@ -179,7 +179,7 @@ func main() {
 	failedImages := make([]eraserv1alpha1.Image, 0, len(allImages))
 
 	for _, img := range allImages {
-		refs := make([]string, 0, len(img.Names)+len(img.Digests)+1)
+		refs := make([]string, 0, len(img.Names)+len(img.Digests))
 		refs = append(refs, img.Digests...)
 		refs = append(refs, img.Names...)
 
@@ -190,21 +190,22 @@ func main() {
 		}
 
 		imageScanFailed := true
-		log.Info("scanning image with id", "imageRef", img.ImageID, "refs", refs)
+		log.Info("scanning image with id", "imageID", img.ImageID, "refs", refs)
 
 		for i := 0; i < len(refs) && imageScanFailed; i++ {
 			ref := refs[i]
+			log.Info("scanning image with ref", "ref", ref)
 
 			dockerImage, cleanup, err := fanalImage.NewDockerImage(ctx, ref, scanConfig.dockerOptions)
 			if err != nil { // could not locate image
-				log.Error(err, "could not find image by reference", "img", img, "reference", ref)
+				log.Error(err, "could not find image by reference", "imageID", img.ImageID, "reference", ref)
 				cleanup()
 				continue
 			}
 
 			artifactToScan, err := artifactImage.NewArtifact(dockerImage, scanConfig.fscache, artifact.Option{})
 			if err != nil {
-				log.Error(err, "error registering config for artifact", "img", img, "reference", ref)
+				log.Error(err, "error registering config for artifact", "imageID", img.ImageID, "reference", ref)
 				cleanup()
 				continue
 			}
@@ -212,7 +213,7 @@ func main() {
 			scanner := scanner.NewScanner(scanConfig.localScanner, artifactToScan)
 			report, err := scanner.ScanArtifact(ctx, scanConfig.scanOptions)
 			if err != nil {
-				log.Error(err, "error scanning image", "img", img, "reference", ref)
+				log.Error(err, "error scanning image", "imageID", img.ImageID, "reference", ref)
 				cleanup()
 				continue
 			}
