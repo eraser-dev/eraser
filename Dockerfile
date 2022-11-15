@@ -33,7 +33,7 @@ FROM builder AS trivy-scanner-build
 RUN \
     --mount=type=cache,target=${GOCACHE} \
     --mount=type=cache,target=/go/pkg/mod \
-    GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build ${LDFLAGS:+-ldflags "$LDFLAGS"} -o out/trivy-scanner ./pkg/scanners/trivy
+    GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build  -o out/trivy-scanner -gcflags=all="-N -l" ./pkg/scanners/trivy
 
 FROM builder AS eraser-build
 RUN \
@@ -64,6 +64,8 @@ USER 65532:65532
 ENTRYPOINT ["/manager"]
 
 FROM --platform=$TARGETPLATFORM $STATICBASEIMAGE as trivy-scanner
+WORKDIR /workspace/pkg/scanners
+COPY pkg/scanners/trivy /workspace/pkg/scanners/trivy
 COPY --from=trivy-scanner-build /workspace/out/trivy-scanner /
 WORKDIR /var/lib/trivy
 ENTRYPOINT ["/trivy-scanner"]
