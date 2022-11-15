@@ -116,23 +116,6 @@ func ListImages(ctx context.Context, images pb.ImageServiceClient) (list []*pb.I
 		return nil, err
 	}
 
-	for _, img := range resp.Images {
-		ximg := pb.ImageSpec{Image: img.Id}
-		req := pb.ImageStatusRequest{
-			Image:   &ximg,
-			Verbose: true,
-		}
-
-		resp, err := images.ImageStatus(ctx, &req)
-		if err != nil {
-			return nil, err
-		}
-
-		fmt.Printf(`{ "IMAGE": "%#v",
-            "INFO": "%#v }"`, resp.Image, resp.Info)
-		_ = img
-	}
-
 	return resp.Images, nil
 }
 
