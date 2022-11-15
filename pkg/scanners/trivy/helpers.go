@@ -11,43 +11,37 @@ import (
 	"github.com/aquasecurity/trivy/pkg/fanal/analyzer"
 	"github.com/aquasecurity/trivy/pkg/fanal/applier"
 	"github.com/aquasecurity/trivy/pkg/fanal/artifact"
-	image2 "github.com/aquasecurity/trivy/pkg/fanal/artifact/image"
 	"github.com/aquasecurity/trivy/pkg/fanal/cache"
-	"github.com/aquasecurity/trivy/pkg/fanal/image"
 	"github.com/aquasecurity/trivy/pkg/fanal/types"
-	fanalTypes "github.com/aquasecurity/trivy/pkg/fanal/types"
-	"github.com/aquasecurity/trivy/pkg/scanner"
 	"github.com/aquasecurity/trivy/pkg/scanner/local"
 	trivyTypes "github.com/aquasecurity/trivy/pkg/types"
 	"github.com/aquasecurity/trivy/pkg/vulnerability"
 )
 
-var (
-	defaulArtifactOptions = artifact.Option{
-		DisabledAnalyzers: []analyzer.Type{
-			"bundler",
-			"npm",
-			"yarn",
-			"pnpm",
-			"pip",
-			"pipenv",
-			"poetry",
-			"gomod",
-			"pom",
-			"conan-lock",
-			"gradle-lockfile",
-			"apk-command",
-			"yaml",
-			"json",
-			"dockerfile",
-			"terraform",
-			"cloudFormation",
-			"helm",
-			"license-file",
-			"executable",
-		},
-	}
-)
+var defaulArtifactOptions = artifact.Option{
+	DisabledAnalyzers: []analyzer.Type{
+		"bundler",
+		"npm",
+		"yarn",
+		"pnpm",
+		"pip",
+		"pipenv",
+		"poetry",
+		"gomod",
+		"pom",
+		"conan-lock",
+		"gradle-lockfile",
+		"apk-command",
+		"yaml",
+		"json",
+		"dockerfile",
+		"terraform",
+		"cloudFormation",
+		"helm",
+		"license-file",
+		"executable",
+	},
+}
 
 // side effects: map `m` will be modified according to the values in `commaSeparatedList`.
 func parseCommaSeparatedOptions(m map[string]bool, commaSeparatedList string) error {
@@ -93,30 +87,6 @@ func downloadDB(cacheDir string) error {
 	}
 
 	return nil
-}
-
-func initializeDockerScanner(ctx context.Context, imageName string, artifactCache cache.ArtifactCache, localArtifactCache cache.Cache, dockerOpt fanalTypes.DockerOption, artifactOption artifact.Option) (scanner.Scanner, func(), error) {
-	v := []applier.Option(nil)
-	applierApplier := applier.NewApplier(localArtifactCache, v...)
-	detector := ospkg.Detector{}
-	config := db.Config{}
-	client := vulnerability.NewClient(config)
-	localScanner := local.NewScanner(applierApplier, detector, client)
-	v2 := []image.Option(nil)
-
-	typesImage, cleanup, err := image.NewContainerImage(ctx, imageName, dockerOpt, v2...)
-	if err != nil {
-		return scanner.Scanner{}, nil, err
-	}
-	artifactArtifact, err := image2.NewArtifact(typesImage, artifactCache, artifactOption)
-	if err != nil {
-		cleanup()
-		return scanner.Scanner{}, nil, err
-	}
-	scannerScanner := scanner.NewScanner(localScanner, artifactArtifact)
-	return scannerScanner, func() {
-		cleanup()
-	}, nil
 }
 
 func setupScanner(cacheDir string, vulnTypes, securityChecks []string) (scannerSetup, error) {
