@@ -48,7 +48,7 @@ spec:
               apiVersion: v1
               fieldPath: metadata.namespace
         - name: OTEL_SERVICE_NAME
-          value: controller-service
+          value: eraser-manager
         image: '{{ .Values.controllerManager.image.repository }}:{{ .Values.controllerManager.image.tag | default .Chart.AppVersion }}'
         imagePullPolicy: '{{ .Values.controllerManager.image.pullPolicy }}'
         livenessProbe:
