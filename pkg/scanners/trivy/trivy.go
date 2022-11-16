@@ -17,6 +17,7 @@ import (
 
 	"github.com/Azure/eraser/pkg/logger"
 	util "github.com/Azure/eraser/pkg/utils"
+	"github.com/aquasecurity/trivy/pkg/fanal/analyzer"
 	"github.com/aquasecurity/trivy/pkg/fanal/artifact"
 	artifactImage "github.com/aquasecurity/trivy/pkg/fanal/artifact/image"
 	fanalImage "github.com/aquasecurity/trivy/pkg/fanal/image"
@@ -50,6 +51,7 @@ var (
 	securityChecks         = flag.String("security-checks", "vuln", "comma-separated list of what security issues to detect")
 	severity               = flag.String("severity", "CRITICAL", "list of severity levels to report")
 	vulnTypes              = flag.String("vuln-type", "os,library", "comma separated list of vulnerability types")
+	rekorURL               = flag.String("rekor-url", "https://rekor.sigstore.dev", "Rekor URL")
 	deleteScanFailedImages = flag.Bool("delete-scan-failed-images", true, "whether or not to delete images for which scanning has failed")
 
 	// Will be modified by parseCommaSeparatedOptions() to reflect the
@@ -207,7 +209,11 @@ func main() {
 			}
 			log.Info("found image with id under reference", "imageID", img.ImageID, "ref", ref)
 
-			artifactToScan, err := artifactImage.NewArtifact(dockerImage, scanConfig.fscache, artifact.Option{RekorURL: "https://rekor.sigstore.dev"})
+			artifactToScan, err := artifactImage.NewArtifact(dockerImage, scanConfig.fscache, artifact.Option{
+				Offline:           true,
+				DisabledAnalyzers: analyzer.TypeLockfiles,
+				RekorURL:          *rekorURL,
+			})
 			if err != nil {
 				log.Error(err, "error registering config for artifact", "imageID", img.ImageID, "reference", ref)
 				cleanup()
