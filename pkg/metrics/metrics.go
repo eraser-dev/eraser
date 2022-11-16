@@ -32,7 +32,7 @@ func ConfigureMetrics(ctx context.Context, log logr.Logger, endpoint string) (sd
 
 	// Histogram view to specify duration buckets
 	histogramView, err := view.New(
-		view.MatchInstrumentName("imagejob_duration_seconds"),
+		view.MatchInstrumentName("imagejob_duration_run_seconds"),
 		view.MatchInstrumentationScope(instrumentation.Scope{Name: "eraser"}),
 		view.WithSetAggregation(aggregation.ExplicitBucketHistogram{
 			Boundaries: []float64{0, 10, 20, 30, 40, 50, 60},
