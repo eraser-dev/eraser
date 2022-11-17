@@ -81,7 +81,7 @@ func TestMetrics(t *testing.T) {
 
 			t.Log("OUTPUT ", output)
 
-			r := regexp.MustCompile(`images_removed_run_total{job="controller-service",node_name=".+"} (\d+)`)
+			r := regexp.MustCompile(`images_removed_run_total{job="eraser",node_name=".+"} (\d+)`)
 			results := r.FindAllStringSubmatch(output, -1)
 
 			totalRemoved := 0
