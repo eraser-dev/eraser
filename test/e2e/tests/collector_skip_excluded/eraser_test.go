@@ -38,7 +38,7 @@ func TestCollectorExcluded(t *testing.T) {
 			for _, pod := range ls.Items {
 				err = wait.For(conditions.New(c.Resources()).PodPhaseMatch(&pod, corev1.PodSucceeded), wait.WithTimeout(time.Minute*3))
 				if err != nil {
-					t.Log("collector pod unsuccessful", pod.Name)
+					t.Error("collector pod unsuccessful", err, pod.Name)
 				}
 			}
 
