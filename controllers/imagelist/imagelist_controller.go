@@ -48,6 +48,7 @@ import (
 	"github.com/Azure/eraser/pkg/logger"
 	"github.com/Azure/eraser/pkg/metrics"
 	"github.com/Azure/eraser/pkg/utils"
+	sdkmetric "go.opentelemetry.io/otel/sdk/metric"
 )
 
 const (
@@ -60,6 +61,9 @@ var (
 	imageList  = types.NamespacedName{Name: "imagelist"}
 	ownerLabel labels.Selector
 	startTime  time.Time
+	exporter   sdkmetric.Exporter
+	reader     sdkmetric.Reader
+	provider   *sdkmetric.MeterProvider
 )
 
 func init() {
@@ -77,6 +81,11 @@ func Add(mgr manager.Manager) error {
 
 // newReconciler returns a new reconcile.Reconciler.
 func newReconciler(mgr manager.Manager) reconcile.Reconciler {
+	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer cancel()
+
+	exporter, reader, provider = metrics.ConfigureMetrics(ctx, log, *util.OtlpEndpoint)
+	global.SetMeterProvider(provider)
 	return &Reconciler{
 		Client: mgr.GetClient(),
 		scheme: mgr.GetScheme(),
@@ -169,12 +178,7 @@ func (r *Reconciler) handleJobListEvent(ctx context.Context, imageList *eraserv1
 			return ctrl.Result{}, nil
 		}
 
-		ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
-		defer cancel()
-
-		exporter, reader, provider := metrics.ConfigureMetrics(ctx, log, *util.OtlpEndpoint)
-		global.SetMeterProvider(provider)
-
+		// record metrics
 		defer metrics.ExportMetrics(log, exporter, reader, provider)
 
 		if err := metrics.RecordMetricsController(ctx, global.MeterProvider(), float64(time.Since(startTime).Seconds()), int64(job.Status.Succeeded), int64(job.Status.Failed)); err != nil {

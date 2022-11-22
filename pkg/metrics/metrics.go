@@ -65,9 +65,6 @@ func ExportMetrics(log logr.Logger, exporter sdkmetric.Exporter, reader sdkmetri
 	if err := exporter.Export(ctxB, m); err != nil {
 		log.Error(err, "failed to export metrics")
 	}
-	if err := provider.Shutdown(ctxB); err != nil {
-		log.Error(err, "error during metric shutdown")
-	}
 }
 
 func RecordMetricsEraser(ctx context.Context, p metric.MeterProvider, totalRemoved int64) error {
