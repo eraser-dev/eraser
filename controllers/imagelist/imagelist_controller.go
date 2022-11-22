@@ -179,11 +179,10 @@ func (r *Reconciler) handleJobListEvent(ctx context.Context, imageList *eraserv1
 		}
 
 		// record metrics
-		defer metrics.ExportMetrics(log, exporter, reader, provider)
-
 		if err := metrics.RecordMetricsController(ctx, global.MeterProvider(), float64(time.Since(startTime).Seconds()), int64(job.Status.Succeeded), int64(job.Status.Failed)); err != nil {
 			log.Error(err, "error recording metrics")
 		}
+		metrics.ExportMetrics(log, exporter, reader, provider)
 
 		return r.handleJobDeletion(ctx, job)
 	}
