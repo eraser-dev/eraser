@@ -35,6 +35,7 @@ func TestMain(m *testing.M) {
 		envfuncs.LoadDockerImageToCluster(util.KindClusterName, util.CollectorImage),
 		envfuncs.LoadDockerImageToCluster(util.KindClusterName, util.VulnerableImage),
 		envfuncs.LoadDockerImageToCluster(util.KindClusterName, util.NonVulnerableImage),
+		envfuncs.LoadDockerImageToCluster(util.KindClusterName, util.ScannerImage),
 		util.CreateExclusionList(util.EraserNamespace, "{\"excluded\": [\"docker.io/library/alpine:*\"]}"),
 		util.CreateExclusionList(util.EraserNamespace, "{\"excluded\": [\""+util.NonVulnerableImage+"\"]}"),
 		util.DeployEraserHelm(util.EraserNamespace,
