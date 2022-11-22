@@ -142,17 +142,6 @@ func KubectlDescribeService(kubeconfigPath, serviceName, namespace string) (stri
 	return Kubectl(args)
 }
 
-func KubectlPortForward(kubeconfigPath, podName, namespace string) error {
-	args := []string{
-		"port-forward",
-		podName,
-		fmt.Sprintf("--kubeconfig=%s", kubeconfigPath),
-		fmt.Sprintf("--namespace=%s", namespace),
-		"8889:8889",
-	}
-	return KubectlBackground(args)
-}
-
 // KubectlGet executes "kubectl get" given a list of arguments.
 func KubectlGet(kubeconfigPath string, otherArgs ...string) (string, error) {
 	args := []string{

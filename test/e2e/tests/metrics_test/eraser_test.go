@@ -9,9 +9,6 @@ import (
 
 	"github.com/Azure/eraser/test/e2e/util"
 
-	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/labels"
 	"regexp"
 	"sigs.k8s.io/e2e-framework/pkg/envconf"
 	"sigs.k8s.io/e2e-framework/pkg/features"
@@ -37,25 +34,6 @@ func TestMetrics(t *testing.T) {
 			return ctx
 		}).
 		Assess("Check images_removed_run_total metric", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
-			c, err := cfg.NewClient()
-			if err != nil {
-				t.Fatal("Failed to create new client", err)
-			}
-
-			var ls corev1.PodList
-			err = c.Resources().List(ctx, &ls, func(o *metav1.ListOptions) {
-				o.LabelSelector = labels.SelectorFromSet(map[string]string{"component": "otel-collector"}).String()
-			})
-			if err != nil {
-				t.Errorf("could not list pods: %v", err)
-			}
-
-			otelcollector := ls.Items[0]
-
-			if err := util.KubectlPortForward(cfg.KubeconfigFile(), otelcollector.Name, util.TestNamespace); err != nil {
-				t.Error(err, "error in kubectl port-forward otel-collector")
-			}
-
 			if _, err := util.KubectlCurlPod(cfg.KubeconfigFile()); err != nil {
 				t.Error(err, "error running curl pod")
 			}
@@ -69,7 +47,7 @@ func TestMetrics(t *testing.T) {
 				t.Error(err, "could not get otel collector service")
 			}
 
-			regex := regexp.MustCompile(`IP:\s+(\d+.\d+.\d+.\d+)`)
+			regex := regexp.MustCompile(`IP:\s+(\d+\.\d+\.\d+\.\d+)`)
 			match := regex.FindStringSubmatch(service)
 
 			otelEndpoint := "http://" + match[1] + ":8889/metrics"
@@ -78,8 +56,6 @@ func TestMetrics(t *testing.T) {
 			if err != nil {
 				t.Error(err, "error with otlp curl request")
 			}
-
-			t.Log("OUTPUT ", output)
 
 			r := regexp.MustCompile(`images_removed_run_total{job="eraser",node_name=".+"} (\d+)`)
 			results := r.FindAllStringSubmatch(output, -1)
