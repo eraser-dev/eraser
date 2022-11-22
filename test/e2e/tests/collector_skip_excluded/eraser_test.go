@@ -42,7 +42,7 @@ func TestCollectorExcluded(t *testing.T) {
 				}
 				output, err := util.KubectlLogs(cfg.KubeconfigFile(), pod.Name, "collector", util.EraserNamespace)
 				if err != nil {
-					t.Log("could not get collector container logs %s", pod.Name)
+					t.Log("could not get collector container logs", pod.Name)
 				}
 				t.Log("OUTPUT", output)
 			}
