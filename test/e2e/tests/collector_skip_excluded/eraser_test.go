@@ -44,7 +44,19 @@ func TestCollectorExcluded(t *testing.T) {
 				if err != nil {
 					t.Log("could not get collector container logs", pod.Name)
 				}
-				t.Log("OUTPUT", output)
+				t.Log("OUTPUT collector", output)
+
+				output, err = util.KubectlLogs(cfg.KubeconfigFile(), pod.Name, "trivy-scanner", util.EraserNamespace)
+				if err != nil {
+					t.Log("could not get collector container logs", pod.Name)
+				}
+				t.Log("OUTPUT scanner", output)
+
+				output, err = util.KubectlLogs(cfg.KubeconfigFile(), pod.Name, "eraser", util.EraserNamespace)
+				if err != nil {
+					t.Log("could not get collector container logs", pod.Name)
+				}
+				t.Log("OUTPUT eraser", output)
 			}
 
 			return ctx
