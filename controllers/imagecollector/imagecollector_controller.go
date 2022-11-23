@@ -245,7 +245,6 @@ func (r *Reconciler) createImageJob(ctx context.Context, req ctrl.Request, argsC
 									"memory": resource.MustParse("25Mi"),
 								},
 								Limits: corev1.ResourceList{
-									"cpu":    resource.MustParse("8m"),
 									"memory": resource.MustParse("30Mi"),
 								},
 							},
@@ -264,7 +263,6 @@ func (r *Reconciler) createImageJob(ctx context.Context, req ctrl.Request, argsC
 									"memory": resource.MustParse("25Mi"),
 								},
 								Limits: corev1.ResourceList{
-									"cpu":    resource.MustParse("8m"),
 									"memory": resource.MustParse("30Mi"),
 								},
 							},
@@ -297,9 +295,6 @@ func (r *Reconciler) createImageJob(ctx context.Context, req ctrl.Request, argsC
 				Limits: corev1.ResourceList{
 					"memory": resource.Quantity{
 						Format: resource.Format(*util.ScannerMemLimit),
-					},
-					"cpu": resource.Quantity{
-						Format: resource.Format(*util.ScannerCPULimit),
 					},
 				},
 			},
