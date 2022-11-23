@@ -6,17 +6,15 @@ import (
 	util "github.com/Azure/eraser/pkg/utils"
 )
 
-var removed int
-
-func removeImages(c Client, targetImages []string) error {
-	removed = 0
+func removeImages(c Client, targetImages []string) (int, error) {
+	removed := 0
 
 	backgroundContext, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
 	images, err := c.listImages(backgroundContext)
 	if err != nil {
-		return err
+		return 0, err
 	}
 
 	allImages := make([]string, 0, len(images))
@@ -31,7 +29,7 @@ func removeImages(c Client, targetImages []string) error {
 
 	containers, err := c.listContainers(backgroundContext)
 	if err != nil {
-		return err
+		return 0, err
 	}
 
 	// Images that are running
@@ -111,9 +109,5 @@ func removeImages(c Client, targetImages []string) error {
 		}
 	}
 
-	return nil
-}
-
-func getTotalRemoved() int {
-	return removed
+	return removed, nil
 }

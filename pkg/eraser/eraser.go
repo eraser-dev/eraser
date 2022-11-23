@@ -133,7 +133,8 @@ func main() {
 		log.Info("no images to exclude")
 	}
 
-	if err := removeImages(&client, imagelist); err != nil {
+	removed, err := removeImages(&client, imagelist)
+	if err != nil {
 		log.Error(err, "failed to remove images")
 		os.Exit(generalErr)
 	}
@@ -179,7 +180,7 @@ func main() {
 
 	defer metrics.ExportMetrics(log, exporter, reader, provider)
 
-	if err := metrics.RecordMetricsEraser(ctx, global.MeterProvider(), int64(getTotalRemoved())); err != nil {
+	if err := metrics.RecordMetricsEraser(ctx, global.MeterProvider(), int64(removed)); err != nil {
 		log.Error(err, "error recording metrics")
 	}
 }
