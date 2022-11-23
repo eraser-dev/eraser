@@ -42,7 +42,7 @@ func TestMetrics(t *testing.T) {
 				t.Error(err, "error waiting for temp curl pod")
 			}
 
-			output, err := util.KubectlExecCurl(cfg.KubeconfigFile(), "temp", "http://otel-collector:8889/metrics", util.TestNamespace)
+			output, err := util.KubectlExecCurl(cfg.KubeconfigFile(), "temp", "http://otel-collector/metrics", util.TestNamespace)
 			if err != nil {
 				t.Error(err, "error with otlp curl request")
 			}
