@@ -34,25 +34,15 @@ func TestMetrics(t *testing.T) {
 			return ctx
 		}).
 		Assess("Check images_removed_run_total metric", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
-			if _, err := util.KubectlCurlPod(cfg.KubeconfigFile()); err != nil {
+			if _, err := util.KubectlCurlPod(cfg.KubeconfigFile(), util.TestNamespace); err != nil {
 				t.Error(err, "error running curl pod")
 			}
 
-			if _, err := util.KubectlWait(cfg.KubeconfigFile(), "temp"); err != nil {
+			if _, err := util.KubectlWait(cfg.KubeconfigFile(), "temp", util.TestNamespace); err != nil {
 				t.Error(err, "error waiting for temp curl pod")
 			}
 
-			service, err := util.KubectlDescribeService(cfg.KubeconfigFile(), "otel-collector", util.TestNamespace)
-			if err != nil {
-				t.Error(err, "could not get otel collector service")
-			}
-
-			regex := regexp.MustCompile(`IP:\s+(\d+\.\d+\.\d+\.\d+)`)
-			match := regex.FindStringSubmatch(service)
-
-			otelEndpoint := "http://" + match[1] + ":8889/metrics"
-
-			output, err := util.KubectlExecCurl(cfg.KubeconfigFile(), "temp", otelEndpoint)
+			output, err := util.KubectlExecCurl(cfg.KubeconfigFile(), "temp", "http://otel-collector:8889/metrics", util.TestNamespace)
 			if err != nil {
 				t.Error(err, "error with otlp curl request")
 			}

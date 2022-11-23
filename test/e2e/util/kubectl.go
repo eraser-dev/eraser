@@ -62,11 +62,13 @@ func KubectlDelete(kubeconfigPath, namespace string, args []string) error {
 	return err
 }
 
-func KubectlExecCurl(kubeconfigPath, podName string, endpoint string) (string, error) {
+func KubectlExecCurl(kubeconfigPath, podName string, endpoint, namespace string) (string, error) {
 	args := []string{
 		"exec",
 		"-i",
 		podName,
+		"-n",
+		namespace,
 		"--",
 		"curl",
 		endpoint,
@@ -75,7 +77,7 @@ func KubectlExecCurl(kubeconfigPath, podName string, endpoint string) (string, e
 	return Kubectl(args)
 }
 
-func KubectlWait(kubeconfigPath, podName string) (string, error) {
+func KubectlWait(kubeconfigPath, podName, namespace string) (string, error) {
 	args := []string{
 		"wait",
 		"--for=condition=Ready",
@@ -83,6 +85,8 @@ func KubectlWait(kubeconfigPath, podName string) (string, error) {
 		"--timeout=120s",
 		"pod",
 		podName,
+		"-n",
+		namespace,
 	}
 
 	return Kubectl(args)
@@ -117,27 +121,18 @@ func KubectlDescribe(kubeconfigPath, podName, namespace string) (string, error) 
 }
 
 // KubectlDescribe executes "kubectl describe" given a list of arguments.
-func KubectlCurlPod(kubeconfigPath string) (string, error) {
+func KubectlCurlPod(kubeconfigPath, namespace string) (string, error) {
 	args := []string{
 		"run",
 		"temp",
+		"-n",
+		namespace,
 		"--image",
 		"curlimages/curl",
 		"--",
 		"tail",
 		"-f",
 		"/dev/null",
-	}
-	return Kubectl(args)
-}
-
-func KubectlDescribeService(kubeconfigPath, serviceName, namespace string) (string, error) {
-	args := []string{
-		"describe",
-		"service",
-		serviceName,
-		fmt.Sprintf("--kubeconfig=%s", kubeconfigPath),
-		fmt.Sprintf("--namespace=%s", namespace),
 	}
 	return Kubectl(args)
 }
