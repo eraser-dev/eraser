@@ -274,7 +274,15 @@ func (r *Reconciler) handleImageListEvent(ctx context.Context, req *ctrl.Request
 							},
 							SecurityContext: utils.SharedSecurityContext,
 							// env vars for exporting metrics
-							Env: []corev1.EnvVar{{Name: "OTEL_EXPORTER_OTLP_ENDPOINT", Value: *util.OtlpEndpoint}, {Name: "OTEL_SERVICE_NAME", Value: "eraser"}},
+							Env: []corev1.EnvVar{
+								{
+									Name:  "OTEL_EXPORTER_OTLP_ENDPOINT",
+									Value: *util.OtlpEndpoint},
+								{
+									Name:  "OTEL_SERVICE_NAME",
+									Value: "eraser",
+								},
+							},
 						},
 					},
 					ServiceAccountName: "eraser-imagejob-pods",
