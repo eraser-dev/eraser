@@ -7,22 +7,24 @@ To view Eraser metrics, you will need to deploy an Open Telemetry collector in t
 Below is the list of metrics provided by Eraser per run:
 
 #### Eraser
+```yaml
 - count
 	- name: images_removed_run_total
-
 		- description: Total images removed by eraser
+```
 
  #### Scanner
+ ```yaml
 - count
 	- name: vulnerable_images_run_total
-
 		- description: Total vulnerable images detected
-  
+ ```
+
  #### ImageJob
+ ```yaml
  - count
 	- name: imagejob_run_total
 		- description: Total ImageJobs scheduled
-
 	- name: pods_completed_run_total
 		- description: Total pods completed
 	-  name: pods_failed_run_total
@@ -30,3 +32,4 @@ Below is the list of metrics provided by Eraser per run:
 - summary
 	- name: imagejob_duration_run_seconds
 		- description: Total time for ImageJobs scheduled to complete
+```
