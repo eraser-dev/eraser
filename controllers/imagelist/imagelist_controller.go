@@ -277,7 +277,8 @@ func (r *Reconciler) handleImageListEvent(ctx context.Context, req *ctrl.Request
 							Env: []corev1.EnvVar{
 								{
 									Name:  "OTEL_EXPORTER_OTLP_ENDPOINT",
-									Value: *util.OtlpEndpoint},
+									Value: *util.OtlpEndpoint,
+								},
 								{
 									Name:  "OTEL_SERVICE_NAME",
 									Value: "eraser",
