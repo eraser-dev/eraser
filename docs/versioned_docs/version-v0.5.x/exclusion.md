@@ -12,7 +12,7 @@ $ cat > sample.json <<EOF
 {"excluded": ["docker.io/library/*", "ghcr.io/azure/test:latest"]}
 EOF
 
-$ kubectl create configmap excluded --from-file=excluded=sample.json --namespace=eraser-system
+$ kubectl create configmap excluded --from-file=sample.json --namespace=eraser-system
 $ kubectl label configmap excluded eraser.sh/exclude.list=true -n eraser-system
 ```
 
