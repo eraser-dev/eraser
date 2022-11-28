@@ -16,6 +16,7 @@ import (
 	"sigs.k8s.io/e2e-framework/klient/wait/conditions"
 	"sigs.k8s.io/e2e-framework/pkg/envconf"
 	"sigs.k8s.io/e2e-framework/pkg/features"
+	"time"
 )
 
 func TestCollectorExcluded(t *testing.T) {
