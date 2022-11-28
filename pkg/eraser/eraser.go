@@ -171,16 +171,18 @@ func main() {
 		file.Close()
 	}
 
-	// record metrics
-	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
-	defer cancel()
+	if os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT") != "" {
+		// record metrics
+		ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+		defer cancel()
 
-	exporter, reader, provider := metrics.ConfigureMetrics(ctx, log, os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT"))
-	global.SetMeterProvider(provider)
+		exporter, reader, provider := metrics.ConfigureMetrics(ctx, log, os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT"))
+		global.SetMeterProvider(provider)
 
-	defer metrics.ExportMetrics(log, exporter, reader, provider)
+		defer metrics.ExportMetrics(log, exporter, reader, provider)
 
-	if err := metrics.RecordMetricsEraser(ctx, global.MeterProvider(), int64(removed)); err != nil {
-		log.Error(err, "error recording metrics")
+		if err := metrics.RecordMetricsEraser(ctx, global.MeterProvider(), int64(removed)); err != nil {
+			log.Error(err, "error recording metrics")
+		}
 	}
 }

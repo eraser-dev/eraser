@@ -102,11 +102,13 @@ func Add(mgr manager.Manager) error {
 
 // newReconciler returns a new reconcile.Reconciler.
 func newReconciler(mgr manager.Manager) reconcile.Reconciler {
-	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
-	defer cancel()
+	if *util.OtlpEndpoint != "" {
+		ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+		defer cancel()
 
-	exporter, reader, provider = metrics.ConfigureMetrics(ctx, log, *util.OtlpEndpoint)
-	global.SetMeterProvider(provider)
+		exporter, reader, provider = metrics.ConfigureMetrics(ctx, log, *util.OtlpEndpoint)
+		global.SetMeterProvider(provider)
+	}
 
 	return &Reconciler{
 		Client: mgr.GetClient(),
@@ -369,11 +371,13 @@ func (r *Reconciler) handleCompletedImageJob(ctx context.Context, req ctrl.Reque
 			return ctrl.Result{}, nil
 		}
 
-		// record metrics
-		if err := metrics.RecordMetricsController(ctx, global.MeterProvider(), float64(time.Since(startTime).Seconds()), int64(childJob.Status.Succeeded), int64(childJob.Status.Failed)); err != nil {
-			log.Error(err, "error recording metrics")
+		if *util.OtlpEndpoint != "" {
+			// record metrics
+			if err := metrics.RecordMetricsController(ctx, global.MeterProvider(), float64(time.Since(startTime).Seconds()), int64(childJob.Status.Succeeded), int64(childJob.Status.Failed)); err != nil {
+				log.Error(err, "error recording metrics")
+			}
+			metrics.ExportMetrics(log, exporter, reader, provider)
 		}
-		metrics.ExportMetrics(log, exporter, reader, provider)
 
 		if res, err := r.handleJobDeletion(ctx, childJob); err != nil || res.RequeueAfter > 0 {
 			return res, err
@@ -388,11 +392,12 @@ func (r *Reconciler) handleCompletedImageJob(ctx context.Context, req ctrl.Reque
 			return ctrl.Result{}, nil
 		}
 
-		// record metrics
-		defer metrics.ExportMetrics(log, exporter, reader, provider)
-
-		if err := metrics.RecordMetricsController(ctx, global.MeterProvider(), float64(time.Since(startTime).Milliseconds()), int64(childJob.Status.Succeeded), int64(childJob.Status.Failed)); err != nil {
-			log.Error(err, "error recording metrics")
+		if *util.OtlpEndpoint != "" {
+			// record metrics
+			if err := metrics.RecordMetricsController(ctx, global.MeterProvider(), float64(time.Since(startTime).Milliseconds()), int64(childJob.Status.Succeeded), int64(childJob.Status.Failed)); err != nil {
+				log.Error(err, "error recording metrics")
+			}
+			metrics.ExportMetrics(log, exporter, reader, provider)
 		}
 
 		if res, err := r.handleJobDeletion(ctx, childJob); err != nil || res.RequeueAfter > 0 {

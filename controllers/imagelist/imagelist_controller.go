@@ -81,11 +81,14 @@ func Add(mgr manager.Manager) error {
 
 // newReconciler returns a new reconcile.Reconciler.
 func newReconciler(mgr manager.Manager) reconcile.Reconciler {
-	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
-	defer cancel()
+	if *util.OtlpEndpoint != "" {
+		ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+		defer cancel()
 
-	exporter, reader, provider = metrics.ConfigureMetrics(ctx, log, *util.OtlpEndpoint)
-	global.SetMeterProvider(provider)
+		exporter, reader, provider = metrics.ConfigureMetrics(ctx, log, *util.OtlpEndpoint)
+		global.SetMeterProvider(provider)
+	}
+
 	return &Reconciler{
 		Client: mgr.GetClient(),
 		scheme: mgr.GetScheme(),
@@ -178,11 +181,13 @@ func (r *Reconciler) handleJobListEvent(ctx context.Context, imageList *eraserv1
 			return ctrl.Result{}, nil
 		}
 
-		// record metrics
-		if err := metrics.RecordMetricsController(ctx, global.MeterProvider(), float64(time.Since(startTime).Seconds()), int64(job.Status.Succeeded), int64(job.Status.Failed)); err != nil {
-			log.Error(err, "error recording metrics")
+		if *util.OtlpEndpoint != "" {
+			// record metrics
+			if err := metrics.RecordMetricsController(ctx, global.MeterProvider(), float64(time.Since(startTime).Seconds()), int64(job.Status.Succeeded), int64(job.Status.Failed)); err != nil {
+				log.Error(err, "error recording metrics")
+			}
+			metrics.ExportMetrics(log, exporter, reader, provider)
 		}
-		metrics.ExportMetrics(log, exporter, reader, provider)
 
 		return r.handleJobDeletion(ctx, job)
 	}

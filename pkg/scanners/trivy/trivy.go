@@ -276,17 +276,19 @@ func main() {
 		os.Exit(1)
 	}
 
-	// record  metrics
-	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
-	defer cancel()
+	if os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT") != "" {
+		// record  metrics
+		ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+		defer cancel()
 
-	exporter, reader, provider := metrics.ConfigureMetrics(ctx, log, os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT"))
-	global.SetMeterProvider(provider)
+		exporter, reader, provider := metrics.ConfigureMetrics(ctx, log, os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT"))
+		global.SetMeterProvider(provider)
 
-	defer metrics.ExportMetrics(log, exporter, reader, provider)
+		defer metrics.ExportMetrics(log, exporter, reader, provider)
 
-	if err := metrics.RecordMetricsScanner(ctx, global.MeterProvider(), len(vulnerableImages)); err != nil {
-		log.Error(err, "error recording metrics")
+		if err := metrics.RecordMetricsScanner(ctx, global.MeterProvider(), len(vulnerableImages)); err != nil {
+			log.Error(err, "error recording metrics")
+		}
 	}
 
 	log.Info("scanning complete, exiting")
