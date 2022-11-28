@@ -5,12 +5,12 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/aquasecurity/fanal/applier"
-	"github.com/aquasecurity/fanal/cache"
-	fanalTypes "github.com/aquasecurity/fanal/types"
 	"github.com/aquasecurity/trivy-db/pkg/db"
 	dlDb "github.com/aquasecurity/trivy/pkg/db"
 	"github.com/aquasecurity/trivy/pkg/detector/ospkg"
+	"github.com/aquasecurity/trivy/pkg/fanal/applier"
+	"github.com/aquasecurity/trivy/pkg/fanal/cache"
+	fanalTypes "github.com/aquasecurity/trivy/pkg/fanal/types"
 	pkgResult "github.com/aquasecurity/trivy/pkg/result"
 	"github.com/aquasecurity/trivy/pkg/scanner/local"
 	trivyTypes "github.com/aquasecurity/trivy/pkg/types"
@@ -46,7 +46,7 @@ func downloadAndInitDB(cacheDir string) error {
 }
 
 func downloadDB(cacheDir string) error {
-	client := dlDb.NewClient(cacheDir, true)
+	client := dlDb.NewClient(cacheDir, true, true)
 	ctx := context.Background()
 	needsUpdate, err := client.NeedsUpdate(trivyVersion, false)
 	if err != nil {
