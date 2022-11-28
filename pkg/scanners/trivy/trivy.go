@@ -178,7 +178,6 @@ func main() {
 		os.Exit(generalErr)
 	}
 
-	resultClient := initializeResultClient()
 	vulnerableImages := make([]eraserv1alpha1.Image, 0, len(allImages))
 	failedImages := make([]eraserv1alpha1.Image, 0, len(allImages))
 
@@ -200,9 +199,14 @@ func main() {
 			ref := refs[i]
 			log.Info("scanning image with ref", "ref", ref)
 
-			dockerImage, cleanup, err := fanalImage.NewDockerImage(ctx, ref, scanConfig.dockerOptions)
-			if err != nil { // could not locate image
-				log.Error(err, "could not find image by reference", "imageID", img.ImageID, "reference", ref)
+			dockerImage, cleanup, err := fanalImage.NewContainerImage(ctx, ref, scanConfig.dockerOptions,
+				fanalImage.DisablePodman(),
+				fanalImage.DisableDockerd(),
+				fanalImage.DisableRemote(),
+			)
+			if err != nil {
+				log.Error(err, "error fetching manifest for image", "img", img)
+				failedImages = append(failedImages, img)
 				cleanup()
 				continue
 			}
@@ -226,8 +230,6 @@ func main() {
 
 		outer:
 			for i := range report.Results {
-				resultClient.FillVulnerabilityInfo(report.Results[i].Vulnerabilities, report.Results[i].Type)
-
 				for j := range report.Results[i].Vulnerabilities {
 					if *ignoreUnfixed && report.Results[i].Vulnerabilities[j].FixedVersion == "" {
 						continue
