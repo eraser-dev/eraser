@@ -14,8 +14,6 @@ import (
 	"sigs.k8s.io/e2e-framework/pkg/env"
 	"sigs.k8s.io/e2e-framework/pkg/envconf"
 	"sigs.k8s.io/e2e-framework/pkg/envfuncs"
-
-	pkgUtil "github.com/Azure/eraser/pkg/utils"
 )
 
 func TestMain(m *testing.M) {
@@ -24,6 +22,7 @@ func TestMain(m *testing.M) {
 	eraserImage := util.ParsedImages.EraserImage
 	managerImage := util.ParsedImages.ManagerImage
 	collectorImage := util.ParsedImages.CollectorImage
+	scannerImage := util.ParsedImages.ScannerImage
 
 	util.Testenv = env.NewWithConfig(envconf.New())
 	// Create KinD Cluster
@@ -36,21 +35,19 @@ func TestMain(m *testing.M) {
 		envfuncs.LoadDockerImageToCluster(util.KindClusterName, util.CollectorImage),
 		envfuncs.LoadDockerImageToCluster(util.KindClusterName, util.VulnerableImage),
 		envfuncs.LoadDockerImageToCluster(util.KindClusterName, util.NonVulnerableImage),
-		util.CreateExclusionList(util.EraserNamespace, pkgUtil.ExclusionList{
-			Excluded: []string{"docker.io/library/alpine:*"},
-		}),
-		util.CreateExclusionList(util.EraserNamespace, pkgUtil.ExclusionList{
-			Excluded: []string{util.NonVulnerableImage},
-		}),
+		envfuncs.LoadDockerImageToCluster(util.KindClusterName, util.ScannerImage),
+		util.CreateExclusionList(util.EraserNamespace, "{\"excluded\": [\"docker.io/library/alpine:*\"]}"),
+		util.CreateExclusionList(util.EraserNamespace, "{\"excluded\": [\""+util.NonVulnerableImage+"\"]}"),
 		util.DeployEraserHelm(util.EraserNamespace,
-			"--set", util.ScannerImageRepo.Set(""),
+			"--set", util.ScannerImageRepo.Set(scannerImage.Repo),
+			"--set", util.ScannerImageTag.Set(scannerImage.Tag),
 			"--set", util.EraserImageRepo.Set(eraserImage.Repo),
 			"--set", util.EraserImageTag.Set(eraserImage.Tag),
 			"--set", util.CollectorImageRepo.Set(collectorImage.Repo),
 			"--set", util.CollectorImageTag.Set(collectorImage.Tag),
 			"--set", util.ManagerImageRepo.Set(managerImage.Repo),
 			"--set", util.ManagerImageTag.Set(managerImage.Tag),
-			"--set", `controllerManager.additionalArgs={--job-cleanup-on-success-delay=1m}`),
+			"--set", `controllerManager.additionalArgs={--job-cleanup-on-success-delay=2m}`),
 	).Finish(
 		envfuncs.DestroyKindCluster(util.KindClusterName),
 	)

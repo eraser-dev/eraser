@@ -273,7 +273,6 @@ func (r *Reconciler) handleImageListEvent(ctx context.Context, req *ctrl.Request
 									"memory": resource.MustParse("25Mi"),
 								},
 								Limits: corev1.ResourceList{
-									"cpu":    resource.MustParse("8m"),
 									"memory": resource.MustParse("30Mi"),
 								},
 							},

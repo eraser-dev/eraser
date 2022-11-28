@@ -2,7 +2,6 @@ package util
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
@@ -806,14 +805,9 @@ func DeployEraserManifest(namespace, fileName string) env.Func {
 	}
 }
 
-func CreateExclusionList(namespace string, list pkgUtil.ExclusionList) env.Func {
+func CreateExclusionList(namespace string, list string) env.Func {
 	return func(ctx context.Context, cfg *envconf.Config) (context.Context, error) {
 		c, err := cfg.NewClient()
-		if err != nil {
-			return ctx, err
-		}
-
-		b, err := json.Marshal(&list)
 		if err != nil {
 			return ctx, err
 		}
@@ -823,8 +817,9 @@ func CreateExclusionList(namespace string, list pkgUtil.ExclusionList) env.Func 
 			ObjectMeta: metav1.ObjectMeta{
 				GenerateName: "excluded",
 				Namespace:    EraserNamespace,
+				Labels:       map[string]string{"eraser.sh/exclude.list": "true"},
 			},
-			Data: map[string]string{"excluded": string(b)},
+			Data: map[string]string{"excluded.json": list},
 		}
 		if err := cfg.Client().Resources().Create(ctx, &excluded); err != nil {
 			return ctx, err
