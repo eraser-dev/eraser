@@ -287,7 +287,16 @@ func (r *Reconciler) createImageJob(ctx context.Context, req ctrl.Request, argsC
 								},
 							},
 							SecurityContext: utils.SharedSecurityContext,
-							Env:             []corev1.EnvVar{{Name: "OTEL_EXPORTER_OTLP_ENDPOINT", Value: *util.OtlpEndpoint}, {Name: "OTEL_SERVICE_NAME", Value: "eraser"}},
+							Env: []corev1.EnvVar{
+								{
+									Name:  "OTEL_EXPORTER_OTLP_ENDPOINT",
+									Value: *util.OtlpEndpoint,
+								},
+								{
+									Name:  "OTEL_SERVICE_NAME",
+									Value: "eraser",
+								},
+							},
 						},
 					},
 					ServiceAccountName: "eraser-imagejob-pods",
@@ -320,7 +329,16 @@ func (r *Reconciler) createImageJob(ctx context.Context, req ctrl.Request, argsC
 				},
 			},
 			// env vars for exporting metrics
-			Env: []corev1.EnvVar{{Name: "OTEL_EXPORTER_OTLP_ENDPOINT", Value: *util.OtlpEndpoint}, {Name: "OTEL_SERVICE_NAME", Value: "trivy-scanner"}},
+			Env: []corev1.EnvVar{
+				{
+					Name:  "OTEL_EXPORTER_OTLP_ENDPOINT",
+					Value: *util.OtlpEndpoint,
+				},
+				{
+					Name:  "OTEL_SERVICE_NAME",
+					Value: "trivy-scanner",
+				},
+			},
 		}
 		job.Spec.JobTemplate.Spec.Containers = append(job.Spec.JobTemplate.Spec.Containers, scannerContainer)
 	}
