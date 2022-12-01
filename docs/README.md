@@ -42,7 +42,7 @@ If you are using GitHub pages for hosting, this command is a convenient way to b
 
 ## Search
 
-Gatekeeper docs website uses Algolia DocSearch service. Please see [here](https://docusaurus.io/docs/search) for more information.
+Eraser docs website uses Algolia DocSearch service. Please see [here](https://docusaurus.io/docs/search) for more information.
 
 If the search index has any issues:
 
