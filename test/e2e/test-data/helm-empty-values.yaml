@@ -57,3 +57,4 @@ scanner:
     args: []
 
 nameOverride: ""
+eraserPullSecretName: ""

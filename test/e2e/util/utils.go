@@ -48,19 +48,21 @@ const (
 
 	ImageCollectorShared = "imagecollector-shared"
 	Prune                = "imagelist"
+	EraserPullSecret     = "testsecret"
 	FilterNodeName       = "eraser-e2e-test-worker"
 	FilterNodeSelector   = "kubernetes.io/hostname=eraser-e2e-test-worker"
 	FilterLabelKey       = "eraser.sh/cleanup.filter"
 	FilterLabelValue     = "true"
 
-	ScannerImageRepo   = HelmPath("scanner.image.repository")
-	ScannerImageTag    = HelmPath("scanner.image.tag")
-	CollectorImageRepo = HelmPath("collector.image.repository")
-	CollectorImageTag  = HelmPath("collector.image.tag")
-	ManagerImageRepo   = HelmPath("controllerManager.image.repository")
-	ManagerImageTag    = HelmPath("controllerManager.image.tag")
-	EraserImageRepo    = HelmPath("eraser.image.repository")
-	EraserImageTag     = HelmPath("eraser.image.tag")
+	ScannerImageRepo     = HelmPath("scanner.image.repository")
+	ScannerImageTag      = HelmPath("scanner.image.tag")
+	CollectorImageRepo   = HelmPath("collector.image.repository")
+	CollectorImageTag    = HelmPath("collector.image.tag")
+	ManagerImageRepo     = HelmPath("controllerManager.image.repository")
+	ManagerImageTag      = HelmPath("controllerManager.image.tag")
+	EraserImageRepo      = HelmPath("eraser.image.repository")
+	EraserImageTag       = HelmPath("eraser.image.tag")
+	EraserPullSecretName = HelmPath("eraserPullSecretName")
 )
 
 var (
