@@ -21,8 +21,8 @@ spec:
         command:
         - /manager
         env:
-          - name: ERASER_PULL_SECRET_NAME
-            value: "{{ .Values.eraserPullSecretName }}"
+          - name: ERASER_PULL_SECRET_NAMES
+            value: HELMSUBST_CONTROLLER_MANAGER_PULL_SECRETS_LIST
         image: "{{ .Values.controllerManager.image.repository }}:{{ .Values.controllerManager.image.tag | default .Chart.AppVersion }}"
         imagePullPolicy: "{{ .Values.controllerManager.image.pullPolicy }}"
         livenessProbe:

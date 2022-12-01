@@ -468,11 +468,13 @@ func copyAndFillTemplateSpec(templateSpecTemplate *corev1.PodSpec, env []corev1.
 		scannerImg.Env = append(scannerImg.Env, env...)
 	}
 
-	secret := os.Getenv("ERASER_PULL_SECRET_NAME")
-	if secret != "" {
-		templateSpec.ImagePullSecrets = []corev1.LocalObjectReference{{
-			Name: secret,
-		}}
+	secrets := os.Getenv("ERASER_PULL_SECRET_NAMES")
+	if secrets != "" {
+		for _, secret := range strings.Split(secrets, ",") {
+			templateSpec.ImagePullSecrets = []corev1.LocalObjectReference{{
+				Name: secret,
+			}}
+		}
 	}
 
 	templateSpec.Volumes = append(volumes, templateSpec.Volumes...)

@@ -54,15 +54,15 @@ const (
 	FilterLabelKey       = "eraser.sh/cleanup.filter"
 	FilterLabelValue     = "true"
 
-	ScannerImageRepo     = HelmPath("scanner.image.repository")
-	ScannerImageTag      = HelmPath("scanner.image.tag")
-	CollectorImageRepo   = HelmPath("collector.image.repository")
-	CollectorImageTag    = HelmPath("collector.image.tag")
-	ManagerImageRepo     = HelmPath("controllerManager.image.repository")
-	ManagerImageTag      = HelmPath("controllerManager.image.tag")
-	EraserImageRepo      = HelmPath("eraser.image.repository")
-	EraserImageTag       = HelmPath("eraser.image.tag")
-	EraserPullSecretName = HelmPath("eraserPullSecretName")
+	ScannerImageRepo   = HelmPath("scanner.image.repository")
+	ScannerImageTag    = HelmPath("scanner.image.tag")
+	CollectorImageRepo = HelmPath("collector.image.repository")
+	CollectorImageTag  = HelmPath("collector.image.tag")
+	ManagerImageRepo   = HelmPath("controllerManager.image.repository")
+	ManagerImageTag    = HelmPath("controllerManager.image.tag")
+	EraserImageRepo    = HelmPath("eraser.image.repository")
+	EraserImageTag     = HelmPath("eraser.image.tag")
+	EraserPullSecrets  = HelmPath("eraserPullSecrets")
 )
 
 var (
@@ -78,8 +78,9 @@ var (
 	EraserNamespace    = pkgUtil.GetNamespace()
 	TestLogDir         = os.Getenv("TEST_LOGDIR")
 
-	ParsedImages *Images
-	Timeout      = time.Minute * 5
+	ParsedImages         *Images
+	Timeout              = time.Minute * 5
+	EraserPullSecretJSON = fmt.Sprintf(`[{"name":"%s"}]`, EraserPullSecret)
 )
 
 type (

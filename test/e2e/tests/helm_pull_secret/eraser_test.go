@@ -20,10 +20,12 @@ import (
 
 const (
 	collectorLabel = "name=collector"
+
+	expectedPods = 4
 )
 
-func TestCollectorExcluded(t *testing.T) {
-	pullSecretsPropagated := features.New("Collector pods completed").
+func TestHelmPullSecret(t *testing.T) {
+	pullSecretsPropagated := features.New("Image Pull Secrets").
 		Assess("All pods should have the correct pull secret", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
 			c, err := cfg.NewClient()
 			if err != nil {
@@ -53,8 +55,8 @@ func TestCollectorExcluded(t *testing.T) {
 			})
 
 			items := append(ls.Items, ls2.Items...)
-			if len(items) != 4 {
-				t.Errorf("incorrect number of pods for eraser deployment. should be 4 but was %d", len(items))
+			if len(items) != expectedPods {
+				t.Errorf("incorrect number of pods for eraser deployment. should be %d but was %d", expectedPods, len(items))
 			}
 
 			for _, pod := range items {
