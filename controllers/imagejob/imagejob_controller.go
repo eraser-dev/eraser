@@ -17,6 +17,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"os"
 	"strings"
 
 	corev1 "k8s.io/api/core/v1"
@@ -465,6 +466,13 @@ func copyAndFillTemplateSpec(templateSpecTemplate *corev1.PodSpec, env []corev1.
 		scannerImg := &templateSpec.Containers[2]
 		scannerImg.VolumeMounts = append(scannerImg.VolumeMounts, volumeMounts...)
 		scannerImg.Env = append(scannerImg.Env, env...)
+	}
+
+	secret := os.Getenv("ERASER_PULL_SECRET_NAME")
+	if secret != "" {
+		templateSpec.ImagePullSecrets = []corev1.LocalObjectReference{{
+			Name: secret,
+		}}
 	}
 
 	templateSpec.Volumes = append(volumes, templateSpec.Volumes...)
