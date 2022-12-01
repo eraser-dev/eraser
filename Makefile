@@ -89,7 +89,7 @@ manifests: __controller-gen ## Generates k8s yaml for eraser deployment.
 		-e "s~COLLECTOR_IMG~${COLLECTOR_IMG}~g" \
 		-e "s~SCANNER_IMG~${TRIVY_SCANNER_IMG}~g" \
 		config/manager/kustomization.template.yaml > config/manager/kustomization.yaml
-	docker run -v $(shell pwd)/config:/config -w /config/manager \
+	docker run --rm -v $(shell pwd)/config:/config -w /config/manager \
 		k8s.gcr.io/kustomize/kustomize:v${KUSTOMIZE_VERSION} edit set image controller=${MANAGER_IMG}
 	$(CONTROLLER_GEN) \
 		crd \
@@ -191,24 +191,24 @@ docker-build-collector:
 ##@ Deployment
 
 install: manifests ## Install CRDs into the K8s cluster specified in ~/.kube/config.
-	docker run -v $(shell pwd)/config:/config \
+	docker run --rm -v $(shell pwd)/config:/config \
 		k8s.gcr.io/kustomize/kustomize:v${KUSTOMIZE_VERSION} build \
 		/config/crd | kubectl apply -f -
 
 uninstall: manifests ## Uninstall CRDs from the K8s cluster specified in ~/.kube/config.
-	docker run -v $(shell pwd)/config:/config \
+	docker run --rm -v $(shell pwd)/config:/config \
 		k8s.gcr.io/kustomize/kustomize:v${KUSTOMIZE_VERSION} build \
 		/config/crd | kubectl delete -f -
 
 deploy: manifests ## Deploy controller to the K8s cluster specified in ~/.kube/config.
-	docker run -v $(shell pwd)/config:/config -w /config/manager \
+	docker run --rm -v $(shell pwd)/config:/config -w /config/manager \
 		k8s.gcr.io/kustomize/kustomize:v${KUSTOMIZE_VERSION} edit set image controller=${MANAGER_IMG}
-	docker run -v $(shell pwd)/config:/config \
+	docker run --rm -v $(shell pwd)/config:/config \
 		k8s.gcr.io/kustomize/kustomize:v${KUSTOMIZE_VERSION} build \
 		/config/default | kubectl apply -f -
 
 undeploy: ## Undeploy controller from the K8s cluster specified in ~/.kube/config.
-	docker run -v $(shell pwd)/config:/config \
+	docker run --rm -v $(shell pwd)/config:/config \
 		k8s.gcr.io/kustomize/kustomize:v${KUSTOMIZE_VERSION} build \
 		/config/default | kubectl delete -f -
 
@@ -237,7 +237,7 @@ bin/setup-envtest:
 	docker run --rm -v $(shell pwd)/bin:/go/bin -e GO111MODULE=on eraser-tooling go install sigs.k8s.io/controller-runtime/tools/setup-envtest@latest
 
 __controller-gen: __tooling-image
-CONTROLLER_GEN=docker run -v $(shell pwd):/eraser eraser-tooling controller-gen
+CONTROLLER_GEN=docker run --rm -v $(shell pwd):/eraser eraser-tooling controller-gen
 
 __tooling-image:
 	docker build . \
@@ -247,7 +247,7 @@ __tooling-image:
 # Tags a new version for docs
 .PHONY: version-docs
 version-docs:
-	docker run \
+	docker run --rm \
 		-v $(shell pwd)/docs:/docs \
 		-w /docs \
 		-u $(shell id -u):$(shell id -g) \
