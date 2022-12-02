@@ -48,6 +48,7 @@ const (
 
 	ImageCollectorShared = "imagecollector-shared"
 	Prune                = "imagelist"
+	ImagePullSecret      = "testsecret"
 	FilterNodeName       = "eraser-e2e-test-worker"
 	FilterNodeSelector   = "kubernetes.io/hostname=eraser-e2e-test-worker"
 	FilterLabelKey       = "eraser.sh/cleanup.filter"
@@ -61,6 +62,7 @@ const (
 	ManagerImageTag    = HelmPath("controllerManager.image.tag")
 	EraserImageRepo    = HelmPath("eraser.image.repository")
 	EraserImageTag     = HelmPath("eraser.image.tag")
+	ImagePullSecrets   = HelmPath("imagePullSecrets")
 )
 
 var (
@@ -76,8 +78,9 @@ var (
 	EraserNamespace    = pkgUtil.GetNamespace()
 	TestLogDir         = os.Getenv("TEST_LOGDIR")
 
-	ParsedImages *Images
-	Timeout      = time.Minute * 5
+	ParsedImages        *Images
+	Timeout             = time.Minute * 5
+	ImagePullSecretJSON = fmt.Sprintf(`[{"name":"%s"}]`, ImagePullSecret)
 )
 
 type (
