@@ -245,8 +245,12 @@ func (r *Reconciler) createImageJob(ctx context.Context, req ctrl.Request, argsC
 				Spec: corev1.PodSpec{
 					Volumes: []corev1.Volume{
 						{
-							// EmptyDir default
 							Name: "shared-data",
+							VolumeSource: corev1.VolumeSource{
+								EmptyDir: &corev1.EmptyDirVolumeSource{
+									Medium: corev1.StorageMedium(corev1.StorageMediumMemory),
+								},
+							},
 						},
 					},
 					RestartPolicy: corev1.RestartPolicyNever,
