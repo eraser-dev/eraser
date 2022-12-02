@@ -57,4 +57,4 @@ scanner:
     args: []
 
 nameOverride: ""
-eraserPullSecretName: ""
+imagePullSecretName: ""

@@ -62,7 +62,7 @@ func TestHelmPullSecret(t *testing.T) {
 			for _, pod := range items {
 				found := false
 				for _, secret := range pod.Spec.ImagePullSecrets {
-					if secret.Name == util.EraserPullSecret {
+					if secret.Name == util.ImagePullSecret {
 						found = true
 						break
 					}

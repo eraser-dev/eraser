@@ -27,9 +27,9 @@ spec:
         control-plane: controller-manager
         helm.sh/chart: '{{ template "eraser.name" . }}'
     spec:
-      {{- if .Values.eraserPullSecrets }}
+      {{- if .Values.imagePullSecrets }}
       imagePullSecrets:
-        {{- toYaml .Values.eraserPullSecrets | nindent 8 }}
+        {{- toYaml .Values.imagePullSecrets | nindent 8 }}
       {{- end }}
       affinity:
         {{- toYaml .Values.controllerManager.affinity | nindent 8 }}
@@ -47,7 +47,7 @@ spec:
         - /manager
         env:
         - name: ERASER_PULL_SECRET_NAMES
-          value: "{{- range $i, $e := .Values.eraserPullSecrets -}}{{- range $k, $v := $e }}{{- if $i -}},{{- end -}}{{- $v -}}{{- end -}}{{- end }}"
+          value: "{{- range $i, $e := .Values.imagePullSecrets -}}{{- range $k, $v := $e }}{{- if $i -}},{{- end -}}{{- $v -}}{{- end -}}{{- end }}"
         - name: POD_NAMESPACE
           valueFrom:
             fieldRef:

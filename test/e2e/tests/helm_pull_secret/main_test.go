@@ -43,7 +43,7 @@ func TestMain(m *testing.M) {
 			"--set", util.CollectorImageTag.Set(collectorImage.Tag),
 			"--set", util.ManagerImageRepo.Set(managerImage.Repo),
 			"--set", util.ManagerImageTag.Set(managerImage.Tag),
-			"--set-json", util.EraserPullSecrets.Set(util.EraserPullSecretJSON),
+			"--set-json", util.ImagePullSecrets.Set(util.ImagePullSecretJSON),
 			"--set", `controllerManager.additionalArgs={--job-cleanup-on-success-delay=2m}`),
 	).Finish(
 		envfuncs.DestroyKindCluster(util.KindClusterName),
