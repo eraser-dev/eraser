@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 
+	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
 	util "github.com/Azure/eraser/pkg/utils"
 )
 
@@ -17,14 +18,27 @@ func removeImages(c Client, targetImages []string) (int, error) {
 		return 0, err
 	}
 
-	allImages := make([]string, 0, len(images))
-
-	// map with key: sha id, value: repoTag list (contains full name of image)
-	idToTagListMap := make(map[string][]string)
+	allImages := make([]eraserv1alpha1.Image, 0, len(images))
+	// map with key: imageID, value: repoTag list (contains full name of image)
+	idToImageMap := make(map[string]eraserv1alpha1.Image)
 
 	for _, img := range images {
-		allImages = append(allImages, img.Id)
-		idToTagListMap[img.Id] = img.RepoTags
+		repoTags := []string{}
+		repoTags = append(repoTags, img.RepoTags...)
+
+		newImg := eraserv1alpha1.Image{
+			ImageID: img.Id,
+			Names:   repoTags,
+		}
+
+		digests, errs := util.ProcessRepoDigests(img.RepoDigests)
+		for _, err := range errs {
+			log.Error(err, "error processing digest")
+		}
+
+		newImg.Digests = append(newImg.Digests, digests...)
+		allImages = append(allImages, newImg)
+		idToImageMap[img.Id] = newImg
 	}
 
 	containers, err := c.listContainers(backgroundContext)
@@ -33,17 +47,17 @@ func removeImages(c Client, targetImages []string) (int, error) {
 	}
 
 	// Images that are running
-	// map of (digest | tag) -> digest
-	runningImages := util.GetRunningImages(containers, idToTagListMap)
+	// map of (digest | name) -> imageID
+	runningImages := util.GetRunningImages(containers, idToImageMap)
 
 	// Images that aren't running
-	// map of (digest | tag) -> digest
-	nonRunningImages := util.GetNonRunningImages(runningImages, allImages, idToTagListMap)
+	// map of (digest | name) -> imageID
+	nonRunningImages := util.GetNonRunningImages(runningImages, allImages, idToImageMap)
 
 	// Debug logs
 	log.V(1).Info("Map of non-running images", "nonRunningImages", nonRunningImages)
 	log.V(1).Info("Map of running images", "runningImages", runningImages)
-	log.V(1).Info("Map of digest to image name(s)", "idToTaglistMap", idToTagListMap)
+	log.V(1).Info("Map of digest to image name(s)", "idToImageMap", idToImageMap)
 
 	// remove target images
 	var prune bool
@@ -54,27 +68,27 @@ func removeImages(c Client, targetImages []string) (int, error) {
 			continue
 		}
 
-		if digest, isNonRunning := nonRunningImages[imgDigestOrTag]; isNonRunning {
-			if ex := util.IsExcluded(excluded, imgDigestOrTag, idToTagListMap); ex {
-				log.Info("image is excluded", "given", imgDigestOrTag, "digest", digest, "name", idToTagListMap[digest])
+		if imageID, isNonRunning := nonRunningImages[imgDigestOrTag]; isNonRunning {
+			if ex := util.IsExcluded(excluded, imgDigestOrTag, idToImageMap); ex {
+				log.Info("image is excluded", "given", imgDigestOrTag, "imageID", imageID)
 				continue
 			}
 
-			err = c.deleteImage(backgroundContext, digest)
+			err = c.deleteImage(backgroundContext, imageID)
 			if err != nil {
-				log.Error(err, "error removing image", "given", imgDigestOrTag, "digest", digest, "name", idToTagListMap[digest])
+				log.Error(err, "error removing image", "given", imgDigestOrTag, "imageID", imageID)
 				continue
 			}
 
 			deletedImages[imgDigestOrTag] = struct{}{}
-			log.Info("removed image", "given", imgDigestOrTag, "digest", digest, "name", idToTagListMap[digest])
+			log.Info("removed image", "given", imgDigestOrTag, "imageID", imageID)
 			removed++
 			continue
 		}
 
-		digest, isRunning := runningImages[imgDigestOrTag]
+		imageID, isRunning := runningImages[imgDigestOrTag]
 		if isRunning {
-			log.Info("image is running", "given", imgDigestOrTag, "digest", digest, "name", idToTagListMap[digest])
+			log.Info("image is running", "given", imgDigestOrTag, "imageID", imageID, "name", idToImageMap[imageID])
 			continue
 		}
 
@@ -83,23 +97,24 @@ func removeImages(c Client, targetImages []string) (int, error) {
 
 	if prune {
 		success := true
-		for _, digest := range nonRunningImages {
-			if _, deleted := deletedImages[digest]; deleted {
+		for _, imageID := range nonRunningImages {
+			if _, deleted := deletedImages[imageID]; deleted {
 				continue
 			}
 
-			if util.IsExcluded(excluded, digest, idToTagListMap) {
-				log.Info("image is excluded", "digest", digest, "name", idToTagListMap[digest])
+			if util.IsExcluded(excluded, imageID, idToImageMap) {
+				log.Info("image is excluded", "imageID", imageID)
 				continue
 			}
 
-			if err := c.deleteImage(backgroundContext, digest); err != nil {
+			if err := c.deleteImage(backgroundContext, imageID); err != nil {
 				success = false
-				log.Error(err, "error removing image", "digest", digest, "name", idToTagListMap[digest])
+				log.Error(err, "error removing image", "imageID", imageID)
 				continue
 			}
-			log.Info("removed image", "digest", digest, "name", idToTagListMap[digest])
-			deletedImages[digest] = struct{}{}
+
+			log.Info("removed image", "digest", imageID)
+			deletedImages[imageID] = struct{}{}
 			removed++
 		}
 		if success {
