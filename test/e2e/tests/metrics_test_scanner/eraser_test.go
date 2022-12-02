@@ -73,7 +73,7 @@ func TestMetrics(t *testing.T) {
 			}
 
 			if totalVulnerable < expectedVulnerableImages {
-				t.Error("images_removed_run_total incorrect, expected "+expectedVulnerableImages+", got", totalRemoved)
+				t.Error("vulnerable_images_run_total incorrect, expected "+expectedVulnerableImages+", got", totalVulnerable)
 			}
 
 			return ctx
