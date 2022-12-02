@@ -7,7 +7,7 @@ ERASER_IMG ?= ghcr.io/azure/eraser:${VERSION}
 COLLECTOR_IMG ?= ghcr.io/azure/collector:${VERSION}
 VULNERABLE_IMG ?= docker.io/library/alpine:3.7.3
 NON_VULNERABLE_IMG ?= ghcr.io/azure/non-vulnerable:latest
-E2E_TESTS ?= ./test/e2e/tests//metrics_test_scanner
+E2E_TESTS ?= $(shell find ./test/e2e/tests/ -mindepth 1 -type d)
 TEST_LOGDIR ?= $(PWD)/test_logs
 
 KUSTOMIZE_VERSION ?= 3.8.9
