@@ -5,15 +5,15 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/aquasecurity/fanal/applier"
-	"github.com/aquasecurity/fanal/cache"
-	fanalTypes "github.com/aquasecurity/fanal/types"
 	"github.com/aquasecurity/trivy-db/pkg/db"
 	dlDb "github.com/aquasecurity/trivy/pkg/db"
 	"github.com/aquasecurity/trivy/pkg/detector/ospkg"
-	pkgResult "github.com/aquasecurity/trivy/pkg/result"
+	"github.com/aquasecurity/trivy/pkg/fanal/applier"
+	"github.com/aquasecurity/trivy/pkg/fanal/cache"
+	fanalTypes "github.com/aquasecurity/trivy/pkg/fanal/types"
 	"github.com/aquasecurity/trivy/pkg/scanner/local"
 	trivyTypes "github.com/aquasecurity/trivy/pkg/types"
+	"github.com/aquasecurity/trivy/pkg/vulnerability"
 )
 
 // side effects: map `m` will be modified according to the values in `commaSeparatedList`.
@@ -46,7 +46,7 @@ func downloadAndInitDB(cacheDir string) error {
 }
 
 func downloadDB(cacheDir string) error {
-	client := dlDb.NewClient(cacheDir, true)
+	client := dlDb.NewClient(cacheDir, true, true)
 	ctx := context.Background()
 	needsUpdate, err := client.NeedsUpdate(trivyVersion, false)
 	if err != nil {
@@ -71,7 +71,8 @@ func setupScanner(cacheDir string, vulnTypes, securityChecks []string) (scannerS
 	app := applier.NewApplier(filesystemCache)
 	det := ospkg.Detector{}
 	dopts := fanalTypes.DockerOption{}
-	scan := local.NewScanner(app, det)
+	vc := vulnerability.NewClient(db.Config{})
+	scan := local.NewScanner(app, det, vc)
 
 	sopts := trivyTypes.ScanOptions{
 		VulnType:            vulnTypes,
@@ -86,12 +87,6 @@ func setupScanner(cacheDir string, vulnTypes, securityChecks []string) (scannerS
 		dockerOptions: dopts,
 		fscache:       filesystemCache,
 	}, nil
-}
-
-func initializeResultClient() pkgResult.Client {
-	config := db.Config{}
-	client := pkgResult.NewClient(config)
-	return client
 }
 
 func mapKeys(m map[string]bool) []string {
