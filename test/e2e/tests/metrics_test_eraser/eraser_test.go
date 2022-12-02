@@ -57,7 +57,7 @@ func TestMetrics(t *testing.T) {
 			}
 
 			if totalRemoved != expectedImagesRemoved {
-				t.Error("images_removed_run_total incorrect, expected "+expectedImagesRemoved", got", totalRemoved)
+				t.Error("images_removed_run_total incorrect, expected ", expectedImagesRemoved, "got", totalRemoved)
 			}
 
 			return ctx
