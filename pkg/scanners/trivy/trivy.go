@@ -21,6 +21,7 @@ import (
 	"github.com/Azure/eraser/pkg/metrics"
 	"github.com/Azure/eraser/pkg/utils"
 	util "github.com/Azure/eraser/pkg/utils"
+	"github.com/aquasecurity/trivy/pkg/fanal/analyzer"
 	"github.com/aquasecurity/trivy/pkg/fanal/artifact"
 	artifactImage "github.com/aquasecurity/trivy/pkg/fanal/artifact/image"
 	fanalImage "github.com/aquasecurity/trivy/pkg/fanal/image"
@@ -55,6 +56,7 @@ var (
 	securityChecks         = flag.String("security-checks", "vuln", "comma-separated list of what security issues to detect")
 	severity               = flag.String("severity", "CRITICAL", "list of severity levels to report")
 	vulnTypes              = flag.String("vuln-type", "os,library", "comma separated list of vulnerability types")
+	rekorURL               = flag.String("rekor-url", "https://rekor.sigstore.dev", "Rekor URL")
 	deleteScanFailedImages = flag.Bool("delete-scan-failed-images", true, "whether or not to delete images for which scanning has failed")
 
 	// Will be modified by parseCommaSeparatedOptions() to reflect the
@@ -218,22 +220,26 @@ func main() {
 			continue
 		}
 
-		imageScanFailed := true
+		scanSucceeded := false
 		log.Info("scanning image with id", "imageID", img.ImageID, "refs", refs)
 
-		for i := 0; i < len(refs) && imageScanFailed; i++ {
+		for i := 0; i < len(refs) && !scanSucceeded; i++ {
 			ref := refs[i]
 			log.Info("scanning image with ref", "ref", ref)
 
 			dockerImage, cleanup, err := fanalImage.NewContainerImage(ctx, ref, scanConfig.dockerOptions, imageSourceOptions...)
-			if err != nil {
-				log.Error(err, "error fetching manifest for image", "img", img)
-				failedImages = append(failedImages, img)
+			if err != nil { // could not locate image
+				log.Error(err, "could not find image by reference", "imageID", img.ImageID, "reference", ref)
 				cleanup()
 				continue
 			}
+			log.Info("found image with id under reference", "imageID", img.ImageID, "ref", ref)
 
-			artifactToScan, err := artifactImage.NewArtifact(dockerImage, scanConfig.fscache, artifact.Option{})
+			artifactToScan, err := artifactImage.NewArtifact(dockerImage, scanConfig.fscache, artifact.Option{
+				Offline:           true,
+				DisabledAnalyzers: analyzer.TypeLockfiles,
+				RekorURL:          *rekorURL,
+			})
 			if err != nil {
 				log.Error(err, "error registering config for artifact", "imageID", img.ImageID, "reference", ref)
 				cleanup()
@@ -247,8 +253,6 @@ func main() {
 				cleanup()
 				continue
 			}
-
-			imageScanFailed = false
 
 		outer:
 			for i := range report.Results {
@@ -268,10 +272,11 @@ func main() {
 				}
 			}
 
+			scanSucceeded = true
 			cleanup()
 		}
 
-		if imageScanFailed {
+		if !scanSucceeded {
 			failedImages = append(failedImages, img)
 		}
 	}
