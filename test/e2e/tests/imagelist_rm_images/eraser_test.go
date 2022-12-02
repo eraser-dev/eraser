@@ -6,7 +6,6 @@ package e2e
 import (
 	"context"
 	"testing"
-	"time"
 
 	"github.com/Azure/eraser/test/e2e/util"
 	appsv1 "k8s.io/api/apps/v1"
@@ -19,6 +18,7 @@ import (
 	"sigs.k8s.io/e2e-framework/klient/wait/conditions"
 	"sigs.k8s.io/e2e-framework/pkg/envconf"
 	"sigs.k8s.io/e2e-framework/pkg/features"
+	"time"
 )
 
 const (
@@ -73,7 +73,7 @@ func TestImageListTriggersEraserImageJob(t *testing.T) {
 			}
 
 			if err = wait.For(conditions.New(client.Resources()).DeploymentConditionMatch(&resultDeployment, appsv1.DeploymentAvailable, corev1.ConditionTrue),
-				wait.WithTimeout(time.Minute*3)); err != nil {
+				wait.WithTimeout(util.Timeout)); err != nil {
 				t.Error("deployment not found", err)
 			}
 
@@ -100,7 +100,7 @@ func TestImageListTriggersEraserImageJob(t *testing.T) {
 			}
 
 			for _, nodeName := range util.GetClusterNodes(t) {
-				err := wait.For(util.ContainerNotPresentOnNode(nodeName, util.Nginx), wait.WithTimeout(time.Minute*2))
+				err := wait.For(util.ContainerNotPresentOnNode(nodeName, util.Nginx), wait.WithTimeout(util.Timeout))
 				if err != nil {
 					// Let's not mark this as an error
 					// We only have this to prevent race conditions with the eraser spinning up

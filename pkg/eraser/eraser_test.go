@@ -51,7 +51,7 @@ func TestRemoveImages(t *testing.T) {
 				}
 			}
 
-			err := removeImages(client, tc.remove)
+			_, err := removeImages(client, tc.remove)
 			if tc.shouldErr && err == nil {
 				t.Fatal("expected error, got none")
 			}

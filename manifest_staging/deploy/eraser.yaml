@@ -4428,6 +4428,8 @@ spec:
             fieldRef:
               apiVersion: v1
               fieldPath: metadata.namespace
+        - name: OTEL_SERVICE_NAME
+          value: eraser-manager
         image: ghcr.io/azure/eraser-manager:v0.5.0
         livenessProbe:
           httpGet:

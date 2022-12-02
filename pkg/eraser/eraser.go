@@ -10,12 +10,16 @@ import (
 	"net/http"
 	_ "net/http/pprof"
 	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
+	"go.opentelemetry.io/otel/metric/global"
 	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 
 	"github.com/Azure/eraser/pkg/logger"
+	"github.com/Azure/eraser/pkg/metrics"
 
 	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
 	util "github.com/Azure/eraser/pkg/utils"
@@ -129,7 +133,8 @@ func main() {
 		log.Info("no images to exclude")
 	}
 
-	if err := removeImages(&client, imagelist); err != nil {
+	removed, err := removeImages(&client, imagelist)
+	if err != nil {
 		log.Error(err, "failed to remove images")
 		os.Exit(generalErr)
 	}
@@ -164,5 +169,20 @@ func main() {
 		}
 
 		file.Close()
+	}
+
+	if os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT") != "" {
+		// record metrics
+		ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+		defer cancel()
+
+		exporter, reader, provider := metrics.ConfigureMetrics(ctx, log, os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT"))
+		global.SetMeterProvider(provider)
+
+		defer metrics.ExportMetrics(log, exporter, reader, provider)
+
+		if err := metrics.RecordMetricsEraser(ctx, global.MeterProvider(), int64(removed)); err != nil {
+			log.Error(err, "error recording metrics")
+		}
 	}
 }

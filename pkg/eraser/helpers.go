@@ -6,13 +6,15 @@ import (
 	util "github.com/Azure/eraser/pkg/utils"
 )
 
-func removeImages(c Client, targetImages []string) error {
+func removeImages(c Client, targetImages []string) (int, error) {
+	removed := 0
+
 	backgroundContext, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
 	images, err := c.listImages(backgroundContext)
 	if err != nil {
-		return err
+		return 0, err
 	}
 
 	allImages := make([]string, 0, len(images))
@@ -27,7 +29,7 @@ func removeImages(c Client, targetImages []string) error {
 
 	containers, err := c.listContainers(backgroundContext)
 	if err != nil {
-		return err
+		return 0, err
 	}
 
 	// Images that are running
@@ -66,6 +68,7 @@ func removeImages(c Client, targetImages []string) error {
 
 			deletedImages[imgDigestOrTag] = struct{}{}
 			log.Info("removed image", "given", imgDigestOrTag, "digest", digest, "name", idToTagListMap[digest])
+			removed++
 			continue
 		}
 
@@ -97,6 +100,7 @@ func removeImages(c Client, targetImages []string) error {
 			}
 			log.Info("removed image", "digest", digest, "name", idToTagListMap[digest])
 			deletedImages[digest] = struct{}{}
+			removed++
 		}
 		if success {
 			log.Info("prune successful")
@@ -105,5 +109,5 @@ func removeImages(c Client, targetImages []string) error {
 		}
 	}
 
-	return nil
+	return removed, nil
 }

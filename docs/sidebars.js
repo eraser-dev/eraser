@@ -26,7 +26,8 @@ const sidebars = {
       items: [
         'manual-removal',
         'exclusion',
-        'customization'
+        'customization',
+        'metrics'
       ]
     },
     {

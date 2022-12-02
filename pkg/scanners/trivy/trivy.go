@@ -7,6 +7,8 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
@@ -16,12 +18,14 @@ import (
 	_ "net/http/pprof"
 
 	"github.com/Azure/eraser/pkg/logger"
+	"github.com/Azure/eraser/pkg/metrics"
 	util "github.com/Azure/eraser/pkg/utils"
 	"github.com/aquasecurity/fanal/artifact"
 	artifactImage "github.com/aquasecurity/fanal/artifact/image"
 	fanalImage "github.com/aquasecurity/fanal/image"
 	trivylogger "github.com/aquasecurity/trivy/pkg/log"
 	"github.com/aquasecurity/trivy/pkg/scanner"
+	"go.opentelemetry.io/otel/metric/global"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
@@ -271,5 +275,21 @@ func main() {
 		log.Info("garbage in pipe", "pipeName", util.EraseCompleteScanPath, "in_pipe", string(data))
 		os.Exit(1)
 	}
+
+	if os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT") != "" {
+		// record  metrics
+		ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+		defer cancel()
+
+		exporter, reader, provider := metrics.ConfigureMetrics(ctx, log, os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT"))
+		global.SetMeterProvider(provider)
+
+		defer metrics.ExportMetrics(log, exporter, reader, provider)
+
+		if err := metrics.RecordMetricsScanner(ctx, global.MeterProvider(), len(vulnerableImages)); err != nil {
+			log.Error(err, "error recording metrics")
+		}
+	}
+
 	log.Info("scanning complete, exiting")
 }
