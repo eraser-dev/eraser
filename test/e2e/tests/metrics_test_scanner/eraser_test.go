@@ -16,7 +16,7 @@ import (
 )
 
 const (
-	ExpectedImagesRemoved = 3
+	expectedVulnerableImages = 3
 )
 
 func TestMetrics(t *testing.T) {
@@ -66,14 +66,14 @@ func TestMetrics(t *testing.T) {
 			r := regexp.MustCompile(`vulnerable_images_run_total{job="trivy-scanner",node_name=".+"} (\d+)`)
 			results := r.FindAllStringSubmatch(output, -1)
 
-			totalRemoved := 0
+			totalVulnerable := 0
 			for i, _ := range results {
 				val, _ := strconv.Atoi(results[i][1])
-				totalRemoved += val
+				totalVulnerable += val
 			}
 
-			if totalRemoved < 3 {
-				t.Error("images_removed_run_total incorrect, expected 3, got", totalRemoved)
+			if totalVulnerable < expectedVulnerableImages {
+				t.Error("images_removed_run_total incorrect, expected "+expectedVulnerableImages+", got", totalRemoved)
 			}
 
 			return ctx

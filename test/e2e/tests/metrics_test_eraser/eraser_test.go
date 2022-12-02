@@ -16,7 +16,7 @@ import (
 )
 
 const (
-	ExpectedImagesRemoved = 3
+	expectedImagesRemoved = 3
 )
 
 func TestMetrics(t *testing.T) {
@@ -56,8 +56,8 @@ func TestMetrics(t *testing.T) {
 				totalRemoved += val
 			}
 
-			if totalRemoved != 3 {
-				t.Error("images_removed_run_total incorrect, expected 3, got", totalRemoved)
+			if totalRemoved != expectedImagesRemoved {
+				t.Error("images_removed_run_total incorrect, expected "+expectedImagesRemoved", got", totalRemoved)
 			}
 
 			return ctx
