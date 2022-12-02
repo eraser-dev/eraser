@@ -4,9 +4,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 )
 
-var (
-	trueval = true
-)
+var trueval = true
 
 var SharedSecurityContext = &corev1.SecurityContext{
 	Capabilities: &corev1.Capabilities{
