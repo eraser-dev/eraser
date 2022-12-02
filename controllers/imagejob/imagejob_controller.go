@@ -40,24 +40,15 @@ import (
 	"sigs.k8s.io/kind/pkg/errors"
 
 	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
-	"github.com/Azure/eraser/controllers/util"
-	"github.com/Azure/eraser/pkg/utils"
-)
-
-const (
-	dockerPath     = "/run/dockershim.sock"
-	containerdPath = "/run/containerd/containerd.sock"
-	crioPath       = "/run/crio/crio.sock"
-	docker         = "docker"
-	containerd     = "containerd"
-	crio           = "cri-o"
+	controllerUtils "github.com/Azure/eraser/controllers/util"
+	eraserUtils "github.com/Azure/eraser/pkg/utils"
 )
 
 var log = logf.Log.WithName("controller").WithValues("process", "imagejob-controller")
 
 var (
 	successRatio         = flag.Float64("job-success-ratio", 1.0, "Ratio of successful/total runs to consider a job successful. 1.0 means all runs must succeed.")
-	filterNodesSelectors = utils.MultiFlag([]string{"eraser.sh/cleanup.filter"})
+	filterNodesSelectors = eraserUtils.MultiFlag([]string{"eraser.sh/cleanup.filter"})
 	filterOption         = flag.String("filter-nodes", "exclude", "operation type (include|exclude) to filter nodes that eraser runs on")
 )
 
@@ -104,15 +95,15 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	// Watch for changes to ImageJob
 	err = c.Watch(&source.Kind{Type: &eraserv1alpha1.ImageJob{}}, &handler.EnqueueRequestForObject{}, predicate.Funcs{
 		UpdateFunc: func(e event.UpdateEvent) bool {
-			if job, ok := e.ObjectNew.(*eraserv1alpha1.ImageJob); ok && util.IsCompletedOrFailed(job.Status.Phase) {
+			if job, ok := e.ObjectNew.(*eraserv1alpha1.ImageJob); ok && controllerUtils.IsCompletedOrFailed(job.Status.Phase) {
 				return false // handled by Owning controller
 			}
 
 			return true
 		},
-		CreateFunc:  util.AlwaysOnCreate,
-		GenericFunc: util.NeverOnGeneric,
-		DeleteFunc:  util.NeverOnDelete,
+		CreateFunc:  controllerUtils.AlwaysOnCreate,
+		GenericFunc: controllerUtils.NeverOnGeneric,
+		DeleteFunc:  controllerUtils.NeverOnDelete,
 	})
 	if err != nil {
 		return err
@@ -184,7 +175,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 
 func podListOptions(j *eraserv1alpha1.ImageJob) client.ListOptions {
 	return client.ListOptions{
-		Namespace:     utils.GetNamespace(),
+		Namespace:     eraserUtils.GetNamespace(),
 		LabelSelector: labels.SelectorFromSet(map[string]string{"name": j.Spec.JobTemplate.Spec.Containers[0].Name}),
 	}
 }
@@ -296,7 +287,7 @@ func (r *Reconciler) handleNewJob(ctx context.Context, imageJob *eraserv1alpha1.
 			TypeMeta: metav1.TypeMeta{},
 			Spec:     *podSpec,
 			ObjectMeta: metav1.ObjectMeta{
-				Namespace:    utils.GetNamespace(),
+				Namespace:    eraserUtils.GetNamespace(),
 				GenerateName: containerName + "-" + nodeName + "-",
 				Labels:       map[string]string{"name": containerName},
 				OwnerReferences: []metav1.OwnerReference{
@@ -327,19 +318,6 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&eraserv1alpha1.ImageJob{}).
 		Complete(r)
-}
-
-func getMountPath(runtimeName string) string {
-	switch runtimeName {
-	case docker:
-		return dockerPath
-	case containerd:
-		return containerdPath
-	case crio:
-		return crioPath
-	default:
-		return ""
-	}
 }
 
 func podsComplete(podList []corev1.Pod) bool {
@@ -434,8 +412,8 @@ func copyAndFillTemplateSpec(templateSpecTemplate *corev1.PodSpec, env []corev1.
 	runtime := node.Status.NodeInfo.ContainerRuntimeVersion
 	runtimeName := strings.Split(runtime, ":")[0]
 
-	mountPath := getMountPath(runtimeName)
-	if mountPath == "" {
+	mountPath, ok := eraserUtils.RuntimeSocketPathMap[runtimeName]
+	if !ok {
 		return nil, fmt.Errorf("incompatible runtime on node")
 	}
 
@@ -465,6 +443,10 @@ func copyAndFillTemplateSpec(templateSpecTemplate *corev1.PodSpec, env []corev1.
 	if len(templateSpec.Containers) > 2 {
 		scannerImg := &templateSpec.Containers[2]
 		scannerImg.VolumeMounts = append(scannerImg.VolumeMounts, volumeMounts...)
+		scannerImg.Env = append(scannerImg.Env, corev1.EnvVar{
+			Name:  eraserUtils.EnvEraserContainerRuntime,
+			Value: runtimeName,
+		})
 		scannerImg.Env = append(scannerImg.Env, env...)
 	}
 

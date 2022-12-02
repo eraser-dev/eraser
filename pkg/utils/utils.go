@@ -29,6 +29,15 @@ const (
 	EraseCompleteCollectPath = "/run/eraser.sh/shared-data/eraseCompleteCollect"
 	EraseCompleteMessage     = "complete"
 	EraseCompleteScanPath    = "/run/eraser.sh/shared-data/eraseCompleteScan"
+
+	RuntimeDocker     = "docker"
+	RuntimeContainerd = "containerd"
+	RuntimeCrio       = "cri-o"
+	DockerPath        = "/run/dockershim.sock"
+	ContainerdPath    = "/run/containerd/containerd.sock"
+	CrioPath          = "/run/crio/crio.sock"
+
+	EnvEraserContainerRuntime = "ERASER_CONTAINER_RUNTIME"
 )
 
 type ExclusionList struct {
@@ -41,9 +50,9 @@ var (
 	ErrOnlySupportUnixSocket = errors.New("only support unix socket endpoint")
 
 	RuntimeSocketPathMap = map[string]string{
-		"docker":     "unix:///var/run/dockershim.sock",
-		"containerd": "unix:///run/containerd/containerd.sock",
-		"cri-o":      "unix:///var/run/crio/crio.sock",
+		RuntimeDocker:     DockerPath,
+		RuntimeContainerd: ContainerdPath,
+		RuntimeCrio:       CrioPath,
 	}
 )
 

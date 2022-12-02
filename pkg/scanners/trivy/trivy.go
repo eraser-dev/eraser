@@ -19,6 +19,7 @@ import (
 
 	"github.com/Azure/eraser/pkg/logger"
 	"github.com/Azure/eraser/pkg/metrics"
+	"github.com/Azure/eraser/pkg/utils"
 	util "github.com/Azure/eraser/pkg/utils"
 	"github.com/aquasecurity/trivy/pkg/fanal/artifact"
 	artifactImage "github.com/aquasecurity/trivy/pkg/fanal/artifact/image"
@@ -82,6 +83,24 @@ var (
 	vulnTypeMap = map[string]bool{
 		vulnTypeOs:      false,
 		vulnTypeLibrary: false,
+	}
+
+	runtimeFanalOptionsMap = map[string][]fanalImage.Option{
+		utils.RuntimeDocker: {
+			fanalImage.DisableRemote(),
+			fanalImage.DisableContainerd(),
+			fanalImage.DisablePodman(),
+		},
+		utils.RuntimeContainerd: {
+			fanalImage.DisableRemote(),
+			fanalImage.DisableDockerd(),
+			fanalImage.DisablePodman(),
+		},
+		utils.RuntimeCrio: {
+			fanalImage.DisableRemote(),
+			fanalImage.DisableContainerd(),
+			fanalImage.DisableDockerd(),
+		},
 	}
 
 	log = logf.Log.WithName("scanner").WithValues("provider", "trivy")
@@ -181,6 +200,13 @@ func main() {
 	vulnerableImages := make([]eraserv1alpha1.Image, 0, len(allImages))
 	failedImages := make([]eraserv1alpha1.Image, 0, len(allImages))
 
+	runtime := os.Getenv(util.EnvEraserContainerRuntime)
+	imageSourceOptions, ok := runtimeFanalOptionsMap[runtime]
+	if !ok {
+		log.Error(err, "unable to determine runtime from environment")
+		os.Exit(generalErr)
+	}
+
 	for _, img := range allImages {
 		refs := make([]string, 0, len(img.Names)+len(img.Digests))
 		refs = append(refs, img.Digests...)
@@ -199,11 +225,7 @@ func main() {
 			ref := refs[i]
 			log.Info("scanning image with ref", "ref", ref)
 
-			dockerImage, cleanup, err := fanalImage.NewContainerImage(ctx, ref, scanConfig.dockerOptions,
-				fanalImage.DisablePodman(),
-				fanalImage.DisableDockerd(),
-				fanalImage.DisableRemote(),
-			)
+			dockerImage, cleanup, err := fanalImage.NewContainerImage(ctx, ref, scanConfig.dockerOptions, imageSourceOptions...)
 			if err != nil {
 				log.Error(err, "error fetching manifest for image", "img", img)
 				failedImages = append(failedImages, img)

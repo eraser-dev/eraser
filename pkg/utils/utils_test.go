@@ -2,6 +2,7 @@ package utils
 
 import (
 	"errors"
+	"fmt"
 	"net/url"
 	"testing"
 )
@@ -15,10 +16,10 @@ func TestParseEndpointWithFallBackProtocol(t *testing.T) {
 		errCheck         func(t *testing.T, err error)
 	}{
 		{
-			endpoint:         "unix:///run/containerd/containerd.sock",
+			endpoint:         fmt.Sprintf("unix://%s", ContainerdPath),
 			fallbackProtocol: "unix",
 			protocol:         "unix",
-			addr:             "/run/containerd/containerd.sock",
+			addr:             ContainerdPath,
 			errCheck: func(t *testing.T, err error) {
 				if err != nil {
 					t.Error(err)
@@ -80,9 +81,9 @@ func TestParseEndpoint(t *testing.T) {
 		errCheck func(t *testing.T, err error)
 	}{
 		{
-			endpoint: "unix:///run/containerd/containerd.sock",
+			endpoint: fmt.Sprintf("unix://%s", ContainerdPath),
 			protocol: "unix",
-			addr:     "/run/containerd/containerd.sock",
+			addr:     ContainerdPath,
 			errCheck: func(t *testing.T, err error) {
 				if err != nil {
 					t.Error(err)
@@ -139,8 +140,8 @@ func TestGetAddressAndDialer(t *testing.T) {
 		err      error
 	}{
 		{
-			endpoint: "unix:///var/run/dockershim.sock",
-			addr:     "/var/run/dockershim.sock",
+			endpoint: fmt.Sprintf("unix://%s", DockerPath),
+			addr:     DockerPath,
 			err:      nil,
 		},
 		{
