@@ -62,16 +62,32 @@ func KubectlDelete(kubeconfigPath, namespace string, args []string) error {
 	return err
 }
 
-// KubectlExec executes "kubectl exec" given a list of arguments.
-func KubectlExec(kubeconfigPath, podName, namespace string, args []string) (string, error) {
-	args = append([]string{
+func KubectlExecCurl(kubeconfigPath, podName string, endpoint, namespace string) (string, error) {
+	args := []string{
 		"exec",
-		fmt.Sprintf("--kubeconfig=%s", kubeconfigPath),
-		fmt.Sprintf("--namespace=%s", namespace),
-		"--request-timeout=5s",
+		"-i",
 		podName,
+		"-n",
+		namespace,
 		"--",
-	}, args...)
+		"curl",
+		endpoint,
+	}
+
+	return Kubectl(args)
+}
+
+func KubectlWait(kubeconfigPath, podName, namespace string) (string, error) {
+	args := []string{
+		"wait",
+		"--for=condition=Ready",
+		fmt.Sprintf("--kubeconfig=%s", kubeconfigPath),
+		"--timeout=120s",
+		"pod",
+		podName,
+		"-n",
+		namespace,
+	}
 
 	return Kubectl(args)
 }
@@ -104,6 +120,23 @@ func KubectlDescribe(kubeconfigPath, podName, namespace string) (string, error) 
 	return Kubectl(args)
 }
 
+// KubectlDescribe executes "kubectl describe" given a list of arguments.
+func KubectlCurlPod(kubeconfigPath, namespace string) (string, error) {
+	args := []string{
+		"run",
+		"temp",
+		"-n",
+		namespace,
+		"--image",
+		"curlimages/curl",
+		"--",
+		"tail",
+		"-f",
+		"/dev/null",
+	}
+	return Kubectl(args)
+}
+
 // KubectlGet executes "kubectl get" given a list of arguments.
 func KubectlGet(kubeconfigPath string, otherArgs ...string) (string, error) {
 	args := []string{
@@ -127,6 +160,18 @@ func Kubectl(args []string) (string, error) {
 	}
 
 	return output, err
+}
+
+func KubectlBackground(args []string) error {
+	klog.Infof("kubectl %s", strings.Join(args, " "))
+
+	cmd := exec.Command("kubectl", args...)
+
+	if err := cmd.Start(); err != nil {
+		return fmt.Errorf("failed to start cmd: %v", err)
+	}
+
+	return nil
 }
 
 func Helm(args []string) (string, error) {

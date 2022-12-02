@@ -6,7 +6,6 @@ package e2e
 import (
 	"context"
 	"testing"
-	"time"
 
 	"github.com/Azure/eraser/test/e2e/util"
 	appsv1 "k8s.io/api/apps/v1"
@@ -58,7 +57,7 @@ func TestExclusionList(t *testing.T) {
 			}
 
 			if err = wait.For(conditions.New(client.Resources()).DeploymentConditionMatch(&resultDeployment, appsv1.DeploymentAvailable, corev1.ConditionTrue),
-				wait.WithTimeout(time.Minute*5)); err != nil {
+				wait.WithTimeout(util.Timeout)); err != nil {
 				t.Error("deployment not found", err)
 			}
 
@@ -85,7 +84,7 @@ func TestExclusionList(t *testing.T) {
 			}
 
 			for _, nodeName := range util.GetClusterNodes(t) {
-				err := wait.For(util.ContainerNotPresentOnNode(nodeName, util.Nginx), wait.WithTimeout(time.Minute*2))
+				err := wait.For(util.ContainerNotPresentOnNode(nodeName, util.Nginx), wait.WithTimeout(util.Timeout))
 				if err != nil {
 					t.Logf("error while waiting for deployment deletion: %v", err)
 				}
@@ -96,7 +95,7 @@ func TestExclusionList(t *testing.T) {
 				t.Error("Failed to deploy image list config", err)
 			}
 
-			ctxT, cancel := context.WithTimeout(ctx, time.Minute*3)
+			ctxT, cancel := context.WithTimeout(ctx, util.Timeout)
 			defer cancel()
 			// since docker.io/library/* was excluded, nginx should still exist following deletion
 			util.CheckImagesExist(ctxT, t, util.GetClusterNodes(t), util.Nginx)

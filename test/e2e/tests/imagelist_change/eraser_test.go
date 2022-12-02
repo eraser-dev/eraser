@@ -6,7 +6,6 @@ package e2e
 import (
 	"context"
 	"testing"
-	"time"
 
 	"github.com/Azure/eraser/test/e2e/util"
 	appsv1 "k8s.io/api/apps/v1"
@@ -49,7 +48,7 @@ func TestUpdateImageList(t *testing.T) {
 			}
 
 			if err = wait.For(conditions.New(client.Resources()).DeploymentConditionMatch(&nginxDep, appsv1.DeploymentAvailable, corev1.ConditionTrue),
-				wait.WithTimeout(time.Minute*3)); err != nil {
+				wait.WithTimeout(util.Timeout)); err != nil {
 				t.Fatal("nginx deployment not found", err)
 			}
 			ctx = context.WithValue(ctx, util.Nginx, &nginxDep)
@@ -58,7 +57,7 @@ func TestUpdateImageList(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{Name: util.Redis, Namespace: cfg.Namespace()},
 			}
 			if err = wait.For(conditions.New(client.Resources()).DeploymentConditionMatch(&redisDep, appsv1.DeploymentAvailable, corev1.ConditionTrue),
-				wait.WithTimeout(time.Minute*3)); err != nil {
+				wait.WithTimeout(util.Timeout)); err != nil {
 				t.Fatal("redis deployment not found", err)
 			}
 			ctx = context.WithValue(ctx, util.Redis, &redisDep)
@@ -97,7 +96,7 @@ func TestUpdateImageList(t *testing.T) {
 			}
 
 			for _, nodeName := range util.GetClusterNodes(t) {
-				err := wait.For(util.ContainerNotPresentOnNode(nodeName, util.Redis), wait.WithTimeout(time.Minute*2))
+				err := wait.For(util.ContainerNotPresentOnNode(nodeName, util.Redis), wait.WithTimeout(util.Timeout))
 				if err != nil {
 					// Let's not mark this as an error
 					// We only have this to prevent race conditions with the eraser spinning up
@@ -105,7 +104,7 @@ func TestUpdateImageList(t *testing.T) {
 				}
 			}
 			for _, nodeName := range util.GetClusterNodes(t) {
-				err := wait.For(util.ContainerNotPresentOnNode(nodeName, util.Nginx), wait.WithTimeout(time.Minute*2))
+				err := wait.For(util.ContainerNotPresentOnNode(nodeName, util.Nginx), wait.WithTimeout(util.Timeout))
 				if err != nil {
 					// Let's not mark this as an error
 					// We only have this to prevent race conditions with the eraser spinning up
@@ -120,7 +119,7 @@ func TestUpdateImageList(t *testing.T) {
 				t.Error("Failed to deploy image list config", err)
 			}
 
-			ctxT, cancel := context.WithTimeout(ctx, 5*time.Minute)
+			ctxT, cancel := context.WithTimeout(ctx, util.Timeout)
 			defer cancel()
 			util.CheckImageRemoved(ctxT, t, util.GetClusterNodes(t), util.Nginx)
 
@@ -132,7 +131,7 @@ func TestUpdateImageList(t *testing.T) {
 				t.Error("Failed to deploy image list config", err)
 			}
 
-			ctxT, cancel := context.WithTimeout(ctx, 5*time.Minute)
+			ctxT, cancel := context.WithTimeout(ctx, util.Timeout)
 			defer cancel()
 			util.CheckImageRemoved(ctxT, t, util.GetClusterNodes(t), util.Redis)
 

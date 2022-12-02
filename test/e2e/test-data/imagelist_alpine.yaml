@@ -1,0 +1,7 @@
+apiVersion: eraser.sh/v1alpha1
+kind: ImageList
+metadata:
+  name: imagelist
+spec:
+  images:
+    - docker.io/library/alpine:3.7.3

@@ -6,7 +6,6 @@ package e2e
 import (
 	"context"
 	"testing"
-	"time"
 
 	"github.com/Azure/eraser/test/e2e/util"
 	appsv1 "k8s.io/api/apps/v1"
@@ -70,7 +69,7 @@ func TestIncludeNodes(t *testing.T) {
 				}
 
 				return len(nodeList.Items) == 1, nil
-			}, wait.WithTimeout(time.Minute))
+			}, wait.WithTimeout(util.Timeout))
 			if err != nil {
 				t.Errorf("error while waiting for selector %s to be added to node\n%#v", util.FilterNodeSelector, err)
 			}
@@ -81,7 +80,7 @@ func TestIncludeNodes(t *testing.T) {
 
 			if err = wait.For(
 				conditions.New(cfg.Client().Resources()).DeploymentConditionMatch(&resultDeployment, appsv1.DeploymentAvailable, corev1.ConditionTrue),
-				wait.WithTimeout(time.Minute*3),
+				wait.WithTimeout(util.Timeout),
 			); err != nil {
 				t.Error("deployment not found", err)
 			}
@@ -108,7 +107,7 @@ func TestIncludeNodes(t *testing.T) {
 				t.Error("Failed to delete the dep", err)
 			}
 
-			err = wait.For(util.ContainerNotPresentOnNode(util.FilterNodeName, util.Nginx), wait.WithTimeout(time.Minute*2))
+			err = wait.For(util.ContainerNotPresentOnNode(util.FilterNodeName, util.Nginx), wait.WithTimeout(util.Timeout))
 			if err != nil {
 				// Let's not mark this as an error
 				// We only have this to prevent race conditions with the eraser spinning up
@@ -125,14 +124,14 @@ func TestIncludeNodes(t *testing.T) {
 				t.Error("error getting collector pod logs", err)
 			}
 
-			ctxT, cancel := context.WithTimeout(ctx, time.Minute)
+			ctxT, cancel := context.WithTimeout(ctx, util.Timeout)
 			defer cancel()
 
 			// ensure image is removed from filtered node.
 			util.CheckImageRemoved(ctxT, t, []string{util.FilterNodeName}, util.Nginx)
 
 			// Wait for the imagejob to be completed by checking for its nonexistence in the cluster
-			err = wait.For(util.ImagejobNotInCluster(cfg.KubeconfigFile()), wait.WithTimeout(time.Minute*2))
+			err = wait.For(util.ImagejobNotInCluster(cfg.KubeconfigFile()), wait.WithTimeout(util.Timeout))
 			if err != nil {
 				t.Logf("error while waiting for imagejob cleanup: %v", err)
 			}

@@ -6,7 +6,6 @@ package e2e
 import (
 	"context"
 	"testing"
-	"time"
 
 	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
 	"github.com/Azure/eraser/test/e2e/util"
@@ -55,7 +54,7 @@ func TestPrune(t *testing.T) {
 			}
 
 			if err = wait.For(conditions.New(client.Resources()).DeploymentConditionMatch(&nginxDep, appsv1.DeploymentAvailable, corev1.ConditionTrue),
-				wait.WithTimeout(time.Minute*3)); err != nil {
+				wait.WithTimeout(util.Timeout)); err != nil {
 				t.Fatal("nginx deployment not found", err)
 			}
 			ctx = context.WithValue(ctx, util.Nginx, &nginxDep)
@@ -64,7 +63,7 @@ func TestPrune(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{Name: util.Redis, Namespace: cfg.Namespace()},
 			}
 			if err = wait.For(conditions.New(client.Resources()).DeploymentConditionMatch(&redisDep, appsv1.DeploymentAvailable, corev1.ConditionTrue),
-				wait.WithTimeout(time.Minute*3)); err != nil {
+				wait.WithTimeout(util.Timeout)); err != nil {
 				t.Fatal("redis deployment not found", err)
 			}
 			ctx = context.WithValue(ctx, util.Redis, &redisDep)
@@ -73,7 +72,7 @@ func TestPrune(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{Name: util.Caddy, Namespace: cfg.Namespace()},
 			}
 			if err = wait.For(conditions.New(client.Resources()).DeploymentConditionMatch(&caddyDep, appsv1.DeploymentAvailable, corev1.ConditionTrue),
-				wait.WithTimeout(time.Minute*3)); err != nil {
+				wait.WithTimeout(util.Timeout)); err != nil {
 				t.Fatal("caddy deployment not found", err)
 			}
 			ctx = context.WithValue(ctx, util.Caddy, &caddyDep)
@@ -113,7 +112,7 @@ func TestPrune(t *testing.T) {
 			}
 
 			for _, nodeName := range util.GetClusterNodes(t) {
-				err := wait.For(util.ContainerNotPresentOnNode(nodeName, util.Redis), wait.WithTimeout(time.Minute*2))
+				err := wait.For(util.ContainerNotPresentOnNode(nodeName, util.Redis), wait.WithTimeout(util.Timeout))
 				if err != nil {
 					// Let's not mark this as an error
 					// We only have this to prevent race conditions with the eraser spinning up
@@ -121,7 +120,7 @@ func TestPrune(t *testing.T) {
 				}
 			}
 			for _, nodeName := range util.GetClusterNodes(t) {
-				err := wait.For(util.ContainerNotPresentOnNode(nodeName, util.Caddy), wait.WithTimeout(time.Minute*2))
+				err := wait.For(util.ContainerNotPresentOnNode(nodeName, util.Caddy), wait.WithTimeout(util.Timeout))
 				if err != nil {
 					// Let's not mark this as an error
 					// We only have this to prevent race conditions with the eraser spinning up
@@ -145,11 +144,11 @@ func TestPrune(t *testing.T) {
 
 			// The first check could take some extra time, where as things should be done already for the 2nd check.
 			// So we'll give plenty of time and fail slow here.
-			ctxT, cancel := context.WithTimeout(ctx, 5*time.Minute)
+			ctxT, cancel := context.WithTimeout(ctx, util.Timeout)
 			defer cancel()
 			util.CheckImageRemoved(ctxT, t, util.GetClusterNodes(t), util.Redis)
 
-			ctxT, cancel = context.WithTimeout(ctx, time.Minute)
+			ctxT, cancel = context.WithTimeout(ctx, util.Timeout)
 			defer cancel()
 			util.CheckImageRemoved(ctxT, t, util.GetClusterNodes(t), util.Caddy)
 

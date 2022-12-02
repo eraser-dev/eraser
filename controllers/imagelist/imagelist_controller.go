@@ -17,9 +17,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"os"
+	"os/signal"
 	"path/filepath"
+	"syscall"
 	"time"
 
+	"go.opentelemetry.io/otel/metric/global"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -42,7 +46,9 @@ import (
 	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
 	"github.com/Azure/eraser/controllers/util"
 	"github.com/Azure/eraser/pkg/logger"
+	"github.com/Azure/eraser/pkg/metrics"
 	"github.com/Azure/eraser/pkg/utils"
+	sdkmetric "go.opentelemetry.io/otel/sdk/metric"
 )
 
 const (
@@ -54,6 +60,10 @@ var (
 	log        = logf.Log.WithName("controller").WithValues("process", "imagelist-controller")
 	imageList  = types.NamespacedName{Name: "imagelist"}
 	ownerLabel labels.Selector
+	startTime  time.Time
+	exporter   sdkmetric.Exporter
+	reader     sdkmetric.Reader
+	provider   *sdkmetric.MeterProvider
 )
 
 func init() {
@@ -71,6 +81,14 @@ func Add(mgr manager.Manager) error {
 
 // newReconciler returns a new reconcile.Reconciler.
 func newReconciler(mgr manager.Manager) reconcile.Reconciler {
+	if *util.OtlpEndpoint != "" {
+		ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+		defer cancel()
+
+		exporter, reader, provider = metrics.ConfigureMetrics(ctx, log, *util.OtlpEndpoint)
+		global.SetMeterProvider(provider)
+	}
+
 	return &Reconciler{
 		Client: mgr.GetClient(),
 		scheme: mgr.GetScheme(),
@@ -163,6 +181,14 @@ func (r *Reconciler) handleJobListEvent(ctx context.Context, imageList *eraserv1
 			return ctrl.Result{}, nil
 		}
 
+		if *util.OtlpEndpoint != "" {
+			// record metrics
+			if err := metrics.RecordMetricsController(ctx, global.MeterProvider(), float64(time.Since(startTime).Seconds()), int64(job.Status.Succeeded), int64(job.Status.Failed)); err != nil {
+				log.Error(err, "error recording metrics")
+			}
+			metrics.ExportMetrics(log, exporter, reader, provider)
+		}
+
 		return r.handleJobDeletion(ctx, job)
 	}
 
@@ -251,6 +277,17 @@ func (r *Reconciler) handleImageListEvent(ctx context.Context, req *ctrl.Request
 								},
 							},
 							SecurityContext: utils.SharedSecurityContext,
+							// env vars for exporting metrics
+							Env: []corev1.EnvVar{
+								{
+									Name:  "OTEL_EXPORTER_OTLP_ENDPOINT",
+									Value: *util.OtlpEndpoint,
+								},
+								{
+									Name:  "OTEL_SERVICE_NAME",
+									Value: "eraser",
+								},
+							},
 						},
 					},
 					ServiceAccountName: "eraser-imagejob-pods",
@@ -278,7 +315,9 @@ func (r *Reconciler) handleImageListEvent(ctx context.Context, req *ctrl.Request
 	job.Spec.JobTemplate.Spec.Volumes = append(job.Spec.JobTemplate.Spec.Volumes, exclusionVolume...)
 
 	err = r.Create(ctx, job)
+	startTime = time.Now()
 	log.Info("creating imagejob", "job", job.Name)
+
 	if err != nil {
 		if errors.IsNotFound(err) {
 			return reconcile.Result{}, nil

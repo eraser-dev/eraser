@@ -21,9 +21,13 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"os"
+	"os/signal"
 	"strconv"
+	"syscall"
 	"time"
 
+	"go.opentelemetry.io/otel/metric/global"
 	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -43,6 +47,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	"github.com/Azure/eraser/pkg/logger"
+	"github.com/Azure/eraser/pkg/metrics"
+	sdkmetric "go.opentelemetry.io/otel/sdk/metric"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -60,7 +66,11 @@ var (
 	deleteScanFailedImages = flag.Bool("delete-scan-failed-images", true, "whether or not to delete images for which scanning has failed")
 	scannerArgs            = utils.MultiFlag([]string{})
 	collectorArgs          = utils.MultiFlag([]string{})
+	startTime              time.Time
 	ownerLabel             labels.Selector
+	exporter               sdkmetric.Exporter
+	reader                 sdkmetric.Reader
+	provider               *sdkmetric.MeterProvider
 )
 
 func init() {
@@ -86,11 +96,20 @@ func Add(mgr manager.Manager) error {
 	if *collectorImage == "" {
 		return nil
 	}
+
 	return add(mgr, newReconciler(mgr))
 }
 
 // newReconciler returns a new reconcile.Reconciler.
 func newReconciler(mgr manager.Manager) reconcile.Reconciler {
+	if *util.OtlpEndpoint != "" {
+		ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+		defer cancel()
+
+		exporter, reader, provider = metrics.ConfigureMetrics(ctx, log, *util.OtlpEndpoint)
+		global.SetMeterProvider(provider)
+	}
+
 	return &Reconciler{
 		Client: mgr.GetClient(),
 		Scheme: mgr.GetScheme(),
@@ -212,6 +231,7 @@ func (r *Reconciler) handleJobDeletion(ctx context.Context, job *eraserv1alpha1.
 
 func (r *Reconciler) createImageJob(ctx context.Context, req ctrl.Request, argsCollector []string) (ctrl.Result, error) {
 	scanDisabled := *scannerImage == ""
+	startTime = time.Now()
 
 	job := &eraserv1alpha1.ImageJob{
 		ObjectMeta: metav1.ObjectMeta{
@@ -267,6 +287,16 @@ func (r *Reconciler) createImageJob(ctx context.Context, req ctrl.Request, argsC
 								},
 							},
 							SecurityContext: utils.SharedSecurityContext,
+							Env: []corev1.EnvVar{
+								{
+									Name:  "OTEL_EXPORTER_OTLP_ENDPOINT",
+									Value: *util.OtlpEndpoint,
+								},
+								{
+									Name:  "OTEL_SERVICE_NAME",
+									Value: "eraser",
+								},
+							},
 						},
 					},
 					ServiceAccountName: "eraser-imagejob-pods",
@@ -296,6 +326,17 @@ func (r *Reconciler) createImageJob(ctx context.Context, req ctrl.Request, argsC
 					"memory": resource.Quantity{
 						Format: resource.Format(*util.ScannerMemLimit),
 					},
+				},
+			},
+			// env vars for exporting metrics
+			Env: []corev1.EnvVar{
+				{
+					Name:  "OTEL_EXPORTER_OTLP_ENDPOINT",
+					Value: *util.OtlpEndpoint,
+				},
+				{
+					Name:  "OTEL_SERVICE_NAME",
+					Value: "trivy-scanner",
 				},
 			},
 		}
@@ -343,6 +384,14 @@ func (r *Reconciler) handleCompletedImageJob(ctx context.Context, req ctrl.Reque
 			return ctrl.Result{}, nil
 		}
 
+		if *util.OtlpEndpoint != "" {
+			// record metrics
+			if err := metrics.RecordMetricsController(ctx, global.MeterProvider(), float64(time.Since(startTime).Seconds()), int64(childJob.Status.Succeeded), int64(childJob.Status.Failed)); err != nil {
+				log.Error(err, "error recording metrics")
+			}
+			metrics.ExportMetrics(log, exporter, reader, provider)
+		}
+
 		if res, err := r.handleJobDeletion(ctx, childJob); err != nil || res.RequeueAfter > 0 {
 			return res, err
 		}
@@ -355,6 +404,15 @@ func (r *Reconciler) handleCompletedImageJob(ctx context.Context, req ctrl.Reque
 			}
 			return ctrl.Result{}, nil
 		}
+
+		if *util.OtlpEndpoint != "" {
+			// record metrics
+			if err := metrics.RecordMetricsController(ctx, global.MeterProvider(), float64(time.Since(startTime).Milliseconds()), int64(childJob.Status.Succeeded), int64(childJob.Status.Failed)); err != nil {
+				log.Error(err, "error recording metrics")
+			}
+			metrics.ExportMetrics(log, exporter, reader, provider)
+		}
+
 		if res, err := r.handleJobDeletion(ctx, childJob); err != nil || res.RequeueAfter > 0 {
 			return res, err
 		}

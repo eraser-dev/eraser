@@ -6,7 +6,6 @@ package e2e
 import (
 	"context"
 	"testing"
-	"time"
 
 	"github.com/Azure/eraser/test/e2e/util"
 
@@ -17,6 +16,7 @@ import (
 	"sigs.k8s.io/e2e-framework/klient/wait/conditions"
 	"sigs.k8s.io/e2e-framework/pkg/envconf"
 	"sigs.k8s.io/e2e-framework/pkg/features"
+	"time"
 )
 
 func TestCollectorExcluded(t *testing.T) {
@@ -45,14 +45,14 @@ func TestCollectorExcluded(t *testing.T) {
 			return ctx
 		}).
 		Assess("Alpine image is not removed", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
-			ctxT, cancel := context.WithTimeout(ctx, time.Minute*5)
+			ctxT, cancel := context.WithTimeout(ctx, util.Timeout)
 			defer cancel()
 			util.CheckImagesExist(ctxT, t, util.GetClusterNodes(t), util.VulnerableImage)
 
 			return ctx
 		}).
 		Assess("Non-vulnerable image is not removed", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
-			ctxT, cancel := context.WithTimeout(ctx, time.Minute*5)
+			ctxT, cancel := context.WithTimeout(ctx, util.Timeout)
 			defer cancel()
 			util.CheckImagesExist(ctxT, t, util.GetClusterNodes(t), util.NonVulnerableImage)
 

@@ -77,6 +77,7 @@ var (
 	TestLogDir         = os.Getenv("TEST_LOGDIR")
 
 	ParsedImages *Images
+	Timeout      = time.Minute * 5
 )
 
 type (
@@ -556,8 +557,49 @@ func DeployEraserHelm(namespace string, args ...string) env.Func {
 		}
 
 		if err = wait.For(conditions.New(client.Resources()).DeploymentConditionMatch(&eraserManagerDep, appsv1.DeploymentAvailable, corev1.ConditionTrue),
-			wait.WithTimeout(time.Minute*1)); err != nil {
+			wait.WithTimeout(Timeout)); err != nil {
 			klog.ErrorS(err, "failed to deploy eraser manager")
+
+			return ctx, err
+		}
+
+		return ctx, nil
+	}
+}
+
+func DeployOtelCollector(namespace string) env.Func {
+	return func(ctx context.Context, cfg *envconf.Config) (context.Context, error) {
+		// set up otel collector
+		wd, err := os.Getwd()
+		if err != nil {
+			return ctx, err
+		}
+
+		otelCollectorAbsolutePath, err := filepath.Abs(filepath.Join(wd, "../../", "test-data/otelcollector.yaml"))
+		if err != nil {
+			return ctx, err
+		}
+
+		// start otelcollector deployment
+		otelargs := []string{"-f", otelCollectorAbsolutePath}
+		if err := KubectlApply(cfg.KubeconfigFile(), namespace, otelargs); err != nil {
+			return ctx, err
+		}
+
+		client, err := cfg.NewClient()
+		if err != nil {
+			klog.ErrorS(err, "Failed to create new Client")
+			return ctx, err
+		}
+
+		// wait for the deployment to finish becoming available
+		otelCollectorDep := appsv1.Deployment{
+			ObjectMeta: metav1.ObjectMeta{Name: "otel-collector", Namespace: namespace},
+		}
+
+		if err = wait.For(conditions.New(client.Resources()).DeploymentConditionMatch(&otelCollectorDep, appsv1.DeploymentAvailable, corev1.ConditionTrue),
+			wait.WithTimeout(Timeout)); err != nil {
+			klog.ErrorS(err, "failed to deploy otelcollector")
 
 			return ctx, err
 		}
@@ -641,7 +683,7 @@ func GetPodLogs(ctx context.Context, cfg *envconf.Config, t *testing.T, imagelis
 				return false, err
 			}
 			return len(ls.Items) > 0, nil
-		}, wait.WithTimeout(time.Minute))
+		}, wait.WithTimeout(Timeout))
 		if err != nil {
 			t.Errorf("could not list pods: %v", err)
 		}
@@ -654,7 +696,7 @@ func GetPodLogs(ctx context.Context, cfg *envconf.Config, t *testing.T, imagelis
 				return false, err
 			}
 			return len(ls.Items) > 0, nil
-		}, wait.WithTimeout(time.Minute))
+		}, wait.WithTimeout(Timeout))
 		if err != nil {
 			t.Errorf("could not list pods: %v", err)
 		}
@@ -684,7 +726,7 @@ func GetPodLogs(ctx context.Context, cfg *envconf.Config, t *testing.T, imagelis
 		}
 
 		// wait for current pod to complete
-		err = wait.For(conditions.New(c.Resources()).PodPhaseMatch(&pod, corev1.PodSucceeded), wait.WithTimeout(time.Minute*2))
+		err = wait.For(conditions.New(c.Resources()).PodPhaseMatch(&pod, corev1.PodSucceeded), wait.WithTimeout(Timeout))
 		if err != nil {
 			t.Errorf("error waiting for pod completion %s %v", pod.Name, err)
 		}
@@ -799,7 +841,7 @@ func CreateExclusionList(namespace string, list string) env.Func {
 			}
 
 			return false, nil
-		}, wait.WithTimeout(time.Minute*3))
+		}, wait.WithTimeout(Timeout))
 		if err != nil {
 			return ctx, err
 		}
