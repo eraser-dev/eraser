@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -11,9 +10,9 @@ import (
 	"os"
 	"time"
 
+	"github.com/Azure/eraser/pkg/cri"
 	"github.com/Azure/eraser/pkg/logger"
 	"golang.org/x/sys/unix"
-	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 
 	util "github.com/Azure/eraser/pkg/utils"
@@ -56,14 +55,11 @@ func main() {
 		os.Exit(1)
 	}
 
-	imageclient, conn, err := util.GetImageClient(context.Background(), socketPath)
+	client, err := cri.NewCollectorClient(socketPath)
 	if err != nil {
-		log.Error(err, "failed to get image client")
+		log.Error(err, "unsupported runtime version")
 		os.Exit(1)
 	}
-
-	runTimeClient := pb.NewRuntimeServiceClient(conn)
-	client := &client{imageclient, runTimeClient}
 
 	excluded, err = util.ParseExcluded()
 	if os.IsNotExist(err) {

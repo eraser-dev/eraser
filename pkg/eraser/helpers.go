@@ -4,16 +4,17 @@ import (
 	"context"
 
 	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
+	"github.com/Azure/eraser/pkg/cri"
 	util "github.com/Azure/eraser/pkg/utils"
 )
 
-func removeImages(c Client, targetImages []string) (int, error) {
+func removeImages(c cri.Eraser, targetImages []string) (int, error) {
 	removed := 0
 
 	backgroundContext, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
-	images, err := c.listImages(backgroundContext)
+	images, err := c.ListImages(backgroundContext)
 	if err != nil {
 		return 0, err
 	}
@@ -41,7 +42,7 @@ func removeImages(c Client, targetImages []string) (int, error) {
 		idToImageMap[img.Id] = newImg
 	}
 
-	containers, err := c.listContainers(backgroundContext)
+	containers, err := c.ListContainers(backgroundContext)
 	if err != nil {
 		return 0, err
 	}
@@ -74,7 +75,7 @@ func removeImages(c Client, targetImages []string) (int, error) {
 				continue
 			}
 
-			err = c.deleteImage(backgroundContext, imageID)
+			err = c.DeleteImage(backgroundContext, imageID)
 			if err != nil {
 				log.Error(err, "error removing image", "given", imgDigestOrTag, "imageID", imageID)
 				continue
@@ -107,7 +108,7 @@ func removeImages(c Client, targetImages []string) (int, error) {
 				continue
 			}
 
-			if err := c.deleteImage(backgroundContext, imageID); err != nil {
+			if err := c.DeleteImage(backgroundContext, imageID); err != nil {
 				success = false
 				log.Error(err, "error removing image", "imageID", imageID)
 				continue
