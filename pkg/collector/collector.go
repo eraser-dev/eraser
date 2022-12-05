@@ -57,7 +57,7 @@ func main() {
 
 	client, err := cri.NewCollectorClient(socketPath)
 	if err != nil {
-		log.Error(err, "unsupported runtime version")
+		log.Error(err, "failed to get image client")
 		os.Exit(1)
 	}
 
