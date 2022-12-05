@@ -41,10 +41,10 @@ func NewEraserClient(socketPath string) (Eraser, error) {
 		return nil, err
 	}
 
-	return newClientWithFallback(conn, ctx)
+	return newClientWithFallback(ctx, conn)
 }
 
-func newClientWithFallback(conn *grpc.ClientConn, ctx context.Context) (Eraser, error) {
+func newClientWithFallback(ctx context.Context, conn *grpc.ClientConn) (Eraser, error) {
 	errs := new(errors)
 	funcs := []runtimeTryFunc{tryV1, tryV1Alpha2}
 
