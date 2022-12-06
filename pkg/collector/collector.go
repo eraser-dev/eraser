@@ -82,6 +82,7 @@ func main() {
 		log.Error(err, "failed to list all images")
 		os.Exit(1)
 	}
+	log.Info("images collected", "finalImages:", finalImages)
 
 	data, err := json.Marshal(finalImages)
 	if err != nil {
