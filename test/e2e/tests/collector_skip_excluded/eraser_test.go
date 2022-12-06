@@ -6,6 +6,7 @@ package e2e
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/Azure/eraser/test/e2e/util"
 
@@ -16,7 +17,6 @@ import (
 	"sigs.k8s.io/e2e-framework/klient/wait/conditions"
 	"sigs.k8s.io/e2e-framework/pkg/envconf"
 	"sigs.k8s.io/e2e-framework/pkg/features"
-	"time"
 )
 
 func TestCollectorExcluded(t *testing.T) {
