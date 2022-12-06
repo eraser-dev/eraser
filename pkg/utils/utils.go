@@ -29,6 +29,15 @@ const (
 	EraseCompleteCollectPath = "/run/eraser.sh/shared-data/eraseCompleteCollect"
 	EraseCompleteMessage     = "complete"
 	EraseCompleteScanPath    = "/run/eraser.sh/shared-data/eraseCompleteScan"
+
+	RuntimeDocker     = "docker"
+	RuntimeContainerd = "containerd"
+	RuntimeCrio       = "cri-o"
+	DockerPath        = "/run/dockershim.sock"
+	ContainerdPath    = "/run/containerd/containerd.sock"
+	CrioPath          = "/run/crio/crio.sock"
+
+	EnvEraserContainerRuntime = "ERASER_CONTAINER_RUNTIME"
 )
 
 type ExclusionList struct {
@@ -41,9 +50,9 @@ var (
 	ErrOnlySupportUnixSocket = errors.New("only support unix socket endpoint")
 
 	RuntimeSocketPathMap = map[string]string{
-		"docker":     "unix:///var/run/dockershim.sock",
-		"containerd": "unix:///run/containerd/containerd.sock",
-		"cri-o":      "unix:///var/run/crio/crio.sock",
+		RuntimeDocker:     DockerPath,
+		RuntimeContainerd: ContainerdPath,
+		RuntimeCrio:       CrioPath,
 	}
 )
 
@@ -127,33 +136,42 @@ func ListContainers(ctx context.Context, runtime pb.RuntimeServiceClient) (list 
 	return resp.Containers, nil
 }
 
-func GetRunningImages(containers []*pb.Container, idToTagListMap map[string][]string) map[string]string {
+func GetRunningImages(containers []*pb.Container, idToImageMap map[string]eraserv1alpha1.Image) map[string]string {
 	// Images that are running
 	// map of (digest | tag) -> digest
 	runningImages := make(map[string]string)
 	for _, container := range containers {
 		curr := container.Image
-		digest := curr.GetImage()
-		runningImages[digest] = digest
+		imageID := curr.GetImage()
+		runningImages[imageID] = imageID
 
-		for _, tag := range idToTagListMap[digest] {
-			runningImages[tag] = digest
+		for _, name := range idToImageMap[imageID].Names {
+			runningImages[name] = imageID
+		}
+
+		for _, digest := range idToImageMap[imageID].Digests {
+			runningImages[digest] = imageID
 		}
 	}
 	return runningImages
 }
 
-func GetNonRunningImages(runningImages map[string]string, allImages []string, idToTagListMap map[string][]string) map[string]string {
+func GetNonRunningImages(runningImages map[string]string, allImages []eraserv1alpha1.Image, idToImageMap map[string]eraserv1alpha1.Image) map[string]string {
 	// Images that aren't running
 	// map of (digest | tag) -> digest
 	nonRunningImages := make(map[string]string)
 
-	for _, digest := range allImages {
-		if _, isRunning := runningImages[digest]; !isRunning {
-			nonRunningImages[digest] = digest
+	for _, img := range allImages {
+		imageID := img.ImageID
+		if _, isRunning := runningImages[imageID]; !isRunning {
+			nonRunningImages[imageID] = imageID
 
-			for _, tag := range idToTagListMap[digest] {
-				nonRunningImages[tag] = digest
+			for _, name := range idToImageMap[imageID].Names {
+				nonRunningImages[name] = imageID
+			}
+
+			for _, digest := range idToImageMap[imageID].Digests {
+				nonRunningImages[digest] = imageID
 			}
 		}
 	}
@@ -161,7 +179,7 @@ func GetNonRunningImages(runningImages map[string]string, allImages []string, id
 	return nonRunningImages
 }
 
-func IsExcluded(excluded map[string]struct{}, img string, idToTagListMap map[string][]string) bool {
+func IsExcluded(excluded map[string]struct{}, img string, idToImageMap map[string]eraserv1alpha1.Image) bool {
 	if len(excluded) == 0 {
 		return false
 	}
@@ -172,8 +190,14 @@ func IsExcluded(excluded map[string]struct{}, img string, idToTagListMap map[str
 	}
 
 	// check if img excluded by name
-	for _, imgName := range idToTagListMap[img] {
+	for _, imgName := range idToImageMap[img].Names {
 		if _, contains := excluded[imgName]; contains {
+			return true
+		}
+	}
+
+	for _, digest := range idToImageMap[img].Digests {
+		if _, contains := excluded[digest]; contains {
 			return true
 		}
 	}
@@ -191,8 +215,14 @@ func IsExcluded(excluded map[string]struct{}, img string, idToTagListMap map[str
 			}
 
 			// retrieve and check by name in the case img is digest
-			for _, imgName := range idToTagListMap[img] {
+			for _, imgName := range idToImageMap[img].Names {
 				if match := strings.HasPrefix(imgName, repo[0]); match {
+					return true
+				}
+			}
+
+			for _, digest := range idToImageMap[img].Digests {
+				if match := strings.HasPrefix(digest, repo[0]); match {
 					return true
 				}
 			}
@@ -208,8 +238,14 @@ func IsExcluded(excluded map[string]struct{}, img string, idToTagListMap map[str
 			}
 
 			// retrieve and check by name in the case img is digest
-			for _, imgName := range idToTagListMap[img] {
+			for _, imgName := range idToImageMap[img].Names {
 				if match := strings.HasPrefix(imgName, imagePath[0]); match {
+					return true
+				}
+			}
+
+			for _, digest := range idToImageMap[img].Digests {
+				if match := strings.HasPrefix(digest, imagePath[0]); match {
 					return true
 				}
 			}
@@ -359,4 +395,26 @@ func WriteScanErasePipe(vulnerableImages []eraserv1alpha1.Image) error {
 	}
 
 	return file.Close()
+}
+
+func ProcessRepoDigests(repoDigests []string) ([]string, []error) {
+	digests := []string{}
+	errs := []error{}
+
+	digestSet := make(map[string]struct{})
+	for _, repoDigest := range repoDigests {
+		s := strings.Split(repoDigest, "@")
+		if len(s) < 2 {
+			errs = append(errs, fmt.Errorf("repoDigest not formatted correctly: %s", repoDigest))
+			continue
+		}
+		digest := s[1]
+		digestSet[digest] = struct{}{}
+	}
+
+	for digest := range digestSet {
+		digests = append(digests, digest)
+	}
+
+	return digests, errs
 }

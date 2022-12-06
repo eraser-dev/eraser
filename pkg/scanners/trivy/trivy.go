@@ -19,10 +19,12 @@ import (
 
 	"github.com/Azure/eraser/pkg/logger"
 	"github.com/Azure/eraser/pkg/metrics"
+	"github.com/Azure/eraser/pkg/utils"
 	util "github.com/Azure/eraser/pkg/utils"
-	"github.com/aquasecurity/fanal/artifact"
-	artifactImage "github.com/aquasecurity/fanal/artifact/image"
-	fanalImage "github.com/aquasecurity/fanal/image"
+	"github.com/aquasecurity/trivy/pkg/fanal/analyzer"
+	"github.com/aquasecurity/trivy/pkg/fanal/artifact"
+	artifactImage "github.com/aquasecurity/trivy/pkg/fanal/artifact/image"
+	fanalImage "github.com/aquasecurity/trivy/pkg/fanal/image"
 	trivylogger "github.com/aquasecurity/trivy/pkg/log"
 	"github.com/aquasecurity/trivy/pkg/scanner"
 	"go.opentelemetry.io/otel/metric/global"
@@ -54,6 +56,7 @@ var (
 	securityChecks         = flag.String("security-checks", "vuln", "comma-separated list of what security issues to detect")
 	severity               = flag.String("severity", "CRITICAL", "list of severity levels to report")
 	vulnTypes              = flag.String("vuln-type", "os,library", "comma separated list of vulnerability types")
+	rekorURL               = flag.String("rekor-url", "https://rekor.sigstore.dev", "Rekor URL")
 	deleteScanFailedImages = flag.Bool("delete-scan-failed-images", true, "whether or not to delete images for which scanning has failed")
 
 	// Will be modified by parseCommaSeparatedOptions() to reflect the
@@ -82,6 +85,24 @@ var (
 	vulnTypeMap = map[string]bool{
 		vulnTypeOs:      false,
 		vulnTypeLibrary: false,
+	}
+
+	runtimeFanalOptionsMap = map[string][]fanalImage.Option{
+		utils.RuntimeDocker: {
+			fanalImage.DisableRemote(),
+			fanalImage.DisableContainerd(),
+			fanalImage.DisablePodman(),
+		},
+		utils.RuntimeContainerd: {
+			fanalImage.DisableRemote(),
+			fanalImage.DisableDockerd(),
+			fanalImage.DisablePodman(),
+		},
+		utils.RuntimeCrio: {
+			fanalImage.DisableRemote(),
+			fanalImage.DisableContainerd(),
+			fanalImage.DisableDockerd(),
+		},
 	}
 
 	log = logf.Log.WithName("scanner").WithValues("provider", "trivy")
@@ -178,66 +199,86 @@ func main() {
 		os.Exit(generalErr)
 	}
 
-	resultClient := initializeResultClient()
 	vulnerableImages := make([]eraserv1alpha1.Image, 0, len(allImages))
 	failedImages := make([]eraserv1alpha1.Image, 0, len(allImages))
 
+	runtime := os.Getenv(util.EnvEraserContainerRuntime)
+	imageSourceOptions, ok := runtimeFanalOptionsMap[runtime]
+	if !ok {
+		log.Error(err, "unable to determine runtime from environment")
+		os.Exit(generalErr)
+	}
+
 	for _, img := range allImages {
-		imageRef := img.Name
-		if imageRef == "" {
+		refs := make([]string, 0, len(img.Names)+len(img.Digests))
+		refs = append(refs, img.Digests...)
+		refs = append(refs, img.Names...)
+
+		if len(refs) == 0 {
 			log.Info("found image with no name", "img", img)
 			failedImages = append(failedImages, img)
 			continue
 		}
 
-		log.Info("scanning image", "imageRef", imageRef)
+		scanSucceeded := false
+		log.Info("scanning image with id", "imageID", img.ImageID, "refs", refs)
 
-		dockerImage, cleanup, err := fanalImage.NewDockerImage(ctx, imageRef, scanConfig.dockerOptions)
-		if err != nil {
-			log.Error(err, "error fetching manifest for image", "img", img)
-			failedImages = append(failedImages, img)
-			cleanup()
-			continue
-		}
+		for i := 0; i < len(refs) && !scanSucceeded; i++ {
+			ref := refs[i]
+			log.Info("scanning image with ref", "ref", ref)
 
-		artifactToScan, err := artifactImage.NewArtifact(dockerImage, scanConfig.fscache, artifact.Option{})
-		if err != nil {
-			log.Error(err, "error registering config for artifact", "img", img)
-			failedImages = append(failedImages, img)
-			cleanup()
-			continue
-		}
+			dockerImage, cleanup, err := fanalImage.NewContainerImage(ctx, ref, scanConfig.dockerOptions, imageSourceOptions...)
+			if err != nil { // could not locate image
+				log.Error(err, "could not find image by reference", "imageID", img.ImageID, "reference", ref)
+				cleanup()
+				continue
+			}
+			log.Info("found image with id under reference", "imageID", img.ImageID, "ref", ref)
 
-		scanner := scanner.NewScanner(scanConfig.localScanner, artifactToScan)
-		report, err := scanner.ScanArtifact(ctx, scanConfig.scanOptions)
-		if err != nil {
-			log.Error(err, "error scanning image", "img", img)
-			failedImages = append(failedImages, img)
-			cleanup()
-			continue
-		}
+			artifactToScan, err := artifactImage.NewArtifact(dockerImage, scanConfig.fscache, artifact.Option{
+				Offline:           true,
+				DisabledAnalyzers: analyzer.TypeLockfiles,
+				RekorURL:          *rekorURL,
+			})
+			if err != nil {
+				log.Error(err, "error registering config for artifact", "imageID", img.ImageID, "reference", ref)
+				cleanup()
+				continue
+			}
 
-	outer:
-		for i := range report.Results {
-			resultClient.FillVulnerabilityInfo(report.Results[i].Vulnerabilities, report.Results[i].Type)
+			scanner := scanner.NewScanner(scanConfig.localScanner, artifactToScan)
+			report, err := scanner.ScanArtifact(ctx, scanConfig.scanOptions)
+			if err != nil {
+				log.Error(err, "error scanning image", "imageID", img.ImageID, "reference", ref)
+				cleanup()
+				continue
+			}
 
-			for j := range report.Results[i].Vulnerabilities {
-				if *ignoreUnfixed && report.Results[i].Vulnerabilities[j].FixedVersion == "" {
-					continue
-				}
+		outer:
+			for i := range report.Results {
+				for j := range report.Results[i].Vulnerabilities {
+					if *ignoreUnfixed && report.Results[i].Vulnerabilities[j].FixedVersion == "" {
+						continue
+					}
 
-				if report.Results[i].Vulnerabilities[j].Severity == "" {
-					report.Results[i].Vulnerabilities[j].Severity = severityUnknown
-				}
+					if report.Results[i].Vulnerabilities[j].Severity == "" {
+						report.Results[i].Vulnerabilities[j].Severity = severityUnknown
+					}
 
-				if severityMap[report.Results[i].Vulnerabilities[j].Severity] {
-					vulnerableImages = append(vulnerableImages, img)
-					break outer
+					if severityMap[report.Results[i].Vulnerabilities[j].Severity] {
+						vulnerableImages = append(vulnerableImages, img)
+						break outer
+					}
 				}
 			}
+
+			scanSucceeded = true
+			cleanup()
 		}
 
-		cleanup()
+		if !scanSucceeded {
+			failedImages = append(failedImages, img)
+		}
 	}
 
 	if len(failedImages) > 0 {
