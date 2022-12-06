@@ -125,6 +125,28 @@ jobs:
           make manifests
           git diff --exit-code
 
+  check-codegen:
+    name: "Check Codegen"
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@2e205a28d0e1da00c5f53b161f4067b052c61f34
+        with:
+          egress-policy: audit
+      - name: Check out code into the Go module directory
+        uses: actions/checkout@v3
+      - name: Set up Go 1.19
+        uses: actions/setup-go@v3
+        with:
+          go-version: 1.19
+      - name: Check go.mod and manifests
+        run: |
+          go mod tidy
+          git diff --exit-code
+          make generate
+          git diff --exit-code
+
   e2e-test:
       name: "E2E Tests"
       runs-on: ubuntu-latest
