@@ -23,7 +23,7 @@ import (
 
 const (
 	generalErr = 1
-	// name of custom scanner
+	// name of custom scanner.
 	providerName = "CUSTOM_SCANNER"
 )
 
