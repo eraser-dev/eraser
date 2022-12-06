@@ -3,7 +3,7 @@ package main
 import (
 	"testing"
 
-	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
+	v1 "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
 
 func TestRemoveImages(t *testing.T) {
@@ -37,17 +37,17 @@ func TestRemoveImages(t *testing.T) {
 			added := make(map[string]struct{})
 			running := make(map[string]struct{})
 			for j := range tc.running {
-				client.containers = append(client.containers, &pb.Container{
-					Image: &pb.ImageSpec{Image: tc.running[j]},
+				client.containers = append(client.containers, &v1.Container{
+					Image: &v1.ImageSpec{Image: tc.running[j]},
 				})
-				client.images = append(client.images, &pb.Image{Id: tc.running[j]})
+				client.images = append(client.images, &v1.Image{Id: tc.running[j]})
 				added[tc.running[j]] = struct{}{}
 				running[tc.running[j]] = struct{}{}
 			}
 
 			for j := range tc.cached {
 				if _, ok := added[tc.cached[j]]; !ok {
-					client.images = append(client.images, &pb.Image{Id: tc.cached[j]})
+					client.images = append(client.images, &v1.Image{Id: tc.cached[j]})
 				}
 			}
 

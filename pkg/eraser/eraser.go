@@ -15,9 +15,9 @@ import (
 	"time"
 
 	"go.opentelemetry.io/otel/metric/global"
-	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 
+	"github.com/Azure/eraser/pkg/cri"
 	"github.com/Azure/eraser/pkg/logger"
 	"github.com/Azure/eraser/pkg/metrics"
 
@@ -66,14 +66,11 @@ func main() {
 		os.Exit(generalErr)
 	}
 
-	imageclient, conn, err := util.GetImageClient(context.Background(), socketPath)
+	client, err := cri.NewEraserClient(socketPath)
 	if err != nil {
 		log.Error(err, "failed to get image client")
 		os.Exit(generalErr)
 	}
-
-	runtimeClient := pb.NewRuntimeServiceClient(conn)
-	client := client{imageclient, runtimeClient}
 
 	var imagelist []string
 
@@ -133,7 +130,7 @@ func main() {
 		log.Info("no images to exclude")
 	}
 
-	removed, err := removeImages(&client, imagelist)
+	removed, err := removeImages(client, imagelist)
 	if err != nil {
 		log.Error(err, "failed to remove images")
 		os.Exit(generalErr)

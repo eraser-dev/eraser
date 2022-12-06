@@ -50,6 +50,21 @@ var (
 	successRatio         = flag.Float64("job-success-ratio", 1.0, "Ratio of successful/total runs to consider a job successful. 1.0 means all runs must succeed.")
 	filterNodesSelectors = eraserUtils.MultiFlag([]string{"eraser.sh/cleanup.filter"})
 	filterOption         = flag.String("filter-nodes", "exclude", "operation type (include|exclude) to filter nodes that eraser runs on")
+
+	defaultTolerations = []corev1.Toleration{
+		{
+			Effect:   corev1.TaintEffectNoExecute,
+			Operator: corev1.TolerationOpExists,
+		},
+		{
+			Effect:   corev1.TaintEffectNoSchedule,
+			Operator: corev1.TolerationOpExists,
+		},
+		{
+			Effect:   corev1.TaintEffectPreferNoSchedule,
+			Operator: corev1.TolerationOpExists,
+		},
+	}
 )
 
 func init() {
@@ -427,6 +442,7 @@ func copyAndFillTemplateSpec(templateSpecTemplate *corev1.PodSpec, env []corev1.
 	}
 
 	templateSpec := templateSpecTemplate.DeepCopy()
+	templateSpec.Tolerations = defaultTolerations
 
 	eraserImg := &templateSpec.Containers[0]
 	eraserImg.Args = append(eraserImg.Args, args...)
