@@ -5,14 +5,14 @@ package e2e
 
 import (
 	"context"
+	"regexp"
+	"strconv"
 	"testing"
 
 	"github.com/Azure/eraser/test/e2e/util"
 
-	"regexp"
 	"sigs.k8s.io/e2e-framework/pkg/envconf"
 	"sigs.k8s.io/e2e-framework/pkg/features"
-	"strconv"
 )
 
 const (
@@ -51,7 +51,7 @@ func TestMetrics(t *testing.T) {
 			results := r.FindAllStringSubmatch(output, -1)
 
 			totalRemoved := 0
-			for i, _ := range results {
+			for i := range results {
 				val, _ := strconv.Atoi(results[i][1])
 				totalRemoved += val
 			}
