@@ -43,3 +43,4 @@ scanner:
     args: []
 
 nameOverride: ""
+imagePullSecrets: []
