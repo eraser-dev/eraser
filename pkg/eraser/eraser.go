@@ -142,7 +142,6 @@ func main() {
 	if os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT") != "" {
 		// record metrics
 		ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
-		defer cancel()
 
 		exporter, reader, provider := metrics.ConfigureMetrics(ctx, log, os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT"))
 		global.SetMeterProvider(provider)
@@ -151,6 +150,7 @@ func main() {
 			log.Error(err, "error recording metrics")
 		}
 		metrics.ExportMetrics(log, exporter, reader, provider)
+		cancel()
 	}
 
 	if *imageListPtr == "" {
