@@ -40,11 +40,9 @@ const (
 	EnvEraserContainerRuntime = "ERASER_CONTAINER_RUNTIME"
 )
 
-type (
-	ExclusionList struct {
-		Excluded []string `json:"excluded"`
-	}
-)
+type ExclusionList struct {
+	Excluded []string `json:"excluded"`
+}
 
 var (
 	ErrProtocolNotSupported  = errors.New("protocol not supported")
