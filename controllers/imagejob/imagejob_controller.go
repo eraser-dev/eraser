@@ -325,13 +325,15 @@ func (r *Reconciler) handleNewJob(ctx context.Context, imageJob *eraserv1alpha1.
 		}
 		log.Info("Started "+containerName+" pod on node", "nodeName", nodeName)
 
-		wait.PollImmediate(time.Second, time.Minute, isPodReady(*pod))
+		if err := wait.PollImmediate(time.Second, time.Minute, isPodReady(pod)); err != nil {
+			log.Error(err, "error waiting for PodReady phase", pod.Name, pod.Status.Phase)
+		}
 	}
 
 	return nil
 }
 
-func isPodReady(pod corev1.Pod) wait.ConditionFunc {
+func isPodReady(pod *corev1.Pod) wait.ConditionFunc {
 	return func() (bool, error) {
 		if pod.Status.Phase == corev1.PodPhase(corev1.PodReady) {
 			return true, nil
