@@ -4417,9 +4417,9 @@ spec:
       containers:
       - args:
         - --leader-elect=false
-        - --eraser-image=ghcr.io/azure/eraser:v0.5.0
-        - --collector-image=ghcr.io/azure/collector:v0.5.0
-        - --scanner-image=ghcr.io/azure/eraser-trivy-scanner:v0.5.0
+        - --eraser-image=ghcr.io/azure/eraser:v1.0.0-beta.1
+        - --collector-image=ghcr.io/azure/collector:v1.0.0-beta.1
+        - --scanner-image=ghcr.io/azure/eraser-trivy-scanner:v1.0.0-beta.1
         command:
         - /manager
         env:
@@ -4428,7 +4428,9 @@ spec:
             fieldRef:
               apiVersion: v1
               fieldPath: metadata.namespace
-        image: ghcr.io/azure/eraser-manager:v0.5.0
+        - name: OTEL_SERVICE_NAME
+          value: eraser-manager
+        image: ghcr.io/azure/eraser-manager:v1.0.0-beta.1
         livenessProbe:
           httpGet:
             path: /healthz
@@ -4444,7 +4446,6 @@ spec:
           periodSeconds: 10
         resources:
           limits:
-            cpu: 100m
             memory: 30Mi
           requests:
             cpu: 100m
