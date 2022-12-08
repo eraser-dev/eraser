@@ -74,39 +74,63 @@ func convertImages(list []*v1alpha2.Image) []*v1.Image {
 }
 
 func convertContainer(c *v1alpha2.Container) *v1.Container {
-	return &v1.Container{
+	if c == nil {
+		return nil
+	}
+
+	cont := &v1.Container{
 		Id:           c.Id,
 		PodSandboxId: c.PodSandboxId,
-		Metadata: &v1.ContainerMetadata{
-			Name:    c.Metadata.Name,
-			Attempt: c.Metadata.Attempt,
-		},
-		Image: &v1.ImageSpec{
+		ImageRef:     c.ImageRef,
+		State:        v1.ContainerState(c.State),
+		CreatedAt:    c.CreatedAt,
+		Labels:       c.Labels,
+		Annotations:  c.Annotations,
+	}
+
+	if c.Image != nil {
+		cont.Image = &v1.ImageSpec{
 			Image:       c.Image.Image,
 			Annotations: c.Image.Annotations,
-		},
-		ImageRef:    c.ImageRef,
-		State:       v1.ContainerState(c.State),
-		CreatedAt:   c.CreatedAt,
-		Labels:      c.Labels,
-		Annotations: c.Annotations,
+		}
 	}
+
+	if c.Metadata != nil {
+		cont.Metadata = &v1.ContainerMetadata{
+			Name:    c.Metadata.Name,
+			Attempt: c.Metadata.Attempt,
+		}
+	}
+
+	return cont
 }
 
 func convertImage(i *v1alpha2.Image) *v1.Image {
-	return &v1.Image{
+	if i == nil {
+		return nil
+	}
+
+	img := &v1.Image{
 		Id:          i.Id,
 		RepoTags:    i.RepoTags,
 		RepoDigests: i.RepoDigests,
 		Size_:       i.Size_,
-		Uid: &v1.Int64Value{
-			Value: i.Uid.Value,
-		},
-		Username: i.Username,
-		Spec: &v1.ImageSpec{
+		Username:    i.Username,
+		Pinned:      i.Pinned,
+	}
+
+	if i.Spec != nil {
+		img.Spec = &v1.ImageSpec{
 			Image:       i.Spec.Image,
 			Annotations: i.Spec.Annotations,
-		},
-		Pinned: i.Pinned,
+		}
 	}
+
+	if i.Uid != nil {
+		img.Uid = &v1.Int64Value{
+			Value: i.Uid.Value,
+		}
+	}
+
+	return img
 }
