@@ -70,14 +70,24 @@ func newClientWithFallback(ctx context.Context, conn *grpc.ClientConn) (Eraser, 
 func tryV1Alpha2(ctx context.Context, conn *grpc.ClientConn) (string, error) {
 	runtimeClientV1Alpha2 := v1alpha2.NewRuntimeServiceClient(conn)
 	req2 := v1alpha2.VersionRequest{}
+
 	respv1Alpha2, err := runtimeClientV1Alpha2.Version(ctx, &req2)
+	if err != nil {
+		return "", err
+	}
+
 	return respv1Alpha2.RuntimeApiVersion, err
 }
 
 func tryV1(ctx context.Context, conn *grpc.ClientConn) (string, error) {
 	runtimeClient := v1.NewRuntimeServiceClient(conn)
 	req := v1.VersionRequest{}
+
 	resp, err := runtimeClient.Version(ctx, &req)
+	if err != nil {
+		return "", err
+	}
+
 	return resp.RuntimeApiVersion, err
 }
 
