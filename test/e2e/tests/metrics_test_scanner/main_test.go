@@ -28,14 +28,14 @@ func TestMain(m *testing.M) {
 	// Create KinD Cluster
 	util.Testenv.Setup(
 		envfuncs.CreateKindClusterWithConfig(util.KindClusterName, util.NodeVersion, "../../kind-config.yaml"),
-		envfuncs.CreateNamespace(util.TestNamespace),
-		util.DeployOtelCollector(util.TestNamespace),
+		envfuncs.CreateNamespace(util.EraserNamespace),
+		util.DeployOtelCollector(util.EraserNamespace),
 		envfuncs.LoadDockerImageToCluster(util.KindClusterName, util.ManagerImage),
 		envfuncs.LoadDockerImageToCluster(util.KindClusterName, util.Image),
 		envfuncs.LoadDockerImageToCluster(util.KindClusterName, util.CollectorImage),
 		envfuncs.LoadDockerImageToCluster(util.KindClusterName, util.ScannerImage),
 		envfuncs.LoadDockerImageToCluster(util.KindClusterName, util.VulnerableImage),
-		util.DeployEraserHelm(util.TestNamespace,
+		util.DeployEraserHelm(util.EraserNamespace,
 			"--set", util.CollectorImageRepo.Set(collectorImage.Repo),
 			"--set", util.CollectorImageTag.Set(collectorImage.Tag),
 			"--set", util.ScannerImageRepo.Set(scannerImage.Repo),
