@@ -30,9 +30,9 @@ type config struct {
 	reportMetrics          bool
 }
 
-type configFunc func(*config)
+type ConfigFunc func(*config)
 
-func NewImageProvider(funcs ...configFunc) ImageProvider {
+func NewImageProvider(funcs ...ConfigFunc) ImageProvider {
 	// default config
 	cfg := &config{
 		ctx:                    context.Background(),
@@ -120,25 +120,25 @@ func (cfg *config) Cleanup() {
 	cfg.log.Info("scanning complete, exiting")
 }
 
-func WithContext(ctx context.Context) configFunc {
+func WithContext(ctx context.Context) ConfigFunc {
 	return func(cfg *config) {
 		cfg.ctx = ctx
 	}
 }
 
-func WithdeleteScanFailedImages(deleteScanFailedImages bool) configFunc {
+func WithDeleteScanFailedImages(deleteScanFailedImages bool) ConfigFunc {
 	return func(cfg *config) {
 		cfg.deleteScanFailedImages = deleteScanFailedImages
 	}
 }
 
-func WithLogger(log logr.Logger) configFunc {
+func WithLogger(log logr.Logger) ConfigFunc {
 	return func(cfg *config) {
 		cfg.log = log
 	}
 }
 
-func WithMetrics(reportMetrics bool) configFunc {
+func WithMetrics(reportMetrics bool) ConfigFunc {
 	return func(cfg *config) {
 		cfg.reportMetrics = reportMetrics
 	}
