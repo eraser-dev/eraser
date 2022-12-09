@@ -19,10 +19,10 @@ import (
 	"go.opentelemetry.io/otel/metric/global"
 )
 
-type scanner interface {
-	initialize() []eraserv1alpha1.Image
-	sendToEraser(vulnerableImages, failedImages []eraserv1alpha1.Image)
-	cleanup()
+type ScannerTemplate interface {
+	Initialize() []eraserv1alpha1.Image
+	SendToEraser(vulnerableImages, failedImages []eraserv1alpha1.Image)
+	Cleanup()
 }
 
 type config struct {
@@ -34,7 +34,7 @@ type config struct {
 
 type configFunc func(*config)
 
-func (cfg *config) initialize(funcs ...configFunc) []eraserv1alpha1.Image {
+func (cfg *config) Initialize(funcs ...configFunc) []eraserv1alpha1.Image {
 	for _, f := range funcs {
 		f(cfg)
 	}
@@ -62,7 +62,7 @@ func (cfg *config) initialize(funcs ...configFunc) []eraserv1alpha1.Image {
 	return allImages
 }
 
-func (cfg *config) sendToEraser(vulnerableImages, failedImages []eraserv1alpha1.Image) {
+func (cfg *config) SendToEraser(vulnerableImages, failedImages []eraserv1alpha1.Image) {
 	if cfg.deleteScanFailedImages {
 		vulnerableImages = append(vulnerableImages, failedImages...)
 	}
@@ -87,7 +87,7 @@ func (cfg *config) sendToEraser(vulnerableImages, failedImages []eraserv1alpha1.
 	}
 }
 
-func (cfg *config) cleanup() {
+func (cfg *config) Cleanup() {
 	file, err := os.OpenFile(util.EraseCompleteScanPath, os.O_RDONLY, 0)
 	if err != nil {
 		cfg.log.Error(err, "failed to open pipe", "pipeName", util.EraseCompleteScanPath)
@@ -110,25 +110,25 @@ func (cfg *config) cleanup() {
 	cfg.log.Info("scanning complete, exiting")
 }
 
-func withContext(ctx context.Context) configFunc {
+func WithContext(ctx context.Context) configFunc {
 	return func(cfg *config) {
 		cfg.ctx = ctx
 	}
 }
 
-func withdeleteScanFailedImages(deleteScanFailedImages bool) configFunc {
+func WithdeleteScanFailedImages(deleteScanFailedImages bool) configFunc {
 	return func(cfg *config) {
 		cfg.deleteScanFailedImages = deleteScanFailedImages
 	}
 }
 
-func withLogger(log logr.Logger) configFunc {
+func WithLogger(log logr.Logger) configFunc {
 	return func(cfg *config) {
 		cfg.log = log
 	}
 }
 
-func withMetrics(reportMetrics bool) configFunc {
+func WithMetrics(reportMetrics bool) configFunc {
 	return func(cfg *config) {
 		cfg.reportMetrics = reportMetrics
 	}
