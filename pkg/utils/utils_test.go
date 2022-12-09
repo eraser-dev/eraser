@@ -157,7 +157,7 @@ func TestGetAddressAndDialer(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		a, _, e := GetAddressAndDialer(tc.endpoint)
+		a, _, e := getAddressAndDialer(tc.endpoint)
 		if a != tc.addr || !errors.Is(e, tc.err) {
 			t.Errorf("Test fails")
 		}

@@ -104,7 +104,7 @@ jobs:
           fail_ci_if_error: false
 
   check-manifest:
-    name: "Check Manifest"
+    name: "Check codegen and manifest"
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -122,7 +122,7 @@ jobs:
         run: |
           go mod tidy
           git diff --exit-code
-          make manifests
+          make generate manifests
           git diff --exit-code
 
   e2e-test:

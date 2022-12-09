@@ -15,7 +15,7 @@ import (
 	"golang.org/x/sys/unix"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
-	pb "k8s.io/cri-api/pkg/apis/runtime/v1alpha2"
+	v1 "k8s.io/cri-api/pkg/apis/runtime/v1"
 
 	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
 )
@@ -56,7 +56,22 @@ var (
 	}
 )
 
-func GetAddressAndDialer(endpoint string) (string, func(ctx context.Context, addr string) (net.Conn, error), error) {
+func GetConn(ctx context.Context, socketPath string) (conn *grpc.ClientConn, err error) {
+	addr, dialer, err := getAddressAndDialer(socketPath)
+	if err != nil {
+		return nil, err
+	}
+
+	return grpc.DialContext(
+		ctx,
+		addr,
+		grpc.WithBlock(),
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithContextDialer(dialer),
+	)
+}
+
+func getAddressAndDialer(endpoint string) (string, func(ctx context.Context, addr string) (net.Conn, error), error) {
 	protocol, addr, err := ParseEndpointWithFallbackProtocol(endpoint, unixProtocol)
 	if err != nil {
 		return "", nil, err
@@ -101,24 +116,8 @@ func ParseEndpoint(endpoint string) (string, string, error) {
 	}
 }
 
-func GetImageClient(ctx context.Context, socketPath string) (pb.ImageServiceClient, *grpc.ClientConn, error) {
-	addr, dialer, err := GetAddressAndDialer(socketPath)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	conn, err := grpc.DialContext(ctx, addr, grpc.WithBlock(), grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithContextDialer(dialer))
-	if err != nil {
-		return nil, nil, err
-	}
-
-	imageClient := pb.NewImageServiceClient(conn)
-
-	return imageClient, conn, nil
-}
-
-func ListImages(ctx context.Context, images pb.ImageServiceClient) (list []*pb.Image, err error) {
-	request := &pb.ListImagesRequest{Filter: nil}
+func ListImages(ctx context.Context, images v1.ImageServiceClient) (list []*v1.Image, err error) {
+	request := &v1.ListImagesRequest{Filter: nil}
 
 	resp, err := images.ListImages(ctx, request)
 	if err != nil {
@@ -128,15 +127,15 @@ func ListImages(ctx context.Context, images pb.ImageServiceClient) (list []*pb.I
 	return resp.Images, nil
 }
 
-func ListContainers(ctx context.Context, runtime pb.RuntimeServiceClient) (list []*pb.Container, err error) {
-	resp, err := runtime.ListContainers(context.Background(), new(pb.ListContainersRequest))
+func ListContainers(ctx context.Context, runtime v1.RuntimeServiceClient) (list []*v1.Container, err error) {
+	resp, err := runtime.ListContainers(context.Background(), new(v1.ListContainersRequest))
 	if err != nil {
 		return nil, err
 	}
 	return resp.Containers, nil
 }
 
-func GetRunningImages(containers []*pb.Container, idToImageMap map[string]eraserv1alpha1.Image) map[string]string {
+func GetRunningImages(containers []*v1.Container, idToImageMap map[string]eraserv1alpha1.Image) map[string]string {
 	// Images that are running
 	// map of (digest | tag) -> digest
 	runningImages := make(map[string]string)

@@ -4,14 +4,15 @@ import (
 	"context"
 
 	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
+	"github.com/Azure/eraser/pkg/cri"
 	util "github.com/Azure/eraser/pkg/utils"
 )
 
-func getImages(c Client) ([]eraserv1alpha1.Image, error) {
+func getImages(c cri.Collector) ([]eraserv1alpha1.Image, error) {
 	backgroundContext, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
-	images, err := c.listImages(backgroundContext)
+	images, err := c.ListImages(backgroundContext)
 	if err != nil {
 		return nil, err
 	}
@@ -40,7 +41,7 @@ func getImages(c Client) ([]eraserv1alpha1.Image, error) {
 		idToImageMap[img.Id] = newImg
 	}
 
-	containers, err := c.listContainers(backgroundContext)
+	containers, err := c.ListContainers(backgroundContext)
 	if err != nil {
 		return nil, err
 	}
