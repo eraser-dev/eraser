@@ -2,7 +2,6 @@ package template
 
 import (
 	"context"
-	"flag"
 	"io"
 	"os"
 	"os/signal"
@@ -17,9 +16,10 @@ import (
 	"github.com/Azure/eraser/pkg/metrics"
 	util "github.com/Azure/eraser/pkg/utils"
 	"go.opentelemetry.io/otel/metric/global"
+	logf "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-type ScannerTemplate interface {
+type ImageProvider interface {
 	Initialize() []eraserv1alpha1.Image
 	SendToEraser(vulnerableImages, failedImages []eraserv1alpha1.Image)
 	Cleanup()
@@ -34,12 +34,24 @@ type config struct {
 
 type configFunc func(*config)
 
-func (cfg *config) Initialize(funcs ...configFunc) []eraserv1alpha1.Image {
+func NewImageProvider(funcs ...configFunc) ImageProvider {
+	// default config
+	cfg := &config{
+		ctx:                    context.Background(),
+		log:                    logf.Log.WithName("scanner"),
+		deleteScanFailedImages: true,
+		reportMetrics:          false,
+	}
+
+	// apply user config
 	for _, f := range funcs {
 		f(cfg)
 	}
 
-	flag.Parse()
+	return cfg
+}
+
+func (cfg *config) Initialize() []eraserv1alpha1.Image {
 	var err error
 
 	if err := unix.Mkfifo(util.EraseCompleteScanPath, util.PipeMode); err != nil {
