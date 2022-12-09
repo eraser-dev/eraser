@@ -11,8 +11,6 @@ import (
 	"github.com/go-logr/logr"
 	"golang.org/x/sys/unix"
 
-	_ "net/http/pprof"
-
 	"github.com/Azure/eraser/pkg/metrics"
 	util "github.com/Azure/eraser/pkg/utils"
 	"go.opentelemetry.io/otel/metric/global"
