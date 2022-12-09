@@ -18,9 +18,9 @@ import (
 )
 
 type ImageProvider interface {
-	Initialize() []eraserv1alpha1.Image
-	SendToEraser(vulnerableImages, failedImages []eraserv1alpha1.Image)
-	Cleanup()
+	ReceiveImages() []eraserv1alpha1.Image
+	SendImages(vulnerableImages, failedImages []eraserv1alpha1.Image)
+	Finish()
 }
 
 type config struct {
@@ -49,7 +49,7 @@ func NewImageProvider(funcs ...ConfigFunc) ImageProvider {
 	return cfg
 }
 
-func (cfg *config) Initialize() []eraserv1alpha1.Image {
+func (cfg *config) ReceiveImages() []eraserv1alpha1.Image {
 	var err error
 
 	if err := unix.Mkfifo(util.EraseCompleteScanPath, util.PipeMode); err != nil {
@@ -72,7 +72,7 @@ func (cfg *config) Initialize() []eraserv1alpha1.Image {
 	return allImages
 }
 
-func (cfg *config) SendToEraser(vulnerableImages, failedImages []eraserv1alpha1.Image) {
+func (cfg *config) SendImages(vulnerableImages, failedImages []eraserv1alpha1.Image) {
 	if cfg.deleteScanFailedImages {
 		vulnerableImages = append(vulnerableImages, failedImages...)
 	}
@@ -97,7 +97,7 @@ func (cfg *config) SendToEraser(vulnerableImages, failedImages []eraserv1alpha1.
 	}
 }
 
-func (cfg *config) Cleanup() {
+func (cfg *config) Finish() {
 	file, err := os.OpenFile(util.EraseCompleteScanPath, os.O_RDONLY, 0)
 	if err != nil {
 		cfg.log.Error(err, "failed to open pipe", "pipeName", util.EraseCompleteScanPath)
