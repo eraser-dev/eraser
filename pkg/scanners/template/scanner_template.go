@@ -1,4 +1,4 @@
-package main
+package template
 
 import (
 	"context"
@@ -21,7 +21,7 @@ import (
 
 type scanner interface {
 	initialize() []eraserv1alpha1.Image
-	sendToEraser()
+	sendToEraser(vulnerableImages, failedImages []eraserv1alpha1.Image)
 	cleanup()
 }
 
