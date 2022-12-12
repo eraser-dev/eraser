@@ -17,9 +17,15 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
+// interface for custom scanners to communicate with Eraser
 type ImageProvider interface {
+	// receive list of all non-running, non-excluded images from collector container to process
 	ReceiveImages() []eraserv1alpha1.Image
-	SendImages(vulnerableImages, failedImages []eraserv1alpha1.Image)
+
+	// sends non-compliant images found to eraser container for removal
+	SendImages(nonCompliantImages, failedImages []eraserv1alpha1.Image)
+
+	// completes scanner communication process - required after custom scanning finishes
 	Finish()
 }
 
@@ -72,12 +78,12 @@ func (cfg *config) ReceiveImages() []eraserv1alpha1.Image {
 	return allImages
 }
 
-func (cfg *config) SendImages(vulnerableImages, failedImages []eraserv1alpha1.Image) {
+func (cfg *config) SendImages(nonCompliantImages, failedImages []eraserv1alpha1.Image) {
 	if cfg.deleteScanFailedImages {
-		vulnerableImages = append(vulnerableImages, failedImages...)
+		nonCompliantImages = append(nonCompliantImages, failedImages...)
 	}
 
-	if err := util.WriteScanErasePipe(vulnerableImages); err != nil {
+	if err := util.WriteScanErasePipe(nonCompliantImages); err != nil {
 		cfg.log.Error(err, "unable to write non-compliant images to scan erase pipe")
 		os.Exit(1)
 	}
@@ -91,7 +97,7 @@ func (cfg *config) SendImages(vulnerableImages, failedImages []eraserv1alpha1.Im
 
 		defer metrics.ExportMetrics(cfg.log, exporter, reader, provider)
 
-		if err := metrics.RecordMetricsScanner(ctx, global.MeterProvider(), len(vulnerableImages)); err != nil {
+		if err := metrics.RecordMetricsScanner(ctx, global.MeterProvider(), len(nonCompliantImages)); err != nil {
 			cfg.log.Error(err, "error recording metrics")
 		}
 	}
@@ -120,24 +126,28 @@ func (cfg *config) Finish() {
 	cfg.log.Info("scanning complete, exiting")
 }
 
+// provide custom context
 func WithContext(ctx context.Context) ConfigFunc {
 	return func(cfg *config) {
 		cfg.ctx = ctx
 	}
 }
 
+// sets deleteScanFailedImages flag
 func WithDeleteScanFailedImages(deleteScanFailedImages bool) ConfigFunc {
 	return func(cfg *config) {
 		cfg.deleteScanFailedImages = deleteScanFailedImages
 	}
 }
 
+// provide custom logger
 func WithLogger(log logr.Logger) ConfigFunc {
 	return func(cfg *config) {
 		cfg.log = log
 	}
 }
 
+// sets boolean for recording metrics
 func WithMetrics(reportMetrics bool) ConfigFunc {
 	return func(cfg *config) {
 		cfg.reportMetrics = reportMetrics
