@@ -20,13 +20,13 @@ import (
 // interface for custom scanners to communicate with Eraser
 type ImageProvider interface {
 	// receive list of all non-running, non-excluded images from collector container to process
-	ReceiveImages() []eraserv1alpha1.Image
+	ReceiveImages() ([]eraserv1alpha1.Image, error)
 
 	// sends non-compliant images found to eraser container for removal
-	SendImages(nonCompliantImages, failedImages []eraserv1alpha1.Image)
+	SendImages(nonCompliantImages, failedImages []eraserv1alpha1.Image) error
 
 	// completes scanner communication process - required after custom scanning finishes
-	Finish()
+	Finish() error
 }
 
 type config struct {
@@ -55,37 +55,37 @@ func NewImageProvider(funcs ...ConfigFunc) ImageProvider {
 	return cfg
 }
 
-func (cfg *config) ReceiveImages() []eraserv1alpha1.Image {
+func (cfg *config) ReceiveImages() ([]eraserv1alpha1.Image, error) {
 	var err error
 
 	if err := unix.Mkfifo(util.EraseCompleteScanPath, util.PipeMode); err != nil {
 		cfg.log.Error(err, "failed to create pipe", "pipeName", util.EraseCompleteScanPath)
-		os.Exit(1)
+		return nil, err
 	}
 
 	err = os.Chmod(util.EraseCompleteScanPath, 0o666)
 	if err != nil {
 		cfg.log.Error(err, "unable to enable pipe for writing", "pipeName", util.EraseCompleteScanPath)
-		os.Exit(1)
+		return nil, err
 	}
 
 	allImages, err := util.ReadCollectScanPipe(cfg.ctx)
 	if err != nil {
 		cfg.log.Error(err, "unable to read images from collect scan pipe")
-		os.Exit(1)
+		return nil, err
 	}
 
-	return allImages
+	return allImages, nil
 }
 
-func (cfg *config) SendImages(nonCompliantImages, failedImages []eraserv1alpha1.Image) {
+func (cfg *config) SendImages(nonCompliantImages, failedImages []eraserv1alpha1.Image) error {
 	if cfg.deleteScanFailedImages {
 		nonCompliantImages = append(nonCompliantImages, failedImages...)
 	}
 
 	if err := util.WriteScanErasePipe(nonCompliantImages); err != nil {
 		cfg.log.Error(err, "unable to write non-compliant images to scan erase pipe")
-		os.Exit(1)
+		return err
 	}
 
 	if cfg.reportMetrics {
@@ -95,35 +95,38 @@ func (cfg *config) SendImages(nonCompliantImages, failedImages []eraserv1alpha1.
 		exporter, reader, provider := metrics.ConfigureMetrics(ctx, cfg.log, os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT"))
 		global.SetMeterProvider(provider)
 
-		defer metrics.ExportMetrics(cfg.log, exporter, reader, provider)
-
 		if err := metrics.RecordMetricsScanner(ctx, global.MeterProvider(), len(nonCompliantImages)); err != nil {
 			cfg.log.Error(err, "error recording metrics")
+			return err
 		}
+
+		metrics.ExportMetrics(cfg.log, exporter, reader, provider)
 	}
+	return nil
 }
 
-func (cfg *config) Finish() {
+func (cfg *config) Finish() error {
 	file, err := os.OpenFile(util.EraseCompleteScanPath, os.O_RDONLY, 0)
 	if err != nil {
 		cfg.log.Error(err, "failed to open pipe", "pipeName", util.EraseCompleteScanPath)
-		os.Exit(1)
+		return err
 	}
 
 	data, err := io.ReadAll(file)
 	if err != nil {
 		cfg.log.Error(err, "failed to read pipe", "pipeName", util.EraseCompleteScanPath)
-		os.Exit(1)
+		return err
 	}
 
 	file.Close()
 
 	if string(data) != util.EraseCompleteMessage {
 		cfg.log.Info("garbage in pipe", "pipeName", util.EraseCompleteScanPath, "in_pipe", string(data))
-		os.Exit(1)
+		return err
 	}
 
 	cfg.log.Info("scanning complete, exiting")
+	return nil
 }
 
 // provide custom context
