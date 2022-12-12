@@ -17,15 +17,15 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-// interface for custom scanners to communicate with Eraser
+// interface for custom scanners to communicate with Eraser.
 type ImageProvider interface {
-	// receive list of all non-running, non-excluded images from collector container to process
+	// receive list of all non-running, non-excluded images from collector container to process.
 	ReceiveImages() ([]eraserv1alpha1.Image, error)
 
-	// sends non-compliant images found to eraser container for removal
+	// sends non-compliant images found to eraser container for removal.
 	SendImages(nonCompliantImages, failedImages []eraserv1alpha1.Image) error
 
-	// completes scanner communication process - required after custom scanning finishes
+	// completes scanner communication process - required after custom scanning finishes.
 	Finish() error
 }
 
@@ -129,28 +129,28 @@ func (cfg *config) Finish() error {
 	return nil
 }
 
-// provide custom context
+// provide custom context.
 func WithContext(ctx context.Context) ConfigFunc {
 	return func(cfg *config) {
 		cfg.ctx = ctx
 	}
 }
 
-// sets deleteScanFailedImages flag
+// sets deleteScanFailedImages flag.
 func WithDeleteScanFailedImages(deleteScanFailedImages bool) ConfigFunc {
 	return func(cfg *config) {
 		cfg.deleteScanFailedImages = deleteScanFailedImages
 	}
 }
 
-// provide custom logger
+// provide custom logger.
 func WithLogger(log logr.Logger) ConfigFunc {
 	return func(cfg *config) {
 		cfg.log = log
 	}
 }
 
-// sets boolean for recording metrics
+// sets boolean for recording metrics.
 func WithMetrics(reportMetrics bool) ConfigFunc {
 	return func(cfg *config) {
 		cfg.reportMetrics = reportMetrics
