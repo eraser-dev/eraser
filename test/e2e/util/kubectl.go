@@ -110,19 +110,6 @@ func KubectlLogs(kubeconfigPath, podName, containerName, namespace string, extra
 	return Kubectl(args)
 }
 
-func KubectlLogsVarArgs(kubeconfigPath, podName, namespace string, extraArgs ...string) (string, error) {
-	args := []string{
-		"logs",
-		fmt.Sprintf("--kubeconfig=%s", kubeconfigPath),
-		fmt.Sprintf("--namespace=%s", namespace),
-		podName,
-	}
-
-	args = append(args, extraArgs...)
-
-	return Kubectl(args)
-}
-
 // KubectlDescribe executes "kubectl describe" given a list of arguments.
 func KubectlDescribe(kubeconfigPath, podName, namespace string) (string, error) {
 	args := []string{
