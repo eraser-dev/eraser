@@ -93,7 +93,7 @@ func KubectlWait(kubeconfigPath, podName, namespace string) (string, error) {
 }
 
 // KubectlLogs executes "kubectl logs" given a list of arguments.
-func KubectlLogs(kubeconfigPath, podName, containerName, namespace string) (string, error) {
+func KubectlLogs(kubeconfigPath, podName, containerName, namespace string, extraArgs ...string) (string, error) {
 	args := []string{
 		"logs",
 		fmt.Sprintf("--kubeconfig=%s", kubeconfigPath),
@@ -104,6 +104,21 @@ func KubectlLogs(kubeconfigPath, podName, containerName, namespace string) (stri
 	if containerName != "" {
 		args = append(args, fmt.Sprintf("-c=%s", containerName))
 	}
+
+	args = append(args, extraArgs...)
+
+	return Kubectl(args)
+}
+
+func KubectlLogsVarArgs(kubeconfigPath, podName, namespace string, extraArgs ...string) (string, error) {
+	args := []string{
+		"logs",
+		fmt.Sprintf("--kubeconfig=%s", kubeconfigPath),
+		fmt.Sprintf("--namespace=%s", namespace),
+		podName,
+	}
+
+	args = append(args, extraArgs...)
 
 	return Kubectl(args)
 }

@@ -109,7 +109,7 @@ func TestImageListTriggersEraserImageJob(t *testing.T) {
 			}
 
 			// deploy imageJob config
-			if err := util.DeployEraserConfig(cfg.KubeconfigFile(), util.EraserNamespace, "../../test-data", "eraser_v1alpha1_imagelist.yaml"); err != nil {
+			if err := util.DeployEraserConfig(cfg.KubeconfigFile(), cfg.Namespace(), "../../test-data", "eraser_v1alpha1_imagelist.yaml"); err != nil {
 				t.Error("Failed to deploy image list config", err)
 			}
 
@@ -181,7 +181,7 @@ func TestImageListTriggersEraserImageJob(t *testing.T) {
 			return ctx
 		}).
 		Assess("Get logs", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
-			if err := util.GetManagerLogs(ctx, cfg, t); err != nil {
+			if err := util.GetManagerLogs(ctx, cfg, t, cfg.Namespace()); err != nil {
 				t.Error("error getting manager logs", err)
 			}
 
