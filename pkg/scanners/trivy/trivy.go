@@ -104,6 +104,7 @@ var (
 
 func main() {
 	flag.Parse()
+
 	// Initializes logger and parses CLI options into hashmap configs
 	err := initGlobals()
 	if err != nil {
@@ -134,32 +135,13 @@ func main() {
 		log.Error(err, "error initializing scanner")
 	}
 
-	vulnerableImages := make([]eraserv1alpha1.Image, 0, len(allImages))
-	failedImages := make([]eraserv1alpha1.Image, 0, len(allImages))
-
-	for _, img := range allImages {
-		// Logs scan failures
-		status, err := s.Scan(img)
-		if err != nil {
-			failedImages = append(failedImages, img)
-			log.Error(err, "scan failed")
-			continue
-		}
-
-		switch status {
-		case StatusNonCompliant:
-			log.Info("vulnerable image found", "img", img)
-			vulnerableImages = append(vulnerableImages, img)
-		case StatusFailed:
-			failedImages = append(failedImages, img)
-		}
-	}
+	vulnerableImages, failedImages := scan(s, allImages)
+	log.Info("Vulnerable", "Images", vulnerableImages)
 
 	if len(failedImages) > 0 {
 		log.Info("Failed", "Images", failedImages)
 	}
 
-	log.Info("Vulnerable", "Images", vulnerableImages)
 	err = provider.SendImages(vulnerableImages, failedImages)
 	if err != nil {
 		log.Error(err, "unable to write images")
@@ -172,6 +154,47 @@ func main() {
 	}
 
 	log.Info("eraser job completed, shutting down...")
+}
+
+// Initializes logger and parses CLI options into hashmap configs.
+func initGlobals() error {
+	err := logger.Configure()
+	if err != nil {
+		return fmt.Errorf("error setting up logger: %w", err)
+	}
+
+	allSetsOfCommaSeparatedOptions := []optionSet{
+		{
+			input: *severity,
+			m:     severityMap,
+		},
+		{
+			input: *vulnTypes,
+			m:     vulnTypeMap,
+		},
+		{
+			input: *securityChecks,
+			m:     securityCheckMap,
+		},
+	}
+
+	for _, oSet := range allSetsOfCommaSeparatedOptions {
+		err := parseCommaSeparatedOptions(oSet.m, oSet.input)
+		if err != nil {
+			return fmt.Errorf("unable to parse options %w", err)
+		}
+	}
+
+	return nil
+}
+
+func runProfileServer() {
+	server := &http.Server{
+		Addr:              fmt.Sprintf("localhost:%d", *profilePort),
+		ReadHeaderTimeout: 3 * time.Second,
+	}
+	err := server.ListenAndServe()
+	log.Error(err, "pprof server failed")
 }
 
 func initScanner(ctx context.Context) (Scanner, error) {
@@ -210,43 +233,27 @@ func initScanner(ctx context.Context) (Scanner, error) {
 	return s, nil
 }
 
-func runProfileServer() {
-	server := &http.Server{
-		Addr:              fmt.Sprintf("localhost:%d", *profilePort),
-		ReadHeaderTimeout: 3 * time.Second,
-	}
-	err := server.ListenAndServe()
-	log.Error(err, "pprof server failed")
-}
+func scan(s Scanner, allImages []eraserv1alpha1.Image) ([]eraserv1alpha1.Image, []eraserv1alpha1.Image) {
+	vulnerableImages := make([]eraserv1alpha1.Image, 0, len(allImages))
+	failedImages := make([]eraserv1alpha1.Image, 0, len(allImages))
 
-// Initializes logger and parses CLI options into hashmap configs.
-func initGlobals() error {
-	err := logger.Configure()
-	if err != nil {
-		return fmt.Errorf("error setting up logger: %w", err)
-	}
-
-	allSetsOfCommaSeparatedOptions := []optionSet{
-		{
-			input: *severity,
-			m:     severityMap,
-		},
-		{
-			input: *vulnTypes,
-			m:     vulnTypeMap,
-		},
-		{
-			input: *securityChecks,
-			m:     securityCheckMap,
-		},
-	}
-
-	for _, oSet := range allSetsOfCommaSeparatedOptions {
-		err := parseCommaSeparatedOptions(oSet.m, oSet.input)
+	for _, img := range allImages {
+		// Logs scan failures
+		status, err := s.Scan(img)
 		if err != nil {
-			return fmt.Errorf("unable to parse options %w", err)
+			failedImages = append(failedImages, img)
+			log.Error(err, "scan failed")
+			continue
+		}
+
+		switch status {
+		case StatusNonCompliant:
+			log.Info("vulnerable image found", "img", img)
+			vulnerableImages = append(vulnerableImages, img)
+		case StatusFailed:
+			failedImages = append(failedImages, img)
 		}
 	}
 
-	return nil
+	return vulnerableImages, failedImages
 }
