@@ -22,11 +22,6 @@ const (
 func TestMetrics(t *testing.T) {
 	metrics := features.New("Images_removed_run_total metric should report 1").
 		Assess("Alpine image is removed", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
-			// deploy imagelist config
-			if err := util.DeployEraserConfig(cfg.KubeconfigFile(), cfg.Namespace(), "../../test-data", "imagelist_alpine.yaml"); err != nil {
-				t.Error("Failed to deploy image list config", err)
-			}
-
 			ctxT, cancel := context.WithTimeout(ctx, util.Timeout)
 			defer cancel()
 			util.CheckImageRemoved(ctxT, t, util.GetClusterNodes(t), util.VulnerableImage)
@@ -34,7 +29,7 @@ func TestMetrics(t *testing.T) {
 			return ctx
 		}).
 		Assess("Get logs", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
-			if err := util.GetPodLogs(ctx, cfg, t, true); err != nil {
+			if err := util.GetPodLogs(ctx, cfg, t, false); err != nil {
 				t.Error("error getting collector pod logs", err)
 			}
 
@@ -67,7 +62,7 @@ func TestMetrics(t *testing.T) {
 				totalRemoved += val
 			}
 
-			if totalRemoved != expectedImagesRemoved {
+			if totalRemoved < expectedImagesRemoved {
 				t.Error("images_removed_run_total incorrect, expected ", expectedImagesRemoved, "got", totalRemoved)
 			}
 
