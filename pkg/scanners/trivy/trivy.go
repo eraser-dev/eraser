@@ -104,7 +104,6 @@ var (
 
 func main() {
 	flag.Parse()
-
 	// Initializes logger and parses CLI options into hashmap configs
 	err := initGlobals()
 	if err != nil {
@@ -161,10 +160,16 @@ func main() {
 	}
 
 	log.Info("Vulnerable", "Images", vulnerableImages)
-	provider.SendImages(vulnerableImages, failedImages)
+	err = provider.SendImages(vulnerableImages, failedImages)
+	if err != nil {
+		log.Error(err, "unable to write images")
+	}
 
 	log.Info("scanning complete, waiting for eraser to finish...")
-	provider.Finish()
+	err = provider.Finish()
+	if err != nil {
+		log.Error(err, "unable to complete scanning process")
+	}
 
 	log.Info("eraser job completed, shutting down...")
 }
@@ -214,7 +219,7 @@ func runProfileServer() {
 	log.Error(err, "pprof server failed")
 }
 
-// Initializes logger and parses CLI options into hashmap configs
+// Initializes logger and parses CLI options into hashmap configs.
 func initGlobals() error {
 	err := logger.Configure()
 	if err != nil {

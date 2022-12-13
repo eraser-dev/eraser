@@ -49,7 +49,7 @@ type ImageScanner struct {
 
 var _ Scanner = &ImageScanner{}
 
-// Function never returns an error
+// Function never returns an error.
 func (s *ImageScanner) Scan(img eraserv1alpha1.Image) (ScanStatus, error) {
 	refs := make([]string, 0, len(img.Names)+len(img.Digests))
 	refs = append(refs, img.Digests...)
