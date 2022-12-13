@@ -69,11 +69,7 @@ func TestMetrics(t *testing.T) {
 			return ctx
 		}).
 		Assess("Check vulnerable_images_run_total metric", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
-<<<<<<< HEAD
-			output, err := util.KubectlExecCurl(cfg.KubeconfigFile(), "temp", "http://otel-collector/metrics", util.EraserNamespace)
-=======
 			output, err := util.KubectlExecCurl(cfg.KubeconfigFile(), "temp", "http://otel-collector/metrics", cfg.Namespace())
->>>>>>> 2cf566948bdc783862b3d8c06889fd9e8d24436e
 			if err != nil {
 				t.Error(err, "error with otlp curl request")
 			}

@@ -40,15 +40,15 @@ func TestMetrics(t *testing.T) {
 			return ctx
 		}).
 		Assess("Check images_removed_run_total metric", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
-			if _, err := util.KubectlCurlPod(cfg.KubeconfigFile(), util.EraserNamespace); err != nil {
+			if _, err := util.KubectlCurlPod(cfg.KubeconfigFile(), cfg.Namespace()); err != nil {
 				t.Error(err, "error running curl pod")
 			}
 
-			if _, err := util.KubectlWait(cfg.KubeconfigFile(), "temp", util.EraserNamespace); err != nil {
+			if _, err := util.KubectlWait(cfg.KubeconfigFile(), "temp", cfg.Namespace()); err != nil {
 				t.Error(err, "error waiting for temp curl pod")
 			}
 
-			output, err := util.KubectlExecCurl(cfg.KubeconfigFile(), "temp", "http://otel-collector/metrics", util.EraserNamespace)
+			output, err := util.KubectlExecCurl(cfg.KubeconfigFile(), "temp", "http://otel-collector/metrics", cfg.Namespace())
 			if err != nil {
 				t.Error(err, "error with otlp curl request")
 			}
