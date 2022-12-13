@@ -611,7 +611,7 @@ func DeployOtelCollector(namespace string) env.Func {
 	}
 }
 
-func GetManagerLogs(ctx context.Context, cfg *envconf.Config, t *testing.T, namespace string) error {
+func GetManagerLogs(ctx context.Context, cfg *envconf.Config, t *testing.T) error {
 	c, err := cfg.NewClient()
 	if err != nil {
 		return err
@@ -633,7 +633,7 @@ func GetManagerLogs(ctx context.Context, cfg *envconf.Config, t *testing.T, name
 
 	manager := pods.Items[0]
 
-	output, err := KubectlLogs(cfg.KubeconfigFile(), manager.Name, "", namespace)
+	output, err := KubectlLogs(cfg.KubeconfigFile(), manager.Name, "", cfg.Namespace())
 	if err != nil {
 		return err
 	}
@@ -656,11 +656,13 @@ func GetManagerLogs(ctx context.Context, cfg *envconf.Config, t *testing.T, name
 	return nil
 }
 
-func GetPodLogs(ctx context.Context, cfg *envconf.Config, t *testing.T, namespace string, imagelistTest bool) error {
+func GetPodLogs(ctx context.Context, cfg *envconf.Config, t *testing.T, imagelistTest bool) error {
 	c, err := cfg.NewClient()
 	if err != nil {
 		return err
 	}
+
+	namespace := cfg.Namespace()
 
 	labelSelectorSet := map[string]string{"name": "collector"}
 	if imagelistTest {
