@@ -28,6 +28,17 @@ func TestMetrics(t *testing.T) {
 
 			return ctx
 		}).
+		Assess("Get logs", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
+			if err := util.GetPodLogs(ctx, cfg, t, false); err != nil {
+				t.Error("error getting collector pod logs", err)
+			}
+
+			if err := util.GetManagerLogs(ctx, cfg, t); err != nil {
+				t.Error("error getting manager logs", err)
+			}
+
+			return ctx
+		}).
 		Assess("Check images_removed_run_total metric", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
 			if _, err := util.KubectlCurlPod(cfg.KubeconfigFile(), cfg.Namespace()); err != nil {
 				t.Error(err, "error running curl pod")
