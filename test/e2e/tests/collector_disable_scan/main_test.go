@@ -32,7 +32,7 @@ func TestMain(m *testing.M) {
 		envfuncs.LoadDockerImageToCluster(util.KindClusterName, util.Image),
 		envfuncs.LoadDockerImageToCluster(util.KindClusterName, util.CollectorImage),
 		envfuncs.LoadDockerImageToCluster(util.KindClusterName, util.NonVulnerableImage),
-		util.DeployEraserHelm(util.EraserNamespace,
+		util.DeployEraserHelm(util.TestNamespace,
 			"--set", util.ScannerImageRepo.Set(""),
 			"--set", util.EraserImageRepo.Set(eraserImage.Repo),
 			"--set", util.EraserImageTag.Set(eraserImage.Tag),

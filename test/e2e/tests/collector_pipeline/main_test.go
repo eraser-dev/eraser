@@ -23,7 +23,7 @@ func TestMain(m *testing.M) {
 	// Create KinD Cluster
 	util.Testenv.Setup(
 		envfuncs.CreateKindClusterWithConfig(util.KindClusterName, util.NodeVersion, "../../kind-config.yaml"),
-		envfuncs.CreateNamespace(util.TestNamespace),
+		envfuncs.CreateNamespace(util.EraserNamespace),
 		envfuncs.LoadDockerImageToCluster(util.KindClusterName, util.ManagerImage),
 		envfuncs.LoadDockerImageToCluster(util.KindClusterName, util.Image),
 		envfuncs.LoadDockerImageToCluster(util.KindClusterName, util.ScannerImage),

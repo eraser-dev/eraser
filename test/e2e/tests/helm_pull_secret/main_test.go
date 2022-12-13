@@ -29,12 +29,11 @@ func TestMain(m *testing.M) {
 	util.Testenv.Setup(
 		envfuncs.CreateKindClusterWithConfig(util.KindClusterName, util.NodeVersion, "../../kind-config.yaml"),
 		envfuncs.CreateNamespace(util.TestNamespace),
-		envfuncs.CreateNamespace(util.EraserNamespace),
 		envfuncs.LoadDockerImageToCluster(util.KindClusterName, util.ManagerImage),
 		envfuncs.LoadDockerImageToCluster(util.KindClusterName, util.Image),
 		envfuncs.LoadDockerImageToCluster(util.KindClusterName, util.CollectorImage),
 		envfuncs.LoadDockerImageToCluster(util.KindClusterName, util.ScannerImage),
-		util.DeployEraserHelm(util.EraserNamespace,
+		util.DeployEraserHelm(util.TestNamespace,
 			"--set", util.ScannerImageRepo.Set(scannerImage.Repo),
 			"--set", util.ScannerImageTag.Set(scannerImage.Tag),
 			"--set", util.EraserImageRepo.Set(eraserImage.Repo),

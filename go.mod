@@ -11,12 +11,12 @@ require (
 	go.uber.org/zap v1.23.0
 	golang.org/x/sys v0.3.0
 	google.golang.org/grpc v1.50.1
-	k8s.io/api v0.25.4
-	k8s.io/apimachinery v0.25.4
-	k8s.io/client-go v0.25.4
-	k8s.io/cri-api v0.25.4
+	k8s.io/api v0.25.5
+	k8s.io/apimachinery v0.25.5
+	k8s.io/client-go v0.25.5
+	k8s.io/cri-api v0.25.5
 	k8s.io/klog/v2 v2.70.1
-	k8s.io/kubernetes v1.25.4
+	k8s.io/kubernetes v1.25.5
 	oras.land/oras-go v1.2.1
 	sigs.k8s.io/controller-runtime v0.13.1
 	sigs.k8s.io/e2e-framework v0.0.8
@@ -321,13 +321,13 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	gotest.tools/v3 v3.4.0 // indirect
 	helm.sh/helm/v3 v3.10.0 // indirect
-	k8s.io/apiserver v0.25.4 // indirect
-	k8s.io/cli-runtime v0.25.4 // indirect
-	k8s.io/component-base v0.25.4 // indirect
-	k8s.io/component-helpers v0.25.4 // indirect
+	k8s.io/apiserver v0.25.5 // indirect
+	k8s.io/cli-runtime v0.25.5 // indirect
+	k8s.io/component-base v0.25.5 // indirect
+	k8s.io/component-helpers v0.25.5 // indirect
 	k8s.io/kube-openapi v0.0.0-20220803162953-67bda5d908f1 // indirect
 	k8s.io/kube-scheduler v0.0.0 // indirect
-	k8s.io/kubectl v0.25.4 // indirect
+	k8s.io/kubectl v0.25.5 // indirect
 	k8s.io/utils v0.0.0-20220728103510-ee6ede2d64ed // indirect
 	lukechampine.com/uint128 v1.1.1 // indirect
 	modernc.org/cc/v3 v3.36.0 // indirect
@@ -353,36 +353,36 @@ require (
 	go.opentelemetry.io/otel/metric v0.33.0
 	go.opentelemetry.io/otel/sdk v1.11.1
 	go.opentelemetry.io/otel/sdk/metric v0.33.0
-	k8s.io/apiextensions-apiserver v0.25.4 // indirect
+	k8s.io/apiextensions-apiserver v0.25.5 // indirect
 )
 
 replace (
 	golang.org/x/crypto => golang.org/x/crypto v0.0.0-20220315160706-3147a52a75dd // CVE-2022-27191
-	k8s.io/api => k8s.io/api v0.25.4
-	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.25.4
-	k8s.io/apimachinery => k8s.io/apimachinery v0.25.4
-	k8s.io/apiserver => k8s.io/apiserver v0.25.4
-	k8s.io/cli-runtime => k8s.io/cli-runtime v0.25.4
-	k8s.io/client-go => k8s.io/client-go v0.25.4
-	k8s.io/cloud-provider => k8s.io/cloud-provider v0.25.4
-	k8s.io/cluster-bootstrap => k8s.io/cluster-bootstrap v0.25.4
-	k8s.io/code-generator => k8s.io/code-generator v0.25.4
-	k8s.io/component-base => k8s.io/component-base v0.25.4
-	k8s.io/component-helpers => k8s.io/component-helpers v0.25.4
-	k8s.io/controller-manager => k8s.io/controller-manager v0.25.4
-	k8s.io/cri-api => k8s.io/cri-api v0.25.4
-	k8s.io/csi-translation-lib => k8s.io/csi-translation-lib v0.25.4
-	k8s.io/kube-aggregator => k8s.io/kube-aggregator v0.25.4
-	k8s.io/kube-controller-manager => k8s.io/kube-controller-manager v0.25.4
-	k8s.io/kube-proxy => k8s.io/kube-proxy v0.25.4
-	k8s.io/kube-scheduler => k8s.io/kube-scheduler v0.25.4
-	k8s.io/kubectl => k8s.io/kubectl v0.25.4
-	k8s.io/kubelet => k8s.io/kubelet v0.25.4
-	k8s.io/legacy-cloud-providers => k8s.io/legacy-cloud-providers v0.25.4
-	k8s.io/metrics => k8s.io/metrics v0.25.4
-	k8s.io/mount-utils => k8s.io/mount-utils v0.25.4
-	k8s.io/pod-security-admission => k8s.io/pod-security-admission v0.25.4
-	k8s.io/sample-apiserver => k8s.io/sample-apiserver v0.25.4
-	k8s.io/sample-cli-plugin => k8s.io/sample-cli-plugin v0.25.4
-	k8s.io/sample-controller => k8s.io/sample-controller v0.25.4
+	k8s.io/api => k8s.io/api v0.25.5
+	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.25.5
+	k8s.io/apimachinery => k8s.io/apimachinery v0.25.5
+	k8s.io/apiserver => k8s.io/apiserver v0.25.5
+	k8s.io/cli-runtime => k8s.io/cli-runtime v0.25.5
+	k8s.io/client-go => k8s.io/client-go v0.25.5
+	k8s.io/cloud-provider => k8s.io/cloud-provider v0.25.5
+	k8s.io/cluster-bootstrap => k8s.io/cluster-bootstrap v0.25.5
+	k8s.io/code-generator => k8s.io/code-generator v0.25.5
+	k8s.io/component-base => k8s.io/component-base v0.25.5
+	k8s.io/component-helpers => k8s.io/component-helpers v0.25.5
+	k8s.io/controller-manager => k8s.io/controller-manager v0.25.5
+	k8s.io/cri-api => k8s.io/cri-api v0.25.5
+	k8s.io/csi-translation-lib => k8s.io/csi-translation-lib v0.25.5
+	k8s.io/kube-aggregator => k8s.io/kube-aggregator v0.25.5
+	k8s.io/kube-controller-manager => k8s.io/kube-controller-manager v0.25.5
+	k8s.io/kube-proxy => k8s.io/kube-proxy v0.25.5
+	k8s.io/kube-scheduler => k8s.io/kube-scheduler v0.25.5
+	k8s.io/kubectl => k8s.io/kubectl v0.25.5
+	k8s.io/kubelet => k8s.io/kubelet v0.25.5
+	k8s.io/legacy-cloud-providers => k8s.io/legacy-cloud-providers v0.25.5
+	k8s.io/metrics => k8s.io/metrics v0.25.5
+	k8s.io/mount-utils => k8s.io/mount-utils v0.25.5
+	k8s.io/pod-security-admission => k8s.io/pod-security-admission v0.25.5
+	k8s.io/sample-apiserver => k8s.io/sample-apiserver v0.25.5
+	k8s.io/sample-cli-plugin => k8s.io/sample-cli-plugin v0.25.5
+	k8s.io/sample-controller => k8s.io/sample-controller v0.25.5
 )
