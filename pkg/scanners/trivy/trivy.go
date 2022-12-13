@@ -4,30 +4,21 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"io"
 	"net/http"
 	"os"
-	"os/signal"
-	"syscall"
 	"time"
 
 	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
 	"go.uber.org/zap"
-	"golang.org/x/sys/unix"
 
 	_ "net/http/pprof"
 
 	"github.com/Azure/eraser/pkg/logger"
-	"github.com/Azure/eraser/pkg/metrics"
+	"github.com/Azure/eraser/pkg/scanners/template"
 	"github.com/Azure/eraser/pkg/utils"
 	util "github.com/Azure/eraser/pkg/utils"
-	"github.com/aquasecurity/trivy/pkg/fanal/analyzer"
-	"github.com/aquasecurity/trivy/pkg/fanal/artifact"
-	artifactImage "github.com/aquasecurity/trivy/pkg/fanal/artifact/image"
 	fanalImage "github.com/aquasecurity/trivy/pkg/fanal/image"
 	trivylogger "github.com/aquasecurity/trivy/pkg/log"
-	"github.com/aquasecurity/trivy/pkg/scanner"
-	"go.opentelemetry.io/otel/metric/global"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
@@ -113,45 +104,63 @@ var (
 
 func main() {
 	flag.Parse()
-	ctx := context.Background()
 
-	var err error
-
-	if err = logger.Configure(); err != nil {
-		fmt.Fprintln(os.Stderr, "error setting up logger:", err)
-		os.Exit(generalErr)
-	}
-
-	// creating new logger for JSON output with trivy scanner as trivy logs are not JSON encoded
-	logger, err := zap.NewProduction()
+	// Initializes logger and parses CLI options into hashmap configs
+	err := initGlobals()
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "error setting up trivy logger:", err)
+		fmt.Fprintf(os.Stderr, "error initializing options: %v", err)
 		os.Exit(generalErr)
-	}
-
-	sugar := logger.Sugar()
-	trivylogger.Logger = sugar
-
-	if err := unix.Mkfifo(util.EraseCompleteScanPath, util.PipeMode); err != nil {
-		log.Error(err, "failed to create pipe", "pipeName", util.EraseCompleteScanPath)
-		os.Exit(1)
-	}
-
-	err = os.Chmod(util.EraseCompleteScanPath, 0o666)
-	if err != nil {
-		log.Error(err, "unable to enable pipe for writing", "pipeName", util.EraseCompleteScanPath)
-		os.Exit(1)
 	}
 
 	if *enableProfile {
-		go func() {
-			server := &http.Server{
-				Addr:              fmt.Sprintf("localhost:%d", *profilePort),
-				ReadHeaderTimeout: 3 * time.Second,
-			}
-			err := server.ListenAndServe()
-			log.Error(err, "pprof server failed")
-		}()
+		go runProfileServer()
+	}
+
+	ctx := context.Background()
+	provider := template.NewImageProvider(
+		template.WithContext(ctx),
+		template.WithLogger(log),
+		template.WithMetrics(true),
+		template.WithDeleteScanFailedImages(*deleteScanFailedImages),
+	)
+
+	allImages, err := provider.ReceiveImages()
+	if err != nil {
+		log.Error(err, "unable to read images from provider")
+		os.Exit(generalErr)
+	}
+
+	s, err := initScanner(ctx)
+	if err != nil {
+		log.Error(err, "error initializing scanner")
+	}
+
+	vulnerableImages, failedImages := scan(s, allImages)
+	log.Info("Vulnerable", "Images", vulnerableImages)
+
+	if len(failedImages) > 0 {
+		log.Info("Failed", "Images", failedImages)
+	}
+
+	err = provider.SendImages(vulnerableImages, failedImages)
+	if err != nil {
+		log.Error(err, "unable to write images")
+	}
+
+	log.Info("scanning complete, waiting for eraser to finish...")
+	err = provider.Finish()
+	if err != nil {
+		log.Error(err, "unable to complete scanning process")
+	}
+
+	log.Info("eraser job completed, shutting down...")
+}
+
+// Initializes logger and parses CLI options into hashmap configs.
+func initGlobals() error {
+	err := logger.Configure()
+	if err != nil {
+		return fmt.Errorf("error setting up logger: %w", err)
 	}
 
 	allSetsOfCommaSeparatedOptions := []optionSet{
@@ -170,167 +179,81 @@ func main() {
 	}
 
 	for _, oSet := range allSetsOfCommaSeparatedOptions {
-		// note: this function has side effects and will modify the map supplied as the first argument
 		err := parseCommaSeparatedOptions(oSet.m, oSet.input)
 		if err != nil {
-			log.Error(err, "unable to parse options")
-			os.Exit(generalErr)
+			return fmt.Errorf("unable to parse options %w", err)
 		}
 	}
 
-	allImages, err := util.ReadCollectScanPipe(ctx)
+	return nil
+}
+
+func runProfileServer() {
+	server := &http.Server{
+		Addr:              fmt.Sprintf("localhost:%d", *profilePort),
+		ReadHeaderTimeout: 3 * time.Second,
+	}
+	err := server.ListenAndServe()
+	log.Error(err, "pprof server failed")
+}
+
+func initScanner(ctx context.Context) (Scanner, error) {
+	err := downloadAndInitDB(*cacheDir)
 	if err != nil {
-		log.Error(err, "unable to read images from collect scan pipe")
-		os.Exit(generalErr)
+		return nil, fmt.Errorf("unable to initialize trivy db. cacheDir: %s, error: %w", *cacheDir, err)
 	}
 
-	err = downloadAndInitDB(*cacheDir)
+	logger, err := zap.NewProduction()
 	if err != nil {
-		log.Error(err, "unable to initialize trivy db", "cacheDir", *cacheDir)
-		os.Exit(generalErr)
+		return nil, fmt.Errorf("error setting up trivy logger: %w", err)
 	}
+
+	sugar := logger.Sugar()
+	trivylogger.Logger = sugar
 
 	vulnTypeList := trueMapKeys(vulnTypeMap)
 	securityCheckList := trueMapKeys(securityCheckMap)
 
 	scanConfig, err := setupScanner(*cacheDir, vulnTypeList, securityCheckList)
 	if err != nil {
-		log.Error(err, "unable to set up scanner configuration", "cacheDir", *cacheDir, "vulnTypeList", vulnTypeList, "securityCheckList", securityCheckList)
-		os.Exit(generalErr)
+		return nil, err
 	}
-
-	vulnerableImages := make([]eraserv1alpha1.Image, 0, len(allImages))
-	failedImages := make([]eraserv1alpha1.Image, 0, len(allImages))
 
 	runtime := os.Getenv(util.EnvEraserContainerRuntime)
 	imageSourceOptions, ok := runtimeFanalOptionsMap[runtime]
 	if !ok {
-		log.Error(err, "unable to determine runtime from environment")
-		os.Exit(generalErr)
+		return nil, fmt.Errorf("unable to determine runtime from environment: %w", err)
 	}
 
-	for _, img := range allImages {
-		refs := make([]string, 0, len(img.Names)+len(img.Digests))
-		refs = append(refs, img.Digests...)
-		refs = append(refs, img.Names...)
+	var s Scanner = &ImageScanner{
+		ctx:                ctx,
+		scanConfig:         scanConfig,
+		imageSourceOptions: imageSourceOptions,
+	}
+	return s, nil
+}
 
-		if len(refs) == 0 {
-			log.Info("found image with no name", "img", img)
+func scan(s Scanner, allImages []eraserv1alpha1.Image) ([]eraserv1alpha1.Image, []eraserv1alpha1.Image) {
+	vulnerableImages := make([]eraserv1alpha1.Image, 0, len(allImages))
+	failedImages := make([]eraserv1alpha1.Image, 0, len(allImages))
+
+	for _, img := range allImages {
+		// Logs scan failures
+		status, err := s.Scan(img)
+		if err != nil {
 			failedImages = append(failedImages, img)
+			log.Error(err, "scan failed")
 			continue
 		}
 
-		scanSucceeded := false
-		log.Info("scanning image with id", "imageID", img.ImageID, "refs", refs)
-
-		for i := 0; i < len(refs) && !scanSucceeded; i++ {
-			ref := refs[i]
-			log.Info("scanning image with ref", "ref", ref)
-
-			dockerImage, cleanup, err := fanalImage.NewContainerImage(ctx, ref, scanConfig.dockerOptions, imageSourceOptions...)
-			if err != nil { // could not locate image
-				log.Error(err, "could not find image by reference", "imageID", img.ImageID, "reference", ref)
-				cleanup()
-				continue
-			}
-			log.Info("found image with id under reference", "imageID", img.ImageID, "ref", ref)
-
-			artifactToScan, err := artifactImage.NewArtifact(dockerImage, scanConfig.fscache, artifact.Option{
-				Offline:           true,
-				DisabledAnalyzers: analyzer.TypeLockfiles,
-				RekorURL:          *rekorURL,
-			})
-			if err != nil {
-				log.Error(err, "error registering config for artifact", "imageID", img.ImageID, "reference", ref)
-				cleanup()
-				continue
-			}
-
-			scanner := scanner.NewScanner(scanConfig.localScanner, artifactToScan)
-			report, err := scanner.ScanArtifact(ctx, scanConfig.scanOptions)
-			if err != nil {
-				log.Error(err, "error scanning image", "imageID", img.ImageID, "reference", ref)
-				cleanup()
-				continue
-			}
-
-		outer:
-			for i := range report.Results {
-				for j := range report.Results[i].Vulnerabilities {
-					if *ignoreUnfixed && report.Results[i].Vulnerabilities[j].FixedVersion == "" {
-						continue
-					}
-
-					if report.Results[i].Vulnerabilities[j].Severity == "" {
-						report.Results[i].Vulnerabilities[j].Severity = severityUnknown
-					}
-
-					if severityMap[report.Results[i].Vulnerabilities[j].Severity] {
-						vulnerableImages = append(vulnerableImages, img)
-						break outer
-					}
-				}
-			}
-
-			scanSucceeded = true
-			cleanup()
-		}
-
-		if !scanSucceeded {
+		switch status {
+		case StatusNonCompliant:
+			log.Info("vulnerable image found", "img", img)
+			vulnerableImages = append(vulnerableImages, img)
+		case StatusFailed:
 			failedImages = append(failedImages, img)
 		}
 	}
 
-	if len(failedImages) > 0 {
-		log.Info("Failed", "Images", failedImages)
-	}
-
-	log.Info("Vulnerable", "Images", vulnerableImages)
-
-	// if deleteScanFailedImages is true, we want to pass failed images as vulnerable to be deleted
-	if *deleteScanFailedImages {
-		vulnerableImages = append(vulnerableImages, failedImages...)
-	}
-
-	// write vulnerable images to scanErase pipe for eraser to read
-	if err := util.WriteScanErasePipe(vulnerableImages); err != nil {
-		log.Error(err, "unable to write non-compliant images to scan erase pipe")
-		os.Exit(generalErr)
-	}
-
-	file, err := os.OpenFile(util.EraseCompleteScanPath, os.O_RDONLY, 0)
-	if err != nil {
-		log.Error(err, "failed to open pipe", "pipeName", util.EraseCompleteScanPath)
-		os.Exit(1)
-	}
-
-	data, err := io.ReadAll(file)
-	if err != nil {
-		log.Error(err, "failed to read pipe", "pipeName", util.EraseCompleteScanPath)
-		os.Exit(1)
-	}
-
-	file.Close()
-
-	if string(data) != util.EraseCompleteMessage {
-		log.Info("garbage in pipe", "pipeName", util.EraseCompleteScanPath, "in_pipe", string(data))
-		os.Exit(1)
-	}
-
-	if os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT") != "" {
-		// record  metrics
-		ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
-		defer cancel()
-
-		exporter, reader, provider := metrics.ConfigureMetrics(ctx, log, os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT"))
-		global.SetMeterProvider(provider)
-
-		defer metrics.ExportMetrics(log, exporter, reader, provider)
-
-		if err := metrics.RecordMetricsScanner(ctx, global.MeterProvider(), len(vulnerableImages)); err != nil {
-			log.Error(err, "error recording metrics")
-		}
-	}
-
-	log.Info("scanning complete, exiting")
+	return vulnerableImages, failedImages
 }
