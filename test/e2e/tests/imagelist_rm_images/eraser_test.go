@@ -132,7 +132,7 @@ func TestImageListTriggersEraserImageJob(t *testing.T) {
 					podNames = append(podNames, pod.ObjectMeta.Name)
 				}
 				return true, nil
-			}, wait.WithTimeout(util.Timeout), wait.WithInterval(time.Millisecond*500))
+			}, wait.WithTimeout(time.Minute*2), wait.WithInterval(time.Millisecond*500))
 			if err != nil {
 				t.Fatal(err)
 			}
