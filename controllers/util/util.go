@@ -31,6 +31,9 @@ const (
 	ImageJobOwnerLabelKey = "eraser.sh/job-owner"
 
 	exclusionLabel = "eraser.sh/exclude.list=true"
+
+	EnvVarContainerdNamespaceKey   = "CONTAINERD_NAMESPACE"
+	EnvVarContainerdNamespaceValue = "k8s.io"
 )
 
 func init() {
