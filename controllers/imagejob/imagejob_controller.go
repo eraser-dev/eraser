@@ -474,10 +474,16 @@ func copyAndFillTemplateSpec(templateSpecTemplate *corev1.PodSpec, env []corev1.
 	if len(templateSpec.Containers) > 2 {
 		scannerImg := &templateSpec.Containers[2]
 		scannerImg.VolumeMounts = append(scannerImg.VolumeMounts, volumeMounts...)
-		scannerImg.Env = append(scannerImg.Env, corev1.EnvVar{
-			Name:  eraserUtils.EnvEraserContainerRuntime,
-			Value: runtimeName,
-		})
+		scannerImg.Env = append(scannerImg.Env,
+			corev1.EnvVar{
+				Name:  eraserUtils.EnvEraserContainerRuntime,
+				Value: runtimeName,
+			},
+			corev1.EnvVar{
+				Name:  controllerUtils.EnvVarContainerdNamespaceKey,
+				Value: controllerUtils.EnvVarContainerdNamespaceValue,
+			},
+		)
 		scannerImg.Env = append(scannerImg.Env, env...)
 	}
 
