@@ -37,7 +37,8 @@ func TestMain(m *testing.M) {
 			"--set", util.EraserImageTag.Set(eraserImage.Tag),
 			"--set", util.ManagerImageRepo.Set(managerImage.Repo),
 			"--set", util.ManagerImageTag.Set(managerImage.Tag),
-			"--set", `controllerManager.additionalArgs={--job-cleanup-on-success-delay=1m}`),
+			"--set", util.ManagerAdditionalArgs.Set("--job-cleanup-on-success-delay=1m").String(),
+		),
 	).Finish(
 		envfuncs.DestroyKindCluster(util.KindClusterName),
 	)
