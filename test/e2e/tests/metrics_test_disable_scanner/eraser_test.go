@@ -19,7 +19,7 @@ const (
 	expectedImagesRemoved = 3
 )
 
-func TestMetrics(t *testing.T) {
+func TestMetricsWithScannerDisabled(t *testing.T) {
 	metrics := features.New("Images_removed_run_total metric should report 1").
 		Assess("Alpine image is removed", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
 			ctxT, cancel := context.WithTimeout(ctx, util.Timeout)
