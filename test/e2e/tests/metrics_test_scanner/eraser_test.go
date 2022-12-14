@@ -19,7 +19,7 @@ const (
 	expectedVulnerableImages = 3
 )
 
-func TestMetrics(t *testing.T) {
+func TestMetricsWithScanner(t *testing.T) {
 	metrics := features.New("Images_removed_run_total and vulnerable_images_run_total metrics should report >= 3").
 		Assess("Alpine image is removed", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
 			ctxT, cancel := context.WithTimeout(ctx, util.Timeout)
