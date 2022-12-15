@@ -17,7 +17,7 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 	v1 "k8s.io/cri-api/pkg/apis/runtime/v1"
 
-	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
+	"github.com/Azure/eraser/api/unversioned"
 )
 
 const (
@@ -135,7 +135,7 @@ func ListContainers(ctx context.Context, runtime v1.RuntimeServiceClient) (list 
 	return resp.Containers, nil
 }
 
-func GetRunningImages(containers []*v1.Container, idToImageMap map[string]eraserv1alpha1.Image) map[string]string {
+func GetRunningImages(containers []*v1.Container, idToImageMap map[string]unversioned.Image) map[string]string {
 	// Images that are running
 	// map of (digest | tag) -> digest
 	runningImages := make(map[string]string)
@@ -155,7 +155,7 @@ func GetRunningImages(containers []*v1.Container, idToImageMap map[string]eraser
 	return runningImages
 }
 
-func GetNonRunningImages(runningImages map[string]string, allImages []eraserv1alpha1.Image, idToImageMap map[string]eraserv1alpha1.Image) map[string]string {
+func GetNonRunningImages(runningImages map[string]string, allImages []unversioned.Image, idToImageMap map[string]unversioned.Image) map[string]string {
 	// Images that aren't running
 	// map of (digest | tag) -> digest
 	nonRunningImages := make(map[string]string)
@@ -178,7 +178,7 @@ func GetNonRunningImages(runningImages map[string]string, allImages []eraserv1al
 	return nonRunningImages
 }
 
-func IsExcluded(excluded map[string]struct{}, img string, idToImageMap map[string]eraserv1alpha1.Image) bool {
+func IsExcluded(excluded map[string]struct{}, img string, idToImageMap map[string]unversioned.Image) bool {
 	if len(excluded) == 0 {
 		return false
 	}
@@ -332,7 +332,7 @@ func readConfigMap(path string) ([]string, error) {
 	return images, nil
 }
 
-func ReadCollectScanPipe(ctx context.Context) ([]eraserv1alpha1.Image, error) {
+func ReadCollectScanPipe(ctx context.Context) ([]unversioned.Image, error) {
 	timer := time.NewTimer(time.Second)
 	if !timer.Stop() {
 		<-timer.C
@@ -360,13 +360,13 @@ func ReadCollectScanPipe(ctx context.Context) ([]eraserv1alpha1.Image, error) {
 		}
 	}
 
-	// json data is list of []eraserv1alpha1.Image
+	// json data is list of []eraserv1.Image
 	data, err := io.ReadAll(f)
 	if err != nil {
 		return nil, err
 	}
 
-	allImages := []eraserv1alpha1.Image{}
+	allImages := []unversioned.Image{}
 	if err = json.Unmarshal(data, &allImages); err != nil {
 		return nil, err
 	}
@@ -374,7 +374,7 @@ func ReadCollectScanPipe(ctx context.Context) ([]eraserv1alpha1.Image, error) {
 	return allImages, nil
 }
 
-func WriteScanErasePipe(vulnerableImages []eraserv1alpha1.Image) error {
+func WriteScanErasePipe(vulnerableImages []unversioned.Image) error {
 	data, err := json.Marshal(vulnerableImages)
 	if err != nil {
 		return err

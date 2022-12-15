@@ -37,6 +37,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
+	eraserv1 "github.com/Azure/eraser/api/v1"
 	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
 	"github.com/Azure/eraser/controllers/util"
 	"github.com/Azure/eraser/pkg/utils"
@@ -128,14 +129,14 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	}
 
 	err = c.Watch(
-		&source.Kind{Type: &eraserv1alpha1.ImageJob{}},
+		&source.Kind{Type: &eraserv1.ImageJob{}},
 		&handler.EnqueueRequestForObject{}, predicate.Funcs{
 			// Do nothing on Create, Delete, or Generic events
 			CreateFunc:  util.NeverOnCreate,
 			DeleteFunc:  util.NeverOnDelete,
 			GenericFunc: util.NeverOnGeneric,
 			UpdateFunc: func(e event.UpdateEvent) bool {
-				if job, ok := e.ObjectNew.(*eraserv1alpha1.ImageJob); ok && util.IsCompletedOrFailed(job.Status.Phase) {
+				if job, ok := e.ObjectNew.(*eraserv1.ImageJob); ok && util.IsCompletedOrFailed(job.Status.Phase) {
 					return ownerLabel.Matches(labels.Set(job.ObjectMeta.Labels))
 				}
 
@@ -164,7 +165,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	_ = time.AfterFunc(delay, func() {
 		log.Info("Queueing first ImageCollector reconcile...")
 		ch <- event.GenericEvent{
-			Object: &eraserv1alpha1.ImageJob{
+			Object: &eraserv1.ImageJob{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "first-reconcile",
 				},
@@ -190,7 +191,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	log.Info("ImageCollector Reconcile")
 	defer log.Info("done reconcile")
 
-	imageJobList := &eraserv1alpha1.ImageJobList{}
+	imageJobList := &eraserv1.ImageJobList{}
 	if err := r.List(ctx, imageJobList); err != nil {
 		log.Info("could not list imagejobs")
 		return ctrl.Result{}, err
@@ -219,7 +220,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	}
 }
 
-func (r *Reconciler) handleJobDeletion(ctx context.Context, job *eraserv1alpha1.ImageJob) (ctrl.Result, error) {
+func (r *Reconciler) handleJobDeletion(ctx context.Context, job *eraserv1.ImageJob) (ctrl.Result, error) {
 	until := time.Until(job.Status.DeleteAfter.Time)
 	if until > 0 {
 		log.Info("Delaying imagejob delete", "job", job.Name, "deleteAter", job.Status.DeleteAfter)
@@ -397,10 +398,10 @@ func (r *Reconciler) createImageJob(ctx context.Context, req ctrl.Request, argsC
 	return reconcile.Result{}, nil
 }
 
-func (r *Reconciler) handleCompletedImageJob(ctx context.Context, req ctrl.Request, childJob *eraserv1alpha1.ImageJob) (ctrl.Result, error) {
+func (r *Reconciler) handleCompletedImageJob(ctx context.Context, req ctrl.Request, childJob *eraserv1.ImageJob) (ctrl.Result, error) {
 	var err error
 	switch phase := childJob.Status.Phase; phase {
-	case eraserv1alpha1.PhaseCompleted:
+	case eraserv1.PhaseCompleted:
 		log.Info("completed phase")
 		if childJob.Status.DeleteAfter == nil {
 			childJob.Status.DeleteAfter = util.After(time.Now(), int64(util.SuccessDel.Seconds()))
@@ -421,7 +422,7 @@ func (r *Reconciler) handleCompletedImageJob(ctx context.Context, req ctrl.Reque
 		if res, err := r.handleJobDeletion(ctx, childJob); err != nil || res.RequeueAfter > 0 {
 			return res, err
 		}
-	case eraserv1alpha1.PhaseFailed:
+	case eraserv1.PhaseFailed:
 		log.Info("failed phase")
 		if childJob.Status.DeleteAfter == nil {
 			childJob.Status.DeleteAfter = util.After(time.Now(), int64(util.ErrDel.Seconds()))

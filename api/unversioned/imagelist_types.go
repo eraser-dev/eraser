@@ -11,7 +11,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1alpha1
+// +kubebuilder:skip
+package unversioned
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -35,10 +36,6 @@ type ImageListStatus struct {
 	Skipped int64 `json:"skipped"`
 }
 
-// +kubebuilder:object:root=true
-// +kubebuilder:subresource:status
-// +kubebuilder:resource:scope="Cluster"
-// +kubebuilder:deprecatedversion:warning="v1alpha1 of the eraser API has been deprecated"
 // ImageList is the Schema for the imagelists API.
 type ImageList struct {
 	metav1.TypeMeta   `json:",inline"`
@@ -48,15 +45,9 @@ type ImageList struct {
 	Status ImageListStatus `json:"status,omitempty"`
 }
 
-// +kubebuilder:object:root=true
-
 // ImageListList contains a list of ImageList.
 type ImageListList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []ImageList `json:"items"`
-}
-
-func init() {
-	SchemeBuilder.Register(&ImageList{}, &ImageListList{})
 }

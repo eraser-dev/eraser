@@ -36,6 +36,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 
+	eraserv1 "github.com/Azure/eraser/api/v1"
 	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
 	"github.com/Azure/eraser/controllers"
 	"github.com/Azure/eraser/version"
@@ -58,6 +59,8 @@ func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 
 	utilruntime.Must(eraserv1alpha1.AddToScheme(scheme))
+	//+kubebuilder:scaffold:scheme
+	utilruntime.Must(eraserv1.AddToScheme(scheme))
 	//+kubebuilder:scaffold:scheme
 }
 

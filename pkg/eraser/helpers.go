@@ -3,7 +3,7 @@ package main
 import (
 	"context"
 
-	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
+	"github.com/Azure/eraser/api/unversioned"
 	"github.com/Azure/eraser/pkg/cri"
 	util "github.com/Azure/eraser/pkg/utils"
 )
@@ -19,15 +19,15 @@ func removeImages(c cri.Eraser, targetImages []string) (int, error) {
 		return 0, err
 	}
 
-	allImages := make([]eraserv1alpha1.Image, 0, len(images))
+	allImages := make([]unversioned.Image, 0, len(images))
 	// map with key: imageID, value: repoTag list (contains full name of image)
-	idToImageMap := make(map[string]eraserv1alpha1.Image)
+	idToImageMap := make(map[string]unversioned.Image)
 
 	for _, img := range images {
 		repoTags := []string{}
 		repoTags = append(repoTags, img.RepoTags...)
 
-		newImg := eraserv1alpha1.Image{
+		newImg := unversioned.Image{
 			ImageID: img.Id,
 			Names:   repoTags,
 		}

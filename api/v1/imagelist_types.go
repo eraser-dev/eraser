@@ -11,7 +11,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1alpha1
+package v1
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -38,7 +38,7 @@ type ImageListStatus struct {
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:scope="Cluster"
-// +kubebuilder:deprecatedversion:warning="v1alpha1 of the eraser API has been deprecated"
+// +kubebuilder:storageversion
 // ImageList is the Schema for the imagelists API.
 type ImageList struct {
 	metav1.TypeMeta   `json:",inline"`
@@ -49,7 +49,7 @@ type ImageList struct {
 }
 
 // +kubebuilder:object:root=true
-
+// +kubebuilder:storageversion
 // ImageListList contains a list of ImageList.
 type ImageListList struct {
 	metav1.TypeMeta `json:",inline"`

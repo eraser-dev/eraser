@@ -107,8 +107,15 @@ manifests: __controller-gen ## Generates k8s yaml for eraser deployment.
 		k8s.gcr.io/kustomize/kustomize:v${KUSTOMIZE_VERSION} build \
 		--load_restrictor LoadRestrictionsNone /eraser/third_party/open-policy-agent/gatekeeper/helmify | go run third_party/open-policy-agent/gatekeeper/helmify/*.go
 
-generate: __controller-gen ## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations.
+# Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method
+# implementations. Also generate conversions between structs of different API versions.
+generate: __conversion-gen __controller-gen
 	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./..."
+	$(CONVERSION_GEN) \
+		--output-base=/eraser \
+		--input-dirs=./api/v1,./api/v1alpha1,./api/unversioned \
+		--go-header-file=./hack/boilerplate.go.txt \
+		--output-file-base=zz_generated.conversion
 
 fmt: ## Run go fmt against code.
 	go fmt ./...
@@ -238,6 +245,9 @@ bin/setup-envtest:
 
 __controller-gen: __tooling-image
 CONTROLLER_GEN=docker run --rm -v $(shell pwd):/eraser eraser-tooling controller-gen
+
+__conversion-gen: __tooling-image
+CONVERSION_GEN=docker run --rm -v $(shell pwd):/eraser eraser-tooling conversion-gen
 
 __tooling-image:
 	docker build . \
