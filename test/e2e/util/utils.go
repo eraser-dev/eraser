@@ -81,6 +81,11 @@ var (
 	ParsedImages        *Images
 	Timeout             = time.Minute * 5
 	ImagePullSecretJSON = fmt.Sprintf(`[{"name":"%s"}]`, ImagePullSecret)
+
+	ManagerAdditionalArgs = HelmSet{
+		key:  "controllerManager.additionalArgs",
+		args: []string{"--delete-scan-failed-images=false"},
+	}
 )
 
 type (
@@ -97,10 +102,24 @@ type (
 	}
 
 	HelmPath string
+
+	HelmSet struct {
+		key  string
+		args []string
+	}
 )
 
 func (hp HelmPath) Set(val string) string {
 	return fmt.Sprintf("%s=%s", hp, val)
+}
+
+func (hs *HelmSet) Set(val ...string) *HelmSet {
+	hs.args = append(hs.args, val...)
+	return hs
+}
+
+func (hs *HelmSet) String() string {
+	return fmt.Sprintf("%s={%s}", hs.key, strings.Join(hs.args, ","))
 }
 
 func init() {
@@ -633,7 +652,7 @@ func GetManagerLogs(ctx context.Context, cfg *envconf.Config, t *testing.T) erro
 
 	manager := pods.Items[0]
 
-	output, err := KubectlLogs(cfg.KubeconfigFile(), manager.Name, "", EraserNamespace)
+	output, err := KubectlLogs(cfg.KubeconfigFile(), manager.Name, "", cfg.Namespace())
 	if err != nil {
 		return err
 	}
@@ -642,29 +661,15 @@ func GetManagerLogs(ctx context.Context, cfg *envconf.Config, t *testing.T) erro
 
 	// get log output file path
 	path := filepath.Join(TestLogDir, testName)
+	logFileName := filepath.Join(path, manager.Name+".txt")
 
-	var file *os.File
 	if err := os.MkdirAll(path, 0o755); err != nil {
 		return err
 	}
-	_, err = os.Create(filepath.Join(path, manager.Name+".txt"))
+
+	err = os.WriteFile(logFileName, []byte(output), 0o600)
 	if err != nil {
 		return err
-	}
-
-	file, err = os.OpenFile(filepath.Join(path, manager.Name+".txt"), os.O_APPEND|os.O_WRONLY, 0o644)
-	if err != nil {
-		return err
-	}
-
-	// write manager logs
-	if _, err := file.WriteString(output); err != nil {
-		t.Errorf("error writing manager logs %s %v", path, err)
-	}
-
-	// close log output file
-	if err := file.Close(); err != nil {
-		t.Errorf("error closing file %s %v", path, err)
 	}
 
 	return nil
@@ -676,33 +681,28 @@ func GetPodLogs(ctx context.Context, cfg *envconf.Config, t *testing.T, imagelis
 		return err
 	}
 
-	var ls corev1.PodList
+	namespace := cfg.Namespace()
+
+	labelSelectorSet := map[string]string{"name": "collector"}
 	if imagelistTest {
-		err = wait.For(func() (bool, error) {
-			err = c.Resources().List(ctx, &ls, func(o *metav1.ListOptions) {
-				o.LabelSelector = labels.SelectorFromSet(map[string]string{"name": "eraser"}).String()
-			})
-			if err != nil {
-				return false, err
-			}
-			return len(ls.Items) > 0, nil
-		}, wait.WithTimeout(Timeout))
+		labelSelectorSet = map[string]string{"name": "eraser"}
+	}
+
+	var ls corev1.PodList
+	err = wait.For(func() (bool, error) {
+		err = c.Resources().List(ctx, &ls, func(o *metav1.ListOptions) {
+			o.LabelSelector = labels.SelectorFromSet(labelSelectorSet).String()
+		})
+
 		if err != nil {
-			t.Errorf("could not list pods: %v", err)
+			return false, err
 		}
-	} else {
-		err = wait.For(func() (bool, error) {
-			err = c.Resources().List(ctx, &ls, func(o *metav1.ListOptions) {
-				o.LabelSelector = labels.SelectorFromSet(map[string]string{"name": "collector"}).String()
-			})
-			if err != nil {
-				return false, err
-			}
-			return len(ls.Items) > 0, nil
-		}, wait.WithTimeout(Timeout))
-		if err != nil {
-			t.Errorf("could not list pods: %v", err)
-		}
+
+		return len(ls.Items) > 0, nil
+	}, wait.WithTimeout(Timeout))
+
+	if err != nil {
+		t.Errorf("could not list pods: %v", err)
 	}
 
 	for idx := range ls.Items {
@@ -713,20 +713,7 @@ func GetPodLogs(ctx context.Context, cfg *envconf.Config, t *testing.T, imagelis
 
 		// get log output file path
 		path := filepath.Join(TestLogDir, testName)
-
-		var file *os.File
-		if err := os.MkdirAll(path, 0o755); err != nil {
-			return err
-		}
-		_, err = os.Create(filepath.Join(path, pod.Name+".txt"))
-		if err != nil {
-			return err
-		}
-
-		file, err = os.OpenFile(filepath.Join(path, pod.Name+".txt"), os.O_APPEND|os.O_WRONLY, 0o644)
-		if err != nil {
-			return err
-		}
+		podLogFilename := filepath.Join(path, pod.Name+".txt")
 
 		// wait for current pod to complete
 		err = wait.For(conditions.New(c.Resources()).PodPhaseMatch(&pod, corev1.PodSucceeded), wait.WithTimeout(Timeout))
@@ -734,40 +721,18 @@ func GetPodLogs(ctx context.Context, cfg *envconf.Config, t *testing.T, imagelis
 			t.Errorf("error waiting for pod completion %s %v", pod.Name, err)
 		}
 
-		if !imagelistTest {
-			// get collector container logs
-			output, err = KubectlLogs(cfg.KubeconfigFile(), pod.Name, "collector", EraserNamespace)
-			if err != nil {
-				t.Errorf("could not get collector container logs %s %v", pod.Name, err)
-			}
-
-			if _, err := file.WriteString(output); err != nil {
-				t.Errorf("error writing collector logs %s %v", path, err)
-			}
-
-			// get eraser container logs
-			output, err = KubectlLogs(cfg.KubeconfigFile(), pod.Name, "eraser", EraserNamespace)
-			if err != nil {
-				t.Errorf("could not get eraser container logs %s %v", pod.Name, err)
-			}
-
-			if _, err := file.WriteString("\n" + output); err != nil {
-				t.Errorf("error writing eraser logs %s %v", path, err)
-			}
-		} else {
-			// get eraser pog logs
-			output, err = KubectlLogs(cfg.KubeconfigFile(), pod.Name, "", EraserNamespace)
-			if err != nil {
-				t.Error("could not get pod output", err)
-			}
-			if _, err := file.WriteString(output); err != nil {
-				t.Errorf("error writing eraser logs %s %v", path, err)
-			}
+		output, err := KubectlLogs(cfg.KubeconfigFile(), pod.Name, "", namespace, "--all-containers=true")
+		if err != nil {
+			t.Errorf("error getting pod logs %s %v", pod.Name, err)
 		}
 
-		// close log output file
-		if err := file.Close(); err != nil {
-			t.Errorf("error closing file %s %v", path, err)
+		if err := os.MkdirAll(path, 0o755); err != nil {
+			return err
+		}
+
+		err = os.WriteFile(podLogFilename, []byte(output), 0o600)
+		if err != nil {
+			t.Errorf("error writing pod log file %s %s %v", pod.Name, podLogFilename, err)
 		}
 	}
 
@@ -819,7 +784,7 @@ func CreateExclusionList(namespace string, list string) env.Func {
 		excluded := corev1.ConfigMap{
 			ObjectMeta: metav1.ObjectMeta{
 				GenerateName: "excluded",
-				Namespace:    EraserNamespace,
+				Namespace:    namespace,
 				Labels:       map[string]string{"eraser.sh/exclude.list": "true"},
 			},
 			Data: map[string]string{"excluded.json": list},
@@ -830,7 +795,7 @@ func CreateExclusionList(namespace string, list string) env.Func {
 
 		cMap := corev1.ConfigMap{}
 		err = wait.For(func() (bool, error) {
-			err := c.Resources().Get(ctx, excluded.Name, EraserNamespace, &cMap)
+			err := c.Resources().Get(ctx, excluded.Name, namespace, &cMap)
 			if IsNotFound(err) {
 				return false, nil
 			}

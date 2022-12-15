@@ -35,7 +35,7 @@ func TestExclusionList(t *testing.T) {
 			excluded := corev1.ConfigMap{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "excluded",
-					Namespace: util.EraserNamespace,
+					Namespace: cfg.Namespace(),
 					Labels:    map[string]string{"eraser.sh/exclude.list": "true"},
 				},
 				Data: map[string]string{"test.json": "{\"excluded\": [\"docker.io/library/*\"]}"},
@@ -91,7 +91,7 @@ func TestExclusionList(t *testing.T) {
 			}
 
 			// create imagelist to trigger deletion
-			if err := util.DeployEraserConfig(cfg.KubeconfigFile(), util.EraserNamespace, "../../test-data", "eraser_v1alpha1_imagelist.yaml"); err != nil {
+			if err := util.DeployEraserConfig(cfg.KubeconfigFile(), cfg.Namespace(), "../../test-data", "eraser_v1alpha1_imagelist.yaml"); err != nil {
 				t.Error("Failed to deploy image list config", err)
 			}
 

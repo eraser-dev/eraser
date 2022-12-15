@@ -24,6 +24,8 @@ import (
 const (
 	collectorLabel = "name=collector"
 	eraserLabel    = "name=eraser"
+
+	restartTimeout = time.Minute
 )
 
 func TestImageListTriggersEraserImageJob(t *testing.T) {
@@ -109,7 +111,7 @@ func TestImageListTriggersEraserImageJob(t *testing.T) {
 			}
 
 			// deploy imageJob config
-			if err := util.DeployEraserConfig(cfg.KubeconfigFile(), util.EraserNamespace, "../../test-data", "eraser_v1alpha1_imagelist.yaml"); err != nil {
+			if err := util.DeployEraserConfig(cfg.KubeconfigFile(), cfg.Namespace(), "../../test-data", "eraser_v1alpha1_imagelist.yaml"); err != nil {
 				t.Error("Failed to deploy image list config", err)
 			}
 
@@ -174,7 +176,7 @@ func TestImageListTriggersEraserImageJob(t *testing.T) {
 			// until a timeout is reached, make sure there are no pods matching
 			// the selector name=eraser
 			client := cfg.Client()
-			ctxT2, cancel := context.WithTimeout(ctx, util.Timeout)
+			ctxT2, cancel := context.WithTimeout(ctx, restartTimeout)
 			defer cancel()
 			util.CheckDeploymentCleanedUp(ctxT2, t, client)
 
