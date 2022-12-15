@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"sync"
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
@@ -52,6 +53,7 @@ var (
 	successRatio         = flag.Float64("job-success-ratio", 1.0, "Ratio of successful/total runs to consider a job successful. 1.0 means all runs must succeed.")
 	filterNodesSelectors = eraserUtils.MultiFlag([]string{"eraser.sh/cleanup.filter"})
 	filterOption         = flag.String("filter-nodes", "exclude", "operation type (include|exclude) to filter nodes that eraser runs on")
+	podReadyThreadLimit  = flag.Int64("pod-ready-thread-limit", 5, "thread limit for checking PodReady status for ImageJob pods")
 
 	defaultTolerations = []corev1.Toleration{
 		{
@@ -290,6 +292,27 @@ func (r *Reconciler) handleNewJob(ctx context.Context, imageJob *eraserv1alpha1.
 	}
 
 	podSpecTemplate := imageJob.Spec.JobTemplate.Spec
+
+	// keep track of PodReady threads
+	var waitGroup sync.WaitGroup
+
+	// sized channel to limit number of threads at once
+	podQueue := make(chan *corev1.Pod, *podReadyThreadLimit)
+
+	// range over podQueue in background to prevent blocking
+	go func() {
+		for pod := range podQueue {
+			// start thread to wait for PodReady
+			waitGroup.Add(1)
+			go func(pod *corev1.Pod) {
+				if err := wait.PollImmediate(time.Second, time.Minute*3, isPodReady(pod)); err != nil {
+					log.Error(err, "error waiting for PodReady phase", pod.Name, pod.Status.Phase)
+				}
+				waitGroup.Done()
+			}(pod)
+		}
+	}()
+
 	for i := range nodeList {
 		log := log.WithValues("node", nodeList[i].Name)
 		podSpec, err := copyAndFillTemplateSpec(&podSpecTemplate, env, &nodeList[i])
@@ -325,10 +348,12 @@ func (r *Reconciler) handleNewJob(ctx context.Context, imageJob *eraserv1alpha1.
 		}
 		log.Info("Started "+containerName+" pod on node", "nodeName", nodeName)
 
-		if err := wait.PollImmediate(time.Second, time.Minute, isPodReady(pod)); err != nil {
-			log.Error(err, "error waiting for PodReady phase", pod.Name, pod.Status.Phase)
-		}
+		// send pod to podQueue to create thread and wait for PodReady phase
+		podQueue <- pod
 	}
+
+	// wait for all PodReady threads to complete
+	waitGroup.Wait()
 
 	return nil
 }
