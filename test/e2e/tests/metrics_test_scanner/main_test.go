@@ -44,7 +44,8 @@ func TestMain(m *testing.M) {
 			"--set", util.EraserImageTag.Set(eraserImage.Tag),
 			"--set", util.ManagerImageRepo.Set(managerImage.Repo),
 			"--set", util.ManagerImageTag.Set(managerImage.Tag),
-			"--set", `controllerManager.additionalArgs={--job-cleanup-on-success-delay=1m,--otlp-endpoint=otel-collector:4318}`),
+			"--set", util.ManagerAdditionalArgs.Set("--job-cleanup-on-success-delay=1m").Set("--otlp-endpoint=otel-collector:4318").Set("--delete-scan-failed-images=false").String(),
+		),
 	).Finish(
 		envfuncs.DestroyKindCluster(util.KindClusterName),
 	)

@@ -46,7 +46,8 @@ func TestMain(m *testing.M) {
 			"--set", util.CollectorImageTag.Set(collectorImage.Tag),
 			"--set", util.ManagerImageRepo.Set(managerImage.Repo),
 			"--set", util.ManagerImageTag.Set(managerImage.Tag),
-			"--set", `controllerManager.additionalArgs={--job-cleanup-on-success-delay=2m}`),
+			"--set", util.ManagerAdditionalArgs.Set("--job-cleanup-on-success-delay=2m").String(),
+		),
 	).Finish(
 		envfuncs.DestroyKindCluster(util.KindClusterName),
 	)

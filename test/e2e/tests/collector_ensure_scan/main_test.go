@@ -22,6 +22,7 @@ func TestMain(m *testing.M) {
 	eraserImage := util.ParsedImages.EraserImage
 	managerImage := util.ParsedImages.ManagerImage
 	collectorImage := util.ParsedImages.CollectorImage
+	scannerImage := util.ParsedImages.ScannerImage
 
 	util.Testenv = env.NewWithConfig(envconf.New())
 	// Create KinD Cluster
@@ -31,16 +32,19 @@ func TestMain(m *testing.M) {
 		envfuncs.LoadDockerImageToCluster(util.KindClusterName, util.ManagerImage),
 		envfuncs.LoadDockerImageToCluster(util.KindClusterName, util.Image),
 		envfuncs.LoadDockerImageToCluster(util.KindClusterName, util.CollectorImage),
+		envfuncs.LoadDockerImageToCluster(util.KindClusterName, util.VulnerableImage),
 		envfuncs.LoadDockerImageToCluster(util.KindClusterName, util.NonVulnerableImage),
+		envfuncs.LoadDockerImageToCluster(util.KindClusterName, util.ScannerImage),
 		util.DeployEraserHelm(util.TestNamespace,
-			"--set", util.ScannerImageRepo.Set(""),
+			"--set", util.ScannerImageRepo.Set(scannerImage.Repo),
+			"--set", util.ScannerImageTag.Set(scannerImage.Tag),
 			"--set", util.EraserImageRepo.Set(eraserImage.Repo),
 			"--set", util.EraserImageTag.Set(eraserImage.Tag),
 			"--set", util.CollectorImageRepo.Set(collectorImage.Repo),
 			"--set", util.CollectorImageTag.Set(collectorImage.Tag),
 			"--set", util.ManagerImageRepo.Set(managerImage.Repo),
 			"--set", util.ManagerImageTag.Set(managerImage.Tag),
-			"--set", util.ManagerAdditionalArgs.Set("--job-cleanup-on-success-delay=1m").String(),
+			"--set", util.ManagerAdditionalArgs.Set("--job-cleanup-on-success-delay=2m").String(),
 		),
 	).Finish(
 		envfuncs.DestroyKindCluster(util.KindClusterName),

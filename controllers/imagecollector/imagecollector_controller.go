@@ -306,10 +306,14 @@ func (r *Reconciler) createImageJob(ctx context.Context, req ctrl.Request, argsC
 	}
 
 	if !scanDisabled {
+		deleteFailedString := strconv.FormatBool(*deleteScanFailedImages)
+		scanFailedArg := fmt.Sprintf("--delete-scan-failed-images=%s", deleteFailedString)
+		scannerArgs = append(scannerArgs, scanFailedArg)
+
 		scannerContainer := corev1.Container{
 			Name:  "trivy-scanner",
 			Image: *scannerImage,
-			Args:  append(scannerArgs, "delete-scan-failed-images="+strconv.FormatBool(*deleteScanFailedImages)),
+			Args:  scannerArgs,
 			VolumeMounts: []corev1.VolumeMount{
 				{MountPath: "/run/eraser.sh/shared-data", Name: "shared-data"},
 			},

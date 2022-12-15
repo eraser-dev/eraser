@@ -81,6 +81,11 @@ var (
 	ParsedImages        *Images
 	Timeout             = time.Minute * 5
 	ImagePullSecretJSON = fmt.Sprintf(`[{"name":"%s"}]`, ImagePullSecret)
+
+	ManagerAdditionalArgs = HelmSet{
+		key:  "controllerManager.additionalArgs",
+		args: []string{"--delete-scan-failed-images=false"},
+	}
 )
 
 type (
@@ -97,10 +102,24 @@ type (
 	}
 
 	HelmPath string
+
+	HelmSet struct {
+		key  string
+		args []string
+	}
 )
 
 func (hp HelmPath) Set(val string) string {
 	return fmt.Sprintf("%s=%s", hp, val)
+}
+
+func (hs *HelmSet) Set(val ...string) *HelmSet {
+	hs.args = append(hs.args, val...)
+	return hs
+}
+
+func (hs *HelmSet) String() string {
+	return fmt.Sprintf("%s={%s}", hs.key, strings.Join(hs.args, ","))
 }
 
 func init() {

@@ -19,7 +19,6 @@ import (
 	"fmt"
 	"os"
 	"strings"
-	"time"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -28,7 +27,6 @@ import (
 
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/util/wait"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -55,15 +53,6 @@ var (
 
 	defaultTolerations = []corev1.Toleration{
 		{
-			Effect:   corev1.TaintEffectNoExecute,
-			Operator: corev1.TolerationOpExists,
-		},
-		{
-			Effect:   corev1.TaintEffectNoSchedule,
-			Operator: corev1.TolerationOpExists,
-		},
-		{
-			Effect:   corev1.TaintEffectPreferNoSchedule,
 			Operator: corev1.TolerationOpExists,
 		},
 	}
@@ -324,22 +313,9 @@ func (r *Reconciler) handleNewJob(ctx context.Context, imageJob *eraserv1alpha1.
 			return err
 		}
 		log.Info("Started "+containerName+" pod on node", "nodeName", nodeName)
-
-		if err := wait.PollImmediate(time.Second, time.Minute, isPodReady(pod)); err != nil {
-			log.Error(err, "error waiting for PodReady phase", pod.Name, pod.Status.Phase)
-		}
 	}
 
 	return nil
-}
-
-func isPodReady(pod *corev1.Pod) wait.ConditionFunc {
-	return func() (bool, error) {
-		if pod.Status.Phase == corev1.PodPhase(corev1.PodReady) {
-			return true, nil
-		}
-		return false, nil
-	}
 }
 
 // SetupWithManager sets up the controller with the Manager.
@@ -474,10 +450,16 @@ func copyAndFillTemplateSpec(templateSpecTemplate *corev1.PodSpec, env []corev1.
 	if len(templateSpec.Containers) > 2 {
 		scannerImg := &templateSpec.Containers[2]
 		scannerImg.VolumeMounts = append(scannerImg.VolumeMounts, volumeMounts...)
-		scannerImg.Env = append(scannerImg.Env, corev1.EnvVar{
-			Name:  eraserUtils.EnvEraserContainerRuntime,
-			Value: runtimeName,
-		})
+		scannerImg.Env = append(scannerImg.Env,
+			corev1.EnvVar{
+				Name:  eraserUtils.EnvEraserContainerRuntime,
+				Value: runtimeName,
+			},
+			corev1.EnvVar{
+				Name:  controllerUtils.EnvVarContainerdNamespaceKey,
+				Value: controllerUtils.EnvVarContainerdNamespaceValue,
+			},
+		)
 		scannerImg.Env = append(scannerImg.Env, env...)
 	}
 
