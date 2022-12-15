@@ -66,11 +66,8 @@ jobs:
           git checkout -b "${TARGET_BRANCH}"
           git push --set-upstream origin "${TARGET_BRANCH}"
 
-      - run: make release-manifest NEWVERSION=v${MAJOR_VERSION}.${MINOR_VERSION}.x promote-staging-manifest
-
-      - if: github.event_name == 'push'
-        run: make version-docs NEWVERSION=v${MAJOR_VERSION}.${MINOR_VERSION}.x
-
+      - run: make release-manifest promote-staging-manifest version-docs
+      
       - name: Create release pull request
         uses: peter-evans/create-pull-request@v4
         with:
