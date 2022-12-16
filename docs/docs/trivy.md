@@ -8,4 +8,5 @@ The trivy provider is used in Eraser for image scanning and detecting vulnerabil
 * --ignore-unfixed: boolean to report only fixed vulnerabilities (default true)
 * --security-checks: comma-separated list of what security issues to detect (default "vuln")
 * --vuln-type: list of severity levels to report  (default "CRITICAL")
+* --db-repository: repository to use for the trivy vulnerability database (default "ghcr.io/aquasecurity/trivy-db")
 * --delete-scan-failed-images : boolean to delete images for which scanning has failed (default true)

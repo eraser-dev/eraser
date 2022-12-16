@@ -46,7 +46,7 @@ func downloadAndInitDB(cacheDir string) error {
 }
 
 func downloadDB(cacheDir string) error {
-	client := dlDb.NewClient(cacheDir, true, true)
+	client := dlDb.NewClient(cacheDir, true, true, dlDb.WithDBRepository(*vulnDBRepository))
 	ctx := context.Background()
 	needsUpdate, err := client.NeedsUpdate(trivyVersion, false)
 	if err != nil {
