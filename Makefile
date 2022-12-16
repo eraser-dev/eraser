@@ -200,7 +200,7 @@ docker-build-collector:
 install: manifests ## Install CRDs into the K8s cluster specified in ~/.kube/config.
 	docker run --rm -v $(shell pwd)/config:/config \
 		k8s.gcr.io/kustomize/kustomize:v${KUSTOMIZE_VERSION} build \
-		/config/crd | kubectl apply -f -
+		/config/crd | kubectl apply --server-side -f -
 
 uninstall: manifests ## Uninstall CRDs from the K8s cluster specified in ~/.kube/config.
 	docker run --rm -v $(shell pwd)/config:/config \
@@ -212,7 +212,7 @@ deploy: manifests ## Deploy controller to the K8s cluster specified in ~/.kube/c
 		k8s.gcr.io/kustomize/kustomize:v${KUSTOMIZE_VERSION} edit set image controller=${MANAGER_IMG}
 	docker run --rm -v $(shell pwd)/config:/config \
 		k8s.gcr.io/kustomize/kustomize:v${KUSTOMIZE_VERSION} build \
-		/config/default | kubectl apply -f -
+		/config/default | kubectl apply --server-side -f -
 
 undeploy: ## Undeploy controller from the K8s cluster specified in ~/.kube/config.
 	docker run --rm -v $(shell pwd)/config:/config \
