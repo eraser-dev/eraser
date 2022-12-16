@@ -67,7 +67,9 @@ spec:
     storage: true
     subresources:
       status: {}
-  - name: v1alpha1
+  - deprecated: true
+    deprecationWarning: v1alpha1 of the eraser API has been deprecated
+    name: v1alpha1
     schema:
       openAPIV3Schema:
         description: ImageJob is the Schema for the imagejobs API.
