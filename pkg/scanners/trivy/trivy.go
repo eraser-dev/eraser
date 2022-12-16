@@ -16,7 +16,6 @@ import (
 	"github.com/Azure/eraser/pkg/logger"
 	"github.com/Azure/eraser/pkg/scanners/template"
 	"github.com/Azure/eraser/pkg/utils"
-	util "github.com/Azure/eraser/pkg/utils"
 	fanalImage "github.com/aquasecurity/trivy/pkg/fanal/image"
 	trivylogger "github.com/aquasecurity/trivy/pkg/log"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
@@ -220,7 +219,7 @@ func initScanner(ctx context.Context) (Scanner, error) {
 		return nil, err
 	}
 
-	runtime := os.Getenv(util.EnvEraserContainerRuntime)
+	runtime := os.Getenv(utils.EnvEraserContainerRuntime)
 	imageSourceOptions, ok := runtimeFanalOptionsMap[runtime]
 	if !ok {
 		return nil, fmt.Errorf("unable to determine runtime from environment: %w", err)
