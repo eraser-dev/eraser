@@ -116,11 +116,16 @@ func main() {
 		go runProfileServer()
 	}
 
+	recordMetrics := false
+	if os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT") != "" {
+		recordMetrics = true
+	}
+
 	ctx := context.Background()
 	provider := template.NewImageProvider(
 		template.WithContext(ctx),
 		template.WithLogger(log),
-		template.WithMetrics(true),
+		template.WithMetrics(recordMetrics),
 		template.WithDeleteScanFailedImages(*deleteScanFailedImages),
 	)
 
