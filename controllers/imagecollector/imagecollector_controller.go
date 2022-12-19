@@ -170,6 +170,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 }
 
 //+kubebuilder:rbac:groups="batch",resources=jobs,verbs=get;list;create;delete;watch
+//+kubebuilder:rbac:groups="",resources=podtemplates,verbs=get;list;watch;create;update;patch;delete
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
@@ -233,74 +234,73 @@ func (r *Reconciler) createImageJob(ctx context.Context, req ctrl.Request, argsC
 	scanDisabled := *scannerImage == ""
 	startTime = time.Now()
 
+	jobTemplate := corev1.PodTemplateSpec{
+		Spec: corev1.PodSpec{
+			Volumes: []corev1.Volume{
+				{
+					// EmptyDir default
+					Name: "shared-data",
+				},
+			},
+			RestartPolicy: corev1.RestartPolicyNever,
+			Containers: []corev1.Container{
+				{
+					Name:            "collector",
+					Image:           *collectorImage,
+					ImagePullPolicy: corev1.PullIfNotPresent,
+					Args:            append(collectorArgs, "--scan-disabled="+strconv.FormatBool(scanDisabled)),
+					VolumeMounts: []corev1.VolumeMount{
+						{MountPath: "/run/eraser.sh/shared-data", Name: "shared-data"},
+					},
+					Resources: corev1.ResourceRequirements{
+						Requests: corev1.ResourceList{
+							"cpu":    resource.MustParse("7m"),
+							"memory": resource.MustParse("25Mi"),
+						},
+						Limits: corev1.ResourceList{
+							"memory": resource.MustParse("30Mi"),
+						},
+					},
+				},
+				{
+					Name:            "eraser",
+					Image:           *util.EraserImage,
+					ImagePullPolicy: corev1.PullIfNotPresent,
+					Args:            append(util.EraserArgs, "--log-level="+logger.GetLevel()),
+					VolumeMounts: []corev1.VolumeMount{
+						{MountPath: "/run/eraser.sh/shared-data", Name: "shared-data"},
+					},
+					Resources: corev1.ResourceRequirements{
+						Requests: corev1.ResourceList{
+							"cpu":    resource.MustParse("7m"),
+							"memory": resource.MustParse("25Mi"),
+						},
+						Limits: corev1.ResourceList{
+							"memory": resource.MustParse("30Mi"),
+						},
+					},
+					SecurityContext: utils.SharedSecurityContext,
+					Env: []corev1.EnvVar{
+						{
+							Name:  "OTEL_EXPORTER_OTLP_ENDPOINT",
+							Value: *util.OtlpEndpoint,
+						},
+						{
+							Name:  "OTEL_SERVICE_NAME",
+							Value: "eraser",
+						},
+					},
+				},
+			},
+			ServiceAccountName: "eraser-imagejob-pods",
+		},
+	}
+
 	job := &eraserv1alpha1.ImageJob{
 		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: "imagejob-",
 			Labels: map[string]string{
 				util.ImageJobOwnerLabelKey: ownerLabelValue,
-			},
-		},
-		Spec: eraserv1alpha1.ImageJobSpec{
-			JobTemplate: corev1.PodTemplateSpec{
-				Spec: corev1.PodSpec{
-					Volumes: []corev1.Volume{
-						{
-							// EmptyDir default
-							Name: "shared-data",
-						},
-					},
-					RestartPolicy: corev1.RestartPolicyNever,
-					Containers: []corev1.Container{
-						{
-							Name:            "collector",
-							Image:           *collectorImage,
-							ImagePullPolicy: corev1.PullIfNotPresent,
-							Args:            append(collectorArgs, "--scan-disabled="+strconv.FormatBool(scanDisabled)),
-							VolumeMounts: []corev1.VolumeMount{
-								{MountPath: "/run/eraser.sh/shared-data", Name: "shared-data"},
-							},
-							Resources: corev1.ResourceRequirements{
-								Requests: corev1.ResourceList{
-									"cpu":    resource.MustParse("7m"),
-									"memory": resource.MustParse("25Mi"),
-								},
-								Limits: corev1.ResourceList{
-									"memory": resource.MustParse("30Mi"),
-								},
-							},
-						},
-						{
-							Name:            "eraser",
-							Image:           *util.EraserImage,
-							ImagePullPolicy: corev1.PullIfNotPresent,
-							Args:            append(util.EraserArgs, "--log-level="+logger.GetLevel()),
-							VolumeMounts: []corev1.VolumeMount{
-								{MountPath: "/run/eraser.sh/shared-data", Name: "shared-data"},
-							},
-							Resources: corev1.ResourceRequirements{
-								Requests: corev1.ResourceList{
-									"cpu":    resource.MustParse("7m"),
-									"memory": resource.MustParse("25Mi"),
-								},
-								Limits: corev1.ResourceList{
-									"memory": resource.MustParse("30Mi"),
-								},
-							},
-							SecurityContext: utils.SharedSecurityContext,
-							Env: []corev1.EnvVar{
-								{
-									Name:  "OTEL_EXPORTER_OTLP_ENDPOINT",
-									Value: *util.OtlpEndpoint,
-								},
-								{
-									Name:  "OTEL_SERVICE_NAME",
-									Value: "eraser",
-								},
-							},
-						},
-					},
-					ServiceAccountName: "eraser-imagejob-pods",
-				},
 			},
 		},
 	}
@@ -344,7 +344,7 @@ func (r *Reconciler) createImageJob(ctx context.Context, req ctrl.Request, argsC
 				},
 			},
 		}
-		job.Spec.JobTemplate.Spec.Containers = append(job.Spec.JobTemplate.Spec.Containers, scannerContainer)
+		jobTemplate.Spec.Containers = append(jobTemplate.Spec.Containers, scannerContainer)
 	}
 
 	configmapList := &corev1.ConfigMapList{}
@@ -359,15 +359,32 @@ func (r *Reconciler) createImageJob(ctx context.Context, req ctrl.Request, argsC
 		return reconcile.Result{}, err
 	}
 
-	for i := range job.Spec.JobTemplate.Spec.Containers {
-		job.Spec.JobTemplate.Spec.Containers[i].VolumeMounts = append(job.Spec.JobTemplate.Spec.Containers[i].VolumeMounts, exclusionMount...)
+	for i := range jobTemplate.Spec.Containers {
+		jobTemplate.Spec.Containers[i].VolumeMounts = append(jobTemplate.Spec.Containers[i].VolumeMounts, exclusionMount...)
 	}
 
-	job.Spec.JobTemplate.Spec.Volumes = append(job.Spec.JobTemplate.Spec.Volumes, exclusionVolume...)
+	jobTemplate.Spec.Volumes = append(jobTemplate.Spec.Volumes, exclusionVolume...)
 
 	err = r.Create(ctx, job)
 	if err != nil {
 		log.Info("Could not create collector ImageJob")
+		return reconcile.Result{}, err
+	}
+
+	namespace := utils.GetNamespace()
+	template := corev1.PodTemplate{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      job.GetName(),
+			Namespace: namespace,
+			OwnerReferences: []metav1.OwnerReference{
+				*metav1.NewControllerRef(job, eraserv1alpha1.GroupVersion.WithKind("ImageJob")),
+			},
+		},
+		Template: jobTemplate,
+	}
+	err = r.Create(ctx, &template)
+	if err != nil {
+		log.Info("Could not create collector PodTemplate")
 		return reconcile.Result{}, err
 	}
 
