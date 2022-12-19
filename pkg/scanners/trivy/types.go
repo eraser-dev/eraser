@@ -72,6 +72,7 @@ func (s *ImageScanner) Scan(img eraserv1alpha1.Image) (ScanStatus, error) {
 
 		artifactToScan, err := artifactImage.NewArtifact(dockerImage, s.scanConfig.fscache, artifact.Option{
 			Offline:           true,
+			SBOMSources:       []string{},
 			DisabledAnalyzers: analyzer.TypeLockfiles,
 			RekorURL:          *rekorURL,
 		})
