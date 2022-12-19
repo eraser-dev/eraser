@@ -38,22 +38,7 @@ func TestImageListTriggersEraserImageJob(t *testing.T) {
 			}
 
 			client := cfg.Client()
-			// wait for all collector pods to be present before removing them
 			err := wait.For(
-				util.NumPodsPresentForLabel(ctx, client, 3, collectorLabel),
-				wait.WithTimeout(time.Minute*2),
-				wait.WithInterval(time.Millisecond*500),
-			)
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if err := util.DeleteImageListsAndJobs(cfg.KubeconfigFile()); err != nil {
-				t.Error("Failed to clean eraser obejcts ", err)
-			}
-
-			// wait for collector deployment to be removed, to prevent conflicts or races
-			err = wait.For(
 				util.NumPodsPresentForLabel(ctx, client, 0, collectorLabel),
 				wait.WithTimeout(time.Minute*2),
 				wait.WithInterval(time.Millisecond*500),

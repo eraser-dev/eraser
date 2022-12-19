@@ -289,7 +289,7 @@ func (r *Reconciler) handleImageListEvent(ctx context.Context, req *ctrl.Request
 				util.ImageJobOwnerLabelKey: ownerLabelValue,
 			},
 			OwnerReferences: []metav1.OwnerReference{
-				*metav1.NewControllerRef(imageList, imageList.GroupVersionKind()),
+				*metav1.NewControllerRef(imageList, eraserv1alpha1.GroupVersion.WithKind("ImageList")),
 			},
 		},
 	}
@@ -339,7 +339,7 @@ func (r *Reconciler) handleImageListEvent(ctx context.Context, req *ctrl.Request
 		return reconcile.Result{}, err
 	}
 
-	configMap.ObjectMeta.OwnerReferences = []metav1.OwnerReference{*metav1.NewControllerRef(job, job.GroupVersionKind())}
+	configMap.ObjectMeta.OwnerReferences = []metav1.OwnerReference{*metav1.NewControllerRef(job, eraserv1alpha1.GroupVersion.WithKind("ImageJob"))}
 	err = r.Update(ctx, &configMap)
 	if err != nil {
 		return reconcile.Result{}, err
