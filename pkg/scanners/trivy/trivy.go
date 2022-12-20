@@ -16,7 +16,6 @@ import (
 	"github.com/Azure/eraser/pkg/logger"
 	"github.com/Azure/eraser/pkg/scanners/template"
 	"github.com/Azure/eraser/pkg/utils"
-	util "github.com/Azure/eraser/pkg/utils"
 	fanalImage "github.com/aquasecurity/trivy/pkg/fanal/image"
 	trivylogger "github.com/aquasecurity/trivy/pkg/log"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
@@ -47,6 +46,7 @@ var (
 	securityChecks         = flag.String("security-checks", "vuln", "comma-separated list of what security issues to detect")
 	severity               = flag.String("severity", "CRITICAL", "list of severity levels to report")
 	vulnTypes              = flag.String("vuln-type", "os,library", "comma separated list of vulnerability types")
+	vulnDBRepository       = flag.String("db-repository", "ghcr.io/aquasecurity/trivy-db", "vulnerability database repository")
 	rekorURL               = flag.String("rekor-url", "https://rekor.sigstore.dev", "Rekor URL")
 	deleteScanFailedImages = flag.Bool("delete-scan-failed-images", true, "whether or not to delete images for which scanning has failed")
 
@@ -116,11 +116,16 @@ func main() {
 		go runProfileServer()
 	}
 
+	recordMetrics := false
+	if os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT") != "" {
+		recordMetrics = true
+	}
+
 	ctx := context.Background()
 	provider := template.NewImageProvider(
 		template.WithContext(ctx),
 		template.WithLogger(log),
-		template.WithMetrics(true),
+		template.WithMetrics(recordMetrics),
 		template.WithDeleteScanFailedImages(*deleteScanFailedImages),
 	)
 
@@ -219,7 +224,7 @@ func initScanner(ctx context.Context) (Scanner, error) {
 		return nil, err
 	}
 
-	runtime := os.Getenv(util.EnvEraserContainerRuntime)
+	runtime := os.Getenv(utils.EnvEraserContainerRuntime)
 	imageSourceOptions, ok := runtimeFanalOptionsMap[runtime]
 	if !ok {
 		return nil, fmt.Errorf("unable to determine runtime from environment: %w", err)
