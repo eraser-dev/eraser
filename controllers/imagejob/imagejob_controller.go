@@ -45,7 +45,6 @@ import (
 	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
 	controllerUtils "github.com/Azure/eraser/controllers/util"
 	eraserUtils "github.com/Azure/eraser/pkg/utils"
-	podApi "k8s.io/kubernetes/pkg/api/v1/pod"
 )
 
 var log = logf.Log.WithName("controller").WithValues("process", "imagejob-controller")
@@ -352,7 +351,10 @@ func (r *Reconciler) handleNewJob(ctx context.Context, imageJob *eraserv1alpha1.
 
 func isPodReady(pod *corev1.Pod) wait.ConditionFunc {
 	return func() (bool, error) {
-		return podApi.IsPodAvailable(pod, 0, metav1.Now()), nil
+		if pod.Status.Phase == corev1.PodPhase(corev1.PodReady) {
+			return true, nil
+		}
+		return false, nil
 	}
 }
 
