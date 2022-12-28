@@ -49,6 +49,7 @@ var (
 	vulnDBRepository       = flag.String("db-repository", "ghcr.io/aquasecurity/trivy-db", "vulnerability database repository")
 	rekorURL               = flag.String("rekor-url", "https://rekor.sigstore.dev", "Rekor URL")
 	deleteScanFailedImages = flag.Bool("delete-scan-failed-images", true, "whether or not to delete images for which scanning has failed")
+	imageScanTimeout       = flag.Duration("image-scan-timeout", time.Hour, "Duration for timeout for images scanned. Default unit is ns.")
 
 	// Will be modified by parseCommaSeparatedOptions() to reflect the
 	// `severity` CLI flag These are the only recognized severities and the
@@ -135,7 +136,9 @@ func main() {
 		os.Exit(generalErr)
 	}
 
-	s, err := initScanner(ctx)
+	scanCtx, cancel := context.WithTimeout(context.Background(), *imageScanTimeout)
+	defer cancel()
+	s, err := initScanner(scanCtx)
 	if err != nil {
 		log.Error(err, "error initializing scanner")
 	}

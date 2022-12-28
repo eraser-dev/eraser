@@ -62,7 +62,7 @@ func (s *ImageScanner) Scan(img eraserv1alpha1.Image) (ScanStatus, error) {
 		ref := refs[i]
 		log.Info("scanning image with ref", "ref", ref)
 
-		dockerImage, cleanup, err := fanalImage.NewContainerImage(s.ctx, ref, s.scanConfig.dockerOptions, s.imageSourceOptions...)
+		dockerImage, cleanup, err := fanalImage.NewContainerImage(context.Background(), ref, s.scanConfig.dockerOptions, s.imageSourceOptions...)
 		if err != nil {
 			log.Error(err, "could not find image by reference", "imageID", img.ImageID, "reference", ref)
 			cleanup()

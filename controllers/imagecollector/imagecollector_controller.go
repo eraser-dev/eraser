@@ -64,6 +64,7 @@ var (
 	log                    = logf.Log.WithName("controller").WithValues("process", "imagecollector-controller")
 	repeatPeriod           = flag.Duration("repeat-period", time.Hour*24, "repeat period for collect/scan process")
 	deleteScanFailedImages = flag.Bool("delete-scan-failed-images", true, "whether or not to delete images for which scanning has failed")
+	imageScanTimeout       = flag.Duration("image-scan-timeout", time.Hour, "Duration for timeout for images scanned. Default unit is ns")
 	scannerArgs            = utils.MultiFlag([]string{})
 	collectorArgs          = utils.MultiFlag([]string{})
 	startTime              time.Time
@@ -308,7 +309,8 @@ func (r *Reconciler) createImageJob(ctx context.Context, req ctrl.Request, argsC
 	if !scanDisabled {
 		deleteFailedString := strconv.FormatBool(*deleteScanFailedImages)
 		scanFailedArg := fmt.Sprintf("--delete-scan-failed-images=%s", deleteFailedString)
-		scannerArgs = append(scannerArgs, scanFailedArg)
+		imageScanTimeout := fmt.Sprintf("--image-scan-timeout=%s", imageScanTimeout.String())
+		scannerArgs = append(scannerArgs, scanFailedArg, imageScanTimeout)
 
 		scannerContainer := corev1.Container{
 			Name:  "trivy-scanner",
