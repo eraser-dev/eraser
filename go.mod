@@ -320,7 +320,7 @@ require (
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	gotest.tools/v3 v3.4.0 // indirect
-	helm.sh/helm/v3 v3.10.0 // indirect
+	helm.sh/helm/v3 v3.10.3 // indirect
 	k8s.io/apiserver v0.25.5 // indirect
 	k8s.io/cli-runtime v0.25.5 // indirect
 	k8s.io/component-base v0.25.5 // indirect
@@ -385,4 +385,5 @@ replace (
 	k8s.io/sample-apiserver => k8s.io/sample-apiserver v0.25.5
 	k8s.io/sample-cli-plugin => k8s.io/sample-cli-plugin v0.25.5
 	k8s.io/sample-controller => k8s.io/sample-controller v0.25.5
+	go.etcd.io/etcd => go.etcd.io/etcd/v3 v3.5.6
 )
