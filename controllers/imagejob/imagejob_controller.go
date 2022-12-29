@@ -266,7 +266,7 @@ func (r *Reconciler) handleRunningJob(ctx context.Context, imageJob *eraserv1.Im
 			"success ratio", r.successRatio,
 			"actual ratio", success/imageJob.Status.Desired,
 		)
-		imageJob.Status.Phase = eraserv1alpha1.PhaseFailed
+		imageJob.Status.Phase = eraserv1.PhaseFailed
 	}
 
 	if err := r.updateJobStatus(ctx, imageJob); err != nil {
@@ -295,7 +295,7 @@ func (r *Reconciler) handleNewJob(ctx context.Context, imageJob *eraserv1.ImageJ
 		return err
 	}
 
-	imageJob.Status = eraserv1alpha1.ImageJobStatus{
+	imageJob.Status = eraserv1.ImageJobStatus{
 		Desired:   len(nodes.Items),
 		Succeeded: 0,
 		Skipped:   0, // placeholder, updated below
