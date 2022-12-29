@@ -37,16 +37,6 @@ func TestImageListTriggersEraserImageJob(t *testing.T) {
 				t.Error("Failed to create the dep", err)
 			}
 
-			client := cfg.Client()
-			err := wait.For(
-				util.NumPodsPresentForLabel(ctx, client, 0, collectorLabel),
-				wait.WithTimeout(time.Minute*2),
-				wait.WithInterval(time.Millisecond*500),
-			)
-			if err != nil {
-				t.Fatal(err)
-			}
-
 			return ctx
 		}).
 		Assess("deployment successfully deployed", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {

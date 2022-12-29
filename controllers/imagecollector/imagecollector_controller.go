@@ -63,6 +63,7 @@ var (
 	collectorImage         = flag.String("collector-image", "", "collector image, empty value disables collect feature")
 	log                    = logf.Log.WithName("controller").WithValues("process", "imagecollector-controller")
 	repeatPeriod           = flag.Duration("repeat-period", time.Hour*24, "repeat period for collect/scan process")
+	repeatImmediate        = flag.Bool("repeat-immediate", true, "begin collect/scan process immediately")
 	deleteScanFailedImages = flag.Bool("delete-scan-failed-images", true, "whether or not to delete images for which scanning has failed")
 	scannerArgs            = utils.MultiFlag([]string{})
 	collectorArgs          = utils.MultiFlag([]string{})
@@ -156,13 +157,23 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 
 	go func() {
 		log.Info("Queueing first ImageCollector reconcile...")
-		ch <- event.GenericEvent{
-			Object: &eraserv1alpha1.ImageJob{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "first-reconcile",
-				},
-			},
+
+		delay := *repeatPeriod
+		if !*repeatImmediate {
+			delay = 0 * time.Second
 		}
+
+		// runs the provided function after the specified delay
+		_ = time.AfterFunc(delay, func() {
+			ch <- event.GenericEvent{
+				Object: &eraserv1alpha1.ImageJob{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "first-reconcile",
+					},
+				},
+			}
+		})
+
 		log.Info("Queued first ImageCollector reconcile")
 	}()
 
