@@ -18,7 +18,6 @@ limitations under the License.
 package unversioned
 
 import (
-	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -30,12 +29,6 @@ type Image struct {
 
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
-
-// ImageJobSpec defines the desired state of ImageJob.
-type ImageJobSpec struct {
-	// Specifies the job that will be created when executing an ImageJob.
-	JobTemplate v1.PodTemplateSpec `json:"template"`
-}
 
 // JobPhase defines the phase of an ImageJob status.
 type JobPhase string
@@ -72,7 +65,6 @@ type ImageJob struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   ImageJobSpec   `json:"spec,omitempty"`
 	Status ImageJobStatus `json:"status,omitempty"`
 }
 
