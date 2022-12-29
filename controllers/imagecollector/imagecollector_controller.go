@@ -155,27 +155,24 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		return err
 	}
 
-	go func() {
-		log.Info("Queueing first ImageCollector reconcile...")
+	delay := *repeatPeriod
+	if *repeatImmediate {
+		delay = 0 * time.Second
+	}
 
-		delay := *repeatPeriod
-		if !*repeatImmediate {
-			delay = 0 * time.Second
+	// runs the provided function after the specified delay
+	_ = time.AfterFunc(delay, func() {
+		log.Info("Queueing first ImageCollector reconcile...")
+		ch <- event.GenericEvent{
+			Object: &eraserv1alpha1.ImageJob{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "first-reconcile",
+				},
+			},
 		}
 
-		// runs the provided function after the specified delay
-		_ = time.AfterFunc(delay, func() {
-			ch <- event.GenericEvent{
-				Object: &eraserv1alpha1.ImageJob{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "first-reconcile",
-					},
-				},
-			}
-		})
-
-		log.Info("Queued first ImageCollector reconcile")
-	}()
+		log.Info("...Queued first ImageCollector reconcile")
+	})
 
 	return nil
 }
