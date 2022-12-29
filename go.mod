@@ -288,6 +288,7 @@ require (
 	github.com/zclconf/go-cty v1.10.0 // indirect
 	github.com/zclconf/go-cty-yaml v1.0.2 // indirect
 	go.etcd.io/bbolt v1.3.6 // indirect
+	go.etcd.io/etcd/api/v3 v3.5.6 // indirect
 	go.mongodb.org/mongo-driver v1.10.0 // indirect
 	go.opencensus.io v0.23.0 // indirect
 	go.opentelemetry.io/otel/exporters/otlp/internal/retry v1.11.1 // indirect
@@ -320,7 +321,7 @@ require (
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	gotest.tools/v3 v3.4.0 // indirect
-	helm.sh/helm/v3 v3.10.0 // indirect
+	helm.sh/helm/v3 v3.10.3 // indirect
 	k8s.io/apiserver v0.25.5 // indirect
 	k8s.io/cli-runtime v0.25.5 // indirect
 	k8s.io/component-base v0.25.5 // indirect
@@ -357,6 +358,7 @@ require (
 )
 
 replace (
+	go.etcd.io/etcd => go.etcd.io/etcd/v3 v3.5.6
 	golang.org/x/crypto => golang.org/x/crypto v0.0.0-20220315160706-3147a52a75dd // CVE-2022-27191
 	k8s.io/api => k8s.io/api v0.25.5
 	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.25.5
