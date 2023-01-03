@@ -49,7 +49,8 @@ var (
 	vulnDBRepository       = flag.String("db-repository", "ghcr.io/aquasecurity/trivy-db", "vulnerability database repository")
 	rekorURL               = flag.String("rekor-url", "https://rekor.sigstore.dev", "Rekor URL")
 	deleteScanFailedImages = flag.Bool("delete-scan-failed-images", true, "whether or not to delete images for which scanning has failed")
-	imageScanTimeout       = flag.Duration("image-scan-timeout", time.Hour, "Duration for timeout for images scanned. Default unit is ns.")
+	imageScanTimeout       = flag.Duration("image-scan-timeout", time.Hour, "Duration for timeout for images scanned. Default unit is ns")
+	imageScanTotalTimeout  = flag.Duration("image-scan-total-timeout", time.Hour*23, "Duration for timeout for total scan job. Default unit is ns")
 
 	// Will be modified by parseCommaSeparatedOptions() to reflect the
 	// `severity` CLI flag These are the only recognized severities and the
@@ -244,8 +245,10 @@ func initScanner(ctx context.Context) (Scanner, error) {
 func scan(s Scanner, allImages []eraserv1alpha1.Image) ([]eraserv1alpha1.Image, []eraserv1alpha1.Image) {
 	vulnerableImages := make([]eraserv1alpha1.Image, 0, len(allImages))
 	failedImages := make([]eraserv1alpha1.Image, 0, len(allImages))
+	// track total scan job time
+	start := time.Now()
 
-	for _, img := range allImages {
+	for idx, img := range allImages {
 		// Logs scan failures
 		status, err := s.Scan(img)
 		if err != nil {
@@ -260,6 +263,14 @@ func scan(s Scanner, allImages []eraserv1alpha1.Image) ([]eraserv1alpha1.Image, 
 			vulnerableImages = append(vulnerableImages, img)
 		case StatusFailed:
 			failedImages = append(failedImages, img)
+		}
+
+		if time.Since(start) > *imageScanTotalTimeout {
+			log.Info("image scan total timeout exceeded", "timeout", imageScanTotalTimeout.String())
+			if idx != len(allImages) {
+				failedImages = append(failedImages, allImages[idx+1:]...)
+			}
+			return vulnerableImages, failedImages
 		}
 	}
 
