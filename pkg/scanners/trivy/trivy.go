@@ -137,7 +137,7 @@ func main() {
 		os.Exit(generalErr)
 	}
 
-	s, err := initScanner(context.Background())
+	s, err := initScanner()
 	if err != nil {
 		log.Error(err, "error initializing scanner")
 	}
@@ -204,7 +204,7 @@ func runProfileServer() {
 	log.Error(err, "pprof server failed")
 }
 
-func initScanner(ctx context.Context) (Scanner, error) {
+func initScanner() (Scanner, error) {
 	err := downloadAndInitDB(*cacheDir)
 	if err != nil {
 		return nil, fmt.Errorf("unable to initialize trivy db. cacheDir: %s, error: %w", *cacheDir, err)
@@ -233,7 +233,6 @@ func initScanner(ctx context.Context) (Scanner, error) {
 	}
 
 	var s Scanner = &ImageScanner{
-		ctx:                ctx,
 		scanConfig:         scanConfig,
 		imageSourceOptions: imageSourceOptions,
 	}

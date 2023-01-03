@@ -42,7 +42,6 @@ type (
 )
 
 type ImageScanner struct {
-	ctx                context.Context
 	scanConfig         scannerSetup
 	imageSourceOptions []fanalImage.Option
 }
