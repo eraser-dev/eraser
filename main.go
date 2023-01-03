@@ -87,14 +87,27 @@ func main() {
 
 	setupLog.Info("setting up manager", "userAgent", config.UserAgent)
 
-	mgr, err := ctrl.NewManager(config, ctrl.Options{
+	var configFile string
+	flag.StringVar(&configFile, "config", "",
+		"The controller will load its initial configuration from this file. "+
+			"Omit this flag to use the default configuration values. "+
+			"Command-line flags override configuration from this file.")
+
+	ctrlConfig := eraserv1alpha1.EraserConfig{}
+	options := ctrl.Options{
 		Scheme:                 scheme,
 		MetricsBindAddress:     *metricsAddr,
 		Port:                   9443,
 		HealthProbeBindAddress: *probeAddr,
 		LeaderElection:         *enableLeaderElection,
 		LeaderElectionID:       "e29e094a.k8s.io",
-	})
+	}
+
+	if configFile != "" {
+		options = options.AndFromOrDie(ctrl.ConfigFile().AtPath(configFile).OfKind(&ctrlConfig))
+	}
+
+	mgr, err := ctrl.NewManager(config, options)
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")
 		os.Exit(1)

@@ -18,6 +18,7 @@ package v1alpha1
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	cfg "sigs.k8s.io/controller-runtime/pkg/config/v1alpha1"
 )
 
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
@@ -32,33 +33,20 @@ type EraserConfigSpec struct {
 	Foo string `json:"foo,omitempty"`
 }
 
-// EraserConfigStatus defines the observed state of EraserConfig
-type EraserConfigStatus struct {
-	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
-}
-
 //+kubebuilder:object:root=true
-//+kubebuilder:subresource:status
 
 // EraserConfig is the Schema for the eraserconfigs API
 type EraserConfig struct {
-	metav1.TypeMeta   `json:",inline"`
-	metav1.ObjectMeta `json:"metadata,omitempty"`
+	metav1.TypeMeta `json:",inline"`
 
-	Spec   EraserConfigSpec   `json:"spec,omitempty"`
-	Status EraserConfigStatus `json:"status,omitempty"`
+	// ControllerManagerConfigurationSpec returns the configurations for controllers
+	cfg.ControllerManagerConfigurationSpec `json:",inline"`
+
+	Spec EraserConfigSpec `json:"spec,omitempty"`
 }
 
 //+kubebuilder:object:root=true
 
-// EraserConfigList contains a list of EraserConfig
-type EraserConfigList struct {
-	metav1.TypeMeta `json:",inline"`
-	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []EraserConfig `json:"items"`
-}
-
 func init() {
-	SchemeBuilder.Register(&EraserConfig{}, &EraserConfigList{})
+	SchemeBuilder.Register(&EraserConfig{})
 }

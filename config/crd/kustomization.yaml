@@ -4,7 +4,7 @@
 resources:
   - bases/eraser.sh_imagelists.yaml
   - bases/eraser.sh_imagejobs.yaml
-- bases/eraser.sh.azure-eraser.io_eraserconfigs.yaml
+  - bases/eraser.sh_eraserconfigs.yaml
 #+kubebuilder:scaffold:crdkustomizeresource
 
 patchesStrategicMerge:
