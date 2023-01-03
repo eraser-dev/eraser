@@ -137,9 +137,7 @@ func main() {
 		os.Exit(generalErr)
 	}
 
-	scanCtx, cancel := context.WithTimeout(context.Background(), *imageScanTimeout)
-	defer cancel()
-	s, err := initScanner(scanCtx)
+	s, err := initScanner(context.Background())
 	if err != nil {
 		log.Error(err, "error initializing scanner")
 	}

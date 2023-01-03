@@ -83,8 +83,11 @@ func (s *ImageScanner) Scan(img eraserv1alpha1.Image) (ScanStatus, error) {
 			continue
 		}
 
+		imageScanContext, cancel := context.WithTimeout(context.Background(), *imageScanTimeout)
+		defer cancel()
+
 		scanner := scanner.NewScanner(s.scanConfig.localScanner, artifactToScan)
-		report, err := scanner.ScanArtifact(s.ctx, s.scanConfig.scanOptions)
+		report, err := scanner.ScanArtifact(imageScanContext, s.scanConfig.scanOptions)
 		if err != nil {
 			log.Error(err, "error scanning image", "imageID", img.ImageID, "reference", ref)
 			cleanup()
