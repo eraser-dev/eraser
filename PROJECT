@@ -22,4 +22,12 @@ resources:
   group: eraser.sh
   kind: ImageList
   version: v1
+- api:
+    crdVersion: v1
+    namespaced: true
+  domain: azure-eraser.io
+  group: eraser.sh
+  kind: EraserConfig
+  path: github.com/Azure/eraser/api/v1
+  version: v1
 version: "3"

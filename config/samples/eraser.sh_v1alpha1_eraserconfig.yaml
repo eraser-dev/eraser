@@ -1,0 +1,12 @@
+apiVersion: eraser.sh.azure-eraser.io/v1alpha1
+kind: EraserConfig
+metadata:
+  labels:
+    app.kubernetes.io/name: eraserconfig
+    app.kubernetes.io/instance: eraserconfig-sample
+    app.kubernetes.io/part-of: eraser
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/created-by: eraser
+  name: eraserconfig-sample
+spec:
+  # TODO(user): Add fields here

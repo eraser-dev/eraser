@@ -1,0 +1,31 @@
+# permissions for end users to edit eraserconfigs.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/name: clusterrole
+    app.kubernetes.io/instance: eraserconfig-editor-role
+    app.kubernetes.io/component: rbac
+    app.kubernetes.io/created-by: eraser
+    app.kubernetes.io/part-of: eraser
+    app.kubernetes.io/managed-by: kustomize
+  name: eraserconfig-editor-role
+rules:
+- apiGroups:
+  - eraser.sh.azure-eraser.io
+  resources:
+  - eraserconfigs
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - eraser.sh.azure-eraser.io
+  resources:
+  - eraserconfigs/status
+  verbs:
+  - get
