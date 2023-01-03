@@ -38,6 +38,7 @@ import (
 	eraserv1 "github.com/Azure/eraser/api/v1"
 	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
 	"github.com/Azure/eraser/controllers"
+	"github.com/Azure/eraser/controllers/util"
 	"github.com/Azure/eraser/pkg/logger"
 	"github.com/Azure/eraser/version"
 	//+kubebuilder:scaffold:imports
@@ -103,10 +104,10 @@ func main() {
 	}
 
 	if configFile != "" {
-		options = options.AndFromOrDie(ctrl.ConfigFile().AtPath(configFile).OfKind(&ctrlConfig))
+		options = options.AndFromOrDie(ctrl.ConfigFile().AtPath(configFile).OfKind(&util.EraserOptions))
 	}
 
-	setupLog.Info("ctrlConfig", "foo", ctrlConfig.Foo)
+	setupLog.Info("ctrlConfig", "foo", ctrlConfig.Eraser.ImageList)
 
 	mgr, err := ctrl.NewManager(config, options)
 	if err != nil {

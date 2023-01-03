@@ -36,6 +36,7 @@ spec:
       containers:
       - args:
         - --leader-elect=false
+        - --config=controller_manager_config.yaml
         - --eraser-image={{ .Values.eraser.image.repository }}:{{ .Values.eraser.image.tag | default .Chart.AppVersion }}
         - --collector-image={{ if .Values.collector.image.repository }}{{ .Values.collector.image.repository }}:{{ .Values.collector.image.tag | default .Chart.AppVersion }}{{ end }}
         - --scanner-image={{ if .Values.scanner.image.repository }}{{ .Values.scanner.image.repository }}:{{ .Values.scanner.image.tag | default .Chart.AppVersion }}{{ end }}
@@ -93,7 +94,14 @@ spec:
       terminationGracePeriodSeconds: 10
       tolerations:
         {{- toYaml .Values.controllerManager.tolerations | nindent 8 }}
+      volumeMounts:
+      - mountPath: /controller_manager_config.yaml
+        name: manager-config
+        subPath: controller_manager_config.yaml
       volumes:
+      - configMap:
+          name: eraser-manager-config
+        name: eraser-manager-config
       - configMap:
           name: eraser-manager-config
         name: manager-config

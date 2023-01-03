@@ -1,4 +1,5 @@
 controllerManager:
+  config: {}
 
   image:
     repository: ghcr.io/azure/eraser-manager

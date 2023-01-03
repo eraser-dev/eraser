@@ -55,6 +55,20 @@ func main() {
 		}()
 	}
 
+	cfg := eraserv1alpha1.EraserContainerConfig{
+		Runtime:     "containerd",
+		ProfilePort: 6060,
+	}
+
+	text, err := os.ReadFile("/config.json")
+	if err != nil {
+		panic(err)
+	}
+
+	if err := json.Unmarshal(text, &cfg); err != nil {
+		panic(err)
+	}
+
 	if err := logger.Configure(); err != nil {
 		fmt.Fprintln(os.Stderr, "error setting up logger:", err)
 		os.Exit(generalErr)

@@ -33,17 +33,23 @@ type EraserConfigSpec struct {
 	Foo string `json:"foo,omitempty"`
 }
 
+type EraserContainerConfig struct {
+	Runtime        string `json:"runtime,omitempty"`
+	ImageList      string `json:"imageList,omitempty"`
+	ProfileEnabled bool   `json:"profileEnabled,omitempty"`
+	ProfilePort    int    `json:"profilePort,omitempty"`
+}
+
 //+kubebuilder:object:root=true
 
 // EraserConfig is the Schema for the eraserconfigs API
 type EraserConfig struct {
-	metav1.TypeMeta   `json:",inline"`
-	metav1.ObjectMeta `json:",inline"`
+	metav1.TypeMeta `json:",inline"`
 
 	// ControllerManagerConfigurationSpec returns the configurations for controllers
 	cfg.ControllerManagerConfigurationSpec `json:",inline"`
 
-	Foo string `json:"foo,omitempty"`
+	Eraser EraserContainerConfig `json:"eraser,omitempty"`
 }
 
 //+kubebuilder:object:root=true

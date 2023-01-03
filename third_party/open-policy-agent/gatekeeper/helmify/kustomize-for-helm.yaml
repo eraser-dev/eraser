@@ -1,3 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: eraser-manager-config
+  namespace: eraser-system
+data:
+  controller_manager_config.yaml: |
+    HELMSUBST_CONTROLLER_MANAGER_CONFIG_YAML
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -7,10 +16,15 @@ spec:
   template:
     spec:
       HELMSUBST_DEPLOYMENT_CONTROLLER_MANAGER_PULL_SECRETS: ""
+      volumes:
+      - name: eraser-manager-config
+        configMap:
+          name: eraser-manager-config
       containers:
       - name: manager
         args:
         - --leader-elect=false
+        - --config=controller_manager_config.yaml
         - --eraser-image={{ .Values.eraser.image.repository }}:{{ .Values.eraser.image.tag | default .Chart.AppVersion }}
         - --collector-image={{ if .Values.collector.image.repository }}{{ .Values.collector.image.repository }}:{{ .Values.collector.image.tag | default .Chart.AppVersion }}{{ end }}
         - --scanner-image={{ if .Values.scanner.image.repository }}{{ .Values.scanner.image.repository }}:{{ .Values.scanner.image.tag | default .Chart.AppVersion }}{{ end }}
@@ -47,3 +61,8 @@ spec:
         HELMSUBST_DEPLOYMENT_CONTROLLER_MANAGER_TOLERATIONS: ""
       affinity:
         HELMSUBST_DEPLOYMENT_CONTROLLER_MANAGER_AFFINITY: ""
+      volumeMounts:
+      - name: manager-config
+        mountPath: /controller_manager_config.yaml
+        subPath: controller_manager_config.yaml
+
