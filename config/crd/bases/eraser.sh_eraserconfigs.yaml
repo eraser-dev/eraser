@@ -132,8 +132,6 @@ spec:
             - resourceNamespace
             - retryPeriod
             type: object
-          metadata:
-            type: object
           metrics:
             description: Metrics contains thw controller metrics configuration
             properties:

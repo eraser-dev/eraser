@@ -64,6 +64,11 @@ func init() {
 }
 
 func main() {
+	var configFile string
+	flag.StringVar(&configFile, "config", "",
+		"The controller will load its initial configuration from this file. "+
+			"Omit this flag to use the default configuration values. "+
+			"Command-line flags override configuration from this file.")
 	flag.Parse()
 
 	if err := logger.Configure(); err != nil {
@@ -87,12 +92,6 @@ func main() {
 
 	setupLog.Info("setting up manager", "userAgent", config.UserAgent)
 
-	var configFile string
-	flag.StringVar(&configFile, "config", "",
-		"The controller will load its initial configuration from this file. "+
-			"Omit this flag to use the default configuration values. "+
-			"Command-line flags override configuration from this file.")
-
 	ctrlConfig := eraserv1alpha1.EraserConfig{}
 	options := ctrl.Options{
 		Scheme:                 scheme,
@@ -106,6 +105,8 @@ func main() {
 	if configFile != "" {
 		options = options.AndFromOrDie(ctrl.ConfigFile().AtPath(configFile).OfKind(&ctrlConfig))
 	}
+
+	setupLog.Info("ctrlConfig", "foo", ctrlConfig.Foo)
 
 	mgr, err := ctrl.NewManager(config, options)
 	if err != nil {

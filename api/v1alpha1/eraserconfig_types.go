@@ -37,12 +37,13 @@ type EraserConfigSpec struct {
 
 // EraserConfig is the Schema for the eraserconfigs API
 type EraserConfig struct {
-	metav1.TypeMeta `json:",inline"`
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:",inline"`
 
 	// ControllerManagerConfigurationSpec returns the configurations for controllers
 	cfg.ControllerManagerConfigurationSpec `json:",inline"`
 
-	Spec EraserConfigSpec `json:"spec,omitempty"`
+	Foo string `json:"foo,omitempty"`
 }
 
 //+kubebuilder:object:root=true

@@ -99,8 +99,6 @@ spec:
             - resourceNamespace
             - retryPeriod
             type: object
-          metadata:
-            type: object
           metrics:
             description: Metrics contains thw controller metrics configuration
             properties:
@@ -564,6 +562,7 @@ data:
     leaderElection:
       leaderElect: true
       resourceName: e29e094a.k8s.io
+    foo: bar
 kind: ConfigMap
 metadata:
   name: eraser-manager-config

@@ -12,6 +12,7 @@ data:
     leaderElection:
       leaderElect: true
       resourceName: e29e094a.k8s.io
+    foo: bar
 kind: ConfigMap
 metadata:
   labels:
