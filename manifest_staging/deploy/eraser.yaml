@@ -427,25 +427,6 @@ subjects:
   name: eraser-controller-manager
   namespace: eraser-system
 ---
-apiVersion: v1
-data:
-  controller_manager_config.yaml: |
-    apiVersion: controller-runtime.sigs.k8s.io/v1alpha1
-    kind: ControllerManagerConfig
-    health:
-      healthProbeBindAddress: :8081
-    metrics:
-      bindAddress: 127.0.0.1:8080
-    webhook:
-      port: 9443
-    leaderElection:
-      leaderElect: true
-      resourceName: e29e094a.k8s.io
-kind: ConfigMap
-metadata:
-  name: eraser-manager-config
-  namespace: eraser-system
----
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -465,7 +446,10 @@ spec:
     spec:
       containers:
       - args:
-        - --config=controller_manager_config.yaml
+        - --leader-elect=false
+        - --eraser-image=ghcr.io/azure/eraser:v1.0.0-beta.2
+        - --collector-image=ghcr.io/azure/collector:v1.0.0-beta.2
+        - --scanner-image=ghcr.io/azure/eraser-trivy-scanner:v1.0.0-beta.2
         command:
         - /manager
         env:
@@ -507,15 +491,7 @@ spec:
           runAsUser: 65532
           seccompProfile:
             type: RuntimeDefault
-        volumeMounts:
-        - mountPath: /controller_manager_config.yaml
-          name: manager-config
-          subPath: controller_manager_config.yaml
       nodeSelector:
         kubernetes.io/os: linux
       serviceAccountName: eraser-controller-manager
       terminationGracePeriodSeconds: 10
-      volumes:
-      - configMap:
-          name: eraser-manager-config
-        name: manager-config

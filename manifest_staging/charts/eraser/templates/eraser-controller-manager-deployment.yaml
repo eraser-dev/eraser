@@ -83,17 +83,9 @@ spec:
           runAsUser: 65532
           seccompProfile:
             type: RuntimeDefault
-        volumeMounts:
-        - mountPath: /controller_manager_config.yaml
-          name: manager-config
-          subPath: controller_manager_config.yaml
       nodeSelector:
         {{- toYaml .Values.controllerManager.nodeSelector | nindent 8 }}
       serviceAccountName: eraser-controller-manager
       terminationGracePeriodSeconds: 10
       tolerations:
         {{- toYaml .Values.controllerManager.tolerations | nindent 8 }}
-      volumes:
-      - configMap:
-          name: eraser-manager-config
-        name: manager-config
