@@ -170,8 +170,6 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 				},
 			},
 		}
-
-		log.Info("...Queued first ImageCollector reconcile")
 	})
 
 	return nil
@@ -392,7 +390,7 @@ func (r *Reconciler) createImageJob(ctx context.Context, req ctrl.Request, argsC
 	}
 	err = r.Create(ctx, &template)
 	if err != nil {
-		log.Info("Could not create collector PodTemplate")
+		log.Error(err, "Could not create collector PodTemplate")
 		return reconcile.Result{}, err
 	}
 
