@@ -22,6 +22,7 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/kubernetes/pkg/scheduler/framework"
 	"k8s.io/kubernetes/pkg/scheduler/framework/plugins/noderesources"
 
@@ -116,7 +117,28 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	}
 
 	// Watch for changes to pods created by ImageJob (eraser pods)
-	err = c.Watch(&source.Kind{Type: &corev1.Pod{}}, &handler.EnqueueRequestForOwner{OwnerType: &eraserv1alpha1.ImageJob{}, IsController: true})
+	err = c.Watch(
+		&source.Kind{
+			Type: &corev1.Pod{},
+		},
+		&handler.EnqueueRequestForOwner{
+			OwnerType:    &eraserv1alpha1.ImageJob{},
+			IsController: true,
+		},
+	)
+	if err != nil {
+		return err
+	}
+
+	err = c.Watch(
+		&source.Kind{
+			Type: &corev1.PodTemplate{},
+		},
+		&handler.EnqueueRequestForOwner{
+			OwnerType:    &eraserv1alpha1.ImageJob{},
+			IsController: true,
+		},
+	)
 	if err != nil {
 		return err
 	}
@@ -139,6 +161,7 @@ func checkNodeFitness(pod *corev1.Pod, node *corev1.Node) bool {
 }
 
 //+kubebuilder:rbac:groups=eraser.sh,resources=imagejobs,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups="",resources=podtemplates,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=eraser.sh,resources=imagejobs/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups="",resources=configmaps,verbs=get;list;watch
 
@@ -179,18 +202,30 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	return ctrl.Result{}, nil
 }
 
-func podListOptions(j *eraserv1alpha1.ImageJob) client.ListOptions {
+func podListOptions(jobTemplate *corev1.PodTemplate) client.ListOptions {
 	return client.ListOptions{
 		Namespace:     eraserUtils.GetNamespace(),
-		LabelSelector: labels.SelectorFromSet(map[string]string{"name": j.Spec.JobTemplate.Spec.Containers[0].Name}),
+		LabelSelector: labels.SelectorFromSet(map[string]string{"name": jobTemplate.Template.Spec.Containers[0].Name}),
 	}
 }
 
 func (r *Reconciler) handleRunningJob(ctx context.Context, imageJob *eraserv1alpha1.ImageJob) error {
 	// get eraser pods
 	podList := &corev1.PodList{}
-	listOpts := podListOptions(imageJob)
-	err := r.List(ctx, podList, &listOpts)
+
+	template := corev1.PodTemplate{}
+	namespace := eraserUtils.GetNamespace()
+
+	err := r.Get(ctx, types.NamespacedName{
+		Name:      imageJob.GetName(),
+		Namespace: namespace,
+	}, &template)
+	if err != nil {
+		return err
+	}
+
+	listOpts := podListOptions(&template)
+	err = r.List(ctx, podList, &listOpts)
 	if err != nil {
 		return err
 	}
@@ -223,7 +258,11 @@ func (r *Reconciler) handleRunningJob(ctx context.Context, imageJob *eraserv1alp
 
 	successAndSkipped := success + skipped
 	if float64(successAndSkipped/imageJob.Status.Desired) < r.successRatio {
-		log.Info("Marking job as failed", "success ratio", r.successRatio, "actual ratio", success/imageJob.Status.Desired)
+		log.Info(
+			"Marking job as failed",
+			"success ratio", r.successRatio,
+			"actual ratio", success/imageJob.Status.Desired,
+		)
 		imageJob.Status.Phase = eraserv1alpha1.PhaseFailed
 	}
 
@@ -237,6 +276,18 @@ func (r *Reconciler) handleRunningJob(ctx context.Context, imageJob *eraserv1alp
 func (r *Reconciler) handleNewJob(ctx context.Context, imageJob *eraserv1alpha1.ImageJob) error {
 	nodes := &corev1.NodeList{}
 	err := r.List(ctx, nodes)
+	if err != nil {
+		return err
+	}
+
+	template := corev1.PodTemplate{}
+	err = r.Get(ctx,
+		types.NamespacedName{
+			Namespace: eraserUtils.GetNamespace(),
+			Name:      imageJob.GetName(),
+		},
+		&template,
+	)
 	if err != nil {
 		return err
 	}
@@ -278,7 +329,7 @@ func (r *Reconciler) handleNewJob(ctx context.Context, imageJob *eraserv1alpha1.
 		return err
 	}
 
-	podSpecTemplate := imageJob.Spec.JobTemplate.Spec
+	podSpecTemplate := template.Template.Spec
 	for i := range nodeList {
 		log := log.WithValues("node", nodeList[i].Name)
 		podSpec, err := copyAndFillTemplateSpec(&podSpecTemplate, env, &nodeList[i])

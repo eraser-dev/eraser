@@ -30,7 +30,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -107,6 +106,7 @@ type Reconciler struct {
 }
 
 //+kubebuilder:rbac:groups=eraser.sh,resources=imagelists,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups="",resources=podtemplates,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=eraser.sh,resources=imagelists/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups="",resources=nodes,verbs=get;list;watch
 //+kubebuilder:rbac:groups="",resources=pods,verbs=get;list;watch;update;create;delete
@@ -235,6 +235,52 @@ func (r *Reconciler) handleImageListEvent(ctx context.Context, req *ctrl.Request
 		"--log-level=" + logger.GetLevel(),
 	}
 	args = append(args, util.EraserArgs...)
+	jobTemplate := corev1.PodTemplateSpec{
+		Spec: corev1.PodSpec{
+			Volumes: []corev1.Volume{
+				{
+					Name: configName,
+					VolumeSource: corev1.VolumeSource{
+						ConfigMap: &corev1.ConfigMapVolumeSource{LocalObjectReference: corev1.LocalObjectReference{Name: configName}},
+					},
+				},
+			},
+			RestartPolicy: corev1.RestartPolicyNever,
+			Containers: []corev1.Container{
+				{
+					Name:            "eraser",
+					Image:           *util.EraserImage,
+					ImagePullPolicy: corev1.PullIfNotPresent,
+					Args:            args,
+					VolumeMounts: []corev1.VolumeMount{
+						{MountPath: imgListPath, Name: configName},
+					},
+					Resources: corev1.ResourceRequirements{
+						Requests: corev1.ResourceList{
+							"cpu":    resource.MustParse("7m"),
+							"memory": resource.MustParse("25Mi"),
+						},
+						Limits: corev1.ResourceList{
+							"memory": resource.MustParse("30Mi"),
+						},
+					},
+					SecurityContext: utils.SharedSecurityContext,
+					// env vars for exporting metrics
+					Env: []corev1.EnvVar{
+						{
+							Name:  "OTEL_EXPORTER_OTLP_ENDPOINT",
+							Value: *util.OtlpEndpoint,
+						},
+						{
+							Name:  "OTEL_SERVICE_NAME",
+							Value: "eraser",
+						},
+					},
+				},
+			},
+			ServiceAccountName: "eraser-imagejob-pods",
+		},
+	}
 
 	job := &eraserv1alpha1.ImageJob{
 		ObjectMeta: metav1.ObjectMeta{
@@ -243,55 +289,7 @@ func (r *Reconciler) handleImageListEvent(ctx context.Context, req *ctrl.Request
 				util.ImageJobOwnerLabelKey: ownerLabelValue,
 			},
 			OwnerReferences: []metav1.OwnerReference{
-				*metav1.NewControllerRef(imageList, imageList.GroupVersionKind()),
-			},
-		},
-		Spec: eraserv1alpha1.ImageJobSpec{
-			JobTemplate: corev1.PodTemplateSpec{
-				Spec: corev1.PodSpec{
-					Volumes: []corev1.Volume{
-						{
-							Name: configName,
-							VolumeSource: corev1.VolumeSource{
-								ConfigMap: &corev1.ConfigMapVolumeSource{LocalObjectReference: corev1.LocalObjectReference{Name: configName}},
-							},
-						},
-					},
-					RestartPolicy: corev1.RestartPolicyNever,
-					Containers: []corev1.Container{
-						{
-							Name:            "eraser",
-							Image:           *util.EraserImage,
-							ImagePullPolicy: corev1.PullIfNotPresent,
-							Args:            args,
-							VolumeMounts: []corev1.VolumeMount{
-								{MountPath: imgListPath, Name: configName},
-							},
-							Resources: corev1.ResourceRequirements{
-								Requests: corev1.ResourceList{
-									"cpu":    resource.MustParse("7m"),
-									"memory": resource.MustParse("25Mi"),
-								},
-								Limits: corev1.ResourceList{
-									"memory": resource.MustParse("30Mi"),
-								},
-							},
-							SecurityContext: utils.SharedSecurityContext,
-							// env vars for exporting metrics
-							Env: []corev1.EnvVar{
-								{
-									Name:  "OTEL_EXPORTER_OTLP_ENDPOINT",
-									Value: *util.OtlpEndpoint,
-								},
-								{
-									Name:  "OTEL_SERVICE_NAME",
-									Value: "eraser",
-								},
-							},
-						},
-					},
-					ServiceAccountName: "eraser-imagejob-pods",
-				},
+				*metav1.NewControllerRef(imageList, eraserv1alpha1.GroupVersion.WithKind("ImageList")),
 			},
 		},
 	}
@@ -308,11 +306,11 @@ func (r *Reconciler) handleImageListEvent(ctx context.Context, req *ctrl.Request
 		return reconcile.Result{}, err
 	}
 
-	for i := range job.Spec.JobTemplate.Spec.Containers {
-		job.Spec.JobTemplate.Spec.Containers[i].VolumeMounts = append(job.Spec.JobTemplate.Spec.Containers[i].VolumeMounts, exclusionMount...)
+	for i := range jobTemplate.Spec.Containers {
+		jobTemplate.Spec.Containers[i].VolumeMounts = append(jobTemplate.Spec.Containers[i].VolumeMounts, exclusionMount...)
 	}
 
-	job.Spec.JobTemplate.Spec.Volumes = append(job.Spec.JobTemplate.Spec.Volumes, exclusionVolume...)
+	jobTemplate.Spec.Volumes = append(jobTemplate.Spec.Volumes, exclusionVolume...)
 
 	err = r.Create(ctx, job)
 	startTime = time.Now()
@@ -325,11 +323,23 @@ func (r *Reconciler) handleImageListEvent(ctx context.Context, req *ctrl.Request
 		return reconcile.Result{}, err
 	}
 
-	configMap.ObjectMeta.OwnerReferences = []metav1.OwnerReference{*metav1.NewControllerRef(job, schema.GroupVersionKind{
-		Group:   "eraser.sh",
-		Version: "v1alpha1",
-		Kind:    "ImageJob",
-	})}
+	template := corev1.PodTemplate{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      job.GetName(),
+			Namespace: utils.GetNamespace(),
+			OwnerReferences: []metav1.OwnerReference{
+				*metav1.NewControllerRef(job, eraserv1alpha1.GroupVersion.WithKind("ImageJob")),
+			},
+		},
+		Template: jobTemplate,
+	}
+
+	err = r.Create(ctx, &template)
+	if err != nil {
+		return reconcile.Result{}, err
+	}
+
+	configMap.ObjectMeta.OwnerReferences = []metav1.OwnerReference{*metav1.NewControllerRef(job, eraserv1alpha1.GroupVersion.WithKind("ImageJob"))}
 	err = r.Update(ctx, &configMap)
 	if err != nil {
 		return reconcile.Result{}, err
