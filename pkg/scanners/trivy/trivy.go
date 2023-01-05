@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"flag"
 	"fmt"
 	"net/http"
@@ -142,7 +143,11 @@ func main() {
 		log.Error(err, "error initializing scanner")
 	}
 
-	vulnerableImages, failedImages := scan(s, allImages)
+	vulnerableImages, failedImages, err := scan(s, allImages)
+	if err != nil {
+		log.Error(err, "image scan timed out")
+	}
+
 	log.Info("Vulnerable", "Images", vulnerableImages)
 
 	if len(failedImages) > 0 {
@@ -239,7 +244,7 @@ func initScanner() (Scanner, error) {
 	return s, nil
 }
 
-func scan(s Scanner, allImages []eraserv1alpha1.Image) ([]eraserv1alpha1.Image, []eraserv1alpha1.Image) {
+func scan(s Scanner, allImages []eraserv1alpha1.Image) ([]eraserv1alpha1.Image, []eraserv1alpha1.Image, error) {
 	vulnerableImages := make([]eraserv1alpha1.Image, 0, len(allImages))
 	failedImages := make([]eraserv1alpha1.Image, 0, len(allImages))
 	// track total scan job time
@@ -248,11 +253,8 @@ func scan(s Scanner, allImages []eraserv1alpha1.Image) ([]eraserv1alpha1.Image, 
 	for idx, img := range allImages {
 		select {
 		case <-timer.C:
-			log.Info("image scan total timeout exceeded", "timeout", imageScanTotalTimeout.String())
-			if idx != len(allImages) {
-				failedImages = append(failedImages, allImages[idx+1:]...)
-			}
-			return vulnerableImages, failedImages
+			failedImages = append(failedImages, allImages[idx:]...)
+			return vulnerableImages, failedImages, errors.New("image scan total timeout exceeded " + imageScanTotalTimeout.String())
 		default:
 			// Logs scan failures
 			status, err := s.Scan(img)
@@ -272,5 +274,5 @@ func scan(s Scanner, allImages []eraserv1alpha1.Image) ([]eraserv1alpha1.Image, 
 		}
 	}
 
-	return vulnerableImages, failedImages
+	return vulnerableImages, failedImages, nil
 }
