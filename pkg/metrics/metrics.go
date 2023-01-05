@@ -13,7 +13,6 @@ import (
 	"go.opentelemetry.io/otel/sdk/instrumentation"
 	sdkmetric "go.opentelemetry.io/otel/sdk/metric"
 	"go.opentelemetry.io/otel/sdk/metric/aggregation"
-	"go.opentelemetry.io/otel/sdk/metric/view"
 )
 
 const (
@@ -30,26 +29,22 @@ func ConfigureMetrics(ctx context.Context, log logr.Logger, endpoint string) (sd
 
 	reader := sdkmetric.NewPeriodicReader(exporter)
 
-	// Histogram view to specify duration buckets
-	histogramView, err := view.New(
-		view.MatchInstrumentName("imagejob_duration_run_seconds"),
-		view.MatchInstrumentationScope(instrumentation.Scope{Name: "eraser"}),
-		view.WithSetAggregation(aggregation.ExplicitBucketHistogram{
+	durationInstrument := sdkmetric.Instrument{
+		Name:  "imagejob_duration_run_seconds",
+		Scope: instrumentation.Scope{Name: "eraser"},
+	}
+
+	durationStream := sdkmetric.Stream{
+		Name: "imagejob_duration_run_seconds",
+		Unit: unit.Unit("s"),
+		Aggregation: aggregation.ExplicitBucketHistogram{
 			Boundaries: []float64{0, 10, 20, 30, 40, 50, 60},
-		}),
-	)
-	if err != nil {
-		log.Error(err, "failed to create histogram bucket view")
-		return nil, nil, nil
+		},
 	}
 
-	// Default view for counter instruments
-	counterView, err := view.New(view.MatchInstrumentName("*"))
-	if err != nil {
-		log.Error(err, "failed to create default view")
-	}
+	histogramView := sdkmetric.NewView(durationInstrument, durationStream)
 
-	provider := sdkmetric.NewMeterProvider(sdkmetric.WithReader(reader, histogramView, counterView))
+	provider := sdkmetric.NewMeterProvider(sdkmetric.WithReader(reader), sdkmetric.WithView(histogramView))
 
 	return exporter, reader, provider
 }
