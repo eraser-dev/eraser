@@ -38,7 +38,7 @@ func TestMain(m *testing.M) {
 			"--set", util.EraserImageTag.Set(eraserImage.Tag),
 			"--set", util.ManagerImageRepo.Set(managerImage.Repo),
 			"--set", util.ManagerImageTag.Set(managerImage.Tag),
-			"--set", util.ManagerAdditionalArgs.Set("--repeat-immediate=false").String(),
+			"--set", util.ManagerAdditionalArgs.Set("--schedule-immediate=false").String(),
 		),
 	).Finish(
 		envfuncs.DestroyKindCluster(util.KindClusterName),
