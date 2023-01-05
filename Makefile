@@ -200,7 +200,7 @@ docker-build-collector:
 install: manifests ## Install CRDs into the K8s cluster specified in ~/.kube/config.
 	docker run --rm -v $(shell pwd)/config:/config \
 		k8s.gcr.io/kustomize/kustomize:v${KUSTOMIZE_VERSION} build \
-		/config/crd | kubectl apply --server-side -f -
+		/config/crd | kubectl apply -f -
 
 uninstall: manifests ## Uninstall CRDs from the K8s cluster specified in ~/.kube/config.
 	docker run --rm -v $(shell pwd)/config:/config \
