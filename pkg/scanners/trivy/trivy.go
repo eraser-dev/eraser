@@ -243,31 +243,32 @@ func scan(s Scanner, allImages []eraserv1alpha1.Image) ([]eraserv1alpha1.Image, 
 	vulnerableImages := make([]eraserv1alpha1.Image, 0, len(allImages))
 	failedImages := make([]eraserv1alpha1.Image, 0, len(allImages))
 	// track total scan job time
-	start := time.Now()
+	timer := time.NewTimer(*imageScanTotalTimeout)
 
 	for idx, img := range allImages {
-		// Logs scan failures
-		status, err := s.Scan(img)
-		if err != nil {
-			failedImages = append(failedImages, img)
-			log.Error(err, "scan failed")
-			continue
-		}
-
-		switch status {
-		case StatusNonCompliant:
-			log.Info("vulnerable image found", "img", img)
-			vulnerableImages = append(vulnerableImages, img)
-		case StatusFailed:
-			failedImages = append(failedImages, img)
-		}
-
-		if time.Since(start) > *imageScanTotalTimeout {
+		select {
+		case <-timer.C:
 			log.Info("image scan total timeout exceeded", "timeout", imageScanTotalTimeout.String())
 			if idx != len(allImages) {
 				failedImages = append(failedImages, allImages[idx+1:]...)
 			}
 			return vulnerableImages, failedImages
+		default:
+			// Logs scan failures
+			status, err := s.Scan(img)
+			if err != nil {
+				failedImages = append(failedImages, img)
+				log.Error(err, "scan failed")
+				continue
+			}
+
+			switch status {
+			case StatusNonCompliant:
+				log.Info("vulnerable image found", "img", img)
+				vulnerableImages = append(vulnerableImages, img)
+			case StatusFailed:
+				failedImages = append(failedImages, img)
+			}
 		}
 	}
 
