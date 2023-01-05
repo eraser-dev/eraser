@@ -23,6 +23,7 @@ require (
 	k8s.io/api v0.26.0
 	k8s.io/apimachinery v0.26.0
 	k8s.io/client-go v0.26.0
+	// keeping this on 0.25 as updating to 0.26 will remove CRI v1alpha2 version
 	k8s.io/cri-api v0.25.5
 	k8s.io/klog/v2 v2.80.1
 	k8s.io/kubernetes v1.26.0
