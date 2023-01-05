@@ -63,7 +63,7 @@ var (
 	collectorImage         = flag.String("collector-image", "", "collector image, empty value disables collect feature")
 	log                    = logf.Log.WithName("controller").WithValues("process", "imagecollector-controller")
 	repeatPeriod           = flag.Duration("repeat-period", time.Hour*24, "repeat period for collect/scan process")
-	repeatImmediate        = flag.Bool("repeat-immediate", true, "begin collect/scan process immediately")
+	scheduleImmediate      = flag.Bool("schedule-immediate", true, "begin collect/scan process immediately")
 	deleteScanFailedImages = flag.Bool("delete-scan-failed-images", true, "whether or not to delete images for which scanning has failed")
 	scannerArgs            = utils.MultiFlag([]string{})
 	collectorArgs          = utils.MultiFlag([]string{})
@@ -156,7 +156,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	}
 
 	delay := *repeatPeriod
-	if *repeatImmediate {
+	if *scheduleImmediate {
 		delay = 0 * time.Second
 	}
 
@@ -175,7 +175,6 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	return nil
 }
 
-//+kubebuilder:rbac:groups="batch",resources=jobs,verbs=get;list;create;delete;watch
 //+kubebuilder:rbac:groups="",resources=podtemplates,verbs=get;list;watch;create;update;patch;delete
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
