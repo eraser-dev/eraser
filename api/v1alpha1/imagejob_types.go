@@ -62,7 +62,7 @@ type ImageJobStatus struct {
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:scope="Cluster"
-// +kubebuilder:deprecatedversion:warning="v1alpha1 of the eraser API has been deprecated"
+// +kubebuilder:deprecatedversion:warning="v1alpha1 of the eraser API has been deprecated. Please migrate to v1."
 // ImageJob is the Schema for the imagejobs API.
 type ImageJob struct {
 	metav1.TypeMeta   `json:",inline"`
