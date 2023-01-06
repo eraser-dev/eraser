@@ -212,7 +212,7 @@ deploy: manifests ## Deploy controller to the K8s cluster specified in ~/.kube/c
 		k8s.gcr.io/kustomize/kustomize:v${KUSTOMIZE_VERSION} edit set image controller=${MANAGER_IMG}
 	docker run --rm -v $(shell pwd)/config:/config \
 		k8s.gcr.io/kustomize/kustomize:v${KUSTOMIZE_VERSION} build \
-		/config/default | kubectl apply --server-side -f -
+		/config/default | kubectl apply -f -
 
 undeploy: ## Undeploy controller from the K8s cluster specified in ~/.kube/config.
 	docker run --rm -v $(shell pwd)/config:/config \
