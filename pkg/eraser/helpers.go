@@ -71,18 +71,18 @@ func removeImages(c cri.Eraser, targetImages []string) (int, error) {
 
 		if imageID, isNonRunning := nonRunningImages[imgDigestOrTag]; isNonRunning {
 			if ex := util.IsExcluded(excluded, imgDigestOrTag, idToImageMap); ex {
-				log.Info("image is excluded", "given", imgDigestOrTag, "imageID", imageID)
+				log.Info("image is excluded", "given", imgDigestOrTag, "imageID", imageID, "name", idToImageMap[imageID])
 				continue
 			}
 
 			err = c.DeleteImage(backgroundContext, imageID)
 			if err != nil {
-				log.Error(err, "error removing image", "given", imgDigestOrTag, "imageID", imageID)
+				log.Error(err, "error removing image", "given", imgDigestOrTag, "imageID", imageID, "name", idToImageMap[imageID])
 				continue
 			}
 
 			deletedImages[imgDigestOrTag] = struct{}{}
-			log.Info("removed image", "given", imgDigestOrTag, "imageID", imageID)
+			log.Info("removed image", "given", imgDigestOrTag, "imageID", imageID, "name", idToImageMap[imageID])
 			removed++
 			continue
 		}
@@ -104,13 +104,13 @@ func removeImages(c cri.Eraser, targetImages []string) (int, error) {
 			}
 
 			if util.IsExcluded(excluded, imageID, idToImageMap) {
-				log.Info("image is excluded", "imageID", imageID)
+				log.Info("image is excluded", "imageID", imageID, "name", idToImageMap[imageID])
 				continue
 			}
 
 			if err := c.DeleteImage(backgroundContext, imageID); err != nil {
 				success = false
-				log.Error(err, "error removing image", "imageID", imageID)
+				log.Error(err, "error removing image", "imageID", imageID, "name", idToImageMap[imageID])
 				continue
 			}
 
