@@ -26,7 +26,7 @@ var (
 	EraserArgs   = utils.MultiFlag([]string{})
 	OtlpEndpoint = flag.String("otlp-endpoint", "", "otel exporter otlp endpoint")
 
-	EraserOptions = eraserv1alpha1.EraserConfig{}
+	EraserOptions = eraserv1.EraserConfig{}
 )
 
 const (

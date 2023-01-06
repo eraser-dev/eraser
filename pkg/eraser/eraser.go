@@ -22,6 +22,7 @@ import (
 	"github.com/Azure/eraser/pkg/metrics"
 
 	"github.com/Azure/eraser/api/unversioned"
+	eraserv1 "github.com/Azure/eraser/api/v1"
 	util "github.com/Azure/eraser/pkg/utils"
 )
 
@@ -55,7 +56,7 @@ func main() {
 		}()
 	}
 
-	cfg := eraserv1alpha1.EraserContainerConfig{
+	cfg := eraserv1.EraserContainerConfig{
 		Runtime:     "containerd",
 		ProfilePort: 6060,
 	}
