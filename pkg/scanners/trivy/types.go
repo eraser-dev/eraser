@@ -3,7 +3,7 @@ package main
 import (
 	"context"
 
-	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
+	"github.com/Azure/eraser/api/unversioned"
 	"github.com/aquasecurity/trivy/pkg/fanal/analyzer"
 	"github.com/aquasecurity/trivy/pkg/fanal/artifact"
 	artifactImage "github.com/aquasecurity/trivy/pkg/fanal/artifact/image"
@@ -37,7 +37,7 @@ type (
 	ScanStatus int
 
 	Scanner interface {
-		Scan(eraserv1alpha1.Image) (ScanStatus, error)
+		Scan(unversioned.Image) (ScanStatus, error)
 	}
 )
 
@@ -50,7 +50,7 @@ type ImageScanner struct {
 var _ Scanner = &ImageScanner{}
 
 // Function never returns an error.
-func (s *ImageScanner) Scan(img eraserv1alpha1.Image) (ScanStatus, error) {
+func (s *ImageScanner) Scan(img unversioned.Image) (ScanStatus, error) {
 	refs := make([]string, 0, len(img.Names)+len(img.Digests))
 	refs = append(refs, img.Digests...)
 	refs = append(refs, img.Names...)

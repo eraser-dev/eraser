@@ -8,7 +8,7 @@ import (
 	"os"
 	"time"
 
-	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
+	"github.com/Azure/eraser/api/unversioned"
 	"go.uber.org/zap"
 
 	_ "net/http/pprof"
@@ -238,9 +238,9 @@ func initScanner(ctx context.Context) (Scanner, error) {
 	return s, nil
 }
 
-func scan(s Scanner, allImages []eraserv1alpha1.Image) ([]eraserv1alpha1.Image, []eraserv1alpha1.Image) {
-	vulnerableImages := make([]eraserv1alpha1.Image, 0, len(allImages))
-	failedImages := make([]eraserv1alpha1.Image, 0, len(allImages))
+func scan(s Scanner, allImages []unversioned.Image) ([]unversioned.Image, []unversioned.Image) {
+	vulnerableImages := make([]unversioned.Image, 0, len(allImages))
+	failedImages := make([]unversioned.Image, 0, len(allImages))
 
 	for _, img := range allImages {
 		// Logs scan failures

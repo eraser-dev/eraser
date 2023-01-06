@@ -42,6 +42,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
+	eraserv1 "github.com/Azure/eraser/api/v1"
 	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
 	"github.com/Azure/eraser/controllers/util"
 	"github.com/Azure/eraser/pkg/logger"
@@ -127,13 +128,13 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		return reconcile.Result{}, nil
 	}
 
-	imageList := eraserv1alpha1.ImageList{}
+	imageList := eraserv1.ImageList{}
 	err := r.Get(ctx, req.NamespacedName, &imageList)
 	if err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
-	jobList := eraserv1alpha1.ImageJobList{}
+	jobList := eraserv1.ImageJobList{}
 	err = r.List(ctx, &jobList)
 	if client.IgnoreNotFound(err) != nil {
 		return ctrl.Result{}, err
@@ -160,18 +161,18 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	}
 }
 
-func (r *Reconciler) handleJobListEvent(ctx context.Context, imageList *eraserv1alpha1.ImageList, job *eraserv1alpha1.ImageJob) (ctrl.Result, error) {
+func (r *Reconciler) handleJobListEvent(ctx context.Context, imageList *eraserv1.ImageList, job *eraserv1.ImageJob) (ctrl.Result, error) {
 	phase := job.Status.Phase
-	if phase == eraserv1alpha1.PhaseCompleted || phase == eraserv1alpha1.PhaseFailed {
+	if phase == eraserv1.PhaseCompleted || phase == eraserv1.PhaseFailed {
 		err := r.handleJobCompletion(ctx, imageList, job)
 		if err != nil {
 			return ctrl.Result{}, err
 		}
 
 		if job.Status.DeleteAfter == nil {
-			if job.Status.Phase == eraserv1alpha1.PhaseCompleted {
+			if job.Status.Phase == eraserv1.PhaseCompleted {
 				job.Status.DeleteAfter = util.After(time.Now(), int64(util.SuccessDel.Seconds()))
-			} else if job.Status.Phase == eraserv1alpha1.PhaseFailed {
+			} else if job.Status.Phase == eraserv1.PhaseFailed {
 				job.Status.DeleteAfter = util.After(time.Now(), int64(util.ErrDel.Seconds()))
 			}
 
@@ -195,7 +196,7 @@ func (r *Reconciler) handleJobListEvent(ctx context.Context, imageList *eraserv1
 	return ctrl.Result{}, fmt.Errorf("unexpected job phase: '%s'", job.Status.Phase)
 }
 
-func (r *Reconciler) handleJobDeletion(ctx context.Context, job *eraserv1alpha1.ImageJob) (ctrl.Result, error) {
+func (r *Reconciler) handleJobDeletion(ctx context.Context, job *eraserv1.ImageJob) (ctrl.Result, error) {
 	until := time.Until(job.Status.DeleteAfter.Time)
 	if until > 0 {
 		log.Info("Delaying imagejob delete", "job", job.Name, "deleteAter", job.Status.DeleteAfter)
@@ -211,7 +212,7 @@ func (r *Reconciler) handleJobDeletion(ctx context.Context, job *eraserv1alpha1.
 	return ctrl.Result{}, nil
 }
 
-func (r *Reconciler) handleImageListEvent(ctx context.Context, req *ctrl.Request, imageList *eraserv1alpha1.ImageList) (ctrl.Result, error) {
+func (r *Reconciler) handleImageListEvent(ctx context.Context, req *ctrl.Request, imageList *eraserv1.ImageList) (ctrl.Result, error) {
 	imgListJSON, err := json.Marshal(imageList.Spec.Images)
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("marshal image list: %w", err)
@@ -282,7 +283,7 @@ func (r *Reconciler) handleImageListEvent(ctx context.Context, req *ctrl.Request
 		},
 	}
 
-	job := &eraserv1alpha1.ImageJob{
+	job := &eraserv1.ImageJob{
 		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: "imagejob-",
 			Labels: map[string]string{
@@ -348,7 +349,7 @@ func (r *Reconciler) handleImageListEvent(ctx context.Context, req *ctrl.Request
 	return ctrl.Result{}, nil
 }
 
-func (r *Reconciler) handleJobCompletion(ctx context.Context, imageList *eraserv1alpha1.ImageList, job *eraserv1alpha1.ImageJob) error {
+func (r *Reconciler) handleJobCompletion(ctx context.Context, imageList *eraserv1.ImageList, job *eraserv1.ImageJob) error {
 	now := metav1.Now()
 
 	imageList.Status.Success = int64(job.Status.Succeeded)
@@ -373,21 +374,21 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	}
 
 	err = c.Watch(
-		&source.Kind{Type: &eraserv1alpha1.ImageList{}},
+		&source.Kind{Type: &eraserv1.ImageList{}},
 		&handler.EnqueueRequestForObject{}, predicate.GenerationChangedPredicate{})
 	if err != nil {
 		return err
 	}
 	err = c.Watch(
-		&source.Kind{Type: &eraserv1alpha1.ImageJob{}},
-		&handler.EnqueueRequestForOwner{OwnerType: &eraserv1alpha1.ImageList{}, IsController: true},
+		&source.Kind{Type: &eraserv1.ImageJob{}},
+		&handler.EnqueueRequestForOwner{OwnerType: &eraserv1.ImageList{}, IsController: true},
 		predicate.Funcs{
 			// Do nothing on Create, Delete, or Generic events
 			CreateFunc:  util.NeverOnCreate,
 			DeleteFunc:  util.NeverOnDelete,
 			GenericFunc: util.NeverOnGeneric,
 			UpdateFunc: func(e event.UpdateEvent) bool {
-				if job, ok := e.ObjectNew.(*eraserv1alpha1.ImageJob); ok && util.IsCompletedOrFailed(job.Status.Phase) {
+				if job, ok := e.ObjectNew.(*eraserv1.ImageJob); ok && util.IsCompletedOrFailed(job.Status.Phase) {
 					return ownerLabel.Matches(labels.Set(job.ObjectMeta.Labels))
 				}
 

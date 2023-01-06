@@ -21,7 +21,7 @@ import (
 	"github.com/Azure/eraser/pkg/logger"
 	"github.com/Azure/eraser/pkg/metrics"
 
-	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
+	"github.com/Azure/eraser/api/unversioned"
 	util "github.com/Azure/eraser/pkg/utils"
 )
 
@@ -91,7 +91,7 @@ func main() {
 			continue
 		}
 
-		// json data is list of []eraserv1alpha1.Image
+		// json data is list of []unversioned.Image
 		data, err := io.ReadAll(f)
 		if err != nil {
 			log.Error(err, "error reading non-compliant images")
@@ -99,7 +99,7 @@ func main() {
 		}
 		f.Close()
 
-		nonCompliantImages := []eraserv1alpha1.Image{}
+		nonCompliantImages := []unversioned.Image{}
 		if err = json.Unmarshal(data, &nonCompliantImages); err != nil {
 			log.Error(err, "error in unmarshal non-compliant images")
 			os.Exit(generalErr)

@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1alpha1
+package v1
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -62,7 +62,7 @@ type ImageJobStatus struct {
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:scope="Cluster"
-// +kubebuilder:deprecatedversion:warning="v1alpha1 of the eraser API has been deprecated. Please migrate to v1."
+// +kubebuilder:storageversion
 // ImageJob is the Schema for the imagejobs API.
 type ImageJob struct {
 	metav1.TypeMeta   `json:",inline"`
@@ -72,7 +72,7 @@ type ImageJob struct {
 }
 
 // +kubebuilder:object:root=true
-
+// +kubebuilder:storageversion
 // ImageJobList contains a list of ImageJob.
 type ImageJobList struct {
 	metav1.TypeMeta `json:",inline"`
