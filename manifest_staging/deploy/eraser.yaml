@@ -69,7 +69,7 @@ spec:
     subresources:
       status: {}
   - deprecated: true
-    deprecationWarning: v1alpha1 of the eraser API has been deprecated
+    deprecationWarning: v1alpha1 of the eraser API has been deprecated. Please migrate to v1.
     name: v1alpha1
     schema:
       openAPIV3Schema:
@@ -189,7 +189,7 @@ spec:
     subresources:
       status: {}
   - deprecated: true
-    deprecationWarning: v1alpha1 of the eraser API has been deprecated
+    deprecationWarning: v1alpha1 of the eraser API has been deprecated. Please migrate to v1.
     name: v1alpha1
     schema:
       openAPIV3Schema:
