@@ -145,7 +145,7 @@ func main() {
 
 	vulnerableImages, failedImages, err := scan(s, allImages)
 	if err != nil {
-		log.Error(err, "image scan timed out")
+		log.Error(err, "total image scan timed out")
 	}
 
 	log.Info("Vulnerable", "Images", vulnerableImages)
