@@ -25,7 +25,7 @@ const (
 	collectorLabel = "name=collector"
 	eraserLabel    = "name=eraser"
 
-	restartTimeout = time.Minute
+	restartTimeout = time.Minute * 3
 )
 
 func TestImageListTriggersEraserImageJob(t *testing.T) {
@@ -137,6 +137,14 @@ func TestImageListTriggersEraserImageJob(t *testing.T) {
 				return true, nil
 			}, wait.WithTimeout(time.Minute*2), wait.WithInterval(time.Millisecond*500))
 			if err != nil {
+				for _, name := range podNames {
+					output, _ := KubectlLogs(cfg.KubeconfigFile(), pod.Name, "", namespace, "--all-containers=true")
+					t.Log("pod output", pod.Name, output)
+				}
+
+				if err != nil {
+					t.Errorf("error getting pod logs %s %v", pod.Name, err)
+				}
 				t.Fatal(err)
 			}
 			t.Logf("initial eraser deployment cleaned up")
@@ -147,17 +155,6 @@ func TestImageListTriggersEraserImageJob(t *testing.T) {
 
 			return ctx
 		}).
-		Assess("Get logs", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
-			if err := util.GetManagerLogs(ctx, cfg, t); err != nil {
-				t.Error("error getting manager logs", err)
-			}
-
-			if err := util.GetPodLogs(ctx, cfg, t, true); err != nil {
-				t.Error("error getting collector pod logs", err)
-			}
-
-			return ctx
-		}).
 		Assess("Eraser job was not restarted", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
 			// until a timeout is reached, make sure there are no pods matching
 			// the selector name=eraser
@@ -165,6 +162,13 @@ func TestImageListTriggersEraserImageJob(t *testing.T) {
 			ctxT2, cancel := context.WithTimeout(ctx, restartTimeout)
 			defer cancel()
 			util.CheckDeploymentCleanedUp(ctxT2, t, client)
+
+			return ctx
+		}).
+		Assess("Get logs", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
+			if err := util.GetManagerLogs(ctx, cfg, t); err != nil {
+				t.Error("error getting manager logs", err)
+			}
 
 			return ctx
 		}).
