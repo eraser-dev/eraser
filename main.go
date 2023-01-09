@@ -93,7 +93,6 @@ func main() {
 
 	setupLog.Info("setting up manager", "userAgent", config.UserAgent)
 
-	ctrlConfig := eraserv1alpha1.EraserConfig{}
 	options := ctrl.Options{
 		Scheme:                 scheme,
 		MetricsBindAddress:     *metricsAddr,
@@ -107,7 +106,7 @@ func main() {
 		options = options.AndFromOrDie(ctrl.ConfigFile().AtPath(configFile).OfKind(&util.EraserOptions))
 	}
 
-	setupLog.Info("ctrlConfig", "foo", ctrlConfig.Eraser.ImageList)
+	setupLog.Info("ctrlConfig", "foo", util.EraserOptions.Eraser.Runtime)
 
 	mgr, err := ctrl.NewManager(config, options)
 	if err != nil {

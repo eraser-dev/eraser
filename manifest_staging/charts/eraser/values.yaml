@@ -1,5 +1,7 @@
 controllerManager:
-  config: {}
+  config:
+    eraser:
+      runtime: taco-boy
 
   image:
     repository: ghcr.io/azure/eraser-manager

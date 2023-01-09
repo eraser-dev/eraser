@@ -9,5 +9,5 @@ webhook:
 leaderElection:
   leaderElect: true
   resourceName: e29e094a.k8s.io
-spec:
-  foo: bar
+eraser:
+  runtime: lol
