@@ -138,8 +138,8 @@ func TestImageListTriggersEraserImageJob(t *testing.T) {
 			}, wait.WithTimeout(time.Minute*2), wait.WithInterval(time.Millisecond*500))
 			if err != nil {
 				for _, name := range podNames {
-					output, _ := KubectlLogs(cfg.KubeconfigFile(), pod.Name, "", namespace, "--all-containers=true")
-					t.Log("pod output", pod.Name, output)
+					output, _ := util.KubectlLogs(cfg.KubeconfigFile(), name, "", namespace, "--all-containers=true")
+					t.Log("pod output", name, output)
 				}
 
 				if err != nil {
