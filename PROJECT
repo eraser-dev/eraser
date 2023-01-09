@@ -18,4 +18,8 @@ resources:
   group: eraser.sh
   kind: ImageCollector
   version: v1alpha1
+- domain: azure-eraser.io
+  group: eraser.sh
+  kind: ImageList
+  version: v1
 version: "3"
