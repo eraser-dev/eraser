@@ -7,7 +7,7 @@ import (
 	"os/signal"
 	"syscall"
 
-	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
+	"github.com/Azure/eraser/api/unversioned"
 	"github.com/go-logr/logr"
 	"golang.org/x/sys/unix"
 
@@ -20,10 +20,10 @@ import (
 // interface for custom scanners to communicate with Eraser.
 type ImageProvider interface {
 	// receive list of all non-running, non-excluded images from collector container to process.
-	ReceiveImages() ([]eraserv1alpha1.Image, error)
+	ReceiveImages() ([]unversioned.Image, error)
 
 	// sends non-compliant images found to eraser container for removal.
-	SendImages(nonCompliantImages, failedImages []eraserv1alpha1.Image) error
+	SendImages(nonCompliantImages, failedImages []unversioned.Image) error
 
 	// completes scanner communication process - required after custom scanning finishes.
 	Finish() error
@@ -55,7 +55,7 @@ func NewImageProvider(funcs ...ConfigFunc) ImageProvider {
 	return cfg
 }
 
-func (cfg *config) ReceiveImages() ([]eraserv1alpha1.Image, error) {
+func (cfg *config) ReceiveImages() ([]unversioned.Image, error) {
 	var err error
 
 	if err := unix.Mkfifo(util.EraseCompleteScanPath, util.PipeMode); err != nil {
@@ -78,7 +78,7 @@ func (cfg *config) ReceiveImages() ([]eraserv1alpha1.Image, error) {
 	return allImages, nil
 }
 
-func (cfg *config) SendImages(nonCompliantImages, failedImages []eraserv1alpha1.Image) error {
+func (cfg *config) SendImages(nonCompliantImages, failedImages []unversioned.Image) error {
 	if cfg.deleteScanFailedImages {
 		nonCompliantImages = append(nonCompliantImages, failedImages...)
 	}

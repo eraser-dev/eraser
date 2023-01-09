@@ -4,7 +4,7 @@ import (
 	"flag"
 	"time"
 
-	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
+	eraserv1 "github.com/Azure/eraser/api/v1"
 	"github.com/Azure/eraser/pkg/utils"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -72,12 +72,12 @@ func AlwaysOnUpdate(_ event.UpdateEvent) bool {
 	return true
 }
 
-func IsCompletedOrFailed(p eraserv1alpha1.JobPhase) bool {
-	return (p == eraserv1alpha1.PhaseCompleted || p == eraserv1alpha1.PhaseFailed)
+func IsCompletedOrFailed(p eraserv1.JobPhase) bool {
+	return (p == eraserv1.PhaseCompleted || p == eraserv1.PhaseFailed)
 }
 
-func FilterJobListByOwner(jobs []eraserv1alpha1.ImageJob, owner *metav1.OwnerReference) []eraserv1alpha1.ImageJob {
-	ret := []eraserv1alpha1.ImageJob{}
+func FilterJobListByOwner(jobs []eraserv1.ImageJob, owner *metav1.OwnerReference) []eraserv1.ImageJob {
+	ret := []eraserv1.ImageJob{}
 
 	for i := range jobs {
 		job := jobs[i]

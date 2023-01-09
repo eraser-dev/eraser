@@ -1,0 +1,9 @@
+apiVersion: eraser.sh/v1
+kind: ImageList
+metadata:
+  name: imagelist
+spec:
+  images:
+    - sha256:2834dc507516af02784808c5f48b7cbe38b8ed5d0f4837f16e78d00deb7e7767
+    - docker.io/library/nginx:latest
+    - nginx

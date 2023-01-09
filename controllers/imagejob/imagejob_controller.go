@@ -43,6 +43,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 	"sigs.k8s.io/kind/pkg/errors"
 
+	eraserv1 "github.com/Azure/eraser/api/v1"
 	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
 	controllerUtils "github.com/Azure/eraser/controllers/util"
 	eraserUtils "github.com/Azure/eraser/pkg/utils"
@@ -104,9 +105,9 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	}
 
 	// Watch for changes to ImageJob
-	err = c.Watch(&source.Kind{Type: &eraserv1alpha1.ImageJob{}}, &handler.EnqueueRequestForObject{}, predicate.Funcs{
+	err = c.Watch(&source.Kind{Type: &eraserv1.ImageJob{}}, &handler.EnqueueRequestForObject{}, predicate.Funcs{
 		UpdateFunc: func(e event.UpdateEvent) bool {
-			if job, ok := e.ObjectNew.(*eraserv1alpha1.ImageJob); ok && controllerUtils.IsCompletedOrFailed(job.Status.Phase) {
+			if job, ok := e.ObjectNew.(*eraserv1.ImageJob); ok && controllerUtils.IsCompletedOrFailed(job.Status.Phase) {
 				return false // handled by Owning controller
 			}
 
@@ -179,9 +180,9 @@ func checkNodeFitness(pod *corev1.Pod, node *corev1.Node) bool {
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.8.3/pkg/reconcile
 func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	imageJob := &eraserv1alpha1.ImageJob{}
+	imageJob := &eraserv1.ImageJob{}
 	if err := r.Get(ctx, req.NamespacedName, imageJob); err != nil {
-		imageJob.Status.Phase = eraserv1alpha1.PhaseFailed
+		imageJob.Status.Phase = eraserv1.PhaseFailed
 		if err := r.updateJobStatus(ctx, imageJob); err != nil {
 			return ctrl.Result{}, err
 		}
@@ -193,11 +194,11 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		if err := r.handleNewJob(ctx, imageJob); err != nil {
 			return ctrl.Result{}, fmt.Errorf("reconcile new: %w", err)
 		}
-	case eraserv1alpha1.PhaseRunning:
+	case eraserv1.PhaseRunning:
 		if err := r.handleRunningJob(ctx, imageJob); err != nil {
 			return ctrl.Result{}, fmt.Errorf("reconcile running: %w", err)
 		}
-	case eraserv1alpha1.PhaseCompleted, eraserv1alpha1.PhaseFailed:
+	case eraserv1.PhaseCompleted, eraserv1.PhaseFailed:
 		break // this is handled by the Owning controller
 	default:
 		return ctrl.Result{}, fmt.Errorf("reconcile: unexpected imagejob phase: %s", imageJob.Status.Phase)
@@ -213,7 +214,7 @@ func podListOptions(jobTemplate *corev1.PodTemplate) client.ListOptions {
 	}
 }
 
-func (r *Reconciler) handleRunningJob(ctx context.Context, imageJob *eraserv1alpha1.ImageJob) error {
+func (r *Reconciler) handleRunningJob(ctx context.Context, imageJob *eraserv1.ImageJob) error {
 	// get eraser pods
 	podList := &corev1.PodList{}
 
@@ -252,12 +253,12 @@ func (r *Reconciler) handleRunningJob(ctx context.Context, imageJob *eraserv1alp
 		}
 	}
 
-	imageJob.Status = eraserv1alpha1.ImageJobStatus{
+	imageJob.Status = eraserv1.ImageJobStatus{
 		Desired:   imageJob.Status.Desired,
 		Succeeded: success,
 		Skipped:   skipped,
 		Failed:    failed,
-		Phase:     eraserv1alpha1.PhaseCompleted,
+		Phase:     eraserv1.PhaseCompleted,
 	}
 
 	successAndSkipped := success + skipped
@@ -267,7 +268,7 @@ func (r *Reconciler) handleRunningJob(ctx context.Context, imageJob *eraserv1alp
 			"success ratio", r.successRatio,
 			"actual ratio", success/imageJob.Status.Desired,
 		)
-		imageJob.Status.Phase = eraserv1alpha1.PhaseFailed
+		imageJob.Status.Phase = eraserv1.PhaseFailed
 	}
 
 	if err := r.updateJobStatus(ctx, imageJob); err != nil {
@@ -277,7 +278,7 @@ func (r *Reconciler) handleRunningJob(ctx context.Context, imageJob *eraserv1alp
 	return nil
 }
 
-func (r *Reconciler) handleNewJob(ctx context.Context, imageJob *eraserv1alpha1.ImageJob) error {
+func (r *Reconciler) handleNewJob(ctx context.Context, imageJob *eraserv1.ImageJob) error {
 	nodes := &corev1.NodeList{}
 	err := r.List(ctx, nodes)
 	if err != nil {
@@ -296,12 +297,12 @@ func (r *Reconciler) handleNewJob(ctx context.Context, imageJob *eraserv1alpha1.
 		return err
 	}
 
-	imageJob.Status = eraserv1alpha1.ImageJobStatus{
+	imageJob.Status = eraserv1.ImageJobStatus{
 		Desired:   len(nodes.Items),
 		Succeeded: 0,
 		Skipped:   0, // placeholder, updated below
 		Failed:    0,
-		Phase:     eraserv1alpha1.PhaseRunning,
+		Phase:     eraserv1.PhaseRunning,
 	}
 
 	skipped := 0
@@ -412,7 +413,7 @@ func isPodReady(pod *corev1.Pod) wait.ConditionFunc {
 func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 	log.Info("imagejob set up with manager")
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&eraserv1alpha1.ImageJob{}).
+		For(&eraserv1.ImageJob{}).
 		Complete(r)
 }
 
@@ -425,7 +426,7 @@ func podsComplete(podList []corev1.Pod) bool {
 	return true
 }
 
-func (r *Reconciler) updateJobStatus(ctx context.Context, imageJob *eraserv1alpha1.ImageJob) error {
+func (r *Reconciler) updateJobStatus(ctx context.Context, imageJob *eraserv1.ImageJob) error {
 	if imageJob.Name != "" {
 		if err := r.Status().Update(ctx, imageJob); err != nil {
 			return err
