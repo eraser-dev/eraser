@@ -147,6 +147,17 @@ func TestImageListTriggersEraserImageJob(t *testing.T) {
 
 			return ctx
 		}).
+		Assess("Get logs", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
+			if err := util.GetManagerLogs(ctx, cfg, t); err != nil {
+				t.Error("error getting manager logs", err)
+			}
+
+			if err := util.GetPodLogs(ctx, cfg, t, true); err != nil {
+				t.Error("error getting collector pod logs", err)
+			}
+
+			return ctx
+		}).
 		Assess("Eraser job was not restarted", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
 			// until a timeout is reached, make sure there are no pods matching
 			// the selector name=eraser
@@ -154,13 +165,6 @@ func TestImageListTriggersEraserImageJob(t *testing.T) {
 			ctxT2, cancel := context.WithTimeout(ctx, restartTimeout)
 			defer cancel()
 			util.CheckDeploymentCleanedUp(ctxT2, t, client)
-
-			return ctx
-		}).
-		Assess("Get logs", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
-			if err := util.GetManagerLogs(ctx, cfg, t); err != nil {
-				t.Error("error getting manager logs", err)
-			}
 
 			return ctx
 		}).
