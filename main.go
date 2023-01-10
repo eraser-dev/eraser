@@ -115,7 +115,11 @@ func main() {
 	setupLog.Info("ctrlConfig manual", "eraserOptions", util.EraserOptions)
 
 	if configFile != "" {
-		options = options.AndFromOrDie(ctrl.ConfigFile().AtPath(configFile).OfKind(&util.EraserOptions))
+		options, err = options.AndFrom(ctrl.ConfigFile().AtPath(configFile).OfKind(&util.EraserOptions))
+		if err != nil {
+			setupLog.Error(err, "error")
+			panic(err)
+		}
 	}
 
 	setupLog.Info("ctrlConfig after", "eraserOptions", util.EraserOptions)

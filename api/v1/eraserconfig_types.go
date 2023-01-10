@@ -89,8 +89,8 @@ type Components struct {
 
 //+kubebuilder:object:root=true
 
-// EraserSystemConfig is the Schema for the eraserconfigs API
-type EraserSystemConfig struct {
+// EraserConfig is the Schema for the eraserconfigs API
+type EraserConfig struct {
 	metav1.TypeMeta `json:",inline"`
 
 	// ControllerManagerConfigurationSpec returns the configurations for controllers
@@ -101,5 +101,5 @@ type EraserSystemConfig struct {
 }
 
 func init() {
-	SchemeBuilder.Register(&EraserSystemConfig{})
+	SchemeBuilder.Register(&EraserConfig{})
 }
