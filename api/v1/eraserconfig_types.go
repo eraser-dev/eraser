@@ -29,62 +29,62 @@ import (
 
 type ContainerConfig struct {
 	// REQUIRED
-	Enable  bool                 `json:"enable"`
-	Image   RepoTag              `json:"image"`
-	Request ResourceRequirements `json:"request"`
-	Limit   ResourceRequirements `json:"limit"`
+	Enable  bool                 `json:"enable,omitempty"`
+	Image   RepoTag              `json:"image,omitempty"`
+	Request ResourceRequirements `json:"request,omitempty"`
+	Limit   ResourceRequirements `json:"limit,omitempty"`
 	Config  *string              `json:"config,omitempty"`
 }
 
 type ManagerConfig struct {
-	Runtime     string           `json:"runtime"`
-	LogLevel    string           `json:"logLevel"`
-	Scheduling  ScheduleConfig   `json:"scheduling"`
-	Profile     ProfileConfig    `json:"profile"`
-	ImageJob    ImageJobConfig   `json:"imageJob"`
-	PullSecrets []string         `json:"pullSecrets"`
-	NodeFilter  NodeFilterConfig `json:"nodeFilter"`
+	Runtime     string           `json:"runtime,omitempty"`
+	LogLevel    string           `json:"logLevel,omitempty"`
+	Scheduling  ScheduleConfig   `json:"scheduling,omitempty"`
+	Profile     ProfileConfig    `json:"profile,omitempty"`
+	ImageJob    ImageJobConfig   `json:"imageJob,omitempty"`
+	PullSecrets []string         `json:"pullSecrets,omitempty"`
+	NodeFilter  NodeFilterConfig `json:"nodeFilter,omitempty"`
 }
 
 type ScheduleConfig struct {
-	RepeatInterval   time.Duration `json:"repeatInterval"`
-	BeginImmediately bool          `json:"beginImmediately"`
+	RepeatInterval   time.Duration `json:"repeatInterval,omitempty"`
+	BeginImmediately bool          `json:"beginImmediately,omitempty"`
 }
 
 type ProfileConfig struct {
-	Enable bool `json:"enable"`
-	Port   int  `json:"port"`
+	Enable bool `json:"enable,omitempty"`
+	Port   int  `json:"port,omitempty"`
 }
 
 type ImageJobConfig struct {
-	SuccessRatio float64               `json:"successRatio"`
-	Cleanup      ImageJobCleanupConfig `json:"cleanup"`
+	SuccessRatio float64               `json:"successRatio,omitempty"`
+	Cleanup      ImageJobCleanupConfig `json:"cleanup,omitempty"`
 }
 
 type ImageJobCleanupConfig struct {
-	DelayOnSuccess time.Duration `json:"delayOnSuccess"`
-	DelayOnFailure time.Duration `json:"delayOnFailure"`
+	DelayOnSuccess time.Duration `json:"delayOnSuccess,omitempty"`
+	DelayOnFailure time.Duration `json:"delayOnFailure,omitempty"`
 }
 
 type NodeFilterConfig struct {
-	Type      string   `json:"type"`
-	Selectors []string `json:"selectors"`
+	Type      string   `json:"type,omitempty"`
+	Selectors []string `json:"selectors,omitempty"`
 }
 
 type ResourceRequirements struct {
-	Mem resource.Quantity `json:"mem"`
-	CPU resource.Quantity `json:"cpu"`
+	Mem resource.Quantity `json:"mem,omitempty"`
+	CPU resource.Quantity `json:"cpu,omitempty"`
 }
 
 type RepoTag struct {
-	Repo string `json:"repo"`
-	Tag  string `json:"tag"`
+	Repo string `json:"repo,omitempty"`
+	Tag  string `json:"tag,omitempty"`
 }
 
 type Components struct {
-	Collector ContainerConfig `json:"collector"`
-	Scanner   ContainerConfig `json:"scanner"`
-	Eraser    ContainerConfig `json:"eraser"`
+	Collector ContainerConfig `json:"collector,omitempty"`
+	Scanner   ContainerConfig `json:"scanner,omitempty"`
+	Eraser    ContainerConfig `json:"eraser,omitempty"`
 }
 
 //+kubebuilder:object:root=true
@@ -95,9 +95,9 @@ type EraserConfig struct {
 
 	// ControllerManagerConfigurationSpec returns the configurations for controllers
 	cfg.ControllerManagerConfigurationSpec `json:",inline"`
-	ManagerConfig                          `json:",inline"`
+	//ManagerConfig                          `json:",inline"`
 
-	Components Components `json:"components"`
+	//Components Components `json:"components"`
 }
 
 func init() {

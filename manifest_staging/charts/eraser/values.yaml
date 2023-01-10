@@ -1,5 +1,14 @@
 controllerManager:
   config:
+    health:
+      healthProbeBindAddress: :8081
+    metrics:
+      bindAddress: 127.0.0.1:8080
+    webhook:
+      port: 9443
+    leaderElection:
+      leaderElect: true
+      resourceName: e29e094a.k8s.io
     runtime: containerd
     otlpEndpoint: ""
     logLevel: info
