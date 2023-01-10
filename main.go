@@ -102,13 +102,13 @@ func main() {
 		LeaderElectionID:       "e29e094a.k8s.io",
 	}
 
+	util.EraserOptions.Manager.Runtime = "lol"
 	if configFile != "" {
 		options = options.AndFromOrDie(ctrl.ConfigFile().AtPath(configFile).OfKind(&util.EraserOptions))
 	}
 
 	setupLog.Info("eraser config", "eraserOptions", util.EraserOptions)
-	out := fmt.Sprintf("eraser CONFIG %#v", util.EraserOptions)
-	setupLog.Info("eraser CONFIG", "eraserOptions", out)
+	setupLog.Info("eraser config", "OPTIONS", fmt.Sprintf("%#v\n", options))
 
 	mgr, err := ctrl.NewManager(config, options)
 	if err != nil {
