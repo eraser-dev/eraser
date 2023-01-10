@@ -447,9 +447,9 @@ spec:
       containers:
       - args:
         - --leader-elect=false
-        - --eraser-image=ghcr.io/azure/eraser:v1.0.0-beta.2
-        - --collector-image=ghcr.io/azure/collector:v1.0.0-beta.2
-        - --scanner-image=ghcr.io/azure/eraser-trivy-scanner:v1.0.0-beta.2
+        - --eraser-image=ghcr.io/azure/eraser:v1.0.0-beta.3
+        - --collector-image=ghcr.io/azure/collector:v1.0.0-beta.3
+        - --scanner-image=ghcr.io/azure/eraser-trivy-scanner:v1.0.0-beta.3
         command:
         - /manager
         env:
@@ -460,7 +460,7 @@ spec:
               fieldPath: metadata.namespace
         - name: OTEL_SERVICE_NAME
           value: eraser-manager
-        image: ghcr.io/azure/eraser-manager:v1.0.0-beta.2
+        image: ghcr.io/azure/eraser-manager:v1.0.0-beta.3
         livenessProbe:
           httpGet:
             path: /healthz
