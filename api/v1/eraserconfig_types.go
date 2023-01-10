@@ -100,8 +100,6 @@ type EraserSystemConfig struct {
 	Components Components `json:"components"`
 }
 
-//+kubebuilder:object:root=true
-
 func init() {
 	SchemeBuilder.Register(&EraserSystemConfig{})
 }
