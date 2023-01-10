@@ -1,4 +1,4 @@
-apiVersion: eraser.sh/v1
+apiVersion: eraser.sh/v1alpha1
 kind: EraserConfig
 health:
   healthProbeBindAddress: :8081
