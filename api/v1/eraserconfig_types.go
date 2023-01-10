@@ -17,8 +17,6 @@ limitations under the License.
 package v1
 
 import (
-	"time"
-
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	cfg "sigs.k8s.io/controller-runtime/pkg/config/v1alpha1"
@@ -47,8 +45,8 @@ type ManagerConfig struct {
 }
 
 type ScheduleConfig struct {
-	RepeatInterval   time.Duration `json:"repeatInterval,omitempty"`
-	BeginImmediately bool          `json:"beginImmediately,omitempty"`
+	RepeatInterval   string `json:"repeatInterval,omitempty"`
+	BeginImmediately bool   `json:"beginImmediately,omitempty"`
 }
 
 type ProfileConfig struct {
@@ -62,8 +60,8 @@ type ImageJobConfig struct {
 }
 
 type ImageJobCleanupConfig struct {
-	DelayOnSuccess time.Duration `json:"delayOnSuccess,omitempty"`
-	DelayOnFailure time.Duration `json:"delayOnFailure,omitempty"`
+	DelayOnSuccess string `json:"delayOnSuccess,omitempty"`
+	DelayOnFailure string `json:"delayOnFailure,omitempty"`
 }
 
 type NodeFilterConfig struct {
@@ -95,9 +93,9 @@ type EraserConfig struct {
 
 	// ControllerManagerConfigurationSpec returns the configurations for controllers
 	cfg.ControllerManagerConfigurationSpec `json:",inline"`
-	//ManagerConfig                          `json:",inline"`
 
-	//Components Components `json:"components"`
+	Manager    ManagerConfig `json:"manager"`
+	Components Components    `json:"components"`
 }
 
 func init() {

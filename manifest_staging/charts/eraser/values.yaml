@@ -1,33 +1,25 @@
 controllerManager:
   config:
-    health:
-      healthProbeBindAddress: :8081
-    metrics:
-      bindAddress: 127.0.0.1:8080
-    webhook:
-      port: 9443
-    leaderElection:
-      leaderElect: true
-      resourceName: e29e094a.k8s.io
-    runtime: containerd
-    otlpEndpoint: ""
-    logLevel: info
-    scheduling:
-      repeatInterval: 24h # to be parsed into time.Duration
-      beginImmediately: true
-    profile:
-      enable: false
-      port: 6060
-    imageJob:
-      successRatio: 1.0 # float; ok with YAML?
-      cleanup:
-        delayOnSuccess: 0s # to be parsed into time.Duration
-        delayOnFailure: 1d
-    pullSecrets: [] # image pull secrets for collector/scanner/eraser
-    nodeFilter:
-      type: exclude # must be either exclude|include
-      selectors:
-        - eraser.sh/cleanup.filter
+    manager:
+      runtime: containerd
+      otlpEndpoint: ""
+      logLevel: info
+      scheduling:
+        repeatInterval: 24h # to be parsed into time.Duration
+        beginImmediately: true
+      profile:
+        enable: false
+        port: 6060
+      imageJob:
+        successRatio: 1.0 # float; ok with YAML?
+        cleanup:
+          delayOnSuccess: 0s # to be parsed into time.Duration
+          delayOnFailure: 1d
+      pullSecrets: [] # image pull secrets for collector/scanner/eraser
+      nodeFilter:
+        type: exclude # must be either exclude|include
+        selectors:
+          - eraser.sh/cleanup.filter
     components:
       collector:
         enable: false
