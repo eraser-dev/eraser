@@ -33,8 +33,8 @@ jobs:
 
           # increment the minor version by 1 for vNext
           echo "NEWVERSION=v${MAJOR_VERSION}.$((MINOR_VERSION+1)).0-beta.0" >> ${GITHUB_ENV}
-          # pre-release is always being merged to the master branch
-          echo "TARGET_BRANCH=master" >> ${GITHUB_ENV}
+          # pre-release is always being merged to the main branch
+          echo "TARGET_BRANCH=main" >> ${GITHUB_ENV}
 
       - name: Set release version and target branch from input
         if: github.event_name == 'workflow_dispatch'
@@ -49,9 +49,9 @@ jobs:
           # non-beta releases should always be merged to release branches
           echo "TARGET_BRANCH=release-${MAJOR_VERSION}.${MINOR_VERSION}" >> ${GITHUB_ENV}
 
-          # beta releases should always be merged to master
+          # beta releases should always be merged to main
           if [[ "${NEWVERSION}" =~ "beta" ]]; then
-            echo "TARGET_BRANCH=master" >> ${GITHUB_ENV}
+            echo "TARGET_BRANCH=main" >> ${GITHUB_ENV}
           fi
 
       - uses: actions/checkout@755da8c3cf115ac066823e79a1e1788f8940201b
@@ -67,7 +67,7 @@ jobs:
           git push --set-upstream origin "${TARGET_BRANCH}"
 
       - run: make release-manifest promote-staging-manifest version-docs
-      
+
       - name: Create release pull request
         uses: peter-evans/create-pull-request@v4
         with:
