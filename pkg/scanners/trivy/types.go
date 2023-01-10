@@ -42,7 +42,6 @@ type (
 )
 
 type ImageScanner struct {
-	ctx                context.Context
 	scanConfig         scannerSetup
 	imageSourceOptions []fanalImage.Option
 }
@@ -62,7 +61,7 @@ func (s *ImageScanner) Scan(img unversioned.Image) (ScanStatus, error) {
 		ref := refs[i]
 		log.Info("scanning image with ref", "ref", ref)
 
-		dockerImage, cleanup, err := fanalImage.NewContainerImage(s.ctx, ref, s.scanConfig.dockerOptions, s.imageSourceOptions...)
+		dockerImage, cleanup, err := fanalImage.NewContainerImage(context.Background(), ref, s.scanConfig.dockerOptions, s.imageSourceOptions...)
 		if err != nil {
 			log.Error(err, "could not find image by reference", "imageID", img.ImageID, "reference", ref)
 			cleanup()
@@ -83,8 +82,11 @@ func (s *ImageScanner) Scan(img unversioned.Image) (ScanStatus, error) {
 			continue
 		}
 
+		imageScanContext, cancel := context.WithTimeout(context.Background(), *imageScanTimeout)
+		defer cancel()
+
 		scanner := scanner.NewScanner(s.scanConfig.localScanner, artifactToScan)
-		report, err := scanner.ScanArtifact(s.ctx, s.scanConfig.scanOptions)
+		report, err := scanner.ScanArtifact(imageScanContext, s.scanConfig.scanOptions)
 		if err != nil {
 			log.Error(err, "error scanning image", "imageID", img.ImageID, "reference", ref)
 			cleanup()
