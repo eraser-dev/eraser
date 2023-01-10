@@ -137,12 +137,7 @@ func TestImageListTriggersEraserImageJob(t *testing.T) {
 				return true, nil
 			}, wait.WithTimeout(time.Minute*2), wait.WithInterval(time.Millisecond*500))
 			if err != nil {
-				for _, name := range podNames {
-					output, _ := util.KubectlDescribe(cfg.KubeconfigFile(), name, cfg.Namespace())
-					t.Log("pod output", name, output)
-				}
-
-				// t.Fatal(err)
+				t.Fatal(err)
 			}
 			t.Logf("initial eraser deployment cleaned up")
 
@@ -152,7 +147,7 @@ func TestImageListTriggersEraserImageJob(t *testing.T) {
 
 			return ctx
 		}).
-		/*	Assess("Eraser job was not restarted", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
+		Assess("Eraser job was not restarted", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
 			// until a timeout is reached, make sure there are no pods matching
 			// the selector name=eraser
 			client := cfg.Client()
@@ -161,7 +156,7 @@ func TestImageListTriggersEraserImageJob(t *testing.T) {
 			util.CheckDeploymentCleanedUp(ctxT2, t, client)
 
 			return ctx
-		}).*/
+		}).
 		Assess("Get logs", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
 			if err := util.GetManagerLogs(ctx, cfg, t); err != nil {
 				t.Error("error getting manager logs", err)
