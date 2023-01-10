@@ -17,10 +17,31 @@ limitations under the License.
 package v1
 
 import (
+	"encoding/json"
+	"time"
+
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	cfg "sigs.k8s.io/controller-runtime/pkg/config/v1alpha1"
 )
+
+type Duration time.Duration
+
+func (td *Duration) UnmarshalJSON(b []byte) error {
+	var str string
+	err := json.Unmarshal(b, &str)
+	if err != nil {
+		return err
+	}
+
+	pd, err := time.ParseDuration(str)
+	if err != nil {
+		return err
+	}
+
+	*td = Duration(pd)
+	return nil
+}
 
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
@@ -45,8 +66,8 @@ type ManagerConfig struct {
 }
 
 type ScheduleConfig struct {
-	RepeatInterval   string `json:"repeatInterval,omitempty"`
-	BeginImmediately bool   `json:"beginImmediately,omitempty"`
+	RepeatInterval   Duration `json:"repeatInterval,omitempty"`
+	BeginImmediately bool     `json:"beginImmediately,omitempty"`
 }
 
 type ProfileConfig struct {
@@ -60,8 +81,8 @@ type ImageJobConfig struct {
 }
 
 type ImageJobCleanupConfig struct {
-	DelayOnSuccess string `json:"delayOnSuccess,omitempty"`
-	DelayOnFailure string `json:"delayOnFailure,omitempty"`
+	DelayOnSuccess Duration `json:"delayOnSuccess,omitempty"`
+	DelayOnFailure Duration `json:"delayOnFailure,omitempty"`
 }
 
 type NodeFilterConfig struct {

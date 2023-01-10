@@ -14,7 +14,7 @@ controllerManager:
         successRatio: 1.0 # float; ok with YAML?
         cleanup:
           delayOnSuccess: 0s # to be parsed into time.Duration
-          delayOnFailure: 1d
+          delayOnFailure: 24h
       pullSecrets: [] # image pull secrets for collector/scanner/eraser
       nodeFilter:
         type: exclude # must be either exclude|include
