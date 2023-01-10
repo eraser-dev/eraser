@@ -38,7 +38,7 @@ type ContainerConfig struct {
 
 type ManagerConfig struct {
 	Runtime     string           `json:"runtime"`
-	LogLevel    string           `json"logLevel"`
+	LogLevel    string           `json:"logLevel"`
 	Scheduling  ScheduleConfig   `json:"scheduling"`
 	Profile     ProfileConfig    `json:"profile"`
 	ImageJob    ImageJobConfig   `json:"imageJob"`
