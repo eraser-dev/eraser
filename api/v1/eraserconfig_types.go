@@ -17,6 +17,9 @@ limitations under the License.
 package v1
 
 import (
+	"time"
+
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	cfg "sigs.k8s.io/controller-runtime/pkg/config/v1alpha1"
 )
@@ -24,36 +27,81 @@ import (
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
-// EraserConfigSpec defines the desired state of EraserConfig
-type EraserConfigSpec struct {
-	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
-
-	// Foo is an example field of EraserConfig. Edit eraserconfig_types.go to remove/update
-	Foo string `json:"foo,omitempty"`
+type ContainerConfig struct {
+	// REQUIRED
+	Enable  bool                 `json:"enable"`
+	Image   RepoTag              `json:"image"`
+	Request ResourceRequirements `json:"request"`
+	Limit   ResourceRequirements `json:"limit"`
+	Config  *string              `json:"config,omitempty"`
 }
 
-type EraserContainerConfig struct {
-	Runtime        string `json:"runtime,omitempty"`
-	ImageList      string `json:"imageList,omitempty"`
-	ProfileEnabled bool   `json:"profileEnabled,omitempty"`
-	ProfilePort    int    `json:"profilePort,omitempty"`
+type ManagerConfig struct {
+	Runtime     string           `json:"runtime"`
+	LogLevel    string           `json"logLevel"`
+	Scheduling  ScheduleConfig   `json:"scheduling"`
+	Profile     ProfileConfig    `json:"profile"`
+	ImageJob    ImageJobConfig   `json:"imageJob"`
+	PullSecrets []string         `json:"pullSecrets"`
+	NodeFilter  NodeFilterConfig `json:"nodeFilter"`
+}
+
+type ScheduleConfig struct {
+	RepeatInterval   time.Duration `json:"repeatInterval"`
+	BeginImmediately bool          `json:"beginImmediately"`
+}
+
+type ProfileConfig struct {
+	Enable bool `json:"enable"`
+	Port   int  `json:"port"`
+}
+
+type ImageJobConfig struct {
+	SuccessRatio float64               `json:"successRatio"`
+	Cleanup      ImageJobCleanupConfig `json:"cleanup"`
+}
+
+type ImageJobCleanupConfig struct {
+	DelayOnSuccess time.Duration `json:"delayOnSuccess"`
+	DelayOnFailure time.Duration `json:"delayOnFailure"`
+}
+
+type NodeFilterConfig struct {
+	Type      string   `json:"type"`
+	Selectors []string `json:"selectors"`
+}
+
+type ResourceRequirements struct {
+	Mem resource.Quantity `json:"mem"`
+	CPU resource.Quantity `json:"cpu"`
+}
+
+type RepoTag struct {
+	Repo string `json:"repo"`
+	Tag  string `json:"tag"`
+}
+
+type Components struct {
+	Collector ContainerConfig `json:"collector"`
+	Scanner   ContainerConfig `json:"scanner"`
+	Eraser    ContainerConfig `json:"eraser"`
 }
 
 //+kubebuilder:object:root=true
 
-// EraserConfig is the Schema for the eraserconfigs API
-type EraserConfig struct {
+// EraserSystemConfig is the Schema for the eraserconfigs API
+type EraserSystemConfig struct {
 	metav1.TypeMeta `json:",inline"`
 
 	// ControllerManagerConfigurationSpec returns the configurations for controllers
 	cfg.ControllerManagerConfigurationSpec `json:",inline"`
+	ManagerConfig                          `json:",inline"`
 
-	Eraser EraserContainerConfig `json:"eraser,omitempty"`
+	Components Components `json:"components"`
 }
 
 //+kubebuilder:object:root=true
 
 func init() {
-	SchemeBuilder.Register(&EraserConfig{})
+	SchemeBuilder.Register(&EraserSystemConfig{})
 }

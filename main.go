@@ -31,6 +31,7 @@ import (
 
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	"k8s.io/apimachinery/pkg/util/yaml"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
@@ -102,11 +103,22 @@ func main() {
 		LeaderElectionID:       "e29e094a.k8s.io",
 	}
 
+	cfg, err := os.ReadFile(configFile)
+	if err != nil {
+		panic(err)
+	}
+
+	setupLog.Info("ctrlConfig before", "eraserOptions", util.EraserOptions)
+
+	err = yaml.Unmarshal(cfg, &util.EraserOptions)
+
+	setupLog.Info("ctrlConfig manual", "eraserOptions", util.EraserOptions)
+
 	if configFile != "" {
 		options = options.AndFromOrDie(ctrl.ConfigFile().AtPath(configFile).OfKind(&util.EraserOptions))
 	}
 
-	setupLog.Info("ctrlConfig", "foo", util.EraserOptions.Eraser.Runtime)
+	setupLog.Info("ctrlConfig after", "eraserOptions", util.EraserOptions)
 
 	mgr, err := ctrl.NewManager(config, options)
 	if err != nil {

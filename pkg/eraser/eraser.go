@@ -22,7 +22,6 @@ import (
 	"github.com/Azure/eraser/pkg/metrics"
 
 	"github.com/Azure/eraser/api/unversioned"
-	eraserv1 "github.com/Azure/eraser/api/v1"
 	util "github.com/Azure/eraser/pkg/utils"
 )
 
@@ -54,20 +53,6 @@ func main() {
 			err := server.ListenAndServe()
 			log.Error(err, "pprof server failed")
 		}()
-	}
-
-	cfg := eraserv1.EraserContainerConfig{
-		Runtime:     "containerd",
-		ProfilePort: 6060,
-	}
-
-	text, err := os.ReadFile("/config.json")
-	if err != nil {
-		panic(err)
-	}
-
-	if err := json.Unmarshal(text, &cfg); err != nil {
-		panic(err)
 	}
 
 	if err := logger.Configure(); err != nil {
