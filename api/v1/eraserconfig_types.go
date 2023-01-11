@@ -46,9 +46,12 @@ func (td *Duration) UnmarshalJSON(b []byte) error {
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
+type OptionalContainerConfig struct {
+	Enable          bool `json:"enable,omitempty"`
+	ContainerConfig `json:",inline"`
+}
+
 type ContainerConfig struct {
-	// REQUIRED
-	Enable  bool                 `json:"enable,omitempty"`
 	Image   RepoTag              `json:"image,omitempty"`
 	Request ResourceRequirements `json:"request,omitempty"`
 	Limit   ResourceRequirements `json:"limit,omitempty"`
@@ -101,9 +104,9 @@ type RepoTag struct {
 }
 
 type Components struct {
-	Collector ContainerConfig `json:"collector,omitempty"`
-	Scanner   ContainerConfig `json:"scanner,omitempty"`
-	Eraser    ContainerConfig `json:"eraser,omitempty"`
+	Collector OptionalContainerConfig `json:"collector,omitempty"`
+	Scanner   OptionalContainerConfig `json:"scanner,omitempty"`
+	Eraser    ContainerConfig         `json:"eraser,omitempty"`
 }
 
 //+kubebuilder:object:root=true

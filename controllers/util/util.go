@@ -5,6 +5,7 @@ import (
 	"time"
 
 	eraserv1 "github.com/Azure/eraser/api/v1"
+	"github.com/Azure/eraser/pkg/config"
 	"github.com/Azure/eraser/pkg/utils"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -26,7 +27,7 @@ var (
 	EraserArgs   = utils.MultiFlag([]string{})
 	OtlpEndpoint = flag.String("otlp-endpoint", "", "otel exporter otlp endpoint")
 
-	EraserOptions = eraserv1.EraserConfig{}
+	EraserOptions = config.Default()
 )
 
 const (
