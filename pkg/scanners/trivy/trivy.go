@@ -40,9 +40,8 @@ const (
 )
 
 var (
-	cacheDir               = flag.String("cache-dir", "/var/lib/trivy", "path to the cache dir")
+	config                 = flag.String("config", "", "path to the configuration file")
 	enableProfile          = flag.Bool("enable-pprof", false, "enable pprof profiling")
-	ignoreUnfixed          = flag.Bool("ignore-unfixed", true, "report only fixed vulnerabilities")
 	profilePort            = flag.Int("pprof-port", 6060, "port for pprof profiling. defaulted to 6060 if unspecified")
 	securityChecks         = flag.String("security-checks", "vuln", "comma-separated list of what security issues to detect")
 	severity               = flag.String("severity", "CRITICAL", "list of severity levels to report")
@@ -108,8 +107,18 @@ var (
 func main() {
 	flag.Parse()
 
+	userConfig := *DefaultConfig()
+	if *config != "" {
+		var err error
+		userConfig, err = loadConfig("/config.yaml")
+		if err != nil {
+			log.Error(err, "unable to read config")
+			os.Exit(generalErr)
+		}
+	}
+
 	// Initializes logger and parses CLI options into hashmap configs
-	err := initGlobals()
+	err := initGlobals(userConfig.Vulnerabilities)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error initializing options: %v", err)
 		os.Exit(generalErr)
@@ -138,7 +147,7 @@ func main() {
 		os.Exit(generalErr)
 	}
 
-	s, err := initScanner()
+	s, err := initScanner(userConfig)
 	if err != nil {
 		log.Error(err, "error initializing scanner")
 	}
@@ -169,7 +178,7 @@ func main() {
 }
 
 // Initializes logger and parses CLI options into hashmap configs.
-func initGlobals() error {
+func initGlobals(cfg VulnConfig) error {
 	err := logger.Configure()
 	if err != nil {
 		return fmt.Errorf("error setting up logger: %w", err)
@@ -177,27 +186,30 @@ func initGlobals() error {
 
 	allSetsOfCommaSeparatedOptions := []optionSet{
 		{
-			input: *severity,
+			input: cfg.Severities,
 			m:     severityMap,
 		},
 		{
-			input: *vulnTypes,
+			input: cfg.Types,
 			m:     vulnTypeMap,
 		},
 		{
-			input: *securityChecks,
+			input: cfg.SecurityChecks,
 			m:     securityCheckMap,
 		},
 	}
 
 	for _, oSet := range allSetsOfCommaSeparatedOptions {
-		err := parseCommaSeparatedOptions(oSet.m, oSet.input)
-		if err != nil {
-			return fmt.Errorf("unable to parse options %w", err)
-		}
+		fillMap(oSet.input, oSet.m)
 	}
 
 	return nil
+}
+
+func fillMap(sl []string, m map[string]bool) {
+	for _, s := range sl {
+		m[s] = true
+	}
 }
 
 func runProfileServer() {
@@ -209,10 +221,11 @@ func runProfileServer() {
 	log.Error(err, "pprof server failed")
 }
 
-func initScanner() (Scanner, error) {
-	err := downloadAndInitDB(*cacheDir)
+func initScanner(userConfig Config) (Scanner, error) {
+	cacheDir := userConfig.CacheDir
+	err := downloadAndInitDB(cacheDir)
 	if err != nil {
-		return nil, fmt.Errorf("unable to initialize trivy db. cacheDir: %s, error: %w", *cacheDir, err)
+		return nil, fmt.Errorf("unable to initialize trivy db. cacheDir: %s, error: %w", cacheDir, err)
 	}
 
 	logger, err := zap.NewProduction()
@@ -226,7 +239,7 @@ func initScanner() (Scanner, error) {
 	vulnTypeList := trueMapKeys(vulnTypeMap)
 	securityCheckList := trueMapKeys(securityCheckMap)
 
-	scanConfig, err := setupScanner(*cacheDir, vulnTypeList, securityCheckList)
+	scanConfig, err := setupScanner(cacheDir, vulnTypeList, securityCheckList)
 	if err != nil {
 		return nil, err
 	}
@@ -238,8 +251,9 @@ func initScanner() (Scanner, error) {
 	}
 
 	var s Scanner = &ImageScanner{
-		scanConfig:         scanConfig,
+		trivyScanConfig:    scanConfig,
 		imageSourceOptions: imageSourceOptions,
+		userConfig:         userConfig,
 	}
 	return s, nil
 }

@@ -15,14 +15,6 @@ import (
 )
 
 var (
-	SuccessDel = flag.Duration("job-cleanup-on-success-delay", 0, "Duration to delay job deletion after successful runs. 0 means no delay. Default unit is ns.")
-	ErrDel     = flag.Duration("job-cleanup-on-error-delay", time.Hour*24, "Duration to delay job deletion after errored runs. 0 means no delay. Default unit is ns.")
-
-	ScannerCPURequest = flag.String("scanner-cpu-request", "1000m", "minimum CPU request for scanner pods spawned by the eraser manager")
-	ScannerCPULimit   = flag.String("scanner-cpu-limit", "1500m", "limit on CPU usage for scanner pods spawned by the eraser manager")
-	ScannerMemRequest = flag.String("scanner-mem-request", "500Mi", "minimum memory request for scanner pods spawned by the eraser manager")
-	ScannerMemLimit   = flag.String("scanner-mem-limit", "2Gi", "limit on memory usage for scanner pods spawned by the eraser manager")
-
 	EraserImage = flag.String("eraser-image", "", "eraser image")
 	EraserArgs  = utils.MultiFlag([]string{})
 

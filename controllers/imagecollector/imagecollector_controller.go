@@ -261,12 +261,34 @@ func (r *Reconciler) createImageJob(ctx context.Context, req ctrl.Request, argsC
 		collectorImg = fmt.Sprintf("%s:%s", iCfg.Repo, iCfg.Tag)
 	}
 
+	profileConfig := r.eraserConfig.Manager.Profile
+	profileArgs := []string{
+		"--enable-pprof=" + strconv.FormatBool(profileConfig.Enable),
+		fmt.Sprintf("--pprof-port=%d", profileConfig.Port),
+	}
+
+	collArgs := []string{"--scan-disabled=" + strconv.FormatBool(scanDisabled)}
+	collArgs = append(collArgs, profileArgs...)
+
+	eraserArgs := append(util.EraserArgs, "--log-level="+logger.GetLevel())
+	eraserArgs = append(eraserArgs, profileArgs...)
+
 	jobTemplate := corev1.PodTemplateSpec{
 		Spec: corev1.PodSpec{
 			Volumes: []corev1.Volume{
 				{
 					// EmptyDir default
 					Name: "shared-data",
+				},
+				{
+					Name: "eraser-manager-config",
+					VolumeSource: corev1.VolumeSource{
+						ConfigMap: &corev1.ConfigMapVolumeSource{
+							LocalObjectReference: corev1.LocalObjectReference{
+								Name: "eraser-manager-config",
+							},
+						},
+					},
 				},
 			},
 			RestartPolicy: corev1.RestartPolicyNever,
@@ -275,7 +297,7 @@ func (r *Reconciler) createImageJob(ctx context.Context, req ctrl.Request, argsC
 					Name:            "collector",
 					Image:           collectorImg,
 					ImagePullPolicy: corev1.PullIfNotPresent,
-					Args:            append(collectorArgs, "--scan-disabled="+strconv.FormatBool(scanDisabled)),
+					Args:            collArgs,
 					VolumeMounts: []corev1.VolumeMount{
 						{MountPath: "/run/eraser.sh/shared-data", Name: "shared-data"},
 					},
@@ -293,7 +315,7 @@ func (r *Reconciler) createImageJob(ctx context.Context, req ctrl.Request, argsC
 					Name:            "eraser",
 					Image:           eraserImg,
 					ImagePullPolicy: corev1.PullIfNotPresent,
-					Args:            append(util.EraserArgs, "--log-level="+logger.GetLevel()),
+					Args:            eraserArgs,
 					VolumeMounts: []corev1.VolumeMount{
 						{MountPath: "/run/eraser.sh/shared-data", Name: "shared-data"},
 					},
@@ -337,7 +359,7 @@ func (r *Reconciler) createImageJob(ctx context.Context, req ctrl.Request, argsC
 		scanFailedArg := fmt.Sprintf("--delete-scan-failed-images=%s", deleteFailedString)
 		imageScanTimeout := fmt.Sprintf("--image-scan-timeout=%s", imageScanTimeout.String())
 		imageScanTotalTimeout := fmt.Sprintf("--image-scan-total-timeout=%s", imageScanTotalTimeout.String())
-		scannerArgs = append(scannerArgs, scanFailedArg, imageScanTimeout, imageScanTotalTimeout)
+		scannerArgs := append(scannerArgs, scanFailedArg, imageScanTimeout, imageScanTotalTimeout)
 
 		scannerImg := *scannerImage
 		if scannerImg == "" {
@@ -345,12 +367,17 @@ func (r *Reconciler) createImageJob(ctx context.Context, req ctrl.Request, argsC
 			scannerImg = fmt.Sprintf("%s:%s", iCfg.Repo, iCfg.Tag)
 		}
 
+		cfgFilename := "/config.yaml"
+		scannerArgs = append(scannerArgs, fmt.Sprintf("--config=%s", cfgFilename))
+		scannerArgs = append(scannerArgs, profileArgs...)
+
 		scannerContainer := corev1.Container{
 			Name:  "trivy-scanner",
 			Image: scannerImg,
 			Args:  scannerArgs,
 			VolumeMounts: []corev1.VolumeMount{
 				{MountPath: "/run/eraser.sh/shared-data", Name: "shared-data"},
+				{MountPath: cfgFilename, Name: "eraser-manager-config"},
 			},
 			Resources: corev1.ResourceRequirements{
 				Requests: corev1.ResourceList{
@@ -426,11 +453,15 @@ func (r *Reconciler) handleCompletedImageJob(ctx context.Context, req ctrl.Reque
 	otlpEndpoint := r.eraserConfig.Manager.OTLPEndpoint
 	repeatInterval := time.Duration(r.eraserConfig.Manager.Scheduling.RepeatInterval)
 
+	cleanupCfg := r.eraserConfig.Manager.ImageJob.Cleanup
+	successDelay := time.Duration(cleanupCfg.DelayOnSuccess)
+	errDelay := time.Duration(cleanupCfg.DelayOnFailure)
+
 	switch phase := childJob.Status.Phase; phase {
 	case eraserv1.PhaseCompleted:
 		log.Info("completed phase")
 		if childJob.Status.DeleteAfter == nil {
-			childJob.Status.DeleteAfter = util.After(time.Now(), int64(util.SuccessDel.Seconds()))
+			childJob.Status.DeleteAfter = util.After(time.Now(), int64(successDelay.Seconds()))
 			if err := r.Status().Update(ctx, childJob); err != nil {
 				log.Info("Could not update Delete After for job " + childJob.Name)
 			}
@@ -451,7 +482,7 @@ func (r *Reconciler) handleCompletedImageJob(ctx context.Context, req ctrl.Reque
 	case eraserv1.PhaseFailed:
 		log.Info("failed phase")
 		if childJob.Status.DeleteAfter == nil {
-			childJob.Status.DeleteAfter = util.After(time.Now(), int64(util.ErrDel.Seconds()))
+			childJob.Status.DeleteAfter = util.After(time.Now(), int64(errDelay.Seconds()))
 			if err := r.Status().Update(ctx, childJob); err != nil {
 				log.Info("Could not update Delete After for job " + childJob.Name)
 			}

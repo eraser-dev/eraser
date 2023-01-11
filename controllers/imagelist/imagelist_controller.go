@@ -171,11 +171,15 @@ func (r *Reconciler) handleJobListEvent(ctx context.Context, imageList *eraserv1
 			return ctrl.Result{}, err
 		}
 
+		cleanupCfg := r.eraserConfig.Manager.ImageJob.Cleanup
+		successDelay := time.Duration(cleanupCfg.DelayOnSuccess)
+		errDelay := time.Duration(cleanupCfg.DelayOnFailure)
+
 		if job.Status.DeleteAfter == nil {
 			if job.Status.Phase == eraserv1.PhaseCompleted {
-				job.Status.DeleteAfter = util.After(time.Now(), int64(util.SuccessDel.Seconds()))
+				job.Status.DeleteAfter = util.After(time.Now(), int64(successDelay.Seconds()))
 			} else if job.Status.Phase == eraserv1.PhaseFailed {
-				job.Status.DeleteAfter = util.After(time.Now(), int64(util.ErrDel.Seconds()))
+				job.Status.DeleteAfter = util.After(time.Now(), int64(errDelay.Seconds()))
 			}
 
 			if err := r.Status().Update(ctx, job); err != nil {

@@ -22,6 +22,20 @@ const (
 )
 
 type (
+	Config struct {
+		CacheDir           string     `json:"cacheDir,omitempty"`
+		DBRepo             string     `json:"dbRepo,omitempty"`
+		DeleteFailedImages bool       `json:"deleteFailedImages,omitempty"`
+		Vulnerabilities    VulnConfig `json:"vulnerabilities,omitempty"`
+	}
+
+	VulnConfig struct {
+		IgnoreUnfixed  bool     `json:"ignoreUnfixed,omitempty"`
+		Types          []string `json:"types,omitempty"`
+		SecurityChecks []string `json:"securityChecks,omitempty"`
+		Severities     []string `json:"severities,omitempty"`
+	}
+
 	scannerSetup struct {
 		fscache       cache.FSCache
 		localScanner  local.Scanner
@@ -30,7 +44,7 @@ type (
 	}
 
 	optionSet struct {
-		input string
+		input []string
 		m     map[string]bool
 	}
 
@@ -41,9 +55,27 @@ type (
 	}
 )
 
+func DefaultConfig() *Config {
+	return &Config{
+		CacheDir:           "/var/lib/trivy",
+		DBRepo:             "ghcr.io/aquasecurity/trivy.db",
+		DeleteFailedImages: true,
+		Vulnerabilities: VulnConfig{
+			IgnoreUnfixed: true,
+			Types: []string{
+				vulnTypeOs,
+				vulnTypeLibrary,
+			},
+			SecurityChecks: []string{securityCheckVuln},
+			Severities:     []string{severityCritical},
+		},
+	}
+}
+
 type ImageScanner struct {
-	scanConfig         scannerSetup
+	trivyScanConfig    scannerSetup
 	imageSourceOptions []fanalImage.Option
+	userConfig         Config
 }
 
 var _ Scanner = &ImageScanner{}
@@ -61,7 +93,12 @@ func (s *ImageScanner) Scan(img unversioned.Image) (ScanStatus, error) {
 		ref := refs[i]
 		log.Info("scanning image with ref", "ref", ref)
 
-		dockerImage, cleanup, err := fanalImage.NewContainerImage(context.Background(), ref, s.scanConfig.dockerOptions, s.imageSourceOptions...)
+		dockerImage, cleanup, err := fanalImage.NewContainerImage(
+			context.TODO(),
+			ref,
+			s.trivyScanConfig.dockerOptions,
+			s.imageSourceOptions...,
+		)
 		if err != nil {
 			log.Error(err, "could not find image by reference", "imageID", img.ImageID, "reference", ref)
 			cleanup()
@@ -69,7 +106,7 @@ func (s *ImageScanner) Scan(img unversioned.Image) (ScanStatus, error) {
 		}
 		log.Info("found image with id under reference", "imageID", img.ImageID, "ref", ref)
 
-		artifactToScan, err := artifactImage.NewArtifact(dockerImage, s.scanConfig.fscache, artifact.Option{
+		artifactToScan, err := artifactImage.NewArtifact(dockerImage, s.trivyScanConfig.fscache, artifact.Option{
 			Offline:           true,
 			DisabledAnalyzers: analyzer.TypeLockfiles,
 			DisabledHandlers:  []fanalTypes.HandlerType{fanalTypes.UnpackagedPostHandler},
@@ -85,8 +122,8 @@ func (s *ImageScanner) Scan(img unversioned.Image) (ScanStatus, error) {
 		imageScanContext, cancel := context.WithTimeout(context.Background(), *imageScanTimeout)
 		defer cancel()
 
-		scanner := scanner.NewScanner(s.scanConfig.localScanner, artifactToScan)
-		report, err := scanner.ScanArtifact(imageScanContext, s.scanConfig.scanOptions)
+		scanner := scanner.NewScanner(s.trivyScanConfig.localScanner, artifactToScan)
+		report, err := scanner.ScanArtifact(imageScanContext, s.trivyScanConfig.scanOptions)
 		if err != nil {
 			log.Error(err, "error scanning image", "imageID", img.ImageID, "reference", ref)
 			cleanup()
@@ -95,7 +132,7 @@ func (s *ImageScanner) Scan(img unversioned.Image) (ScanStatus, error) {
 
 		for i := range report.Results {
 			for j := range report.Results[i].Vulnerabilities {
-				if *ignoreUnfixed && report.Results[i].Vulnerabilities[j].FixedVersion == "" {
+				if s.userConfig.Vulnerabilities.IgnoreUnfixed && report.Results[i].Vulnerabilities[j].FixedVersion == "" {
 					continue
 				}
 
