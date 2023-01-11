@@ -28,7 +28,6 @@ import (
 	"time"
 
 	"go.opentelemetry.io/otel/metric/global"
-	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -63,8 +62,6 @@ var (
 	scannerImage           = flag.String("scanner-image", "", "scanner image, empty value disables scan feature")
 	collectorImage         = flag.String("collector-image", "", "collector image, empty value disables collect feature")
 	log                    = logf.Log.WithName("controller").WithValues("process", "imagecollector-controller")
-	repeatPeriod           = flag.Duration("repeat-period", time.Hour*24, "repeat period for collect/scan process")
-	scheduleImmediate      = flag.Bool("schedule-immediate", true, "begin collect/scan process immediately")
 	deleteScanFailedImages = flag.Bool("delete-scan-failed-images", true, "whether or not to delete images for which scanning has failed")
 	imageScanTimeout       = flag.Duration("image-scan-timeout", time.Hour, "Duration for timeout for each of the images scanned. Default unit is ns")
 	imageScanTotalTimeout  = flag.Duration("image-scan-total-timeout", time.Hour*23, "Duration for timeout for total scan job. Default unit is ns")
@@ -106,12 +103,13 @@ func Add(mgr manager.Manager, cfg eraserv1.EraserConfig) error {
 }
 
 // newReconciler returns a new reconcile.Reconciler.
-func newReconciler(mgr manager.Manager, cfg eraserv1.EraserConfig) reconcile.Reconciler {
-	if *util.OtlpEndpoint != "" {
+func newReconciler(mgr manager.Manager, cfg eraserv1.EraserConfig) *Reconciler {
+	otlpEndpoint := cfg.Manager.OTLPEndpoint
+	if otlpEndpoint != "" {
 		ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 		defer cancel()
 
-		exporter, reader, provider = metrics.ConfigureMetrics(ctx, log, *util.OtlpEndpoint)
+		exporter, reader, provider = metrics.ConfigureMetrics(ctx, log, otlpEndpoint)
 		global.SetMeterProvider(provider)
 	}
 
@@ -122,7 +120,7 @@ func newReconciler(mgr manager.Manager, cfg eraserv1.EraserConfig) reconcile.Rec
 	}
 }
 
-func add(mgr manager.Manager, r reconcile.Reconciler) error {
+func add(mgr manager.Manager, r *Reconciler) error {
 	log.Info("add collector controller")
 	// Create a new controller
 	c, err := controller.New("imagecollector-controller", mgr, controller.Options{
@@ -160,8 +158,9 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		return err
 	}
 
-	delay := *repeatPeriod
-	if *scheduleImmediate {
+	scheduleCfg := r.eraserConfig.Manager.Scheduling
+	delay := time.Duration(scheduleCfg.RepeatInterval)
+	if scheduleCfg.BeginImmediately {
 		delay = 0 * time.Second
 	}
 
@@ -241,8 +240,26 @@ func (r *Reconciler) handleJobDeletion(ctx context.Context, job *eraserv1.ImageJ
 }
 
 func (r *Reconciler) createImageJob(ctx context.Context, req ctrl.Request, argsCollector []string) (ctrl.Result, error) {
-	scanDisabled := *scannerImage == ""
+	mgrCfg := r.eraserConfig.Manager
+	compCfg := r.eraserConfig.Components
+	scanCfg := compCfg.Scanner
+	collectorCfg := compCfg.Collector
+	eraserCfg := compCfg.Eraser
+
+	scanDisabled := scanCfg.Enable
 	startTime = time.Now()
+
+	eraserImg := *util.EraserImage
+	if eraserImg == "" {
+		iCfg := eraserCfg.Image
+		eraserImg = fmt.Sprintf("%s:%s", iCfg.Repo, iCfg.Tag)
+	}
+
+	collectorImg := *collectorImage
+	if collectorImg == "" {
+		iCfg := collectorCfg.Image
+		collectorImg = fmt.Sprintf("%s:%s", iCfg.Repo, iCfg.Tag)
+	}
 
 	jobTemplate := corev1.PodTemplateSpec{
 		Spec: corev1.PodSpec{
@@ -256,7 +273,7 @@ func (r *Reconciler) createImageJob(ctx context.Context, req ctrl.Request, argsC
 			Containers: []corev1.Container{
 				{
 					Name:            "collector",
-					Image:           *collectorImage,
+					Image:           collectorImg,
 					ImagePullPolicy: corev1.PullIfNotPresent,
 					Args:            append(collectorArgs, "--scan-disabled="+strconv.FormatBool(scanDisabled)),
 					VolumeMounts: []corev1.VolumeMount{
@@ -264,17 +281,17 @@ func (r *Reconciler) createImageJob(ctx context.Context, req ctrl.Request, argsC
 					},
 					Resources: corev1.ResourceRequirements{
 						Requests: corev1.ResourceList{
-							"cpu":    resource.MustParse("7m"),
-							"memory": resource.MustParse("25Mi"),
+							"cpu":    collectorCfg.Request.CPU,
+							"memory": collectorCfg.Request.Mem,
 						},
 						Limits: corev1.ResourceList{
-							"memory": resource.MustParse("30Mi"),
+							"memory": collectorCfg.Limit.Mem,
 						},
 					},
 				},
 				{
 					Name:            "eraser",
-					Image:           *util.EraserImage,
+					Image:           eraserImg,
 					ImagePullPolicy: corev1.PullIfNotPresent,
 					Args:            append(util.EraserArgs, "--log-level="+logger.GetLevel()),
 					VolumeMounts: []corev1.VolumeMount{
@@ -282,18 +299,18 @@ func (r *Reconciler) createImageJob(ctx context.Context, req ctrl.Request, argsC
 					},
 					Resources: corev1.ResourceRequirements{
 						Requests: corev1.ResourceList{
-							"cpu":    resource.MustParse("7m"),
-							"memory": resource.MustParse("25Mi"),
+							"cpu":    eraserCfg.Request.CPU,
+							"memory": eraserCfg.Request.Mem,
 						},
 						Limits: corev1.ResourceList{
-							"memory": resource.MustParse("30Mi"),
+							"memory": eraserCfg.Limit.Mem,
 						},
 					},
 					SecurityContext: utils.SharedSecurityContext,
 					Env: []corev1.EnvVar{
 						{
 							Name:  "OTEL_EXPORTER_OTLP_ENDPOINT",
-							Value: *util.OtlpEndpoint,
+							Value: mgrCfg.OTLPEndpoint,
 						},
 						{
 							Name:  "OTEL_SERVICE_NAME",
@@ -322,33 +339,33 @@ func (r *Reconciler) createImageJob(ctx context.Context, req ctrl.Request, argsC
 		imageScanTotalTimeout := fmt.Sprintf("--image-scan-total-timeout=%s", imageScanTotalTimeout.String())
 		scannerArgs = append(scannerArgs, scanFailedArg, imageScanTimeout, imageScanTotalTimeout)
 
+		scannerImg := *scannerImage
+		if scannerImg == "" {
+			iCfg := collectorCfg.Image
+			scannerImg = fmt.Sprintf("%s:%s", iCfg.Repo, iCfg.Tag)
+		}
+
 		scannerContainer := corev1.Container{
 			Name:  "trivy-scanner",
-			Image: *scannerImage,
+			Image: scannerImg,
 			Args:  scannerArgs,
 			VolumeMounts: []corev1.VolumeMount{
 				{MountPath: "/run/eraser.sh/shared-data", Name: "shared-data"},
 			},
 			Resources: corev1.ResourceRequirements{
 				Requests: corev1.ResourceList{
-					"memory": resource.Quantity{
-						Format: resource.Format(*util.ScannerMemRequest),
-					},
-					"cpu": resource.Quantity{
-						Format: resource.Format(*util.ScannerCPURequest),
-					},
+					"memory": scanCfg.Request.Mem,
+					"cpu":    scanCfg.Request.CPU,
 				},
 				Limits: corev1.ResourceList{
-					"memory": resource.Quantity{
-						Format: resource.Format(*util.ScannerMemLimit),
-					},
+					"memory": scanCfg.Limit.Mem,
 				},
 			},
 			// env vars for exporting metrics
 			Env: []corev1.EnvVar{
 				{
 					Name:  "OTEL_EXPORTER_OTLP_ENDPOINT",
-					Value: *util.OtlpEndpoint,
+					Value: mgrCfg.OTLPEndpoint,
 				},
 				{
 					Name:  "OTEL_SERVICE_NAME",
@@ -406,6 +423,9 @@ func (r *Reconciler) createImageJob(ctx context.Context, req ctrl.Request, argsC
 
 func (r *Reconciler) handleCompletedImageJob(ctx context.Context, req ctrl.Request, childJob *eraserv1.ImageJob) (ctrl.Result, error) {
 	var err error
+	otlpEndpoint := r.eraserConfig.Manager.OTLPEndpoint
+	repeatInterval := time.Duration(r.eraserConfig.Manager.Scheduling.RepeatInterval)
+
 	switch phase := childJob.Status.Phase; phase {
 	case eraserv1.PhaseCompleted:
 		log.Info("completed phase")
@@ -417,7 +437,7 @@ func (r *Reconciler) handleCompletedImageJob(ctx context.Context, req ctrl.Reque
 			return ctrl.Result{}, nil
 		}
 
-		if *util.OtlpEndpoint != "" {
+		if otlpEndpoint != "" {
 			// record metrics
 			if err := metrics.RecordMetricsController(ctx, global.MeterProvider(), float64(time.Since(startTime).Seconds()), int64(childJob.Status.Succeeded), int64(childJob.Status.Failed)); err != nil {
 				log.Error(err, "error recording metrics")
@@ -438,7 +458,7 @@ func (r *Reconciler) handleCompletedImageJob(ctx context.Context, req ctrl.Reque
 			return ctrl.Result{}, nil
 		}
 
-		if *util.OtlpEndpoint != "" {
+		if otlpEndpoint != "" {
 			// record metrics
 			if err := metrics.RecordMetricsController(ctx, global.MeterProvider(), float64(time.Since(startTime).Milliseconds()), int64(childJob.Status.Succeeded), int64(childJob.Status.Failed)); err != nil {
 				log.Error(err, "error recording metrics")
@@ -454,5 +474,5 @@ func (r *Reconciler) handleCompletedImageJob(ctx context.Context, req ctrl.Reque
 		log.Error(err, "imagejob not in completed or failed phase", "imagejob", childJob)
 	}
 
-	return ctrl.Result{RequeueAfter: *repeatPeriod}, err
+	return ctrl.Result{RequeueAfter: repeatInterval}, err
 }
