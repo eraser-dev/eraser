@@ -38,6 +38,8 @@ func TestMain(m *testing.M) {
 		util.DeployEraserHelm(util.TestNamespace,
 			"-f", "../../test-data/helm-test-config.yaml",
 			"--set", util.OTLPEndpoint.Set("otel-collector:4318"),
+			"--set", util.ScannerEnable.Set("true"),
+			"--set", util.CollectorEnable.Set("true"),
 			"--set", util.CollectorImageRepo.Set(collectorImage.Repo),
 			"--set", util.CollectorImageTag.Set(collectorImage.Tag),
 			"--set", util.ScannerImageRepo.Set(scannerImage.Repo),

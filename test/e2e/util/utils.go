@@ -64,6 +64,8 @@ const (
 	EraserImageTag     = HelmPath("eraser.image.tag")
 	ImagePullSecrets   = HelmPath("imagePullSecrets")
 	OTLPEndpoint       = HelmPath("controllerManager.config.manager.otlpEndpoint")
+	CollectorEnable    = HelmPath("controllerManager.config.components.collector.enable")
+	ScannerEnable      = HelmPath("controllerManager.config.components.scanner.enable")
 	ScannerConfig      = HelmPath("controllerManager.config.components.scanner.config")
 )
 
