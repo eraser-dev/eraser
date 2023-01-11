@@ -101,18 +101,32 @@ var (
 func main() {
 	flag.Parse()
 
+	err := logger.Configure()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "error setting up logger: %s", err)
+		os.Exit(generalErr)
+	}
+
+	log.Info("config", "config", *config)
+
 	userConfig := *DefaultConfig()
 	if *config != "" {
 		var err error
-		userConfig, err = loadConfig("/config.yaml")
+		userConfig, err = loadConfig(*config)
 		if err != nil {
 			log.Error(err, "unable to read config")
 			os.Exit(generalErr)
 		}
 	}
 
+	log.Info("CHECK 1")
+	log.Info("CHECK 2")
+
+	log.Info("userConfig", "userConfig", userConfig)
+	log.Info("CHECK 3")
+
 	// Initializes logger and parses CLI options into hashmap configs
-	err := initGlobals(userConfig.Vulnerabilities)
+	err = initGlobals(userConfig.Vulnerabilities)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error initializing options: %v", err)
 		os.Exit(generalErr)
@@ -173,10 +187,6 @@ func main() {
 
 // Initializes logger and parses CLI options into hashmap configs.
 func initGlobals(cfg VulnConfig) error {
-	err := logger.Configure()
-	if err != nil {
-		return fmt.Errorf("error setting up logger: %w", err)
-	}
 
 	allSetsOfCommaSeparatedOptions := []optionSet{
 		{

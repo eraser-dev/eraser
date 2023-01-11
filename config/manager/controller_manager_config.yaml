@@ -36,22 +36,22 @@ components:
       repo: ghcr.io/azure/collector
       tag: v1.0.0-beta.3
     request:
-      cpu: 1000m
-      mem: 500Mi
+      mem: 25Mi
+      cpu: 7m
     limit:
-      cpu: 1500m
-      mem: 2Gi
+      mem: 500Mi
+      cpu: 1000m
   scanner:
     enable: true
     image:
-      repo: ghcr.io/azure/collector # supply custom image for custom scanner
+      repo: ghcr.io/azure/eraser-trivy-scanner # supply custom image for custom scanner
       tag: v1.0.0-beta.3
     request:
-      cpu: 1000m
       mem: 500Mi
+      cpu: 1000m
     limit:
-      cpu: 1500m
       mem: 2Gi
+      cpu: 1500m
     # The config needs to be passed through to the scanner as yaml, as a
     # single string. Because we allow custom scanner images, the scanner is
     # responsible for defining a schema, parsing, and validating.
@@ -75,8 +75,8 @@ components:
       repo: ghcr.io/azure/eraser
       tag: v1.0.0-beta.3
     request:
-      cpu: 1000m
-      mem: 500Mi
+      mem: 25Mi
+      cpu: 7m
     limit:
-      cpu: 1500m
-      mem: 2Gi
+      mem: 30Mi
+      cpu: 1000m

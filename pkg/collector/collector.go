@@ -88,48 +88,59 @@ func main() {
 
 	path := util.CollectScanPath
 
+	log.Info("CHECK 1")
 	if *scanDisabled {
+		log.Info("CHECK 2")
 		path = util.ScanErasePath
 	}
+	log.Info("CHECK 3")
 
 	if err := unix.Mkfifo(path, util.PipeMode); err != nil {
 		log.Error(err, "failed to create pipe", "pipeFile", path)
 		os.Exit(1)
 	}
+	log.Info("CHECK 4")
 
 	file, err := os.OpenFile(path, os.O_WRONLY, 0)
 	if err != nil {
 		log.Error(err, "failed to open pipe", "pipeFile", path)
 		os.Exit(1)
 	}
+	log.Info("CHECK 5")
 
 	if _, err := file.Write(data); err != nil {
 		log.Error(err, "failed to write to pipe", "pipeFile", path)
 		os.Exit(1)
 	}
+	log.Info("CHECK 6")
 
 	file.Close()
 	if err := unix.Mkfifo(util.EraseCompleteCollectPath, util.PipeMode); err != nil {
 		log.Error(err, "failed to create pipe", "pipeFile", util.EraseCompleteCollectPath)
 		os.Exit(1)
 	}
+	log.Info("CHECK 7")
 
 	file, err = os.OpenFile(util.EraseCompleteCollectPath, os.O_RDONLY, 0)
 	if err != nil {
 		log.Error(err, "failed to open pipe", "pipeFile", util.EraseCompleteCollectPath)
 		os.Exit(1)
 	}
+	log.Info("CHECK 8")
 
 	data, err = io.ReadAll(file)
 	if err != nil {
 		log.Error(err, "failed to read pipe", "pipeFile", util.EraseCompleteCollectPath)
 		os.Exit(1)
 	}
+	log.Info("CHECK 9")
 
 	file.Close()
+	log.Info("CHECK 10")
 
 	if string(data) != util.EraseCompleteMessage {
 		log.Info("garbage in pipe", "pipeFile", util.EraseCompleteCollectPath, "in_pipe", string(data))
 		os.Exit(1)
 	}
+	log.Info("CHECK 11")
 }

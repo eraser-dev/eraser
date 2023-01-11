@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"strconv"
 	"syscall"
 	"time"
@@ -260,7 +261,7 @@ func (r *Reconciler) createImageJob(ctx context.Context, req ctrl.Request, argsC
 	collectorCfg := compCfg.Collector
 	eraserCfg := compCfg.Eraser
 
-	scanDisabled := scanCfg.Enable
+	scanDisabled := !scanCfg.Enable
 	startTime = time.Now()
 
 	eraserImg := *util.EraserImage
@@ -378,11 +379,12 @@ func (r *Reconciler) createImageJob(ctx context.Context, req ctrl.Request, argsC
 
 		scannerImg := *scannerImage
 		if scannerImg == "" {
-			iCfg := collectorCfg.Image
+			iCfg := scanCfg.Image
 			scannerImg = fmt.Sprintf("%s:%s", iCfg.Repo, iCfg.Tag)
 		}
 
-		cfgFilename := "/config.yaml"
+		cfgDirname := "/config"
+		cfgFilename := filepath.Join(cfgDirname, "controller_manager_config.yaml")
 		scannerArgs = append(scannerArgs, fmt.Sprintf("--config=%s", cfgFilename))
 		scannerArgs = append(scannerArgs, profileArgs...)
 
@@ -392,7 +394,7 @@ func (r *Reconciler) createImageJob(ctx context.Context, req ctrl.Request, argsC
 			Args:  scannerArgs,
 			VolumeMounts: []corev1.VolumeMount{
 				{MountPath: "/run/eraser.sh/shared-data", Name: "shared-data"},
-				{MountPath: cfgFilename, Name: "eraser-manager-config"},
+				{MountPath: cfgDirname, Name: "eraser-manager-config"},
 			},
 			Resources: corev1.ResourceRequirements{
 				Requests: corev1.ResourceList{

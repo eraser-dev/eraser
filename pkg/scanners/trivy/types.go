@@ -58,7 +58,7 @@ type (
 func DefaultConfig() *Config {
 	return &Config{
 		CacheDir:           "/var/lib/trivy",
-		DBRepo:             "ghcr.io/aquasecurity/trivy.db",
+		DBRepo:             "ghcr.io/aquasecurity/trivy/db",
 		DeleteFailedImages: true,
 		Vulnerabilities: VulnConfig{
 			IgnoreUnfixed: true,
