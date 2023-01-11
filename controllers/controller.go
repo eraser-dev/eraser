@@ -24,6 +24,7 @@ func init() {
 func SetupWithManager(m manager.Manager, cfg eraserv1.EraserConfig) error {
 	controllerLog.Info("set up with manager")
 	for _, f := range controllerAddFuncs {
+		controllerLog.Info("CHECK -1", "f", f)
 		if err := f(m, cfg); err != nil {
 			var kindMatchErr *meta.NoKindMatchError
 			if errors.As(err, &kindMatchErr) {
