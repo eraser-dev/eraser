@@ -73,7 +73,7 @@ func Default() *v1.EraserConfig {
 					},
 					Limit: v1.ResourceRequirements{
 						Mem: resource.MustParse("500Mi"),
-						CPU: resource.Quantity{}, // not specified
+						CPU: resource.Quantity{},
 					},
 					Config: nil,
 				},
@@ -103,11 +103,11 @@ func Default() *v1.EraserConfig {
 				},
 				Request: v1.ResourceRequirements{
 					Mem: resource.MustParse("25Mi"),
-					CPU: resource.MustParse("7mi"),
+					CPU: resource.MustParse("7m"),
 				},
 				Limit: v1.ResourceRequirements{
 					Mem: resource.MustParse("30Mi"),
-					CPU: resource.Quantity{}, // not specified
+					CPU: resource.Quantity{},
 				},
 				Config: nil,
 			},
