@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"flag"
 	"fmt"
 	"net/http"
@@ -49,6 +50,8 @@ var (
 	vulnDBRepository       = flag.String("db-repository", "ghcr.io/aquasecurity/trivy-db", "vulnerability database repository")
 	rekorURL               = flag.String("rekor-url", "https://rekor.sigstore.dev", "Rekor URL")
 	deleteScanFailedImages = flag.Bool("delete-scan-failed-images", true, "whether or not to delete images for which scanning has failed")
+	imageScanTimeout       = flag.Duration("image-scan-timeout", time.Hour, "Duration for timeout for images scanned. Default unit is ns")
+	imageScanTotalTimeout  = flag.Duration("image-scan-total-timeout", time.Hour*23, "Duration for timeout for total scan job. Default unit is ns")
 
 	// Will be modified by parseCommaSeparatedOptions() to reflect the
 	// `severity` CLI flag These are the only recognized severities and the
@@ -135,12 +138,16 @@ func main() {
 		os.Exit(generalErr)
 	}
 
-	s, err := initScanner(ctx)
+	s, err := initScanner()
 	if err != nil {
 		log.Error(err, "error initializing scanner")
 	}
 
-	vulnerableImages, failedImages := scan(s, allImages)
+	vulnerableImages, failedImages, err := scan(s, allImages)
+	if err != nil {
+		log.Error(err, "total image scan timed out")
+	}
+
 	log.Info("Vulnerable", "Images", vulnerableImages)
 
 	if len(failedImages) > 0 {
@@ -202,7 +209,7 @@ func runProfileServer() {
 	log.Error(err, "pprof server failed")
 }
 
-func initScanner(ctx context.Context) (Scanner, error) {
+func initScanner() (Scanner, error) {
 	err := downloadAndInitDB(*cacheDir)
 	if err != nil {
 		return nil, fmt.Errorf("unable to initialize trivy db. cacheDir: %s, error: %w", *cacheDir, err)
@@ -231,34 +238,41 @@ func initScanner(ctx context.Context) (Scanner, error) {
 	}
 
 	var s Scanner = &ImageScanner{
-		ctx:                ctx,
 		scanConfig:         scanConfig,
 		imageSourceOptions: imageSourceOptions,
 	}
 	return s, nil
 }
 
-func scan(s Scanner, allImages []unversioned.Image) ([]unversioned.Image, []unversioned.Image) {
+func scan(s Scanner, allImages []unversioned.Image) ([]unversioned.Image, []unversioned.Image, error) {
 	vulnerableImages := make([]unversioned.Image, 0, len(allImages))
 	failedImages := make([]unversioned.Image, 0, len(allImages))
+	// track total scan job time
+	timer := time.NewTimer(*imageScanTotalTimeout)
 
-	for _, img := range allImages {
-		// Logs scan failures
-		status, err := s.Scan(img)
-		if err != nil {
-			failedImages = append(failedImages, img)
-			log.Error(err, "scan failed")
-			continue
-		}
+	for idx, img := range allImages {
+		select {
+		case <-timer.C:
+			failedImages = append(failedImages, allImages[idx:]...)
+			return vulnerableImages, failedImages, errors.New("image scan total timeout exceeded " + imageScanTotalTimeout.String())
+		default:
+			// Logs scan failures
+			status, err := s.Scan(img)
+			if err != nil {
+				failedImages = append(failedImages, img)
+				log.Error(err, "scan failed")
+				continue
+			}
 
-		switch status {
-		case StatusNonCompliant:
-			log.Info("vulnerable image found", "img", img)
-			vulnerableImages = append(vulnerableImages, img)
-		case StatusFailed:
-			failedImages = append(failedImages, img)
+			switch status {
+			case StatusNonCompliant:
+				log.Info("vulnerable image found", "img", img)
+				vulnerableImages = append(vulnerableImages, img)
+			case StatusFailed:
+				failedImages = append(failedImages, img)
+			}
 		}
 	}
 
-	return vulnerableImages, failedImages
+	return vulnerableImages, failedImages, nil
 }
