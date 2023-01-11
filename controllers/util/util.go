@@ -23,9 +23,8 @@ var (
 	ScannerMemRequest = flag.String("scanner-mem-request", "500Mi", "minimum memory request for scanner pods spawned by the eraser manager")
 	ScannerMemLimit   = flag.String("scanner-mem-limit", "2Gi", "limit on memory usage for scanner pods spawned by the eraser manager")
 
-	EraserImage  = flag.String("eraser-image", "ghcr.io/azure/eraser:latest", "eraser image")
-	EraserArgs   = utils.MultiFlag([]string{})
-	OtlpEndpoint = flag.String("otlp-endpoint", "", "otel exporter otlp endpoint")
+	EraserImage = flag.String("eraser-image", "", "eraser image")
+	EraserArgs  = utils.MultiFlag([]string{})
 
 	EraserOptions = config.Default()
 )

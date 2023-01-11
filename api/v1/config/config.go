@@ -34,8 +34,9 @@ const (
 func Default() *v1.EraserConfig {
 	return &v1.EraserConfig{
 		Manager: v1.ManagerConfig{
-			Runtime:  "containerd",
-			LogLevel: "info",
+			Runtime:      "containerd",
+			OTLPEndpoint: "",
+			LogLevel:     "info",
 			Scheduling: v1.ScheduleConfig{
 				RepeatInterval:   v1.Duration(oneDay),
 				BeginImmediately: true,

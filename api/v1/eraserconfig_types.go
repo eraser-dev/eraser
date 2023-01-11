@@ -59,13 +59,14 @@ type ContainerConfig struct {
 }
 
 type ManagerConfig struct {
-	Runtime     string           `json:"runtime,omitempty"`
-	LogLevel    string           `json:"logLevel,omitempty"`
-	Scheduling  ScheduleConfig   `json:"scheduling,omitempty"`
-	Profile     ProfileConfig    `json:"profile,omitempty"`
-	ImageJob    ImageJobConfig   `json:"imageJob,omitempty"`
-	PullSecrets []string         `json:"pullSecrets,omitempty"`
-	NodeFilter  NodeFilterConfig `json:"nodeFilter,omitempty"`
+	Runtime      string           `json:"runtime,omitempty"`
+	OTLPEndpoint string           `json:"otlpEndpoint,omitempty"`
+	LogLevel     string           `json:"logLevel,omitempty"`
+	Scheduling   ScheduleConfig   `json:"scheduling,omitempty"`
+	Profile      ProfileConfig    `json:"profile,omitempty"`
+	ImageJob     ImageJobConfig   `json:"imageJob,omitempty"`
+	PullSecrets  []string         `json:"pullSecrets,omitempty"`
+	NodeFilter   NodeFilterConfig `json:"nodeFilter,omitempty"`
 }
 
 type ScheduleConfig struct {

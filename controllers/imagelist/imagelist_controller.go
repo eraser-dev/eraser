@@ -26,7 +26,6 @@ import (
 	"go.opentelemetry.io/otel/metric/global"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -81,11 +80,12 @@ func Add(mgr manager.Manager, cfg eraserv1.EraserConfig) error {
 
 // newReconciler returns a new reconcile.Reconciler.
 func newReconciler(mgr manager.Manager, cfg eraserv1.EraserConfig) reconcile.Reconciler {
-	if *util.OtlpEndpoint != "" {
+	otlpEndpoint := cfg.Manager.OTLPEndpoint
+	if otlpEndpoint != "" {
 		ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 		defer cancel()
 
-		exporter, reader, provider = metrics.ConfigureMetrics(ctx, log, *util.OtlpEndpoint)
+		exporter, reader, provider = metrics.ConfigureMetrics(ctx, log, otlpEndpoint)
 		global.SetMeterProvider(provider)
 	}
 
@@ -184,7 +184,8 @@ func (r *Reconciler) handleJobListEvent(ctx context.Context, imageList *eraserv1
 			return ctrl.Result{}, nil
 		}
 
-		if *util.OtlpEndpoint != "" {
+		otlpEndpoint := r.eraserConfig.Manager.OTLPEndpoint
+		if otlpEndpoint != "" {
 			// record metrics
 			if err := metrics.RecordMetricsController(ctx, global.MeterProvider(), float64(time.Since(startTime).Seconds()), int64(job.Status.Succeeded), int64(job.Status.Failed)); err != nil {
 				log.Error(err, "error recording metrics")
@@ -238,6 +239,15 @@ func (r *Reconciler) handleImageListEvent(ctx context.Context, req *ctrl.Request
 		"--log-level=" + logger.GetLevel(),
 	}
 	args = append(args, util.EraserArgs...)
+
+	eraserContainerCfg := r.eraserConfig.Components.Eraser
+	image := *util.EraserImage
+
+	if image == "" {
+		imageCfg := eraserContainerCfg.Image
+		image = fmt.Sprintf("%s:%s", imageCfg.Repo, imageCfg.Tag)
+	}
+
 	jobTemplate := corev1.PodTemplateSpec{
 		Spec: corev1.PodSpec{
 			Volumes: []corev1.Volume{
@@ -252,7 +262,7 @@ func (r *Reconciler) handleImageListEvent(ctx context.Context, req *ctrl.Request
 			Containers: []corev1.Container{
 				{
 					Name:            "eraser",
-					Image:           *util.EraserImage,
+					Image:           image,
 					ImagePullPolicy: corev1.PullIfNotPresent,
 					Args:            args,
 					VolumeMounts: []corev1.VolumeMount{
@@ -260,11 +270,11 @@ func (r *Reconciler) handleImageListEvent(ctx context.Context, req *ctrl.Request
 					},
 					Resources: corev1.ResourceRequirements{
 						Requests: corev1.ResourceList{
-							"cpu":    resource.MustParse("7m"),
-							"memory": resource.MustParse("25Mi"),
+							"cpu":    eraserContainerCfg.Request.CPU,
+							"memory": eraserContainerCfg.Request.Mem,
 						},
 						Limits: corev1.ResourceList{
-							"memory": resource.MustParse("30Mi"),
+							"memory": eraserContainerCfg.Limit.Mem,
 						},
 					},
 					SecurityContext: utils.SharedSecurityContext,
@@ -272,7 +282,7 @@ func (r *Reconciler) handleImageListEvent(ctx context.Context, req *ctrl.Request
 					Env: []corev1.EnvVar{
 						{
 							Name:  "OTEL_EXPORTER_OTLP_ENDPOINT",
-							Value: *util.OtlpEndpoint,
+							Value: r.eraserConfig.Manager.OTLPEndpoint,
 						},
 						{
 							Name:  "OTEL_SERVICE_NAME",
