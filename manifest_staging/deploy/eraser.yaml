@@ -586,8 +586,8 @@ data:
       collector:
         enable: true
         image:
-          repo: ghcr.io/azure/eraser/collector
-          tag: latest
+          repo: ghcr.io/azure/collector
+          tag: v1.0.0-beta.3
         request:
           cpu: 1000m
           mem: 500Mi
@@ -597,8 +597,8 @@ data:
       scanner:
         enable: true
         image:
-          repo: ghcr.io/azure/eraser/trivy-scanner # supply custom image for custom scanner
-          tag: latest
+          repo: ghcr.io/azure/collector # supply custom image for custom scanner
+          tag: v1.0.0-beta.3
         request:
           cpu: 1000m
           mem: 500Mi
@@ -625,8 +625,8 @@ data:
             - CRITICAL
       eraser:
         image:
-          repo: ghcr.io/azure/eraser/eraser
-          tag: latest
+          repo: ghcr.io/azure/eraser
+          tag: v1.0.0-beta.3
         request:
           cpu: 1000m
           mem: 500Mi

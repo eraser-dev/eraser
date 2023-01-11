@@ -15,17 +15,3 @@ images:
 - name: controller
   newName: ghcr.io/azure/eraser-manager
   newTag: v1.0.0-beta.3
-
-patches:
-- patch: |-
-    - op: add
-      path: /spec/template/spec/containers/0/args/-
-      value: --eraser-image=ghcr.io/azure/eraser:v1.0.0-beta.3
-    - op: add
-      path: /spec/template/spec/containers/0/args/-
-      value: --collector-image=ghcr.io/azure/collector:v1.0.0-beta.3
-    - op: add
-      path: /spec/template/spec/containers/0/args/-
-      value: --scanner-image=ghcr.io/azure/eraser-trivy-scanner:v1.0.0-beta.3
-  target:
-    kind: Deployment

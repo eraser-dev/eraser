@@ -97,7 +97,10 @@ type Reconciler struct {
 func Add(mgr manager.Manager, cfg eraserv1.EraserConfig) error {
 	log.Info("HERE -2")
 
-	if *collectorImage == "" {
+	collImgCfg := cfg.Components.Collector.Image
+	collImg := *collectorImage
+
+	if collImg == "" && collImgCfg.Repo == "" && collImgCfg.Tag == "" {
 		log.Info("HERE -3")
 		return nil
 	}
