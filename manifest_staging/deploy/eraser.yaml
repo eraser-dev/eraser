@@ -584,7 +584,7 @@ data:
           - eraser.sh/cleanup.filter
     components:
       collector:
-        enable: false
+        enable: true
         image:
           repo: ghcr.io/azure/eraser/collector
           tag: latest
@@ -595,7 +595,7 @@ data:
           cpu: 1500m
           mem: 2Gi
       scanner:
-        enable: false
+        enable: true
         image:
           repo: ghcr.io/azure/eraser/trivy-scanner # supply custom image for custom scanner
           tag: latest

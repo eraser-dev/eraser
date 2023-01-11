@@ -200,7 +200,9 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		return ctrl.Result{}, err
 	}
 
+	log.Info("CHECK 1")
 	if req.Name == "first-reconcile" {
+		log.Info("CHECK 2")
 		for idx := range imageJobList.Items {
 			if err := r.Delete(ctx, &imageJobList.Items[idx]); err != nil {
 				log.Info("error cleaning up previous imagejobs")
@@ -242,6 +244,7 @@ func (r *Reconciler) handleJobDeletion(ctx context.Context, job *eraserv1.ImageJ
 func (r *Reconciler) createImageJob(ctx context.Context, req ctrl.Request, argsCollector []string) (ctrl.Result, error) {
 	mgrCfg := r.eraserConfig.Manager
 	compCfg := r.eraserConfig.Components
+
 	scanCfg := compCfg.Scanner
 	collectorCfg := compCfg.Collector
 	eraserCfg := compCfg.Eraser
