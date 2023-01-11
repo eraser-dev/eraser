@@ -66,21 +66,22 @@ func init() {
 	flag.Var(&filterNodesSelectors, "filter-nodes-selector", "A kubernetes selector. If a node's labels are a match, the node will be skipped. If this flag is supplied multiple times, the selectors will be logically ORed together.")
 }
 
-func Add(mgr manager.Manager) error {
-	if *filterOption == "exclude" {
+func Add(mgr manager.Manager, cfg eraserv1.EraserConfig) error {
+	filterConfig := cfg.Manager.NodeFilter
+	if filterConfig.Type == "exclude" {
 		if err := filterNodesSelectors.Set("kubernetes.io/os=windows"); err != nil {
 			return err
 		}
 	}
-	return add(mgr, newReconciler(mgr))
+	return add(mgr, newReconciler(mgr, cfg))
 }
 
 // newReconciler returns a new reconcile.Reconciler.
-func newReconciler(mgr manager.Manager) reconcile.Reconciler {
+func newReconciler(mgr manager.Manager, cfg eraserv1.EraserConfig) reconcile.Reconciler {
 	return &Reconciler{
 		Client:       mgr.GetClient(),
 		scheme:       mgr.GetScheme(),
-		successRatio: *successRatio,
+		eraserConfig: cfg,
 	}
 }
 
@@ -89,7 +90,7 @@ type Reconciler struct {
 	client.Client
 	scheme *runtime.Scheme
 
-	successRatio float64
+	eraserConfig eraserv1.EraserConfig
 }
 
 // add adds a new Controller to mgr with r as the reconcile.Reconciler.
@@ -260,10 +261,14 @@ func (r *Reconciler) handleRunningJob(ctx context.Context, imageJob *eraserv1.Im
 	}
 
 	successAndSkipped := success + skipped
-	if float64(successAndSkipped/imageJob.Status.Desired) < r.successRatio {
+
+	managerConfig := r.eraserConfig.Manager
+	successRatio := managerConfig.ImageJob.SuccessRatio
+
+	if float64(successAndSkipped/imageJob.Status.Desired) < successRatio {
 		log.Info(
 			"Marking job as failed",
-			"success ratio", r.successRatio,
+			"success ratio", successRatio,
 			"actual ratio", success/imageJob.Status.Desired,
 		)
 		imageJob.Status.Phase = eraserv1.PhaseFailed

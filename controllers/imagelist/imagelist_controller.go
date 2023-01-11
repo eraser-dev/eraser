@@ -75,12 +75,12 @@ func init() {
 	}
 }
 
-func Add(mgr manager.Manager) error {
-	return add(mgr, newReconciler(mgr))
+func Add(mgr manager.Manager, cfg eraserv1.EraserConfig) error {
+	return add(mgr, newReconciler(mgr, cfg))
 }
 
 // newReconciler returns a new reconcile.Reconciler.
-func newReconciler(mgr manager.Manager) reconcile.Reconciler {
+func newReconciler(mgr manager.Manager, cfg eraserv1.EraserConfig) reconcile.Reconciler {
 	if *util.OtlpEndpoint != "" {
 		ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 		defer cancel()
@@ -90,8 +90,9 @@ func newReconciler(mgr manager.Manager) reconcile.Reconciler {
 	}
 
 	return &Reconciler{
-		Client: mgr.GetClient(),
-		scheme: mgr.GetScheme(),
+		Client:       mgr.GetClient(),
+		scheme:       mgr.GetScheme(),
+		eraserConfig: cfg,
 	}
 }
 
@@ -103,7 +104,8 @@ type ImageJobReconciler struct {
 // ImageListReconciler reconciles a ImageList object.
 type Reconciler struct {
 	client.Client
-	scheme *runtime.Scheme
+	scheme       *runtime.Scheme
+	eraserConfig eraserv1.EraserConfig
 }
 
 //+kubebuilder:rbac:groups=eraser.sh,resources=imagelists,verbs=get;list;watch;create;update;patch;delete

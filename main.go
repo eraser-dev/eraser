@@ -36,6 +36,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 
 	eraserv1 "github.com/Azure/eraser/api/v1"
+	"github.com/Azure/eraser/api/v1/config"
 	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
 	"github.com/Azure/eraser/controllers"
 	"github.com/Azure/eraser/controllers/util"
@@ -77,10 +78,30 @@ func main() {
 		os.Exit(1)
 	}
 
-	if *enableProfile {
+	options := ctrl.Options{
+		Scheme:                 scheme,
+		MetricsBindAddress:     *metricsAddr,
+		Port:                   9443,
+		HealthProbeBindAddress: *probeAddr,
+		LeaderElection:         *enableLeaderElection,
+		LeaderElectionID:       "e29e094a.k8s.io",
+	}
+
+	eraserOpts := *config.Default()
+	if configFile != "" {
+		options = options.AndFromOrDie(ctrl.ConfigFile().AtPath(configFile).OfKind(&eraserOpts))
+	}
+
+	setupLog.Info("eraser config", "MANAGER", util.EraserOptions.Manager)
+	setupLog.Info("eraser config", "COMPONENT", util.EraserOptions.Components)
+	setupLog.Info("eraser config", "OPTIONS", fmt.Sprintf("%#v\n", options))
+
+	managerOpts := util.EraserOptions.Manager
+
+	if managerOpts.Profile.Enable {
 		go func() {
 			server := &http.Server{
-				Addr:              fmt.Sprintf("localhost:%d", *profilePort),
+				Addr:              fmt.Sprintf("localhost:%d", managerOpts.Profile.Port),
 				ReadHeaderTimeout: 3 * time.Second,
 			}
 			err := server.ListenAndServe()
@@ -93,24 +114,6 @@ func main() {
 
 	setupLog.Info("setting up manager", "userAgent", config.UserAgent)
 
-	options := ctrl.Options{
-		Scheme:                 scheme,
-		MetricsBindAddress:     *metricsAddr,
-		Port:                   9443,
-		HealthProbeBindAddress: *probeAddr,
-		LeaderElection:         *enableLeaderElection,
-		LeaderElectionID:       "e29e094a.k8s.io",
-	}
-
-	util.EraserOptions.Manager.Runtime = "lol"
-	if configFile != "" {
-		options = options.AndFromOrDie(ctrl.ConfigFile().AtPath(configFile).OfKind(util.EraserOptions))
-	}
-
-	setupLog.Info("eraser config", "MANAGER", util.EraserOptions.Manager)
-	setupLog.Info("eraser config", "COMPONENT", util.EraserOptions.Components)
-	setupLog.Info("eraser config", "OPTIONS", fmt.Sprintf("%#v\n", options))
-
 	mgr, err := ctrl.NewManager(config, options)
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")
@@ -118,7 +121,7 @@ func main() {
 	}
 
 	setupLog.Info("setup controllers")
-	if err = controllers.SetupWithManager(mgr); err != nil {
+	if err = controllers.SetupWithManager(mgr, eraserOpts); err != nil {
 		setupLog.Error(err, "unable to setup controllers")
 		os.Exit(1)
 	}

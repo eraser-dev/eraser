@@ -93,19 +93,20 @@ func init() {
 // ImageCollectorReconciler reconciles a ImageCollector object.
 type Reconciler struct {
 	client.Client
-	Scheme *runtime.Scheme
+	Scheme       *runtime.Scheme
+	eraserConfig eraserv1.EraserConfig
 }
 
-func Add(mgr manager.Manager) error {
+func Add(mgr manager.Manager, cfg eraserv1.EraserConfig) error {
 	if *collectorImage == "" {
 		return nil
 	}
 
-	return add(mgr, newReconciler(mgr))
+	return add(mgr, newReconciler(mgr, cfg))
 }
 
 // newReconciler returns a new reconcile.Reconciler.
-func newReconciler(mgr manager.Manager) reconcile.Reconciler {
+func newReconciler(mgr manager.Manager, cfg eraserv1.EraserConfig) reconcile.Reconciler {
 	if *util.OtlpEndpoint != "" {
 		ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 		defer cancel()
@@ -115,8 +116,9 @@ func newReconciler(mgr manager.Manager) reconcile.Reconciler {
 	}
 
 	return &Reconciler{
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
+		Client:       mgr.GetClient(),
+		Scheme:       mgr.GetScheme(),
+		eraserConfig: cfg,
 	}
 }
 
