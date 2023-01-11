@@ -619,10 +619,13 @@ data:
             types:
               - os
               - library
-          securityChecks: # need to be documented; determined by trivy, not us
-            - vuln
-          severities:
-            - CRITICAL
+            securityChecks: # need to be documented; determined by trivy, not us
+              - vuln
+            severities:
+              - CRITICAL
+          timeout:
+            total: 23h
+            perImage: 1h
       eraser:
         image:
           repo: ghcr.io/azure/eraser

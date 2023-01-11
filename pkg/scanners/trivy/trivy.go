@@ -40,11 +40,9 @@ const (
 )
 
 var (
-	config                = flag.String("config", "", "path to the configuration file")
-	enableProfile         = flag.Bool("enable-pprof", false, "enable pprof profiling")
-	profilePort           = flag.Int("pprof-port", 6060, "port for pprof profiling. defaulted to 6060 if unspecified")
-	imageScanTimeout      = flag.Duration("image-scan-timeout", time.Hour, "Duration for timeout for images scanned. Default unit is ns")
-	imageScanTotalTimeout = flag.Duration("image-scan-total-timeout", time.Hour*23, "Duration for timeout for total scan job. Default unit is ns")
+	config        = flag.String("config", "", "path to the configuration file")
+	enableProfile = flag.Bool("enable-pprof", false, "enable pprof profiling")
+	profilePort   = flag.Int("pprof-port", 6060, "port for pprof profiling. defaulted to 6060 if unspecified")
 
 	// Will be modified by parseCommaSeparatedOptions() to reflect the
 	// `severity` CLI flag These are the only recognized severities and the
@@ -118,7 +116,6 @@ func main() {
 			os.Exit(generalErr)
 		}
 	}
-
 
 	log.Info("userConfig", "userConfig", userConfig)
 
@@ -251,10 +248,14 @@ func initScanner(userConfig Config) (Scanner, error) {
 		return nil, fmt.Errorf("unable to determine runtime from environment: %w", err)
 	}
 
+	totalTimeout := time.Duration(userConfig.Timeout.Total)
+	timer := time.NewTimer(totalTimeout)
+
 	var s Scanner = &ImageScanner{
 		trivyScanConfig:    scanConfig,
 		imageSourceOptions: imageSourceOptions,
 		userConfig:         userConfig,
+		timer:              timer,
 	}
 	return s, nil
 }
@@ -263,13 +264,12 @@ func scan(s Scanner, allImages []unversioned.Image) ([]unversioned.Image, []unve
 	vulnerableImages := make([]unversioned.Image, 0, len(allImages))
 	failedImages := make([]unversioned.Image, 0, len(allImages))
 	// track total scan job time
-	timer := time.NewTimer(*imageScanTotalTimeout)
 
 	for idx, img := range allImages {
 		select {
-		case <-timer.C:
+		case <-s.Timer().C:
 			failedImages = append(failedImages, allImages[idx:]...)
-			return vulnerableImages, failedImages, errors.New("image scan total timeout exceeded " + imageScanTotalTimeout.String())
+			return vulnerableImages, failedImages, errors.New("image scan total timeout exceeded")
 		default:
 			// Logs scan failures
 			status, err := s.Scan(img)

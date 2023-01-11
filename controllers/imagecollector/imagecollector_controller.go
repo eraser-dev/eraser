@@ -64,8 +64,6 @@ var (
 	collectorImage         = flag.String("collector-image", "", "collector image, empty value disables collect feature")
 	log                    = logf.Log.WithName("controller").WithValues("process", "imagecollector-controller")
 	deleteScanFailedImages = flag.Bool("delete-scan-failed-images", true, "whether or not to delete images for which scanning has failed")
-	imageScanTimeout       = flag.Duration("image-scan-timeout", time.Hour, "Duration for timeout for each of the images scanned. Default unit is ns")
-	imageScanTotalTimeout  = flag.Duration("image-scan-total-timeout", time.Hour*23, "Duration for timeout for total scan job. Default unit is ns")
 	scannerArgs            = utils.MultiFlag([]string{})
 	collectorArgs          = utils.MultiFlag([]string{})
 	startTime              time.Time
@@ -364,12 +362,6 @@ func (r *Reconciler) createImageJob(ctx context.Context, req ctrl.Request, argsC
 	}
 
 	if !scanDisabled {
-		deleteFailedString := strconv.FormatBool(*deleteScanFailedImages)
-		scanFailedArg := fmt.Sprintf("--delete-scan-failed-images=%s", deleteFailedString)
-		imageScanTimeout := fmt.Sprintf("--image-scan-timeout=%s", imageScanTimeout.String())
-		imageScanTotalTimeout := fmt.Sprintf("--image-scan-total-timeout=%s", imageScanTotalTimeout.String())
-		scannerArgs := append(scannerArgs, scanFailedArg, imageScanTimeout, imageScanTotalTimeout)
-
 		scannerImg := *scannerImage
 		if scannerImg == "" {
 			iCfg := scanCfg.Image
@@ -378,7 +370,7 @@ func (r *Reconciler) createImageJob(ctx context.Context, req ctrl.Request, argsC
 
 		cfgDirname := "/config"
 		cfgFilename := filepath.Join(cfgDirname, "controller_manager_config.yaml")
-		scannerArgs = append(scannerArgs, fmt.Sprintf("--config=%s", cfgFilename))
+		scannerArgs := append(scannerArgs, fmt.Sprintf("--config=%s", cfgFilename))
 		scannerArgs = append(scannerArgs, profileArgs...)
 
 		scannerContainer := corev1.Container{

@@ -2,8 +2,10 @@ package main
 
 import (
 	"context"
+	"time"
 
 	"github.com/Azure/eraser/api/unversioned"
+	eraserv1 "github.com/Azure/eraser/api/v1"
 	"github.com/aquasecurity/trivy/pkg/fanal/analyzer"
 	"github.com/aquasecurity/trivy/pkg/fanal/artifact"
 	artifactImage "github.com/aquasecurity/trivy/pkg/fanal/artifact/image"
@@ -23,10 +25,11 @@ const (
 
 type (
 	Config struct {
-		CacheDir           string     `json:"cacheDir,omitempty"`
-		DBRepo             string     `json:"dbRepo,omitempty"`
-		DeleteFailedImages bool       `json:"deleteFailedImages,omitempty"`
-		Vulnerabilities    VulnConfig `json:"vulnerabilities,omitempty"`
+		CacheDir           string        `json:"cacheDir,omitempty"`
+		DBRepo             string        `json:"dbRepo,omitempty"`
+		DeleteFailedImages bool          `json:"deleteFailedImages,omitempty"`
+		Vulnerabilities    VulnConfig    `json:"vulnerabilities,omitempty"`
+		Timeout            TimeoutConfig `json:"timeout,omitempty"`
 	}
 
 	VulnConfig struct {
@@ -34,6 +37,11 @@ type (
 		Types          []string `json:"types,omitempty"`
 		SecurityChecks []string `json:"securityChecks,omitempty"`
 		Severities     []string `json:"severities,omitempty"`
+	}
+
+	TimeoutConfig struct {
+		Total    eraserv1.Duration `json:"total,omitempty"`
+		PerImage eraserv1.Duration `json:"perImage,omitempty"`
 	}
 
 	scannerSetup struct {
@@ -52,6 +60,7 @@ type (
 
 	Scanner interface {
 		Scan(unversioned.Image) (ScanStatus, error)
+		Timer() *time.Timer
 	}
 )
 
@@ -69,6 +78,10 @@ func DefaultConfig() *Config {
 			SecurityChecks: []string{securityCheckVuln},
 			Severities:     []string{severityCritical},
 		},
+		Timeout: TimeoutConfig{
+			Total:    eraserv1.Duration(time.Hour * 23),
+			PerImage: eraserv1.Duration(time.Hour),
+		},
 	}
 }
 
@@ -76,15 +89,22 @@ type ImageScanner struct {
 	trivyScanConfig    scannerSetup
 	imageSourceOptions []fanalImage.Option
 	userConfig         Config
+	timer              *time.Timer
 }
 
 var _ Scanner = &ImageScanner{}
+
+func (s *ImageScanner) Timer() *time.Timer {
+	return s.timer
+}
 
 // Function never returns an error.
 func (s *ImageScanner) Scan(img unversioned.Image) (ScanStatus, error) {
 	refs := make([]string, 0, len(img.Names)+len(img.Digests))
 	refs = append(refs, img.Digests...)
 	refs = append(refs, img.Names...)
+
+	perImageTimeout := time.Duration(s.userConfig.Timeout.PerImage)
 
 	scanSucceeded := false
 	log.Info("scanning image with id", "imageID", img.ImageID, "refs", refs)
@@ -118,7 +138,7 @@ func (s *ImageScanner) Scan(img unversioned.Image) (ScanStatus, error) {
 			continue
 		}
 
-		imageScanContext, cancel := context.WithTimeout(context.Background(), *imageScanTimeout)
+		imageScanContext, cancel := context.WithTimeout(context.Background(), perImageTimeout)
 		defer cancel()
 
 		scanner := scanner.NewScanner(s.trivyScanConfig.localScanner, artifactToScan)
