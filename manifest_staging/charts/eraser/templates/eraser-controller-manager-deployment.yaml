@@ -43,7 +43,6 @@ spec:
         {{- if .Values.scanner.image.args }}{{- range .Values.scanner.image.args }}{{ nindent 8 "- --scanner-arg=" }}{{ . }}{{- end -}}{{ end }}
         {{- if .Values.eraser.image.args }}{{- range .Values.eraser.image.args }}{{ nindent 8 "- --eraser-arg=" }}{{ . }}{{- end -}}{{ end }}
         {{- if .Values.collector.image.args }}{{- range .Values.collector.image.args }}{{ nindent 8 "- --collector-arg=" }}{{ . }}{{- end -}}{{ end }}
-        {{- if .Values.controllerManager.additionalArgs }}{{- range .Values.controllerManager.additionalArgs }}{{ nindent 8 "- " }}{{ . }}{{- end -}}{{ end }}
         command:
         - /manager
         env:

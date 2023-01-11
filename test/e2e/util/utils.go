@@ -63,6 +63,8 @@ const (
 	EraserImageRepo    = HelmPath("eraser.image.repository")
 	EraserImageTag     = HelmPath("eraser.image.tag")
 	ImagePullSecrets   = HelmPath("imagePullSecrets")
+	OTLPEndpoint       = HelmPath("controllerManager.config.manager.otlpEndpoint")
+	ScannerConfig      = HelmPath("controllerManager.config.components.scanner.config")
 )
 
 var (

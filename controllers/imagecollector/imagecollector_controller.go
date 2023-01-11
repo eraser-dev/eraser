@@ -261,6 +261,8 @@ func (r *Reconciler) createImageJob(ctx context.Context, req ctrl.Request, argsC
 		eraserImg = fmt.Sprintf("%s:%s", iCfg.Repo, iCfg.Tag)
 	}
 
+	log.Info("eraserImg", "eraserImg", eraserImg)
+
 	collectorImg := *collectorImage
 	if collectorImg == "" {
 		iCfg := collectorCfg.Image
