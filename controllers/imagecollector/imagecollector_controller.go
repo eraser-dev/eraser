@@ -96,13 +96,11 @@ type Reconciler struct {
 }
 
 func Add(mgr manager.Manager, cfg eraserv1.EraserConfig) error {
-	log.Info("HERE -2")
 
 	collImgCfg := cfg.Components.Collector.Image
 	collImg := *collectorImage
 
 	if collImg == "" && collImgCfg.Repo == "" && collImgCfg.Tag == "" {
-		log.Info("HERE -3")
 		return nil
 	}
 
@@ -175,7 +173,6 @@ func add(mgr manager.Manager, r *Reconciler) error {
 
 	// runs the provided function after the specified delay
 	_ = time.AfterFunc(delay, func() {
-		log.Info("CHECK 0")
 		log.Info("Queueing first ImageCollector reconcile...")
 		ch <- event.GenericEvent{
 			Object: &eraserv1.ImageJob{
@@ -184,7 +181,6 @@ func add(mgr manager.Manager, r *Reconciler) error {
 				},
 			},
 		}
-		log.Info("CHECK 0.5")
 	})
 
 	return nil
@@ -211,9 +207,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		return ctrl.Result{}, err
 	}
 
-	log.Info("CHECK 1")
 	if req.Name == "first-reconcile" {
-		log.Info("CHECK 2")
 		for idx := range imageJobList.Items {
 			if err := r.Delete(ctx, &imageJobList.Items[idx]); err != nil {
 				log.Info("error cleaning up previous imagejobs")
@@ -253,7 +247,6 @@ func (r *Reconciler) handleJobDeletion(ctx context.Context, job *eraserv1.ImageJ
 }
 
 func (r *Reconciler) createImageJob(ctx context.Context, req ctrl.Request, argsCollector []string) (ctrl.Result, error) {
-	log.Info("CHECK 3")
 	mgrCfg := r.eraserConfig.Manager
 	compCfg := r.eraserConfig.Components
 

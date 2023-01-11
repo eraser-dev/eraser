@@ -58,7 +58,6 @@ func NewImageProvider(funcs ...ConfigFunc) ImageProvider {
 func (cfg *config) ReceiveImages() ([]unversioned.Image, error) {
 	var err error
 
-	cfg.log.Info("CHECK 1")
 	if err := unix.Mkfifo(util.EraseCompleteScanPath, util.PipeMode); err != nil {
 		cfg.log.Error(err, "failed to create pipe", "pipeName", util.EraseCompleteScanPath)
 		return nil, err

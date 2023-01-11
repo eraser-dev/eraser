@@ -119,11 +119,8 @@ func main() {
 		}
 	}
 
-	log.Info("CHECK 1")
-	log.Info("CHECK 2")
 
 	log.Info("userConfig", "userConfig", userConfig)
-	log.Info("CHECK 3")
 
 	// Initializes logger and parses CLI options into hashmap configs
 	err = initGlobals(userConfig.Vulnerabilities)
