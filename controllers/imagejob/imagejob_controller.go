@@ -15,12 +15,12 @@ package imagejob
 
 import (
 	"context"
-	"flag"
 	"fmt"
 	"os"
 	"strings"
 	"time"
 
+	"golang.org/x/exp/slices"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -48,13 +48,14 @@ import (
 	eraserUtils "github.com/Azure/eraser/pkg/utils"
 )
 
+const (
+	defaultFilterLabel = "eraser.sh/cleanup.filter"
+	windowsFilterLabel = "kubernetes.io/os=windows"
+)
+
 var log = logf.Log.WithName("controller").WithValues("process", "imagejob-controller")
 
 var (
-	successRatio         = flag.Float64("job-success-ratio", 1.0, "Ratio of successful/total runs to consider a job successful. 1.0 means all runs must succeed.")
-	filterNodesSelectors = eraserUtils.MultiFlag([]string{"eraser.sh/cleanup.filter"})
-	filterOption         = flag.String("filter-nodes", "exclude", "operation type (include|exclude) to filter nodes that eraser runs on")
-
 	defaultTolerations = []corev1.Toleration{
 		{
 			Operator: corev1.TolerationOpExists,
@@ -62,17 +63,13 @@ var (
 	}
 )
 
-func init() {
-	flag.Var(&filterNodesSelectors, "filter-nodes-selector", "A kubernetes selector. If a node's labels are a match, the node will be skipped. If this flag is supplied multiple times, the selectors will be logically ORed together.")
-}
-
 func Add(mgr manager.Manager, cfg eraserv1.EraserConfig) error {
-	filterConfig := cfg.Manager.NodeFilter
-	if filterConfig.Type == "exclude" {
-		if err := filterNodesSelectors.Set("kubernetes.io/os=windows"); err != nil {
-			return err
-		}
+	filterOpts := cfg.Manager.NodeFilter
+	if filterOpts.Type == "exclude" && !slices.Contains(filterOpts.Selectors, windowsFilterLabel) {
+		filterOpts.Selectors = append(filterOpts.Selectors, windowsFilterLabel)
+
 	}
+
 	return add(mgr, newReconciler(mgr, cfg))
 }
 
@@ -317,14 +314,19 @@ func (r *Reconciler) handleNewJob(ctx context.Context, imageJob *eraserv1.ImageJ
 		{Name: "NODE_NAME", ValueFrom: &corev1.EnvVarSource{FieldRef: &corev1.ObjectFieldSelector{FieldPath: "spec.nodeName"}}},
 	}
 
-	switch *filterOption {
+	filterOpts := r.eraserConfig.Manager.NodeFilter
+	if !slices.Contains(filterOpts.Selectors, defaultFilterLabel) {
+		filterOpts.Selectors = append(filterOpts.Selectors, defaultFilterLabel)
+	}
+
+	switch filterOpts.Type {
 	case "exclude":
-		nodeList, skipped, err = filterOutSkippedNodes(nodes, filterNodesSelectors)
+		nodeList, skipped, err = filterOutSkippedNodes(nodes, filterOpts.Selectors)
 		if err != nil {
 			return err
 		}
 	case "include":
-		nodeList, skipped, err = selectIncludedNodes(nodes, filterNodesSelectors)
+		nodeList, skipped, err = selectIncludedNodes(nodes, filterOpts.Selectors)
 		if err != nil {
 			return err
 		}
