@@ -111,7 +111,6 @@ func (s *ImageScanner) Scan(img unversioned.Image) (ScanStatus, error) {
 			DisabledAnalyzers: analyzer.TypeLockfiles,
 			DisabledHandlers:  []fanalTypes.HandlerType{fanalTypes.UnpackagedPostHandler},
 			SBOMSources:       []string{},
-			RekorURL:          *rekorURL,
 		})
 		if err != nil {
 			log.Error(err, "error registering config for artifact", "imageID", img.ImageID, "reference", ref)

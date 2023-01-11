@@ -40,17 +40,11 @@ const (
 )
 
 var (
-	config                 = flag.String("config", "", "path to the configuration file")
-	enableProfile          = flag.Bool("enable-pprof", false, "enable pprof profiling")
-	profilePort            = flag.Int("pprof-port", 6060, "port for pprof profiling. defaulted to 6060 if unspecified")
-	securityChecks         = flag.String("security-checks", "vuln", "comma-separated list of what security issues to detect")
-	severity               = flag.String("severity", "CRITICAL", "list of severity levels to report")
-	vulnTypes              = flag.String("vuln-type", "os,library", "comma separated list of vulnerability types")
-	vulnDBRepository       = flag.String("db-repository", "ghcr.io/aquasecurity/trivy-db", "vulnerability database repository")
-	rekorURL               = flag.String("rekor-url", "https://rekor.sigstore.dev", "Rekor URL")
-	deleteScanFailedImages = flag.Bool("delete-scan-failed-images", true, "whether or not to delete images for which scanning has failed")
-	imageScanTimeout       = flag.Duration("image-scan-timeout", time.Hour, "Duration for timeout for images scanned. Default unit is ns")
-	imageScanTotalTimeout  = flag.Duration("image-scan-total-timeout", time.Hour*23, "Duration for timeout for total scan job. Default unit is ns")
+	config                = flag.String("config", "", "path to the configuration file")
+	enableProfile         = flag.Bool("enable-pprof", false, "enable pprof profiling")
+	profilePort           = flag.Int("pprof-port", 6060, "port for pprof profiling. defaulted to 6060 if unspecified")
+	imageScanTimeout      = flag.Duration("image-scan-timeout", time.Hour, "Duration for timeout for images scanned. Default unit is ns")
+	imageScanTotalTimeout = flag.Duration("image-scan-total-timeout", time.Hour*23, "Duration for timeout for total scan job. Default unit is ns")
 
 	// Will be modified by parseCommaSeparatedOptions() to reflect the
 	// `severity` CLI flag These are the only recognized severities and the
@@ -138,7 +132,7 @@ func main() {
 		template.WithContext(ctx),
 		template.WithLogger(log),
 		template.WithMetrics(recordMetrics),
-		template.WithDeleteScanFailedImages(*deleteScanFailedImages),
+		template.WithDeleteScanFailedImages(userConfig.DeleteFailedImages),
 	)
 
 	allImages, err := provider.ReceiveImages()
@@ -223,7 +217,7 @@ func runProfileServer() {
 
 func initScanner(userConfig Config) (Scanner, error) {
 	cacheDir := userConfig.CacheDir
-	err := downloadAndInitDB(cacheDir)
+	err := downloadAndInitDB(userConfig)
 	if err != nil {
 		return nil, fmt.Errorf("unable to initialize trivy db. cacheDir: %s, error: %w", cacheDir, err)
 	}

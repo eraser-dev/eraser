@@ -267,7 +267,8 @@ func (r *Reconciler) createImageJob(ctx context.Context, req ctrl.Request, argsC
 		fmt.Sprintf("--pprof-port=%d", profileConfig.Port),
 	}
 
-	collArgs := []string{"--scan-disabled=" + strconv.FormatBool(scanDisabled)}
+	collArgs := collectorArgs
+	collArgs = append(collArgs, "--scan-disabled="+strconv.FormatBool(scanDisabled))
 	collArgs = append(collArgs, profileArgs...)
 
 	eraserArgs := append(util.EraserArgs, "--log-level="+logger.GetLevel())

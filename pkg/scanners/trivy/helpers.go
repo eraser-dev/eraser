@@ -62,13 +62,13 @@ func parseCommaSeparatedOptions(m map[string]bool, commaSeparatedList string) er
 	return nil
 }
 
-func downloadAndInitDB(cacheDir string) error {
-	err := downloadDB(cacheDir)
+func downloadAndInitDB(cfg Config) error {
+	err := downloadDB(cfg)
 	if err != nil {
 		return err
 	}
 
-	err = db.Init(cacheDir)
+	err = db.Init(cfg.CacheDir)
 	if err != nil {
 		return err
 	}
@@ -76,8 +76,8 @@ func downloadAndInitDB(cacheDir string) error {
 	return nil
 }
 
-func downloadDB(cacheDir string) error {
-	client := dlDb.NewClient(cacheDir, true, true, dlDb.WithDBRepository(*vulnDBRepository))
+func downloadDB(cfg Config) error {
+	client := dlDb.NewClient(cfg.CacheDir, true, true, dlDb.WithDBRepository(cfg.DBRepo))
 	ctx := context.Background()
 	needsUpdate, err := client.NeedsUpdate(trivyVersion, false)
 	if err != nil {
@@ -85,7 +85,7 @@ func downloadDB(cacheDir string) error {
 	}
 
 	if needsUpdate {
-		if err = client.Download(ctx, cacheDir); err != nil {
+		if err = client.Download(ctx, cfg.CacheDir); err != nil {
 			return err
 		}
 	}
