@@ -52,10 +52,10 @@ import (
 var log = logf.Log.WithName("controller").WithValues("process", "imagejob-controller")
 
 var (
-	successRatio         = flag.Float64("job-success-ratio", 1.0, "Ratio of successful/total runs to consider a job successful. 1.0 means all runs must succeed.")
-	filterNodesSelectors = eraserUtils.MultiFlag([]string{"eraser.sh/cleanup.filter"})
-	filterOption         = flag.String("filter-nodes", "exclude", "operation type (include|exclude) to filter nodes that eraser runs on")
-	podReadyThreadLimit  = flag.Int64("pod-ready-thread-limit", 5, "thread limit for checking PodReady status for ImageJob pods")
+	successRatio          = flag.Float64("job-success-ratio", 1.0, "Ratio of successful/total runs to consider a job successful. 1.0 means all runs must succeed.")
+	filterNodesSelectors  = eraserUtils.MultiFlag([]string{"eraser.sh/cleanup.filter"})
+	filterOption          = flag.String("filter-nodes", "exclude", "operation type (include|exclude) to filter nodes that eraser runs on")
+	podRunningThreadLimit = flag.Int64("pod-ready-thread-limit", 5, "thread limit for checking PodRunning status for ImageJob pods")
 
 	defaultTolerations = []corev1.Toleration{
 		{
@@ -334,19 +334,19 @@ func (r *Reconciler) handleNewJob(ctx context.Context, imageJob *eraserv1.ImageJ
 		return err
 	}
 
-	// keep track of PodReady threads
+	// keep track of PodRunning threads
 	var waitGroup sync.WaitGroup
 
 	// sized channel to limit number of threads at once
-	podQueue := make(chan *corev1.Pod, *podReadyThreadLimit)
+	podQueue := make(chan *corev1.Pod, *podRunningThreadLimit)
 
 	// range over podQueue in background to prevent blocking
 	go func() {
 		for pod := range podQueue {
-			// start thread to wait for PodReady
+			// start thread to wait for PodRunning
 			go func(pod *corev1.Pod) {
-				if err := wait.PollImmediate(time.Second, time.Minute*3, isPodReady(pod)); err != nil {
-					log.Error(err, "error waiting for PodReady phase", pod.Name, pod.Status.Phase)
+				if err := wait.PollImmediate(time.Nanosecond, time.Minute*5, r.isPodRunning(pod.Name, pod.Namespace)); err != nil {
+					log.Error(err, "error waiting for PodRunning phase", pod.Name, pod.Status.Phase)
 				}
 				waitGroup.Done()
 			}(pod)
@@ -389,23 +389,30 @@ func (r *Reconciler) handleNewJob(ctx context.Context, imageJob *eraserv1.ImageJ
 		}
 		log.Info("Started "+containerName+" pod on node", "nodeName", nodeName)
 
-		// send pod to podQueue to create thread and wait for PodReady phase
+		// send pod to podQueue to create thread and wait for PodRunning phase
 		waitGroup.Add(1)
 		podQueue <- pod
 	}
 
-	// wait for all PodReady threads to complete
+	// wait for all PodRunning threads to complete
 	waitGroup.Wait()
 
 	return nil
 }
 
-func isPodReady(pod *corev1.Pod) wait.ConditionFunc {
+func (r *Reconciler) isPodRunning(podName, podNamespace string) wait.ConditionFunc {
 	return func() (bool, error) {
-		if pod.Status.Phase == corev1.PodPhase(corev1.PodReady) {
-			return true, nil
+		currentPod := &corev1.Pod{}
+		namespacedName := types.NamespacedName{
+			Namespace: podNamespace,
+			Name:      podName,
 		}
-		return false, nil
+
+		if err := r.Get(context.TODO(), namespacedName, currentPod); err != nil {
+			return false, client.IgnoreNotFound(err)
+		}
+
+		return currentPod.Status.Phase == corev1.PodPhase(corev1.PodRunning), nil
 	}
 }
 
