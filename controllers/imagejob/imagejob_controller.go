@@ -346,7 +346,17 @@ func (r *Reconciler) handleNewJob(ctx context.Context, imageJob *eraserv1.ImageJ
 			// start thread to wait for PodRunning
 			go func(pod *corev1.Pod) {
 				if err := wait.PollImmediate(time.Nanosecond, time.Minute*5, r.isPodRunning(pod.Name, pod.Namespace)); err != nil {
-					log.Error(err, "error waiting for PodRunning phase", pod.Name, pod.Status.Phase)
+					currentPod := &corev1.Pod{}
+					namespacedName := types.NamespacedName{
+						Namespace: pod.Namespace,
+						Name:      pod.Name,
+					}
+
+					if err := r.Get(context.TODO(), namespacedName, currentPod); err != nil {
+						log.Error(err, "unable to get pod", pod.Name)
+					}
+
+					log.Error(err, "error waiting for PodRunning phase", currentPod.Name, currentPod.Status.Phase)
 				}
 				waitGroup.Done()
 			}(pod)
@@ -412,7 +422,7 @@ func (r *Reconciler) isPodRunning(podName, podNamespace string) wait.ConditionFu
 			return false, client.IgnoreNotFound(err)
 		}
 
-		return currentPod.Status.Phase == corev1.PodPhase(corev1.PodRunning), nil
+		return currentPod.Status.Phase == corev1.PodPhase(corev1.PodRunning) || currentPod.Status.Phase == corev1.PodPhase(corev1.PodSucceeded), nil
 	}
 }
 
