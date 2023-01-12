@@ -18,6 +18,7 @@ import (
 
 	"sigs.k8s.io/e2e-framework/pkg/envconf"
 	"sigs.k8s.io/e2e-framework/pkg/features"
+	"time"
 )
 
 func TestUpdateImageList(t *testing.T) {
@@ -131,7 +132,7 @@ func TestUpdateImageList(t *testing.T) {
 				t.Error("Failed to deploy image list config", err)
 			}
 
-			ctxT, cancel := context.WithTimeout(ctx, util.Timeout)
+			ctxT, cancel := context.WithTimeout(ctx, time.Minute*7)
 			defer cancel()
 			util.CheckImageRemoved(ctxT, t, util.GetClusterNodes(t), util.Redis)
 

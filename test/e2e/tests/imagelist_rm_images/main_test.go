@@ -21,6 +21,7 @@ func TestMain(m *testing.M) {
 
 	eraserImage := util.ParsedImages.EraserImage
 	managerImage := util.ParsedImages.ManagerImage
+	collectorImage := util.ParsedImages.CollectorImage
 
 	util.Testenv = env.NewWithConfig(envconf.New())
 	// Create KinD Cluster
@@ -31,12 +32,13 @@ func TestMain(m *testing.M) {
 		envfuncs.LoadDockerImageToCluster(util.KindClusterName, util.Image),
 		util.DeployEraserHelm(util.TestNamespace,
 			"--set", util.ScannerImageRepo.Set(""),
-			"--set", util.CollectorImageRepo.Set(""),
+			"--set", util.CollectorImageRepo.Set(collectorImage.Repo),
+			"--set", util.CollectorImageTag.Set(collectorImage.Tag),
 			"--set", util.EraserImageRepo.Set(eraserImage.Repo),
 			"--set", util.EraserImageTag.Set(eraserImage.Tag),
 			"--set", util.ManagerImageRepo.Set(managerImage.Repo),
 			"--set", util.ManagerImageTag.Set(managerImage.Tag),
-			"--set", util.ManagerAdditionalArgs.Set("--schedule-immediate=true").String(),
+			"--set", util.ManagerAdditionalArgs.Set("--schedule-immediate=false").String(),
 		),
 	).Finish(
 		envfuncs.DestroyKindCluster(util.KindClusterName),
