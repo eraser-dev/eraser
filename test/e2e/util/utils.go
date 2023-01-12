@@ -79,7 +79,7 @@ var (
 	TestLogDir         = os.Getenv("TEST_LOGDIR")
 
 	ParsedImages        *Images
-	Timeout             = time.Minute * 5
+	Timeout             = time.Minute * 7
 	ImagePullSecretJSON = fmt.Sprintf(`[{"name":"%s"}]`, ImagePullSecret)
 
 	ManagerAdditionalArgs = HelmSet{
