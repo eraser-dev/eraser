@@ -18,7 +18,6 @@ import (
 
 	"sigs.k8s.io/e2e-framework/pkg/envconf"
 	"sigs.k8s.io/e2e-framework/pkg/features"
-	"time"
 )
 
 func TestUpdateImageList(t *testing.T) {
