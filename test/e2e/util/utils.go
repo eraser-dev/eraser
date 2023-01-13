@@ -72,6 +72,10 @@ const (
 
 	ImagePullSecrets = HelmPath("runtimeConfig.manager.pullSecrets")
 	OTLPEndpoint     = HelmPath("runtimeConfig.manager.otlpEndpoint")
+
+	CleanupOnSuccessDelay = HelmPath("runtimeConfig.manager.imageJob.cleanup.delayOnSuccess")
+	FilterNodesType       = HelmPath("runtimeConfig.manager.nodeFilter.type")
+	ScheduleImmediate     = HelmPath("runtimeConfig.manager.scheduling.beginImmediately")
 )
 
 var (
@@ -89,7 +93,7 @@ var (
 
 	ParsedImages        *Images
 	Timeout             = time.Minute * 5
-	ImagePullSecretJSON = fmt.Sprintf(`[{"name":"%s"}]`, ImagePullSecret)
+	ImagePullSecretJSON = fmt.Sprintf(`["%s"]`, ImagePullSecret)
 
 	ManagerAdditionalArgs = HelmSet{
 		key:  "controllerManager.additionalArgs",

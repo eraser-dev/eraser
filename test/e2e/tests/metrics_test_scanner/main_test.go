@@ -36,7 +36,6 @@ func TestMain(m *testing.M) {
 		envfuncs.LoadDockerImageToCluster(util.KindClusterName, util.ScannerImage),
 		envfuncs.LoadDockerImageToCluster(util.KindClusterName, util.VulnerableImage),
 		util.DeployEraserHelm(util.TestNamespace,
-			"-f", "../../test-data/helm-test-config.yaml",
 			"--set", util.OTLPEndpoint.Set("otel-collector:4318"),
 			"--set", util.ScannerEnable.Set("true"),
 			"--set", util.CollectorEnable.Set("true"),
@@ -48,6 +47,7 @@ func TestMain(m *testing.M) {
 			"--set", util.EraserImageTag.Set(eraserImage.Tag),
 			"--set", util.ManagerImageRepo.Set(managerImage.Repo),
 			"--set", util.ManagerImageTag.Set(managerImage.Tag),
+			"--set", util.CleanupOnSuccessDelay.Set("1m"),
 		),
 	).Finish(
 		envfuncs.DestroyKindCluster(util.KindClusterName),
