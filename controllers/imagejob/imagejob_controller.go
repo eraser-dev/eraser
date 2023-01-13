@@ -19,8 +19,6 @@ import (
 	"fmt"
 	"os"
 	"strings"
-	"sync"
-	"time"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -334,25 +332,6 @@ func (r *Reconciler) handleNewJob(ctx context.Context, imageJob *eraserv1.ImageJ
 		return err
 	}
 
-	// keep track of pod ready threads
-	var waitGroup sync.WaitGroup
-
-	// sized channel to limit number of threads at once
-	podQueue := make(chan *corev1.Pod, *podReadyThreadLimit)
-
-	// range over podQueue in background to prevent blocking
-	go func() {
-		for pod := range podQueue {
-			// start thread to wait for pod ready
-			go func(pod *corev1.Pod) {
-				if err := wait.PollImmediate(time.Nanosecond, time.Minute*5, r.isPodReady(pod.Name, pod.Namespace)); err != nil {
-					log.Error(err, "timed out waiting for pod to leave pending state", "podName", pod.GetName())
-				}
-				waitGroup.Done()
-			}(pod)
-		}
-	}()
-
 	podSpecTemplate := template.Template.Spec
 	for i := range nodeList {
 		log := log.WithValues("node", nodeList[i].Name)
@@ -388,14 +367,7 @@ func (r *Reconciler) handleNewJob(ctx context.Context, imageJob *eraserv1.ImageJ
 			return err
 		}
 		log.Info("Started "+containerName+" pod on node", "nodeName", nodeName)
-
-		// send pod to podQueue to create thread and wait for pod ready phase
-		waitGroup.Add(1)
-		podQueue <- pod
 	}
-
-	// wait for all pod ready threads to complete
-	waitGroup.Wait()
 
 	return nil
 }
