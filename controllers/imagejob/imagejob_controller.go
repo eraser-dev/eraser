@@ -388,7 +388,7 @@ func (r *Reconciler) isPodReady(namespacedName types.NamespacedName) wait.Condit
 			return false, client.IgnoreNotFound(err)
 		}
 
-		return currentPod.Status.Phase != corev1.PodPhase(corev1.PodPending) && currentPod.Status.Phase != corev1.PodPhase(corev1.PodUnknown), nil
+		return currentPod.Status.Phase != corev1.PodPhase(corev1.PodPending), nil
 	}
 }
 
