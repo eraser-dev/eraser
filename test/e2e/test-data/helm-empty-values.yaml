@@ -32,23 +32,3 @@ deploy:
     repo: "tbiuomsxwcpmnpqi"
     tag: "pgtyeohbgckhpuvz"
     pullPolicy: IfNotPresent
-  additionalArgs: []
-
-  securityContext:
-    allowPrivilegeEscalation: false
-
-  resources:
-    limits:
-      memory: 30Mi
-    requests:
-      cpu: 100m
-      memory: 20Mi
-
-  nodeSelector:
-    kubernetes.io/os: linux
-
-  tolerations: []
-
-  affinity: {}
-
-nameOverride: ""
