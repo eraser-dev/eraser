@@ -135,7 +135,7 @@ func TestImageListTriggersEraserImageJob(t *testing.T) {
 				}
 
 				return true, nil
-			}, wait.WithTimeout(time.Minute*2), wait.WithInterval(time.Millisecond*500))
+			}, wait.WithTimeout(util.Timeout), wait.WithInterval(time.Millisecond*500))
 			if err != nil {
 				t.Fatal(err)
 			}

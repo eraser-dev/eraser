@@ -19,10 +19,12 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"time"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/kubernetes/pkg/scheduler/framework"
 	"k8s.io/kubernetes/pkg/scheduler/framework/plugins/noderesources"
 
@@ -330,6 +332,7 @@ func (r *Reconciler) handleNewJob(ctx context.Context, imageJob *eraserv1.ImageJ
 		return err
 	}
 
+	var namespacedNames []types.NamespacedName
 	podSpecTemplate := template.Template.Spec
 	for i := range nodeList {
 		log := log.WithValues("node", nodeList[i].Name)
@@ -365,9 +368,28 @@ func (r *Reconciler) handleNewJob(ctx context.Context, imageJob *eraserv1.ImageJ
 			return err
 		}
 		log.Info("Started "+containerName+" pod on node", "nodeName", nodeName)
+		namespacedNames = append(namespacedNames, types.NamespacedName{Name: pod.Name, Namespace: pod.Namespace})
+	}
+
+	for _, namespacedName := range namespacedNames {
+		if err := wait.PollImmediate(time.Nanosecond, time.Minute*5, r.isPodReady(ctx, namespacedName)); err != nil {
+			log.Error(err, "timed out waiting for pod to leave pending state", "pod NamespacedName", namespacedName)
+		}
 	}
 
 	return nil
+}
+
+func (r *Reconciler) isPodReady(ctx context.Context, namespacedName types.NamespacedName) wait.ConditionFunc {
+	return func() (bool, error) {
+		currentPod := &corev1.Pod{}
+
+		if err := r.Get(ctx, namespacedName, currentPod); err != nil {
+			return false, client.IgnoreNotFound(err)
+		}
+
+		return currentPod.Status.Phase != corev1.PodPhase(corev1.PodPending), nil
+	}
 }
 
 // SetupWithManager sets up the controller with the Manager.
