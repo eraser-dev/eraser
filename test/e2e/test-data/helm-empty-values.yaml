@@ -12,13 +12,26 @@
 # Below, randomized names are used to guarantee that if the wrong helm keys are
 # used, the test will fail.
 
-controllerManager:
+runtimeConfig:
+  components:
+    collector:
+      image:
+        repo: "ychoimvthinanopp"
+        tag: "wpsestipmlioujqd"
+    scanner:
+      image:
+        repo: "aezoqcrjrsmxryrn"
+        tag: "mwojcakgxrqcudmn"
+    eraser:
+      image:
+        repo: "eultpoofmlmfdthr"
+        tag: "otosqrwfwrgdrvzo"
 
+deploy:
   image:
-    repository: "qaayobtdigggvnjl"
-    pullPolicy: Never
-    # Overrides the image tag whose default is the chart appVersion.
-    tag: "ybfnvjkbgrskjhjp"
+    repo: "tbiuomsxwcpmnpqi"
+    tag: "pgtyeohbgckhpuvz"
+    pullPolicy: IfNotPresent
   additionalArgs: []
 
   securityContext:
@@ -38,23 +51,4 @@ controllerManager:
 
   affinity: {}
 
-eraser:
-  image:
-    repository: "xtmzzqtxjawdhpng"
-    tag: "wpuuhecvmgolvekf"
-    args: []
-
-collector:
-  image:
-    repository: "ivabadgndcofefsd"
-    tag: "bgalqxraifqszhxy"
-    args: []
-
-scanner:
-  image:
-    repository: "ybdyaiidvgbyrybu"
-    tag: "nixsyzngdgmpwyol"
-    args: []
-
 nameOverride: ""
-imagePullSecretName: ""

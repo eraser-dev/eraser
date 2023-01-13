@@ -53,20 +53,25 @@ const (
 	FilterNodeSelector   = "kubernetes.io/hostname=eraser-e2e-test-worker"
 	FilterLabelKey       = "eraser.sh/cleanup.filter"
 	FilterLabelValue     = "true"
+)
 
-	ScannerImageRepo   = HelmPath("scanner.image.repository")
-	ScannerImageTag    = HelmPath("scanner.image.tag")
-	CollectorImageRepo = HelmPath("collector.image.repository")
-	CollectorImageTag  = HelmPath("collector.image.tag")
-	ManagerImageRepo   = HelmPath("controllerManager.image.repository")
-	ManagerImageTag    = HelmPath("controllerManager.image.tag")
-	EraserImageRepo    = HelmPath("eraser.image.repository")
-	EraserImageTag     = HelmPath("eraser.image.tag")
-	ImagePullSecrets   = HelmPath("imagePullSecrets")
-	OTLPEndpoint       = HelmPath("controllerManager.config.manager.otlpEndpoint")
-	CollectorEnable    = HelmPath("controllerManager.config.components.collector.enable")
-	ScannerEnable      = HelmPath("controllerManager.config.components.scanner.enable")
-	ScannerConfig      = HelmPath("controllerManager.config.components.scanner.config")
+const (
+	CollectorEnable    = HelmPath("runtimeConfig.components.collector.enable")
+	CollectorImageRepo = HelmPath("runtimeConfig.components.collector.image.repo")
+	CollectorImageTag  = HelmPath("runtimeConfig.components.collector.image.tag")
+
+	ScannerEnable    = HelmPath("runtimeConfig.components.scanner.enable")
+	ScannerImageRepo = HelmPath("runtimeConfig.components.scanner.image.repo")
+	ScannerImageTag  = HelmPath("runtimeConfig.components.scanner.image.tag")
+
+	EraserImageRepo = HelmPath("runtimeConfig.components.eraser.image.repo")
+	EraserImageTag  = HelmPath("runtimeConfig.components.eraser.image.tag")
+
+	ManagerImageRepo = HelmPath("deploy.image.repo")
+	ManagerImageTag  = HelmPath("deploy.image.tag")
+
+	ImagePullSecrets = HelmPath("runtimeConfig.manager.pullSecrets")
+	OTLPEndpoint     = HelmPath("runtimeConfig.manager.otlpEndpoint")
 )
 
 var (

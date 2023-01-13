@@ -1,6 +1,84 @@
-controllerManager:
-  config: {}
+runtimeConfig:
+  health: {}
+    # healthProbeBindAddress: :8081
+  metrics: {}
+    # bindAddress: 127.0.0.1:8080
+  webhook: {}
+    # port: 9443
+  leaderElection: {}
+    # leaderElect: true
+    # resourceName: e29e094a.k8s.io
+  manager:
+    runtime: containerd
+    otlpEndpoint: ""
+    logLevel: info
+    scheduling: {}
+      # repeatInterval: "" # to be parsed into time.Duration
+      # beginImmediately: true
+    profile: {}
+      # enable: false
+      # port: 0
+    imageJob:
+      successRatio: 1.0 # float; ok with YAML?
+      cleanup: {}
+        # delayOnSuccess: ""
+        # delayOnFailure: ""
+    pullSecrets: [] # image pull secrets for collector/scanner/eraser
+    nodeFilter: {}
+      # type: exclude # must be either exclude|include
+      # selectors:
+      #   - eraser.sh/cleanup.filter
+  components:
+    collector:
+      enable: false
+      image: {}
+        # repo: ""
+        # tag: ""
+      request: {}
+        # mem: ""
+        # cpu: ""
+      limit: {}
+        # mem: ""
+        # cpu: ""
+    scanner:
+      enable: false
+      image: {}
+        # repo: ""
+        # tag: ""
+      request: {}
+        # mem: ""
+        # cpu: ""
+      limit: {}
+        # mem: ""
+        # cpu: ""
+      config: "" # |
+        # cacheDir: /var/lib/trivy
+        # dbRepo: ghcr.io/aquasecurity/trivy-db
+        # deleteFailedImages: true
+        # vulnerabilities:
+        #   ignoreUnfixed: true
+        #   types:
+        #     - os
+        #     - library
+        #   securityChecks: # need to be documented; determined by trivy, not us
+        #     - vuln
+        #   severities:
+        #     - CRITICAL
+        # timeout:
+        #   total: 23h
+        #   perImage: 1h
+    eraser:
+      image: {} 
+        # repo: ""
+        # tag: ""
+      request: {}
+        # mem: ""
+        # cpu: ""
+      limit: {}
+        # mem: ""
+        # cpu: ""
 
+deploy:
   image:
     repository: ghcr.io/azure/eraser-manager
     pullPolicy: IfNotPresent
@@ -25,23 +103,4 @@ controllerManager:
 
   affinity: {}
 
-eraser:
-  image:
-    repository: ghcr.io/azure/eraser
-    tag: ""
-    args: []
-
-collector:
-  image:
-    repository: ghcr.io/azure/collector
-    tag: ""
-    args: []
-
-scanner:
-  image:
-    repository: ghcr.io/azure/eraser-trivy-scanner
-    tag: ""
-    args: []
-
 nameOverride: ""
-imagePullSecrets: []
