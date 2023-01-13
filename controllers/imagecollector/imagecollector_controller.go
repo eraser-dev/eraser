@@ -60,8 +60,6 @@ const (
 )
 
 var (
-	scannerImage           = flag.String("scanner-image", "", "scanner image, empty value disables scan feature")
-	collectorImage         = flag.String("collector-image", "", "collector image, empty value disables collect feature")
 	log                    = logf.Log.WithName("controller").WithValues("process", "imagecollector-controller")
 	deleteScanFailedImages = flag.Bool("delete-scan-failed-images", true, "whether or not to delete images for which scanning has failed")
 	scannerArgs            = utils.MultiFlag([]string{})
@@ -95,10 +93,8 @@ type Reconciler struct {
 
 func Add(mgr manager.Manager, cfg eraserv1.EraserConfig) error {
 
-	collImgCfg := cfg.Components.Collector.Image
-	collImg := *collectorImage
-
-	if collImg == "" && collImgCfg.Repo == "" && collImgCfg.Tag == "" {
+	collCfg := cfg.Components.Collector
+	if !collCfg.Enable {
 		return nil
 	}
 
@@ -263,11 +259,8 @@ func (r *Reconciler) createImageJob(ctx context.Context, req ctrl.Request, argsC
 
 	log.Info("eraserImg", "eraserImg", eraserImg)
 
-	collectorImg := *collectorImage
-	if collectorImg == "" {
-		iCfg := collectorCfg.Image
-		collectorImg = fmt.Sprintf("%s:%s", iCfg.Repo, iCfg.Tag)
-	}
+	iCfg := collectorCfg.Image
+	collectorImg := fmt.Sprintf("%s:%s", iCfg.Repo, iCfg.Tag)
 
 	profileConfig := r.eraserConfig.Manager.Profile
 	profileArgs := []string{
@@ -364,11 +357,8 @@ func (r *Reconciler) createImageJob(ctx context.Context, req ctrl.Request, argsC
 	}
 
 	if !scanDisabled {
-		scannerImg := *scannerImage
-		if scannerImg == "" {
-			iCfg := scanCfg.Image
-			scannerImg = fmt.Sprintf("%s:%s", iCfg.Repo, iCfg.Tag)
-		}
+		iCfg := scanCfg.Image
+		scannerImg := fmt.Sprintf("%s:%s", iCfg.Repo, iCfg.Tag)
 
 		cfgDirname := "/config"
 		cfgFilename := filepath.Join(cfgDirname, "controller_manager_config.yaml")

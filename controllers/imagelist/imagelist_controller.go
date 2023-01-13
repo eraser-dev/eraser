@@ -245,12 +245,8 @@ func (r *Reconciler) handleImageListEvent(ctx context.Context, req *ctrl.Request
 	args = append(args, util.EraserArgs...)
 
 	eraserContainerCfg := r.eraserConfig.Components.Eraser
-	image := *util.EraserImage
-
-	if image == "" {
-		imageCfg := eraserContainerCfg.Image
-		image = fmt.Sprintf("%s:%s", imageCfg.Repo, imageCfg.Tag)
-	}
+	imageCfg := eraserContainerCfg.Image
+	image := fmt.Sprintf("%s:%s", imageCfg.Repo, imageCfg.Tag)
 
 	jobTemplate := corev1.PodTemplateSpec{
 		Spec: corev1.PodSpec{
