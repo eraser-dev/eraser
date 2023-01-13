@@ -54,7 +54,6 @@ var (
 	successRatio         = flag.Float64("job-success-ratio", 1.0, "Ratio of successful/total runs to consider a job successful. 1.0 means all runs must succeed.")
 	filterNodesSelectors = eraserUtils.MultiFlag([]string{"eraser.sh/cleanup.filter"})
 	filterOption         = flag.String("filter-nodes", "exclude", "operation type (include|exclude) to filter nodes that eraser runs on")
-	podReadyThreadLimit  = flag.Int64("pod-ready-thread-limit", 5, "thread limit for checking non-pending status for ImageJob pods")
 
 	defaultTolerations = []corev1.Toleration{
 		{
