@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"time"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -332,6 +333,7 @@ func (r *Reconciler) handleNewJob(ctx context.Context, imageJob *eraserv1.ImageJ
 		return err
 	}
 
+	var namespacedNames []types.NamespacedName
 	podSpecTemplate := template.Template.Spec
 	for i := range nodeList {
 		log := log.WithValues("node", nodeList[i].Name)
@@ -367,18 +369,21 @@ func (r *Reconciler) handleNewJob(ctx context.Context, imageJob *eraserv1.ImageJ
 			return err
 		}
 		log.Info("Started "+containerName+" pod on node", "nodeName", nodeName)
+		namespacedNames = append(namespacedNames, types.NamespacedName{Name: pod.Name, Namespace: pod.Namespace})
+	}
+
+	for _, namespacedName := range namespacedNames {
+		if err := wait.PollImmediate(time.Nanosecond, time.Minute*5, r.isPodReady(namespacedName)); err != nil {
+			log.Error(err, "timed out waiting for pod to leave pending state", "pod NamespacedName", namespacedName)
+		}
 	}
 
 	return nil
 }
 
-func (r *Reconciler) isPodReady(podName, podNamespace string) wait.ConditionFunc {
+func (r *Reconciler) isPodReady(namespacedName types.NamespacedName) wait.ConditionFunc {
 	return func() (bool, error) {
 		currentPod := &corev1.Pod{}
-		namespacedName := types.NamespacedName{
-			Namespace: podNamespace,
-			Name:      podName,
-		}
 
 		if err := r.Get(context.TODO(), namespacedName, currentPod); err != nil {
 			return false, client.IgnoreNotFound(err)
