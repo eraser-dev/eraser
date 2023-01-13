@@ -372,7 +372,7 @@ func (r *Reconciler) handleNewJob(ctx context.Context, imageJob *eraserv1.ImageJ
 	}
 
 	for _, namespacedName := range namespacedNames {
-		if err := wait.PollImmediate(time.Nanosecond, time.Minute*5, r.isPodReady(namespacedName)); err != nil {
+		if err := wait.PollImmediate(time.Nanosecond, time.Minute*5, r.isPodReady(ctx, namespacedName)); err != nil {
 			log.Error(err, "timed out waiting for pod to leave pending state", "pod NamespacedName", namespacedName)
 		}
 	}
@@ -380,11 +380,11 @@ func (r *Reconciler) handleNewJob(ctx context.Context, imageJob *eraserv1.ImageJ
 	return nil
 }
 
-func (r *Reconciler) isPodReady(namespacedName types.NamespacedName) wait.ConditionFunc {
+func (r *Reconciler) isPodReady(ctx context.Context, namespacedName types.NamespacedName) wait.ConditionFunc {
 	return func() (bool, error) {
 		currentPod := &corev1.Pod{}
 
-		if err := r.Get(context.TODO(), namespacedName, currentPod); err != nil {
+		if err := r.Get(ctx, namespacedName, currentPod); err != nil {
 			return false, client.IgnoreNotFound(err)
 		}
 
