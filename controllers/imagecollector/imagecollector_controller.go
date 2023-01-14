@@ -269,6 +269,11 @@ func (r *Reconciler) createImageJob(ctx context.Context, req ctrl.Request) (ctrl
 	eraserArgs := append(util.EraserArgs, "--log-level="+logger.GetLevel())
 	eraserArgs = append(eraserArgs, profileArgs...)
 
+	pullSecrets := []corev1.LocalObjectReference{}
+	for _, secret := range r.eraserConfig.Manager.PullSecrets {
+		pullSecrets = append(pullSecrets, corev1.LocalObjectReference{Name: secret})
+	}
+
 	jobTemplate := corev1.PodTemplateSpec{
 		Spec: corev1.PodSpec{
 			Volumes: []corev1.Volume{
@@ -287,7 +292,8 @@ func (r *Reconciler) createImageJob(ctx context.Context, req ctrl.Request) (ctrl
 					},
 				},
 			},
-			RestartPolicy: corev1.RestartPolicyNever,
+			ImagePullSecrets: pullSecrets,
+			RestartPolicy:    corev1.RestartPolicyNever,
 			Containers: []corev1.Container{
 				{
 					Name:            "collector",
