@@ -164,27 +164,28 @@ jobs:
         - uses: crazy-max/ghaction-github-runtime@v2
         - name: Set env
           run: |
-            echo ERASER_IMG=eraser:test >> $GITHUB_ENV
-            echo MANAGER_IMG=manager:test >> $GITHUB_ENV
-            echo COLLECTOR_IMG=collector:test >> $GITHUB_ENV
-            echo SCANNER_IMG=scanner:test >> $GITHUB_ENV
+            echo ERASER_REPO=eraser >> $GITHUB_ENV
+            echo MANAGER_REPO=manager >> $GITHUB_ENV
+            echo COLLECTOR_REPO=collector >> $GITHUB_ENV
+            echo SCANNER_REPO=scanner >> $GITHUB_ENV
         - name: Build eraser-manager
-          run: make docker-build-manager MANAGER_IMG=${MANAGER_IMG}
+          run: make docker-build-manager MANAGER_REPO=${MANAGER_REPO} VERSION=test
         - name: Build eraser
-          run: make docker-build-eraser ERASER_IMG=${ERASER_IMG}
+          run: make docker-build-eraser ERASER_REPO=${ERASER_REPO} VERSION=test
         - name: Build collector
-          run: make docker-build-collector COLLECTOR_IMG=${COLLECTOR_IMG}
+          run: make docker-build-collector COLLECTOR_REPO=${COLLECTOR_REPO} VERSION=test
         - name: Build trivy-scanner
-          run: make docker-build-trivy-scanner TRIVY_SCANNER_IMG=${SCANNER_IMG}
+          run: make docker-build-trivy-scanner TRIVY_SCANNER_REPO=${SCANNER_REPO} VERSION=test
         - name: Run e2e test
           run: |
             make e2e-test \
               KUBERNETES_VERSION=${{ matrix.KUBERNETES_VERSION }} \
+              VERSION=test \
               E2E_TESTS=${{ matrix.E2E_TEST }} \
-              ERASER_IMG=${ERASER_IMG} \
-              MANAGER_IMG=${MANAGER_IMG} \
-              COLLECTOR_IMG=${COLLECTOR_IMG} \
-              TRIVY_SCANNER_IMG=${SCANNER_IMG}
+              ERASER_REPO=${ERASER_REPO} \
+              MANAGER_REPO=${MANAGER_REPO} \
+              COLLECTOR_REPO=${COLLECTOR_REPO} \
+              TRIVY_SCANNER_REPO=${SCANNER_REPO}
         - name: Upload artifacts
           uses: actions/upload-artifact@v3
           with:
@@ -221,16 +222,16 @@ jobs:
 
       - name: Build eraser-manager
         run: |
-          make docker-build-manager MANAGER_IMG=${{ env.REGISTRY }}/${REPO}-manager:test
+          make docker-build-manager MANAGER_REPO=${{ env.REGISTRY }}/${REPO}-manager VERSION=test
       - name: Build eraser
         run: |
-          make docker-build-eraser ERASER_IMG=${{ env.REGISTRY }}/${REPO}:test
+          make docker-build-eraser ERASER_REPO=${{ env.REGISTRY }}/${REPO} VERSION=test
       - name: Build collector
         run: |
-          make docker-build-collector COLLECTOR_IMG=${{ env.REGISTRY }}/collector:test
+          make docker-build-collector COLLECTOR_REPO=${{ env.REGISTRY }}/collector VERSION=test
       - name: Build trivy scanner
         run: |
-          make docker-build-trivy-scanner TRIVY_SCANNER_IMG=${{ env.REGISTRY }}/${REPO}-trivy-scanner:test
+          make docker-build-trivy-scanner TRIVY_SCANNER_REPO=${{ env.REGISTRY }}/${REPO}-trivy-scanner VERSION=test
       - name: Run trivy for eraser
         run: trivy image --ignore-unfixed --exit-code=1 --vuln-type=os,library ${{ env.REGISTRY }}/${REPO}:test
 

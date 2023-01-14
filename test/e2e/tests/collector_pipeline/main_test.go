@@ -19,6 +19,12 @@ import (
 func TestMain(m *testing.M) {
 	utilruntime.Must(eraserv1alpha1.AddToScheme(scheme.Scheme))
 
+	version := os.Getenv("VERSION")
+	eraserRepo := util.ParsedImages.EraserImage.Repo
+	collectorRepo := util.ParsedImages.CollectorImage.Repo
+	scannerRepo := util.ParsedImages.ScannerImage.Repo
+	managerRepo := util.ParsedImages.ManagerImage.Repo
+
 	util.Testenv = env.NewWithConfig(envconf.New())
 	// Create KinD Cluster
 	util.Testenv.Setup(
@@ -30,10 +36,11 @@ func TestMain(m *testing.M) {
 		envfuncs.LoadDockerImageToCluster(util.KindClusterName, util.CollectorImage),
 		envfuncs.LoadDockerImageToCluster(util.KindClusterName, util.VulnerableImage),
 		util.MakeDeploy(map[string]string{
-			"ERASER_IMG":        util.Image,
-			"MANAGER_IMG":       util.ManagerImage,
-			"TRIVY_SCANNER_IMG": util.ScannerImage,
-			"COLLECTOR_IMAGE":   util.CollectorImage,
+			"ERASER_REPO":        eraserRepo,
+			"MANAGER_REPO":       managerRepo,
+			"TRIVY_SCANNER_REPO": scannerRepo,
+			"COLLECTOR_IMAGE":    collectorRepo,
+			"VERSION":            version,
 		}),
 	).Finish(
 		envfuncs.DestroyKindCluster(util.KindClusterName),
