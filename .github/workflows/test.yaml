@@ -174,13 +174,13 @@ jobs:
             echo COLLECTOR_TAG=test >> $GITHUB_ENV
             echo SCANNER_TAG=test >> $GITHUB_ENV
         - name: Build eraser-manager
-          run: make docker-build-manager MANAGER_REPO=${MANAGER_REPO} VERSION=test
+          run: make docker-build-manager MANAGER_REPO=${MANAGER_REPO} MANAGER_TAG=test
         - name: Build eraser
-          run: make docker-build-eraser ERASER_REPO=${ERASER_REPO} VERSION=test
+          run: make docker-build-eraser ERASER_REPO=${ERASER_REPO} ERASER_TAG=test
         - name: Build collector
-          run: make docker-build-collector COLLECTOR_REPO=${COLLECTOR_REPO} VERSION=test
+          run: make docker-build-collector COLLECTOR_REPO=${COLLECTOR_REPO} COLLECTOR_TAG=test
         - name: Build trivy-scanner
-          run: make docker-build-trivy-scanner TRIVY_SCANNER_REPO=${SCANNER_REPO} VERSION=test
+          run: make docker-build-trivy-scanner TRIVY_SCANNER_REPO=${SCANNER_REPO} TRIVY_SCANNER_TAG=test
         - name: Run e2e test
           run: |
             make e2e-test \
