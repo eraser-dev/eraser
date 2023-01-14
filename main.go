@@ -121,7 +121,7 @@ func main() {
 	}
 
 	setupLog.Info("setup controllers")
-	if err = controllers.SetupWithManager(mgr, eraserOpts); err != nil {
+	if err = controllers.SetupWithManager(mgr, &eraserOpts); err != nil {
 		setupLog.Error(err, "unable to setup controllers")
 		os.Exit(1)
 	}

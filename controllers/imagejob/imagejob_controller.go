@@ -43,6 +43,7 @@ import (
 	"sigs.k8s.io/kind/pkg/errors"
 
 	eraserv1 "github.com/Azure/eraser/api/v1"
+	"github.com/Azure/eraser/api/v1/config"
 	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
 	controllerUtils "github.com/Azure/eraser/controllers/util"
 	eraserUtils "github.com/Azure/eraser/pkg/utils"
@@ -63,7 +64,7 @@ var (
 	}
 )
 
-func Add(mgr manager.Manager, cfg eraserv1.EraserConfig) error {
+func Add(mgr manager.Manager, cfg *eraserv1.EraserConfig) error {
 	filterOpts := cfg.Manager.NodeFilter
 	if filterOpts.Type == "exclude" && !slices.Contains(filterOpts.Selectors, windowsFilterLabel) {
 		filterOpts.Selectors = append(filterOpts.Selectors, windowsFilterLabel)
@@ -74,12 +75,18 @@ func Add(mgr manager.Manager, cfg eraserv1.EraserConfig) error {
 }
 
 // newReconciler returns a new reconcile.Reconciler.
-func newReconciler(mgr manager.Manager, cfg eraserv1.EraserConfig) reconcile.Reconciler {
-	return &Reconciler{
+func newReconciler(mgr manager.Manager, cfg *eraserv1.EraserConfig) reconcile.Reconciler {
+	rec := &Reconciler{
 		Client:       mgr.GetClient(),
 		scheme:       mgr.GetScheme(),
-		eraserConfig: cfg,
+		eraserConfig: *config.Default(),
 	}
+
+	if cfg != nil {
+		rec.eraserConfig = *cfg
+	}
+
+	return rec
 }
 
 // ImageJobReconciler reconciles a ImageJob object.

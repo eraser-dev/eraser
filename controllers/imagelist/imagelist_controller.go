@@ -42,6 +42,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	eraserv1 "github.com/Azure/eraser/api/v1"
+	"github.com/Azure/eraser/api/v1/config"
 	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
 	"github.com/Azure/eraser/controllers/util"
 	"github.com/Azure/eraser/pkg/logger"
@@ -74,12 +75,12 @@ func init() {
 	}
 }
 
-func Add(mgr manager.Manager, cfg eraserv1.EraserConfig) error {
+func Add(mgr manager.Manager, cfg *eraserv1.EraserConfig) error {
 	return add(mgr, newReconciler(mgr, cfg))
 }
 
 // newReconciler returns a new reconcile.Reconciler.
-func newReconciler(mgr manager.Manager, cfg eraserv1.EraserConfig) reconcile.Reconciler {
+func newReconciler(mgr manager.Manager, cfg *eraserv1.EraserConfig) reconcile.Reconciler {
 	otlpEndpoint := cfg.Manager.OTLPEndpoint
 	if otlpEndpoint != "" {
 		ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
@@ -89,11 +90,17 @@ func newReconciler(mgr manager.Manager, cfg eraserv1.EraserConfig) reconcile.Rec
 		global.SetMeterProvider(provider)
 	}
 
-	return &Reconciler{
+	rec := &Reconciler{
 		Client:       mgr.GetClient(),
 		scheme:       mgr.GetScheme(),
-		eraserConfig: cfg,
+		eraserConfig: *config.Default(),
 	}
+
+	if cfg != nil {
+		rec.eraserConfig = *cfg
+	}
+
+	return rec
 }
 
 // ImageJobReconciler reconciles a ImageJob object.
