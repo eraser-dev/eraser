@@ -3,7 +3,8 @@ VERSION := v1.0.0-beta.3
 # Image URL to use all building/pushing image targets
 TRIVY_SCANNER_REPO ?= ghcr.io/azure/eraser-trivy-scanner
 TRIVY_SCANNER_IMG ?= ${TRIVY_SCANNER_REPO}:${VERSION}
-MANAGER_IMG ?= ghcr.io/azure/eraser-manager:${VERSION}
+MANAGER_REPO ?= ghcr.io/azure/eraser-manager
+MANAGER_IMG ?= ${MANAGER_REPO}:${VERSION}
 ERASER_REPO ?= ghcr.io/azure/eraser
 ERASER_IMG ?= ${ERASER_REPO}:${VERSION}
 COLLECTOR_REPO ?= ghcr.io/azure/collector
