@@ -62,8 +62,6 @@ const (
 var (
 	log                    = logf.Log.WithName("controller").WithValues("process", "imagecollector-controller")
 	deleteScanFailedImages = flag.Bool("delete-scan-failed-images", true, "whether or not to delete images for which scanning has failed")
-	scannerArgs            = utils.MultiFlag([]string{})
-	collectorArgs          = utils.MultiFlag([]string{})
 	startTime              time.Time
 	ownerLabel             labels.Selector
 	exporter               sdkmetric.Exporter
@@ -73,9 +71,6 @@ var (
 
 func init() {
 	var err error
-
-	flag.Var(&scannerArgs, "scanner-arg", "An argument to be passed through to the scanner. For example, --scanner-arg=--severity=CRITICAL,HIGH will be passed through to the scanner as --severity=CRITICAL,HIGH. Can be supplied multiple times.")
-	flag.Var(&collectorArgs, "collector-arg", "An argument to be passed through to the collector. For example, --collector-arg=--enable-pprof=true will pass through to the collector as --enable-pprof=true. Can be supplied multiple times.")
 
 	ownerLabelString := fmt.Sprintf("%s=%s", util.ImageJobOwnerLabelKey, ownerLabelValue)
 	ownerLabel, err = labels.Parse(ownerLabelString)
@@ -208,14 +203,14 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 				return ctrl.Result{}, err
 			}
 		}
-		return r.createImageJob(ctx, req, collectorArgs)
+		return r.createImageJob(ctx, req)
 	}
 
 	switch len(imageJobList.Items) {
 	case 0:
 		// If we reach this point, reconcile has been called on a timer, and we want to begin a
 		// collector ImageJob
-		return r.createImageJob(ctx, req, collectorArgs)
+		return r.createImageJob(ctx, req)
 	case 1:
 		// an imagejob has just completed; proceed to imagelist creation.
 		return r.handleCompletedImageJob(ctx, req, &imageJobList.Items[0])
@@ -240,7 +235,7 @@ func (r *Reconciler) handleJobDeletion(ctx context.Context, job *eraserv1.ImageJ
 	return ctrl.Result{}, nil
 }
 
-func (r *Reconciler) createImageJob(ctx context.Context, req ctrl.Request, argsCollector []string) (ctrl.Result, error) {
+func (r *Reconciler) createImageJob(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	mgrCfg := r.eraserConfig.Manager
 	compCfg := r.eraserConfig.Components
 
@@ -268,8 +263,7 @@ func (r *Reconciler) createImageJob(ctx context.Context, req ctrl.Request, argsC
 		fmt.Sprintf("--pprof-port=%d", profileConfig.Port),
 	}
 
-	collArgs := collectorArgs
-	collArgs = append(collArgs, "--scan-disabled="+strconv.FormatBool(scanDisabled))
+	collArgs := []string{"--scan-disabled=" + strconv.FormatBool(scanDisabled)}
 	collArgs = append(collArgs, profileArgs...)
 
 	eraserArgs := append(util.EraserArgs, "--log-level="+logger.GetLevel())
@@ -362,7 +356,7 @@ func (r *Reconciler) createImageJob(ctx context.Context, req ctrl.Request, argsC
 
 		cfgDirname := "/config"
 		cfgFilename := filepath.Join(cfgDirname, "controller_manager_config.yaml")
-		scannerArgs := append(scannerArgs, fmt.Sprintf("--config=%s", cfgFilename))
+		scannerArgs := []string{fmt.Sprintf("--config=%s", cfgFilename)}
 		scannerArgs = append(scannerArgs, profileArgs...)
 
 		scannerContainer := corev1.Container{

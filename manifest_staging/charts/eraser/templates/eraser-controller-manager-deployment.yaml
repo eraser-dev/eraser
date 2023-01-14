@@ -88,10 +88,6 @@ spec:
       terminationGracePeriodSeconds: 10
       tolerations:
         {{- toYaml .Values.deploy.tolerations | nindent 8 }}
-      volumeMounts:
-      - mountPath: /controller_manager_config.yaml
-        name: manager-config
-        subPath: controller_manager_config.yaml
       volumes:
       - configMap:
           name: eraser-manager-config

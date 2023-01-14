@@ -46,14 +46,14 @@ spec:
           HELMSUBST_DEPLOYMENT_CONTROLLER_MANAGER_CONTAINER_RESOURCES: ""
         securityContext:
           allowPrivilegeEscalation: false
+        volumeMounts:
+        - name: manager-config
+          mountPath: /controller_manager_config.yaml
+          subPath: controller_manager_config.yaml
       nodeSelector:
         HELMSUBST_DEPLOYMENT_CONTROLLER_MANAGER_NODESELECTOR: ""
       tolerations:
         HELMSUBST_DEPLOYMENT_CONTROLLER_MANAGER_TOLERATIONS: ""
       affinity:
         HELMSUBST_DEPLOYMENT_CONTROLLER_MANAGER_AFFINITY: ""
-      volumeMounts:
-      - name: manager-config
-        mountPath: /controller_manager_config.yaml
-        subPath: controller_manager_config.yaml
 
