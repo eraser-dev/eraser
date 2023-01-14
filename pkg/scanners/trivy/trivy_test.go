@@ -74,10 +74,10 @@ func TestDownloadAndInitDB(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	cfg := Config{
-		CacheDir: tmp,
-	}
-	err = downloadAndInitDB(&cfg)
+	cfg := DefaultConfig()
+	cfg.CacheDir = tmp
+
+	err = downloadAndInitDB(cfg)
 	if err != nil {
 		t.Fatal(err)
 	}
