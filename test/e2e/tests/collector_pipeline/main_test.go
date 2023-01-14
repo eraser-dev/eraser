@@ -19,7 +19,6 @@ import (
 func TestMain(m *testing.M) {
 	utilruntime.Must(eraserv1alpha1.AddToScheme(scheme.Scheme))
 
-	version := os.Getenv("VERSION")
 	eraser := util.ParsedImages.EraserImage
 	collector := util.ParsedImages.CollectorImage
 	scanner := util.ParsedImages.ScannerImage
