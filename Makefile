@@ -1,14 +1,19 @@
 VERSION := v1.0.0-beta.3
 
+MANAGER_TAG ?= ${VERSION}
+TRIVY_SCANNER_TAG ?= ${VERSION}
+COLLECTOR_TAG ?= ${VERSION}
+ERASER_TAG ?= ${VERSION}
+
 # Image URL to use all building/pushing image targets
 TRIVY_SCANNER_REPO ?= ghcr.io/azure/eraser-trivy-scanner
-TRIVY_SCANNER_IMG ?= ${TRIVY_SCANNER_REPO}:${VERSION}
+TRIVY_SCANNER_IMG ?= ${TRIVY_SCANNER_REPO}:${TRIVY_SCANNER_TAG}
 MANAGER_REPO ?= ghcr.io/azure/eraser-manager
-MANAGER_IMG ?= ${MANAGER_REPO}:${VERSION}
+MANAGER_IMG ?= ${MANAGER_REPO}:${MANAGER_TAG}
 ERASER_REPO ?= ghcr.io/azure/eraser
-ERASER_IMG ?= ${ERASER_REPO}:${VERSION}
+ERASER_IMG ?= ${ERASER_REPO}:${ERASER_TAG}
 COLLECTOR_REPO ?= ghcr.io/azure/collector
-COLLECTOR_IMG ?= ${COLLECTOR_REPO}:${VERSION}
+COLLECTOR_IMG ?= ${COLLECTOR_REPO}:${COLLECTOR_TAG}
 VULNERABLE_IMG ?= docker.io/library/alpine:3.7.3
 NON_VULNERABLE_IMG ?= ghcr.io/azure/non-vulnerable:latest
 E2E_TESTS ?= $(shell find ./test/e2e/tests/ -mindepth 1 -type d)
@@ -96,7 +101,9 @@ manifests: __controller-gen ## Generates k8s yaml for eraser deployment.
 	@sed -e "s~ERASER_REPO~${ERASER_REPO}~g" \
 		-e "s~COLLECTOR_REPO~${COLLECTOR_REPO}~g" \
 		-e "s~SCANNER_REPO~${TRIVY_SCANNER_REPO}~g" \
-		-e "s~VERSION~${VERSION}~g" \
+		-e "s~ERASER_TAG~${ERASER_TAG}~g" \
+		-e "s~COLLECTOR_TAG~${COLLECTOR_TAG}~g" \
+		-e "s~SCANNER_TAG~${TRIVY_SCANNER_TAG}~g"
 		config/manager/controller_manager_config.template.yaml > config/manager/controller_manager_config.yaml
 	docker run --rm -v $(shell pwd)/config:/config -w /config/manager \
 		k8s.gcr.io/kustomize/kustomize:v${KUSTOMIZE_VERSION} edit set image controller=${MANAGER_IMG}

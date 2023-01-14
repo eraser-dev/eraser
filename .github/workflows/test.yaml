@@ -168,6 +168,11 @@ jobs:
             echo MANAGER_REPO=manager >> $GITHUB_ENV
             echo COLLECTOR_REPO=collector >> $GITHUB_ENV
             echo SCANNER_REPO=scanner >> $GITHUB_ENV
+
+            echo ERASER_TAG=test >> $GITHUB_ENV
+            echo MANAGER_TAG=test >> $GITHUB_ENV
+            echo COLLECTOR_TAG=test >> $GITHUB_ENV
+            echo SCANNER_TAG=test >> $GITHUB_ENV
         - name: Build eraser-manager
           run: make docker-build-manager MANAGER_REPO=${MANAGER_REPO} VERSION=test
         - name: Build eraser
@@ -186,6 +191,10 @@ jobs:
               MANAGER_REPO=${MANAGER_REPO} \
               COLLECTOR_REPO=${COLLECTOR_REPO} \
               TRIVY_SCANNER_REPO=${SCANNER_REPO}
+              ERASER_TAG=${ERASER_TAG} \
+              MANAGER_TAG=${MANAGER_TAG} \
+              COLLECTOR_TAG=${COLLECTOR_TAG} \
+              TRIVY_SCANNER_TAG=${SCANNER_TAG}
         - name: Upload artifacts
           uses: actions/upload-artifact@v3
           with:
@@ -222,16 +231,16 @@ jobs:
 
       - name: Build eraser-manager
         run: |
-          make docker-build-manager MANAGER_REPO=${{ env.REGISTRY }}/${REPO}-manager VERSION=test
+          make docker-build-manager MANAGER_REPO=${{ env.REGISTRY }}/${REPO}-manager MANAGER_TAG=test
       - name: Build eraser
         run: |
-          make docker-build-eraser ERASER_REPO=${{ env.REGISTRY }}/${REPO} VERSION=test
+          make docker-build-eraser ERASER_REPO=${{ env.REGISTRY }}/${REPO} ERASER_TAG=test
       - name: Build collector
         run: |
-          make docker-build-collector COLLECTOR_REPO=${{ env.REGISTRY }}/collector VERSION=test
+          make docker-build-collector COLLECTOR_REPO=${{ env.REGISTRY }}/collector COLLECTOR_TAG=test
       - name: Build trivy scanner
         run: |
-          make docker-build-trivy-scanner TRIVY_SCANNER_REPO=${{ env.REGISTRY }}/${REPO}-trivy-scanner VERSION=test
+          make docker-build-trivy-scanner TRIVY_SCANNER_REPO=${{ env.REGISTRY }}/${REPO}-trivy-scanner TRIVY_SCANNER_TAG=test
       - name: Run trivy for eraser
         run: trivy image --ignore-unfixed --exit-code=1 --vuln-type=os,library ${{ env.REGISTRY }}/${REPO}:test
 
