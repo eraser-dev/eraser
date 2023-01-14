@@ -88,7 +88,6 @@ type Reconciler struct {
 }
 
 func Add(mgr manager.Manager, cfg *eraserv1.EraserConfig) error {
-
 	collCfg := cfg.Components.Collector
 	if !collCfg.Enable {
 		return nil
@@ -273,7 +272,7 @@ func (r *Reconciler) createImageJob(ctx context.Context, req ctrl.Request) (ctrl
 	collArgs := []string{"--scan-disabled=" + strconv.FormatBool(scanDisabled)}
 	collArgs = append(collArgs, profileArgs...)
 
-	eraserArgs := append(util.EraserArgs, "--log-level="+logger.GetLevel())
+	eraserArgs := []string{"--log-level=" + logger.GetLevel()}
 	eraserArgs = append(eraserArgs, profileArgs...)
 
 	pullSecrets := []corev1.LocalObjectReference{}

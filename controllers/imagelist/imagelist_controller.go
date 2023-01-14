@@ -249,7 +249,6 @@ func (r *Reconciler) handleImageListEvent(ctx context.Context, req *ctrl.Request
 		"--imagelist=" + filepath.Join(imgListPath, "images"),
 		"--log-level=" + logger.GetLevel(),
 	}
-	args = append(args, util.EraserArgs...)
 
 	eraserContainerCfg := r.eraserConfig.Components.Eraser
 	imageCfg := eraserContainerCfg.Image

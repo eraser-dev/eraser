@@ -5,8 +5,6 @@ import (
 	"time"
 
 	eraserv1 "github.com/Azure/eraser/api/v1"
-	"github.com/Azure/eraser/api/v1/config"
-	"github.com/Azure/eraser/pkg/utils"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -16,9 +14,6 @@ import (
 
 var (
 	EraserImage = flag.String("eraser-image", "", "eraser image")
-	EraserArgs  = utils.MultiFlag([]string{})
-
-	EraserOptions = config.Default()
 )
 
 const (
@@ -29,10 +24,6 @@ const (
 	EnvVarContainerdNamespaceKey   = "CONTAINERD_NAMESPACE"
 	EnvVarContainerdNamespaceValue = "k8s.io"
 )
-
-func init() {
-	flag.Var(&EraserArgs, "eraser-arg", "An argument to be passed through to the eraser. For example, --eraser-arg=--enable-pprof=true will pass through to the eraser as --enable-pprof=true. Can be supplied multiple times.")
-}
 
 func NeverOnCreate(_ event.CreateEvent) bool {
 	return false

@@ -56,19 +56,16 @@ const (
 
 var log = logf.Log.WithName("controller").WithValues("process", "imagejob-controller")
 
-var (
-	defaultTolerations = []corev1.Toleration{
-		{
-			Operator: corev1.TolerationOpExists,
-		},
-	}
-)
+var defaultTolerations = []corev1.Toleration{
+	{
+		Operator: corev1.TolerationOpExists,
+	},
+}
 
 func Add(mgr manager.Manager, cfg *eraserv1.EraserConfig) error {
 	filterOpts := cfg.Manager.NodeFilter
 	if filterOpts.Type == "exclude" && !slices.Contains(filterOpts.Selectors, windowsFilterLabel) {
 		filterOpts.Selectors = append(filterOpts.Selectors, windowsFilterLabel)
-
 	}
 
 	return add(mgr, newReconciler(mgr, cfg))

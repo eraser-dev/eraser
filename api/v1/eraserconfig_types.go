@@ -112,7 +112,7 @@ type Components struct {
 
 //+kubebuilder:object:root=true
 
-// EraserConfig is the Schema for the eraserconfigs API
+// EraserConfig is the Schema for the eraserconfigs API.
 type EraserConfig struct {
 	metav1.TypeMeta `json:",inline"`
 

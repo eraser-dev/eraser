@@ -39,7 +39,6 @@ import (
 	"github.com/Azure/eraser/api/v1/config"
 	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
 	"github.com/Azure/eraser/controllers"
-	"github.com/Azure/eraser/controllers/util"
 	"github.com/Azure/eraser/pkg/logger"
 	"github.com/Azure/eraser/version"
 	//+kubebuilder:scaffold:imports
@@ -92,11 +91,11 @@ func main() {
 		options = options.AndFromOrDie(ctrl.ConfigFile().AtPath(configFile).OfKind(&eraserOpts))
 	}
 
-	setupLog.Info("eraser config", "MANAGER", util.EraserOptions.Manager)
-	setupLog.Info("eraser config", "COMPONENT", util.EraserOptions.Components)
-	setupLog.Info("eraser config", "OPTIONS", fmt.Sprintf("%#v\n", options))
+	setupLog.V(1).Info("eraser config", "MANAGER", eraserOpts.Manager)
+	setupLog.V(1).Info("eraser config", "COMPONENT", eraserOpts.Components)
+	setupLog.V(1).Info("eraser config", "OPTIONS", fmt.Sprintf("%#v\n", options))
 
-	managerOpts := util.EraserOptions.Manager
+	managerOpts := eraserOpts.Manager
 
 	if managerOpts.Profile.Enable {
 		go func() {
