@@ -81,7 +81,12 @@ func Add(mgr manager.Manager, cfg *eraserv1.EraserConfig) error {
 
 // newReconciler returns a new reconcile.Reconciler.
 func newReconciler(mgr manager.Manager, cfg *eraserv1.EraserConfig) reconcile.Reconciler {
-	otlpEndpoint := cfg.Manager.OTLPEndpoint
+	config := *config.Default()
+	if cfg != nil {
+		config = *cfg
+	}
+
+	otlpEndpoint := config.Manager.OTLPEndpoint
 	if otlpEndpoint != "" {
 		ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 		defer cancel()
@@ -93,11 +98,7 @@ func newReconciler(mgr manager.Manager, cfg *eraserv1.EraserConfig) reconcile.Re
 	rec := &Reconciler{
 		Client:       mgr.GetClient(),
 		scheme:       mgr.GetScheme(),
-		eraserConfig: *config.Default(),
-	}
-
-	if cfg != nil {
-		rec.eraserConfig = *cfg
+		eraserConfig: config,
 	}
 
 	return rec

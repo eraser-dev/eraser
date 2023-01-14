@@ -150,7 +150,7 @@ func main() {
 		os.Exit(generalErr)
 	}
 
-	s, err := initScanner(userConfig)
+	s, err := initScanner(&userConfig)
 	if err != nil {
 		log.Error(err, "error initializing scanner")
 	}
@@ -223,7 +223,11 @@ func runProfileServer() {
 	log.Error(err, "pprof server failed")
 }
 
-func initScanner(userConfig Config) (Scanner, error) {
+func initScanner(userConfig *Config) (Scanner, error) {
+	if userConfig == nil {
+		return nil, fmt.Errorf("invalid trivy scanner config")
+	}
+
 	cacheDir := userConfig.CacheDir
 	err := downloadAndInitDB(userConfig)
 	if err != nil {
@@ -258,7 +262,7 @@ func initScanner(userConfig Config) (Scanner, error) {
 	var s Scanner = &ImageScanner{
 		trivyScanConfig:    scanConfig,
 		imageSourceOptions: imageSourceOptions,
-		userConfig:         userConfig,
+		userConfig:         *userConfig,
 		timer:              timer,
 	}
 	return s, nil
