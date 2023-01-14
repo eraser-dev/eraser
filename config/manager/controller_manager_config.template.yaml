@@ -34,7 +34,7 @@ components:
     enable: true
     image:
       repo: COLLECTOR_REPO
-      tag: VERSION
+      tag: COLLECTOR_TAG
     request:
       mem: 25Mi
       cpu: 7m
@@ -45,7 +45,7 @@ components:
     enable: true
     image:
       repo: SCANNER_REPO # supply custom image for custom scanner
-      tag: VERSION
+      tag: SCANNER_TAG
     request:
       mem: 500Mi
       cpu: 1000m
@@ -76,7 +76,7 @@ components:
   eraser:
     image:
       repo: ERASER_REPO
-      tag: VERSION
+      tag: ERASER_TAG
     request:
       mem: 25Mi
       cpu: 7m

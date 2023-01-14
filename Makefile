@@ -103,7 +103,7 @@ manifests: __controller-gen ## Generates k8s yaml for eraser deployment.
 		-e "s~SCANNER_REPO~${TRIVY_SCANNER_REPO}~g" \
 		-e "s~ERASER_TAG~${ERASER_TAG}~g" \
 		-e "s~COLLECTOR_TAG~${COLLECTOR_TAG}~g" \
-		-e "s~SCANNER_TAG~${TRIVY_SCANNER_TAG}~g"
+		-e "s~SCANNER_TAG~${TRIVY_SCANNER_TAG}~g" \
 		config/manager/controller_manager_config.template.yaml > config/manager/controller_manager_config.yaml
 	docker run --rm -v $(shell pwd)/config:/config -w /config/manager \
 		k8s.gcr.io/kustomize/kustomize:v${KUSTOMIZE_VERSION} edit set image controller=${MANAGER_IMG}
