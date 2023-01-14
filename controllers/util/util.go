@@ -12,9 +12,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/event"
 )
 
-var (
-	EraserImage = flag.String("eraser-image", "", "eraser image")
-)
+var EraserImage = flag.String("eraser-image", "", "eraser image")
 
 const (
 	ImageJobOwnerLabelKey = "eraser.sh/job-owner"

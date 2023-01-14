@@ -62,7 +62,11 @@ func parseCommaSeparatedOptions(m map[string]bool, commaSeparatedList string) er
 	return nil
 }
 
-func downloadAndInitDB(cfg Config) error {
+func downloadAndInitDB(cfg *Config) error {
+	if cfg == nil {
+		return fmt.Errorf("valid configuration required")
+	}
+
 	err := downloadDB(cfg)
 	if err != nil {
 		return err
@@ -76,7 +80,11 @@ func downloadAndInitDB(cfg Config) error {
 	return nil
 }
 
-func downloadDB(cfg Config) error {
+func downloadDB(cfg *Config) error {
+	if cfg == nil {
+		return fmt.Errorf("valid configuration required")
+	}
+
 	client := dlDb.NewClient(cfg.CacheDir, true, true, dlDb.WithDBRepository(cfg.DBRepo))
 	ctx := context.Background()
 	needsUpdate, err := client.NeedsUpdate(trivyVersion, false)

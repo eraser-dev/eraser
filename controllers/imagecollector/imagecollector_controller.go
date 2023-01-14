@@ -19,7 +19,6 @@ package imagecollector
 import (
 	"context"
 	"errors"
-	"flag"
 	"fmt"
 	"os"
 	"os/signal"
@@ -61,13 +60,12 @@ const (
 )
 
 var (
-	log                    = logf.Log.WithName("controller").WithValues("process", "imagecollector-controller")
-	deleteScanFailedImages = flag.Bool("delete-scan-failed-images", true, "whether or not to delete images for which scanning has failed")
-	startTime              time.Time
-	ownerLabel             labels.Selector
-	exporter               sdkmetric.Exporter
-	reader                 sdkmetric.Reader
-	provider               *sdkmetric.MeterProvider
+	log        = logf.Log.WithName("controller").WithValues("process", "imagecollector-controller")
+	startTime  time.Time
+	ownerLabel labels.Selector
+	exporter   sdkmetric.Exporter
+	reader     sdkmetric.Reader
+	provider   *sdkmetric.MeterProvider
 )
 
 func init() {
@@ -98,7 +96,11 @@ func Add(mgr manager.Manager, cfg *eraserv1.EraserConfig) error {
 
 // newReconciler returns a new reconcile.Reconciler.
 func newReconciler(mgr manager.Manager, cfg *eraserv1.EraserConfig) *Reconciler {
-	otlpEndpoint := cfg.Manager.OTLPEndpoint
+	config := *config.Default()
+	if cfg != nil {
+		config = *cfg
+	}
+	otlpEndpoint := config.Manager.OTLPEndpoint
 	if otlpEndpoint != "" {
 		ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 		defer cancel()
@@ -110,11 +112,7 @@ func newReconciler(mgr manager.Manager, cfg *eraserv1.EraserConfig) *Reconciler 
 	rec := &Reconciler{
 		Client:       mgr.GetClient(),
 		Scheme:       mgr.GetScheme(),
-		eraserConfig: *config.Default(),
-	}
-
-	if cfg != nil {
-		rec.eraserConfig = *cfg
+		eraserConfig: config,
 	}
 
 	return rec

@@ -121,7 +121,7 @@ func main() {
 	log.Info("userConfig", "USERCONFIG", fmt.Sprintf("%#v\n", userConfig))
 
 	// Initializes logger and parses CLI options into hashmap configs
-	err = initGlobals(userConfig.Vulnerabilities)
+	err = initGlobals(&userConfig.Vulnerabilities)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error initializing options: %v", err)
 		os.Exit(generalErr)
@@ -181,7 +181,10 @@ func main() {
 }
 
 // Initializes logger and parses CLI options into hashmap configs.
-func initGlobals(cfg VulnConfig) error {
+func initGlobals(cfg *VulnConfig) error {
+	if cfg == nil {
+		return fmt.Errorf("valid configuration required")
+	}
 
 	allSetsOfCommaSeparatedOptions := []optionSet{
 		{
