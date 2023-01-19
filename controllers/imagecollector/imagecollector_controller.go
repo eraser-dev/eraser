@@ -404,6 +404,8 @@ func (r *Reconciler) createImageJob(ctx context.Context, req ctrl.Request, argsC
 
 func (r *Reconciler) handleCompletedImageJob(ctx context.Context, req ctrl.Request, childJob *eraserv1.ImageJob) (ctrl.Result, error) {
 	var err error
+	var timeRemaining time.Duration
+
 	switch phase := childJob.Status.Phase; phase {
 	case eraserv1.PhaseCompleted:
 		log.Info("completed phase")
@@ -423,6 +425,7 @@ func (r *Reconciler) handleCompletedImageJob(ctx context.Context, req ctrl.Reque
 			metrics.ExportMetrics(log, exporter, reader, provider)
 		}
 
+		timeRemaining = *repeatPeriod - *util.SuccessDel
 		if res, err := r.handleJobDeletion(ctx, childJob); err != nil || res.RequeueAfter > 0 {
 			return res, err
 		}
@@ -444,6 +447,7 @@ func (r *Reconciler) handleCompletedImageJob(ctx context.Context, req ctrl.Reque
 			metrics.ExportMetrics(log, exporter, reader, provider)
 		}
 
+		timeRemaining = *repeatPeriod - *util.ErrDel
 		if res, err := r.handleJobDeletion(ctx, childJob); err != nil || res.RequeueAfter > 0 {
 			return res, err
 		}
@@ -452,5 +456,9 @@ func (r *Reconciler) handleCompletedImageJob(ctx context.Context, req ctrl.Reque
 		log.Error(err, "imagejob not in completed or failed phase", "imagejob", childJob)
 	}
 
-	return ctrl.Result{RequeueAfter: *repeatPeriod}, err
+	if timeRemaining <= 0 {
+		return ctrl.Result{Requeue: true}, err
+	}
+
+	return ctrl.Result{RequeueAfter: timeRemaining}, err
 }
