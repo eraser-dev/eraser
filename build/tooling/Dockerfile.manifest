@@ -15,6 +15,7 @@ WORKDIR /eraser
 COPY config config
 
 WORKDIR /eraser/config/manager
+
 RUN sed -i -e "s~ERASER_REPO~${ERASER_REPO}~g" \
     -e "s~COLLECTOR_REPO~${COLLECTOR_REPO}~g" \
     -e "s~SCANNER_REPO~${TRIVY_SCANNER_REPO}~g" \
@@ -22,6 +23,7 @@ RUN sed -i -e "s~ERASER_REPO~${ERASER_REPO}~g" \
     -e "s~COLLECTOR_TAG~${COLLECTOR_TAG}~g" \
     -e "s~SCANNER_TAG~${TRIVY_SCANNER_TAG}~g" \
     controller_manager_config.yaml
+
 RUN kustomize edit set image controller=${MANAGER_REPO}:${MANAGER_TAG}
 
 WORKDIR /eraser

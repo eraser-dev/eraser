@@ -218,17 +218,11 @@ uninstall: manifests ## Uninstall CRDs from the K8s cluster specified in ~/.kube
 		k8s.gcr.io/kustomize/kustomize:v${KUSTOMIZE_VERSION} build \
 		/config/crd | kubectl delete -f -
 
-deploy: manifests ## Deploy controller to the K8s cluster specified in ~/.kube/config.
-	docker run --rm -v $(shell pwd)/config:/config -w /config/manager \
-		k8s.gcr.io/kustomize/kustomize:v${KUSTOMIZE_VERSION} edit set image controller=${MANAGER_IMG}
-	docker run --rm -v $(shell pwd)/config:/config \
-		k8s.gcr.io/kustomize/kustomize:v${KUSTOMIZE_VERSION} build \
-		/config/default | kubectl apply -f -
+deploy: __manifest_kustomize ## Deploy controller to the K8s cluster specified in ~/.kube/config.
+	$(MANIFEST_KUSTOMIZE) build /eraser/config/default | kubectl apply -f -
 
-undeploy: ## Undeploy controller from the K8s cluster specified in ~/.kube/config.
-	docker run --rm -v $(shell pwd)/config:/config \
-		k8s.gcr.io/kustomize/kustomize:v${KUSTOMIZE_VERSION} build \
-		/config/default | kubectl delete -f -
+undeploy: __manifest_kustomize ## Undeploy controller from the K8s cluster specified in ~/.kube/config.
+	$(MANIFEST_KUSTOMIZE) build /eraser/config/default | kubectl delete -f -
 
 ##@ Release
 
@@ -282,7 +276,6 @@ __kustomize-manifest-image:
 	docker build . \
 		-t manifest-kustomize \
 		--build-arg KUSTOMIZE_VERSION=${KUSTOMIZE_VERSION} \
-		--build-arg MANAGER_IMG=${MANAGER_IMG} \
 		--build-arg TRIVY_SCANNER_REPO=${TRIVY_SCANNER_REPO} \
 		--build-arg MANAGER_REPO=${MANAGER_REPO} \
 		--build-arg ERASER_REPO=${ERASER_REPO} \
