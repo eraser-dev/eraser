@@ -211,8 +211,8 @@ docker-build-collector:
 install: __manifest_kustomize ## Install CRDs into the K8s cluster specified in ~/.kube/config.
 	$(MANIFEST_KUSTOMIZE) build /eraser/config/crd | kubectl apply -f -
 
-uninstall: __manifest_kustomiz ## Uninstall CRDs from the K8s cluster specified in ~/.kube/config.
-	$(MANIFEST_KUSTOMIZE) build /config/crd | kubectl delete -f -
+uninstall: __manifest_kustomize ## Uninstall CRDs from the K8s cluster specified in ~/.kube/config.
+	$(MANIFEST_KUSTOMIZE) build /eraser/config/crd | kubectl delete -f -
 
 deploy: __manifest_kustomize ## Deploy controller to the K8s cluster specified in ~/.kube/config.
 	$(MANIFEST_KUSTOMIZE) build /eraser/config/default | kubectl apply -f -
