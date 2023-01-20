@@ -97,7 +97,9 @@ lint: $(GOLANGCI_LINT) ## Runs go linting.
 
 ##@ Development
 
-manifests: __controller-gen ## Generates k8s yaml for eraser deployment.
+#kustomize_
+
+manifests: __helm_kustomize __controller-gen ## Generates k8s yaml for eraser deployment.
 	@sed -e "s~ERASER_REPO~${ERASER_REPO}~g" \
 		-e "s~COLLECTOR_REPO~${COLLECTOR_REPO}~g" \
 		-e "s~SCANNER_REPO~${TRIVY_SCANNER_REPO}~g" \
@@ -119,8 +121,7 @@ manifests: __controller-gen ## Generates k8s yaml for eraser deployment.
 	docker run --rm -v $(shell pwd):/eraser \
 		k8s.gcr.io/kustomize/kustomize:v${KUSTOMIZE_VERSION} build \
 		/eraser/config/default -o /eraser/manifest_staging/deploy/eraser.yaml
-	docker run --rm -v $(shell pwd):/eraser \
-		k8s.gcr.io/kustomize/kustomize:v${KUSTOMIZE_VERSION} build \
+	$(HELM_KUSTOMIZE) build \
 		--load_restrictor LoadRestrictionsNone /eraser/third_party/open-policy-agent/gatekeeper/helmify | go run third_party/open-policy-agent/gatekeeper/helmify/*.go
 
 # Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method
@@ -270,10 +271,19 @@ CONTROLLER_GEN=docker run --rm -v $(shell pwd):/eraser eraser-tooling controller
 __conversion-gen: __tooling-image
 CONVERSION_GEN=docker run --rm -v $(shell pwd):/eraser eraser-tooling conversion-gen
 
+__helm_kustomize: __kustomize-helm-image
+HELM_KUSTOMIZE=docker run --rm -v $(shell pwd)/manifest_staging:/eraser/manifest_staging -v $(shell pwd)/third_party:/eraser/third_party helm-kustomize
+
 __tooling-image:
 	docker build . \
 		-t eraser-tooling \
 		-f build/tooling/Dockerfile
+
+__kustomize-helm-image:
+	docker build . \
+		-t helm-kustomize \
+		--build-arg KUSTOMIZE_VERSION=${KUSTOMIZE_VERSION} \
+		-f build/tooling/Dockerfile.helm
 
 # Tags a new version for docs
 .PHONY: version-docs

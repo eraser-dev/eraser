@@ -14,4 +14,15 @@ var replacements = map[string]string{
         - name: {{ . }}
         {{- end }}
       {{- end }}`,
+
+	`- HELMSUBST_VOLUME: ""`: `- name: helm-config
+        configMap:
+          name: "eraser-manager-config-{{ toYaml .Values.runtimeConfig | sha256sum | trunc 7 }}"
+      `,
+
+	`- HELMSUBST_VOLUMEMOUNT: ""`: `- name: helm-config
+          mountPath: /helm_controller_manager_config.yaml
+          subPath: controller_manager_config.yaml
+      `,
+	`HELMSUBST_CONFIG_FILE_FLAG`: `--config=helm_controller_manager_config.yaml`,
 }

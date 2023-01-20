@@ -20,6 +20,9 @@ spec:
       helm.sh/chart: '{{ template "eraser.name" . }}'
   template:
     metadata:
+      annotations:
+        checksum/config: '{{ toYaml .Values.runtimeConfig | sha256sum }}'
+        test: '{{ toYaml .Values.runtimeConfig | sha256sum | trunc 7 }}'
       labels:
         app.kubernetes.io/instance: '{{ .Release.Name }}'
         app.kubernetes.io/managed-by: '{{ .Release.Service }}'
@@ -38,7 +41,7 @@ spec:
       containers:
       - args:
         - --leader-elect=false
-        - --config=controller_manager_config.yaml
+        - --config=helm_controller_manager_config.yaml
         {{- if .Values.deploy.additionalArgs }}{{- range .Values.deploy.additionalArgs }}{{ nindent 8 "- " }}{{ . }}{{- end -}}{{ end }}
         command:
         - /manager
@@ -79,9 +82,10 @@ spec:
           seccompProfile:
             type: RuntimeDefault
         volumeMounts:
-        - mountPath: /controller_manager_config.yaml
-          name: manager-config
+        - name: helm-config
+          mountPath: /helm_controller_manager_config.yaml
           subPath: controller_manager_config.yaml
+      
       nodeSelector:
         {{- toYaml .Values.deploy.nodeSelector | nindent 8 }}
       serviceAccountName: eraser-controller-manager
@@ -89,9 +93,7 @@ spec:
       tolerations:
         {{- toYaml .Values.deploy.tolerations | nindent 8 }}
       volumes:
-      - configMap:
-          name: eraser-manager-config
-        name: eraser-manager-config
-      - configMap:
-          name: eraser-manager-config
-        name: manager-config
+      - name: helm-config
+        configMap:
+          name: "eraser-manager-config-{{ toYaml .Values.runtimeConfig | sha256sum | trunc 7 }}"
+      
