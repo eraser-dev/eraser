@@ -46,6 +46,8 @@ spec:
         command:
         - /manager
         env:
+        - name: ERASER_CONFIGMAP_NAME
+          value: '{{ toYaml .Values.runtimeConfig | sha256sum | trunc 7 }}'
         - name: POD_NAMESPACE
           valueFrom:
             fieldRef:

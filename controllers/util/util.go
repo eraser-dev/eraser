@@ -2,6 +2,7 @@ package util
 
 import (
 	"flag"
+	"os"
 	"time"
 
 	eraserv1 "github.com/Azure/eraser/api/v1"
@@ -12,7 +13,16 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/event"
 )
 
-var EraserImage = flag.String("eraser-image", "", "eraser image")
+var (
+	EraserImage         = flag.String("eraser-image", "", "eraser image")
+	EraserConfigmapName = "eraser-manager-config"
+)
+
+func init() {
+	if configmapName := os.Getenv("ERASER_CONFIGMAP_NAME"); configmapName != "" {
+		EraserConfigmapName = configmapName
+	}
+}
 
 const (
 	ImageJobOwnerLabelKey = "eraser.sh/job-owner"

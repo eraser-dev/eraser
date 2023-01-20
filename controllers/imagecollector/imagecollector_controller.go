@@ -56,7 +56,8 @@ import (
 )
 
 const (
-	ownerLabelValue = "imagecollector"
+	ownerLabelValue  = "imagecollector"
+	configVolumeName = "eraser-config"
 )
 
 var (
@@ -286,11 +287,11 @@ func (r *Reconciler) createImageJob(ctx context.Context, req ctrl.Request) (ctrl
 					Name: "shared-data",
 				},
 				{
-					Name: "eraser-manager-config",
+					Name: configVolumeName,
 					VolumeSource: corev1.VolumeSource{
 						ConfigMap: &corev1.ConfigMapVolumeSource{
 							LocalObjectReference: corev1.LocalObjectReference{
-								Name: "eraser-manager-config",
+								Name: util.EraserConfigmapName,
 							},
 						},
 					},
@@ -375,7 +376,7 @@ func (r *Reconciler) createImageJob(ctx context.Context, req ctrl.Request) (ctrl
 			Args:  scannerArgs,
 			VolumeMounts: []corev1.VolumeMount{
 				{MountPath: "/run/eraser.sh/shared-data", Name: "shared-data"},
-				{MountPath: cfgDirname, Name: "eraser-manager-config"},
+				{MountPath: cfgDirname, Name: configVolumeName},
 			},
 			Resources: corev1.ResourceRequirements{
 				Requests: corev1.ResourceList{
