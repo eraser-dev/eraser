@@ -2,7 +2,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: "eraser-manager-config-{{ toYaml .Values.runtimeConfig | sha256sum | trunc 7 }}"
-  namespace: eraser-system
+  namespace: "{{ .Release.Namespace }}"
   annotations:
     checksum/config: "{{ toYaml .Values.runtimeConfig | sha256sum }}"
 data:

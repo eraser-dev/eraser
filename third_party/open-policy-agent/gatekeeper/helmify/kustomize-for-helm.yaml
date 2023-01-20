@@ -23,7 +23,7 @@ spec:
         - /manager
         env:
         - name: ERASER_CONFIGMAP_NAME
-          value: "{{ toYaml .Values.runtimeConfig | sha256sum | trunc 7 }}"
+          value: "eraser-manager-config-{{ toYaml .Values.runtimeConfig | sha256sum | trunc 7 }}"
         image: "{{ .Values.deploy.image.repo }}:{{ .Values.deploy.image.tag | default .Chart.AppVersion }}"
         imagePullPolicy: "{{ .Values.deploy.image.pullPolicy }}"
         livenessProbe:
