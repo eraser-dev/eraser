@@ -99,16 +99,7 @@ lint: $(GOLANGCI_LINT) ## Runs go linting.
 
 #kustomize_
 
-manifests: __helm_kustomize __controller-gen ## Generates k8s yaml for eraser deployment.
-	@sed -e "s~ERASER_REPO~${ERASER_REPO}~g" \
-		-e "s~COLLECTOR_REPO~${COLLECTOR_REPO}~g" \
-		-e "s~SCANNER_REPO~${TRIVY_SCANNER_REPO}~g" \
-		-e "s~ERASER_TAG~${ERASER_TAG}~g" \
-		-e "s~COLLECTOR_TAG~${COLLECTOR_TAG}~g" \
-		-e "s~SCANNER_TAG~${TRIVY_SCANNER_TAG}~g" \
-		config/manager/controller_manager_config.template.yaml > config/manager/controller_manager_config.yaml
-	docker run --rm -v $(shell pwd)/config:/config -w /config/manager \
-		k8s.gcr.io/kustomize/kustomize:v${KUSTOMIZE_VERSION} edit set image controller=${MANAGER_IMG}
+manifests: __manifest_kustomize __helm_kustomize __controller-gen ## Generates k8s yaml for eraser deployment.
 	$(CONTROLLER_GEN) \
 		crd \
 		rbac:roleName=manager-role \
@@ -118,11 +109,10 @@ manifests: __helm_kustomize __controller-gen ## Generates k8s yaml for eraser de
 	rm -rf manifest_staging
 	mkdir -p manifest_staging/deploy
 	mkdir -p manifest_staging/charts/eraser
-	docker run --rm -v $(shell pwd):/eraser \
-		k8s.gcr.io/kustomize/kustomize:v${KUSTOMIZE_VERSION} build \
-		/eraser/config/default -o /eraser/manifest_staging/deploy/eraser.yaml
+	$(MANIFEST_KUSTOMIZE) build /eraser/config/default -o /eraser/manifest_staging/deploy/eraser.yaml
 	$(HELM_KUSTOMIZE) build \
-		--load_restrictor LoadRestrictionsNone /eraser/third_party/open-policy-agent/gatekeeper/helmify | go run third_party/open-policy-agent/gatekeeper/helmify/*.go
+		--load_restrictor LoadRestrictionsNone /eraser/third_party/open-policy-agent/gatekeeper/helmify | \
+		go run third_party/open-policy-agent/gatekeeper/helmify/*.go
 
 # Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method
 # implementations. Also generate conversions between structs of different API versions.
@@ -271,6 +261,9 @@ CONTROLLER_GEN=docker run --rm -v $(shell pwd):/eraser eraser-tooling controller
 __conversion-gen: __tooling-image
 CONVERSION_GEN=docker run --rm -v $(shell pwd):/eraser eraser-tooling conversion-gen
 
+__manifest_kustomize: __kustomize-manifest-image
+MANIFEST_KUSTOMIZE=docker run --rm -v $(shell pwd)/manifest_staging:/eraser/manifest_staging manifest-kustomize
+
 __helm_kustomize: __kustomize-helm-image
 HELM_KUSTOMIZE=docker run --rm -v $(shell pwd)/manifest_staging:/eraser/manifest_staging -v $(shell pwd)/third_party:/eraser/third_party helm-kustomize
 
@@ -284,6 +277,21 @@ __kustomize-helm-image:
 		-t helm-kustomize \
 		--build-arg KUSTOMIZE_VERSION=${KUSTOMIZE_VERSION} \
 		-f build/tooling/Dockerfile.helm
+
+__kustomize-manifest-image:
+	docker build . \
+		-t manifest-kustomize \
+		--build-arg KUSTOMIZE_VERSION=${KUSTOMIZE_VERSION} \
+		--build-arg MANAGER_IMG=${MANAGER_IMG} \
+		--build-arg TRIVY_SCANNER_REPO=${TRIVY_SCANNER_REPO} \
+		--build-arg MANAGER_REPO=${MANAGER_REPO} \
+		--build-arg ERASER_REPO=${ERASER_REPO} \
+		--build-arg COLLECTOR_REPO=${COLLECTOR_REPO} \
+		--build-arg MANAGER_TAG=${MANAGER_TAG} \
+		--build-arg TRIVY_SCANNER_TAG=${TRIVY_SCANNER_TAG} \
+		--build-arg COLLECTOR_TAG=${COLLECTOR_TAG} \
+		--build-arg ERASER_TAG=${ERASER_TAG} \
+		-f build/tooling/Dockerfile.manifest
 
 # Tags a new version for docs
 .PHONY: version-docs

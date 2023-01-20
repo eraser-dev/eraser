@@ -33,8 +33,8 @@ components:
   collector:
     enable: true
     image:
-      repo: ghcr.io/azure/collector
-      tag: v1.0.0-beta.3
+      repo: COLLECTOR_REPO
+      tag: COLLECTOR_TAG
     request:
       mem: 25Mi
       cpu: 7m
@@ -44,8 +44,8 @@ components:
   scanner:
     enable: true
     image:
-      repo: ghcr.io/azure/eraser-trivy-scanner # supply custom image for custom scanner
-      tag: v1.0.0-beta.3
+      repo: SCANNER_REPO # supply custom image for custom scanner
+      tag: SCANNER_TAG
     request:
       mem: 500Mi
       cpu: 1000m
@@ -75,8 +75,8 @@ components:
         perImage: 1h
   eraser:
     image:
-      repo: ghcr.io/azure/eraser
-      tag: v1.0.0-beta.3
+      repo: ERASER_REPO
+      tag: ERASER_TAG
     request:
       mem: 25Mi
       cpu: 7m
