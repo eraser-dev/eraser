@@ -190,7 +190,7 @@ jobs:
               ERASER_REPO=${ERASER_REPO} \
               MANAGER_REPO=${MANAGER_REPO} \
               COLLECTOR_REPO=${COLLECTOR_REPO} \
-              TRIVY_SCANNER_REPO=${SCANNER_REPO}
+              TRIVY_SCANNER_REPO=${SCANNER_REPO} \
               ERASER_TAG=${ERASER_TAG} \
               MANAGER_TAG=${MANAGER_TAG} \
               COLLECTOR_TAG=${COLLECTOR_TAG} \
