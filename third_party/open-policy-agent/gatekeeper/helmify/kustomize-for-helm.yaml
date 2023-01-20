@@ -28,7 +28,7 @@ spec:
         - HELMSUBST_DEPLOYMENT_CONTROLLER_MANAGER_ADDITIONAL_ARGS
         command:
         - /manager
-        image: "{{ .Values.deploy.image.repo}}:{{ .Values.deploy.image.tag | default .Chart.AppVersion }}"
+        image: "{{ .Values.deploy.image.repo }}:{{ .Values.deploy.image.tag | default .Chart.AppVersion }}"
         imagePullPolicy: "{{ .Values.deploy.image.pullPolicy }}"
         livenessProbe:
           httpGet:

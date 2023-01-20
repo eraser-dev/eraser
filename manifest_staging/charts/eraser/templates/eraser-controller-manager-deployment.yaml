@@ -50,7 +50,7 @@ spec:
               fieldPath: metadata.namespace
         - name: OTEL_SERVICE_NAME
           value: eraser-manager
-        image: '{{ .Values.deploy.image.repo}}:{{ .Values.deploy.image.tag | default .Chart.AppVersion }}'
+        image: '{{ .Values.deploy.image.repo }}:{{ .Values.deploy.image.tag | default .Chart.AppVersion }}'
         imagePullPolicy: '{{ .Values.deploy.image.pullPolicy }}'
         livenessProbe:
           httpGet:

@@ -68,7 +68,7 @@ runtimeConfig:
         #   total: 23h
         #   perImage: 1h
     eraser:
-      image: {} 
+      image: {}
         # repo: ""
         # tag: ""
       request: {}
@@ -80,7 +80,7 @@ runtimeConfig:
 
 deploy:
   image:
-    repository: ghcr.io/azure/eraser-manager
+    repo: ghcr.io/azure/eraser-manager
     pullPolicy: IfNotPresent
     # Overrides the image tag whose default is the chart appVersion.
     tag: ""
