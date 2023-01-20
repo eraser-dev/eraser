@@ -1,0 +1,10 @@
+ARG KUSTOMIZE_VERSION
+FROM k8s.gcr.io/kustomize/kustomize:v${KUSTOMIZE_VERSION}
+WORKDIR /eraser
+COPY config config
+
+# Delete configmap generator from kustomize config, we don't want it for helm
+RUN sed -i -e '/^- manager_config_patch.yaml/d' config/default/kustomization.yaml
+RUN sed -i -e '/^configMapGenerator:/,/^$/d' config/manager/kustomization.yaml
+
+ENTRYPOINT ["kustomize"]
