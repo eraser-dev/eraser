@@ -4,9 +4,6 @@ resources:
 generatorOptions:
   disableNameSuffixHash: true
 
-# DO NOT CHANGE FORMATTING:
-# This must be deleted for helm chart generation, so it should all be on one line.
-configMapGenerator: [ { "files": ["controller_manager_config.yaml"], "name": "manager-config" } ]
 
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
@@ -14,3 +11,10 @@ images:
 - name: controller
   newName: ghcr.io/azure/eraser-manager
   newTag: v1.0.0-beta.3
+
+# DO NOT CHANGE FORMATTING:
+# This must be deleted for helm chart generation, so it should all be on one line.
+configMapGenerator: [ { "files": ["controller_manager_config.yaml"], "name": "manager-config" } ]
+# DO NOT CHANGE FORMATTING:
+# This must be deleted for helm chart generation, so it should all be on one line.
+patches: [{"path":"patch.yaml","target":{"kind":"Deployment"}}]

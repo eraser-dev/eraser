@@ -553,15 +553,6 @@ data:
   controller_manager_config.yaml: |
     apiVersion: eraser.sh/v1
     kind: EraserConfig
-    health:
-      healthProbeBindAddress: :8081
-    metrics:
-      bindAddress: 127.0.0.1:8080
-    webhook:
-      port: 9443
-    leaderElection:
-      leaderElect: true
-      resourceName: e29e094a.k8s.io
     manager:
       runtime: containerd
       otlpEndpoint: ""
@@ -660,6 +651,7 @@ spec:
     spec:
       containers:
       - args:
+        - --leader-elect=false
         - --config=controller_manager_config.yaml
         command:
         - /manager
