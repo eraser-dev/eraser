@@ -56,11 +56,11 @@ const (
 )
 
 const (
-	CollectorEnable    = HelmPath("runtimeConfig.components.collector.enable")
+	CollectorEnable    = HelmPath("runtimeConfig.components.collector.enabled")
 	CollectorImageRepo = HelmPath("runtimeConfig.components.collector.image.repo")
 	CollectorImageTag  = HelmPath("runtimeConfig.components.collector.image.tag")
 
-	ScannerEnable    = HelmPath("runtimeConfig.components.scanner.enable")
+	ScannerEnable    = HelmPath("runtimeConfig.components.scanner.enabled")
 	ScannerImageRepo = HelmPath("runtimeConfig.components.scanner.image.repo")
 	ScannerImageTag  = HelmPath("runtimeConfig.components.scanner.image.tag")
 
