@@ -269,7 +269,7 @@ __kustomize-helm-image:
 		-f build/tooling/Dockerfile.helm
 
 __kustomize-manifest-image:
-	docker buildx build . \
+	docker build . \
 		-t manifest-kustomize \
 		--build-arg KUSTOMIZE_VERSION=${KUSTOMIZE_VERSION} \
 		--build-arg TRIVY_SCANNER_REPO=${TRIVY_SCANNER_REPO} \
