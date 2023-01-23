@@ -47,7 +47,7 @@ func (td *Duration) UnmarshalJSON(b []byte) error {
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
 type OptionalContainerConfig struct {
-	Enable          bool `json:"enable,omitempty"`
+	Enabled         bool `json:"enabled,omitempty"`
 	ContainerConfig `json:",inline"`
 }
 
@@ -75,8 +75,8 @@ type ScheduleConfig struct {
 }
 
 type ProfileConfig struct {
-	Enable bool `json:"enable,omitempty"`
-	Port   int  `json:"port,omitempty"`
+	Enabled bool `json:"enabled,omitempty"`
+	Port    int  `json:"port,omitempty"`
 }
 
 type ImageJobConfig struct {

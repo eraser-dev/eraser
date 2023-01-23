@@ -88,7 +88,7 @@ type Reconciler struct {
 
 func Add(mgr manager.Manager, cfg *eraserv1.EraserConfig) error {
 	collCfg := cfg.Components.Collector
-	if !collCfg.Enable {
+	if !collCfg.Enabled {
 		return nil
 	}
 
@@ -248,7 +248,7 @@ func (r *Reconciler) createImageJob(ctx context.Context, req ctrl.Request) (ctrl
 	collectorCfg := compCfg.Collector
 	eraserCfg := compCfg.Eraser
 
-	scanDisabled := !scanCfg.Enable
+	scanDisabled := !scanCfg.Enabled
 	startTime = time.Now()
 
 	eraserImg := *util.EraserImage
@@ -264,7 +264,7 @@ func (r *Reconciler) createImageJob(ctx context.Context, req ctrl.Request) (ctrl
 
 	profileConfig := r.eraserConfig.Manager.Profile
 	profileArgs := []string{
-		"--enable-pprof=" + strconv.FormatBool(profileConfig.Enable),
+		"--enable-pprof=" + strconv.FormatBool(profileConfig.Enabled),
 		fmt.Sprintf("--pprof-port=%d", profileConfig.Port),
 	}
 

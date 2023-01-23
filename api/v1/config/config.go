@@ -42,8 +42,8 @@ func Default() *v1.EraserConfig {
 				BeginImmediately: true,
 			},
 			Profile: v1.ProfileConfig{
-				Enable: false,
-				Port:   6060,
+				Enabled: false,
+				Port:    6060,
 			},
 			ImageJob: v1.ImageJobConfig{
 				SuccessRatio: 1.0,
@@ -62,7 +62,7 @@ func Default() *v1.EraserConfig {
 		},
 		Components: v1.Components{
 			Collector: v1.OptionalContainerConfig{
-				Enable: false,
+				Enabled: false,
 				ContainerConfig: v1.ContainerConfig{
 					Image: v1.RepoTag{
 						Repo: "ghcr.io/azure/eraser/collector",
@@ -80,7 +80,7 @@ func Default() *v1.EraserConfig {
 				},
 			},
 			Scanner: v1.OptionalContainerConfig{
-				Enable: false,
+				Enabled: false,
 				ContainerConfig: v1.ContainerConfig{
 					Image: v1.RepoTag{
 						Repo: "ghcr.io/azure/eraser/trivy-scanner",

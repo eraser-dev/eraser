@@ -95,7 +95,7 @@ func main() {
 
 	managerOpts := eraserOpts.Manager
 
-	if managerOpts.Profile.Enable {
+	if managerOpts.Profile.Enabled {
 		go func() {
 			server := &http.Server{
 				Addr:              fmt.Sprintf("localhost:%d", managerOpts.Profile.Port),

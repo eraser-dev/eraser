@@ -16,7 +16,7 @@ runtimeConfig:
       # repeatInterval: "" # to be parsed into time.Duration
       # beginImmediately: true
     profile: {}
-      # enable: false
+      # enabled: false
       # port: 0
     imageJob:
       successRatio: 1.0 # float; ok with YAML?
@@ -30,7 +30,7 @@ runtimeConfig:
       #   - eraser.sh/cleanup.filter
   components:
     collector:
-      enable: false
+      enabled: false
       image: {}
         # repo: ""
         # tag: ""
@@ -41,7 +41,7 @@ runtimeConfig:
         # mem: ""
         # cpu: ""
     scanner:
-      enable: false
+      enabled: false
       image: {}
         # repo: ""
         # tag: ""

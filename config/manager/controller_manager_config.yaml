@@ -8,7 +8,7 @@ manager:
     repeatInterval: 24h # to be parsed into time.Duration
     beginImmediately: true
   profile:
-    enable: false
+    enabled: false
     port: 6060
   imageJob:
     successRatio: 1.0 # float; ok with YAML?
@@ -22,7 +22,7 @@ manager:
       - eraser.sh/cleanup.filter
 components:
   collector:
-    enable: true
+    enabled: true
     image:
       repo: COLLECTOR_REPO
       tag: COLLECTOR_TAG
@@ -33,7 +33,7 @@ components:
       mem: 500Mi
       cpu: 1000m
   scanner:
-    enable: true
+    enabled: true
     image:
       repo: SCANNER_REPO # supply custom image for custom scanner
       tag: SCANNER_TAG
