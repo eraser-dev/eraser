@@ -14,8 +14,6 @@ collector -- it will remove all non-running images in your cluster.
 
 ## Manual image cleanup
 
-Note: metrics are not yet implemented in Eraser v0.4.x, but will be available in the upcoming v1.0.0 release.
-
 <img title="manual cleanup" src="/eraser/docs/img/eraser_manual.png" />
 
 ## Automated analysis, scanning, and cleanup
