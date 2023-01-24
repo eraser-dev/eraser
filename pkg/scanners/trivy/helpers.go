@@ -6,7 +6,7 @@ import (
 	"os"
 	"strings"
 
-	eraserv1 "github.com/Azure/eraser/api/v1"
+	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
 	"github.com/aquasecurity/trivy-db/pkg/db"
 	dlDb "github.com/aquasecurity/trivy/pkg/db"
 	"github.com/aquasecurity/trivy/pkg/detector/ospkg"
@@ -27,7 +27,7 @@ func loadConfig(filename string) (Config, error) {
 		return cfg, err
 	}
 
-	var eraserConfig eraserv1.EraserConfig
+	var eraserConfig eraserv1alpha1.EraserConfig
 	err = yaml.Unmarshal(b, &eraserConfig)
 	if err != nil {
 		return cfg, err

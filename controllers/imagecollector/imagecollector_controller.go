@@ -37,8 +37,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	eraserv1 "github.com/Azure/eraser/api/v1"
-	"github.com/Azure/eraser/api/v1/config"
 	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
+	"github.com/Azure/eraser/api/v1alpha1/config"
 	"github.com/Azure/eraser/controllers/util"
 	"github.com/Azure/eraser/pkg/utils"
 
@@ -83,10 +83,10 @@ func init() {
 type Reconciler struct {
 	client.Client
 	Scheme       *runtime.Scheme
-	eraserConfig eraserv1.EraserConfig
+	eraserConfig eraserv1alpha1.EraserConfig
 }
 
-func Add(mgr manager.Manager, cfg *eraserv1.EraserConfig) error {
+func Add(mgr manager.Manager, cfg *eraserv1alpha1.EraserConfig) error {
 	collCfg := cfg.Components.Collector
 	if !collCfg.Enabled {
 		return nil
@@ -96,7 +96,7 @@ func Add(mgr manager.Manager, cfg *eraserv1.EraserConfig) error {
 }
 
 // newReconciler returns a new reconcile.Reconciler.
-func newReconciler(mgr manager.Manager, cfg *eraserv1.EraserConfig) *Reconciler {
+func newReconciler(mgr manager.Manager, cfg *eraserv1alpha1.EraserConfig) *Reconciler {
 	config := *config.Default()
 	if cfg != nil {
 		config = *cfg

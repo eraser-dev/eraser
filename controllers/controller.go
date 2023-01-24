@@ -3,7 +3,7 @@ package controllers
 import (
 	"errors"
 
-	eraserv1 "github.com/Azure/eraser/api/v1"
+	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
 	"github.com/Azure/eraser/controllers/imagecollector"
 	"github.com/Azure/eraser/controllers/imagejob"
 	"github.com/Azure/eraser/controllers/imagelist"
@@ -14,14 +14,14 @@ import (
 
 var (
 	controllerLog      = ctrl.Log.WithName("controllerRuntimeLogger")
-	controllerAddFuncs []func(manager.Manager, *eraserv1.EraserConfig) error
+	controllerAddFuncs []func(manager.Manager, *eraserv1alpha1.EraserConfig) error
 )
 
 func init() {
 	controllerAddFuncs = append(controllerAddFuncs, imagelist.Add, imagejob.Add, imagecollector.Add)
 }
 
-func SetupWithManager(m manager.Manager, cfg *eraserv1.EraserConfig) error {
+func SetupWithManager(m manager.Manager, cfg *eraserv1alpha1.EraserConfig) error {
 	controllerLog.Info("set up with manager")
 	for _, f := range controllerAddFuncs {
 		if err := f(m, cfg); err != nil {

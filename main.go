@@ -36,8 +36,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 
 	eraserv1 "github.com/Azure/eraser/api/v1"
-	"github.com/Azure/eraser/api/v1/config"
 	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
+	"github.com/Azure/eraser/api/v1alpha1/config"
 	"github.com/Azure/eraser/controllers"
 	"github.com/Azure/eraser/pkg/logger"
 	"github.com/Azure/eraser/version"

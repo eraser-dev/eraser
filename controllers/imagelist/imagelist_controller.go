@@ -42,8 +42,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	eraserv1 "github.com/Azure/eraser/api/v1"
-	"github.com/Azure/eraser/api/v1/config"
 	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
+	"github.com/Azure/eraser/api/v1alpha1/config"
 	"github.com/Azure/eraser/controllers/util"
 	"github.com/Azure/eraser/pkg/logger"
 	"github.com/Azure/eraser/pkg/metrics"
@@ -75,12 +75,12 @@ func init() {
 	}
 }
 
-func Add(mgr manager.Manager, cfg *eraserv1.EraserConfig) error {
+func Add(mgr manager.Manager, cfg *eraserv1alpha1.EraserConfig) error {
 	return add(mgr, newReconciler(mgr, cfg))
 }
 
 // newReconciler returns a new reconcile.Reconciler.
-func newReconciler(mgr manager.Manager, cfg *eraserv1.EraserConfig) reconcile.Reconciler {
+func newReconciler(mgr manager.Manager, cfg *eraserv1alpha1.EraserConfig) reconcile.Reconciler {
 	config := *config.Default()
 	if cfg != nil {
 		config = *cfg
@@ -113,7 +113,7 @@ type ImageJobReconciler struct {
 type Reconciler struct {
 	client.Client
 	scheme       *runtime.Scheme
-	eraserConfig eraserv1.EraserConfig
+	eraserConfig eraserv1alpha1.EraserConfig
 }
 
 //+kubebuilder:rbac:groups=eraser.sh,resources=imagelists,verbs=get;list;watch;create;update;patch;delete

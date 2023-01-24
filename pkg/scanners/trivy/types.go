@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/Azure/eraser/api/unversioned"
-	eraserv1 "github.com/Azure/eraser/api/v1"
+	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
 	"github.com/aquasecurity/trivy/pkg/fanal/analyzer"
 	"github.com/aquasecurity/trivy/pkg/fanal/artifact"
 	artifactImage "github.com/aquasecurity/trivy/pkg/fanal/artifact/image"
@@ -40,8 +40,8 @@ type (
 	}
 
 	TimeoutConfig struct {
-		Total    eraserv1.Duration `json:"total,omitempty"`
-		PerImage eraserv1.Duration `json:"perImage,omitempty"`
+		Total    eraserv1alpha1.Duration `json:"total,omitempty"`
+		PerImage eraserv1alpha1.Duration `json:"perImage,omitempty"`
 	}
 
 	scannerSetup struct {
@@ -79,8 +79,8 @@ func DefaultConfig() *Config {
 			Severities:     []string{severityCritical},
 		},
 		Timeout: TimeoutConfig{
-			Total:    eraserv1.Duration(time.Hour * 23),
-			PerImage: eraserv1.Duration(time.Hour),
+			Total:    eraserv1alpha1.Duration(time.Hour * 23),
+			PerImage: eraserv1alpha1.Duration(time.Hour),
 		},
 	}
 }
