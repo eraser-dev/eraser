@@ -600,8 +600,8 @@ data:
         # single string. Because we allow custom scanner images, the scanner is
         # responsible for defining a schema, parsing, and validating.
         config: |
-          # this is the schema for the default 'trivy-scanner' we should document
-          # this because most users will probably be using the default scanner.
+          # this is the schema for the provided 'trivy-scanner'. custom scanners
+          # will define their own configuration.
           cacheDir: /var/lib/trivy
           dbRepo: ghcr.io/aquasecurity/trivy-db
           deleteFailedImages: true
@@ -610,7 +610,7 @@ data:
             types:
               - os
               - library
-            securityChecks: # need to be documented; determined by trivy, not us
+            securityChecks:
               - vuln
             severities:
               - CRITICAL
@@ -651,7 +651,6 @@ spec:
     spec:
       containers:
       - args:
-        - --leader-elect=false
         - --config=controller_manager_config.yaml
         command:
         - /manager
