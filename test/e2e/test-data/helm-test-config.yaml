@@ -3,7 +3,7 @@ controllerManager:
     manager:
       imageJob:
         cleanup:
-          delayOnSuccess: 1m # to be parsed into time.Duration
+          delayOnSuccess: 1m
     components:
       scanner:
         config: |

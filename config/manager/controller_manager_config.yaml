@@ -5,7 +5,7 @@ manager:
   otlpEndpoint: ""
   logLevel: info
   scheduling:
-    repeatInterval: 24h # to be parsed into time.Duration
+    repeatInterval: 24h
     beginImmediately: true
   profile:
     enabled: false
@@ -13,7 +13,7 @@ manager:
   imageJob:
     successRatio: 1.0 # float; ok with YAML?
     cleanup:
-      delayOnSuccess: 0s # to be parsed into time.Duration
+      delayOnSuccess: 0s
       delayOnFailure: 24h
   pullSecrets: [] # image pull secrets for collector/scanner/eraser
   nodeFilter:

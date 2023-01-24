@@ -13,7 +13,7 @@ runtimeConfig:
     otlpEndpoint: ""
     logLevel: info
     scheduling: {}
-      # repeatInterval: "" # to be parsed into time.Duration
+      # repeatInterval: ""
       # beginImmediately: true
     profile: {}
       # enabled: false
