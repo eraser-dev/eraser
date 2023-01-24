@@ -167,34 +167,25 @@ jobs:
             echo ERASER_REPO=eraser >> $GITHUB_ENV
             echo MANAGER_REPO=manager >> $GITHUB_ENV
             echo COLLECTOR_REPO=collector >> $GITHUB_ENV
-            echo SCANNER_REPO=scanner >> $GITHUB_ENV
+            echo TRIVY_SCANNER_REPO=scanner >> $GITHUB_ENV
 
             echo ERASER_TAG=test >> $GITHUB_ENV
             echo MANAGER_TAG=test >> $GITHUB_ENV
             echo COLLECTOR_TAG=test >> $GITHUB_ENV
-            echo SCANNER_TAG=test >> $GITHUB_ENV
+            echo TRIVY_SCANNER_TAG=test >> $GITHUB_ENV
         - name: Build eraser-manager
-          run: make docker-build-manager MANAGER_REPO=${MANAGER_REPO} MANAGER_TAG=test
+          run: make docker-build-manager
         - name: Build eraser
-          run: make docker-build-eraser ERASER_REPO=${ERASER_REPO} ERASER_TAG=test
+          run: make docker-build-eraser
         - name: Build collector
-          run: make docker-build-collector COLLECTOR_REPO=${COLLECTOR_REPO} COLLECTOR_TAG=test
+          run: make docker-build-collector
         - name: Build trivy-scanner
-          run: make docker-build-trivy-scanner TRIVY_SCANNER_REPO=${SCANNER_REPO} TRIVY_SCANNER_TAG=test
+          run: make docker-build-trivy-scanner
         - name: Run e2e test
           run: |
             make e2e-test \
               KUBERNETES_VERSION=${{ matrix.KUBERNETES_VERSION }} \
-              VERSION=test \
-              E2E_TESTS=${{ matrix.E2E_TEST }} \
-              ERASER_REPO=${ERASER_REPO} \
-              MANAGER_REPO=${MANAGER_REPO} \
-              COLLECTOR_REPO=${COLLECTOR_REPO} \
-              TRIVY_SCANNER_REPO=${SCANNER_REPO} \
-              ERASER_TAG=${ERASER_TAG} \
-              MANAGER_TAG=${MANAGER_TAG} \
-              COLLECTOR_TAG=${COLLECTOR_TAG} \
-              TRIVY_SCANNER_TAG=${SCANNER_TAG}
+              E2E_TESTS=${{ matrix.E2E_TEST }}
         - name: Upload artifacts
           uses: actions/upload-artifact@v3
           with:
