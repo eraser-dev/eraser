@@ -18,6 +18,7 @@ package v1
 
 import (
 	"encoding/json"
+	"fmt"
 	"time"
 
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -26,6 +27,13 @@ import (
 )
 
 type Duration time.Duration
+type Runtime string
+
+const (
+	RuntimeContainerd Runtime = "containerd"
+	RuntimeDockerShim Runtime = "dockershim"
+	RuntimeCrio       Runtime = "crio"
+)
 
 func (td *Duration) UnmarshalJSON(b []byte) error {
 	var str string
@@ -40,6 +48,23 @@ func (td *Duration) UnmarshalJSON(b []byte) error {
 	}
 
 	*td = Duration(pd)
+	return nil
+}
+
+func (r *Runtime) UnmarshalJSON(b []byte) error {
+	var str string
+	err := json.Unmarshal(b, &str)
+	if err != nil {
+		return err
+	}
+
+	switch rt := Runtime(str); rt {
+	case RuntimeContainerd, RuntimeDockerShim, RuntimeCrio:
+		*r = rt
+	default:
+		return fmt.Errorf("Cannot determine runtime type: %s. Valid values are containerd, dockershim, or crio", str)
+	}
+
 	return nil
 }
 
@@ -59,7 +84,7 @@ type ContainerConfig struct {
 }
 
 type ManagerConfig struct {
-	Runtime      string           `json:"runtime,omitempty"`
+	Runtime      Runtime          `json:"runtime,omitempty"`
 	OTLPEndpoint string           `json:"otlpEndpoint,omitempty"`
 	LogLevel     string           `json:"logLevel,omitempty"`
 	Scheduling   ScheduleConfig   `json:"scheduling,omitempty"`

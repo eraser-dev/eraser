@@ -16,7 +16,6 @@ spec:
       containers:
       - name: manager
         args:
-        - --leader-elect=false
         - HELMSUBST_CONFIG_FILE_FLAG
         - HELMSUBST_DEPLOYMENT_CONTROLLER_MANAGER_ADDITIONAL_ARGS
         command:
