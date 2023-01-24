@@ -117,8 +117,10 @@ func main() {
 		}
 	}
 
-	log.Info("userConfig", "userConfig", userConfig)
-	log.Info("userConfig", "USERCONFIG", fmt.Sprintf("%#v\n", userConfig))
+	log.V(1).Info("userConfig",
+		"json", userConfig,
+		"struct", fmt.Sprintf("%#v\n", userConfig),
+	)
 
 	// Initializes logger and parses CLI options into hashmap configs
 	err = initGlobals(&userConfig.Vulnerabilities)

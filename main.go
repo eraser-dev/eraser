@@ -45,13 +45,8 @@ import (
 )
 
 var (
-	scheme               = runtime.NewScheme()
-	setupLog             = ctrl.Log.WithName("setup")
-	metricsAddr          = flag.String("metrics-bind-address", ":8889", "The address the metric endpoint binds to.")
-	probeAddr            = flag.String("health-probe-bind-address", ":8081", "The address the probe endpoint binds to.")
-	enableLeaderElection = flag.Bool("leader-elect", false,
-		"Enable leader election for controller manager. "+
-			"Enabling this will ensure there is only one active controller manager.")
+	scheme   = runtime.NewScheme()
+	setupLog = ctrl.Log.WithName("setup")
 )
 
 func init() {
@@ -75,13 +70,13 @@ func main() {
 		os.Exit(1)
 	}
 
+	// these can all be overwritten using EraserConfig.
 	options := ctrl.Options{
 		Scheme:                 scheme,
-		MetricsBindAddress:     *metricsAddr,
+		MetricsBindAddress:     ":8889",
 		Port:                   9443,
-		HealthProbeBindAddress: *probeAddr,
-		LeaderElection:         *enableLeaderElection,
-		LeaderElectionID:       "e29e094a.k8s.io",
+		HealthProbeBindAddress: ":8081",
+		LeaderElection:         false,
 	}
 
 	eraserOpts := *config.Default()
@@ -89,9 +84,11 @@ func main() {
 		options = options.AndFromOrDie(ctrl.ConfigFile().AtPath(configFile).OfKind(&eraserOpts))
 	}
 
-	setupLog.V(1).Info("eraser config", "MANAGER", eraserOpts.Manager)
-	setupLog.V(1).Info("eraser config", "COMPONENT", eraserOpts.Components)
-	setupLog.V(1).Info("eraser config", "OPTIONS", fmt.Sprintf("%#v\n", options))
+	setupLog.V(1).Info("eraser config",
+		"manager", eraserOpts.Manager,
+		"component", eraserOpts.Components,
+		"options", fmt.Sprintf("%#v\n", options),
+	)
 
 	managerOpts := eraserOpts.Manager
 
