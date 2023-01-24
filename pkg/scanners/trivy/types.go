@@ -113,12 +113,7 @@ func (s *ImageScanner) Scan(img unversioned.Image) (ScanStatus, error) {
 		ref := refs[i]
 		log.Info("scanning image with ref", "ref", ref)
 
-		dockerImage, cleanup, err := fanalImage.NewContainerImage(
-			context.TODO(),
-			ref,
-			s.trivyScanConfig.dockerOptions,
-			s.imageSourceOptions...,
-		)
+		dockerImage, cleanup, err := fanalImage.NewContainerImage(context.Background(), ref, s.trivyScanConfig.dockerOptions, s.imageSourceOptions...)
 		if err != nil {
 			log.Error(err, "could not find image by reference", "imageID", img.ImageID, "reference", ref)
 			cleanup()

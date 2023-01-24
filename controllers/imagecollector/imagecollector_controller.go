@@ -163,7 +163,7 @@ func add(mgr manager.Manager, r *Reconciler) error {
 		delay = 0 * time.Second
 	}
 
-	log.Info("delay", "delay", delay)
+	log.V(1).Info("delay", "delay", delay)
 
 	// runs the provided function after the specified delay
 	_ = time.AfterFunc(delay, func() {
