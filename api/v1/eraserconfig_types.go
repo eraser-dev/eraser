@@ -26,8 +26,10 @@ import (
 	cfg "sigs.k8s.io/controller-runtime/pkg/config/v1alpha1"
 )
 
-type Duration time.Duration
-type Runtime string
+type (
+	Duration time.Duration
+	Runtime  string
+)
 
 const (
 	RuntimeContainerd Runtime = "containerd"

@@ -1,4 +1,4 @@
-apiVersion: eraser.sh.azure-eraser.io/v1alpha1
+apiVersion: eraser.sh/v1alpha1
 kind: EraserConfig
 metadata:
   labels:

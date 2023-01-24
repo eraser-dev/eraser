@@ -12,7 +12,7 @@ metadata:
   name: eraserconfig-viewer-role
 rules:
 - apiGroups:
-  - eraser.sh.azure-eraser.io
+  - eraser.sh
   resources:
   - eraserconfigs
   verbs:
@@ -20,7 +20,7 @@ rules:
   - list
   - watch
 - apiGroups:
-  - eraser.sh.azure-eraser.io
+  - eraser.sh
   resources:
   - eraserconfigs/status
   verbs:
