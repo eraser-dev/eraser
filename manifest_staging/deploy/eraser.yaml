@@ -564,7 +564,7 @@ data:
         enabled: false
         port: 6060
       imageJob:
-        successRatio: 1.0 # float; ok with YAML?
+        successRatio: 1.0
         cleanup:
           delayOnSuccess: 0s
           delayOnFailure: 24h

@@ -19,7 +19,7 @@ runtimeConfig:
       # enabled: false
       # port: 0
     imageJob:
-      successRatio: 1.0 # float; ok with YAML?
+      successRatio: 1.0
       cleanup: {}
         # delayOnSuccess: ""
         # delayOnFailure: ""
