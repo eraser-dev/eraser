@@ -60,7 +60,7 @@ runtimeConfig:
         #   types:
         #     - os
         #     - library
-        #   securityChecks: # need to be documented; determined by trivy, not us
+        #   securityChecks:
         #     - vuln
         #   severities:
         #     - CRITICAL
