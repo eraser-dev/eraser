@@ -15,6 +15,7 @@ require (
 	go.opentelemetry.io/otel/sdk v1.11.2
 	go.opentelemetry.io/otel/sdk/metric v0.34.0
 	go.uber.org/zap v1.24.0
+	golang.org/x/exp v0.0.0-20220823124025-807a23277127
 	golang.org/x/sys v0.3.0
 	google.golang.org/grpc v1.51.0
 	k8s.io/api v0.26.0
@@ -29,8 +30,6 @@ require (
 	sigs.k8s.io/e2e-framework v0.0.8
 	sigs.k8s.io/kind v0.15.0
 )
-
-require golang.org/x/exp v0.0.0-20220823124025-807a23277127
 
 require (
 	cloud.google.com/go v0.104.0 // indirect
