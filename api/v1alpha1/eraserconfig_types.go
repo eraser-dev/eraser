@@ -64,7 +64,7 @@ func (r *Runtime) UnmarshalJSON(b []byte) error {
 	case RuntimeContainerd, RuntimeDockerShim, RuntimeCrio:
 		*r = rt
 	default:
-		return fmt.Errorf("Cannot determine runtime type: %s. Valid values are containerd, dockershim, or crio", str)
+		return fmt.Errorf("cannot determine runtime type: %s. valid values are containerd, dockershim, or crio", str)
 	}
 
 	return nil
