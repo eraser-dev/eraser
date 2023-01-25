@@ -27,7 +27,7 @@ spec:
       containers:
       - command:
         - /manager
-        args: ["--log-level=debug"]
+        args: []
         image: controller:latest
         name: manager
         env:
