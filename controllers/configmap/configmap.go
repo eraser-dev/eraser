@@ -129,33 +129,7 @@ func newReconciler(mgr manager.Manager, cfg *eraserv1alpha1.EraserConfig) reconc
 // +kubebuilder:rbac:groups="",resources=configmaps,verbs=get;list;watch
 // +kubebuilder:rbac:groups="",resources=pods,verbs=get;list;watch,delete
 func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	pods := corev1.PodList{}
-	err := r.List(ctx, &pods, client.MatchingLabels{
-		"control-plane": "controller-manager",
-	})
-	if err != nil {
-		return ctrl.Result{}, err
-	}
-
-	log.V(1).Info("pods", "pods", pods.Items)
-	if len(pods.Items) == 0 {
-		return ctrl.Result{}, nil
-	}
-
-	pod := pods.Items[0]
-	if len(pods.Items) > 1 {
-		for _, p := range pods.Items[1:] {
-			if p.Status.Phase == corev1.PodPhase(corev1.PodRunning) {
-				pod = p
-				break
-			}
-		}
-	}
-
-	err = r.Delete(ctx, &pod)
-	if err != nil {
-		return ctrl.Result{}, err
-	}
+	os.Exit(0)
 
 	return ctrl.Result{}, nil
 }
