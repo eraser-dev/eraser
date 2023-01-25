@@ -5,24 +5,19 @@ metadata:
   namespace: eraser-system
 spec:
   template:
-    metadata:
-      annotations:
-        checksum/config: "{{ toYaml .Values.runtimeConfig | sha256sum }}"
-        test: "{{ toYaml .Values.runtimeConfig | sha256sum | trunc 7 }}"
     spec:
       HELMSUBST_DEPLOYMENT_CONTROLLER_MANAGER_PULL_SECRETS: ""
       volumes:
-      - HELMSUBST_VOLUME: ""
+      - name: eraser-manager-config
+        configMap:
+          name: eraser-manager-config
       containers:
       - name: manager
         args:
-        - HELMSUBST_CONFIG_FILE_FLAG
+        - --config=/eraser_manager_config.yaml
         - HELMSUBST_DEPLOYMENT_CONTROLLER_MANAGER_ADDITIONAL_ARGS
         command:
         - /manager
-        env:
-        - name: ERASER_CONFIGMAP_NAME
-          value: "eraser-manager-config-{{ toYaml .Values.runtimeConfig | sha256sum | trunc 7 }}"
         image: "{{ .Values.deploy.image.repo }}:{{ .Values.deploy.image.tag | default .Chart.AppVersion }}"
         imagePullPolicy: "{{ .Values.deploy.image.pullPolicy }}"
         livenessProbe:
@@ -42,7 +37,9 @@ spec:
         securityContext:
           allowPrivilegeEscalation: false
         volumeMounts:
-        - HELMSUBST_VOLUMEMOUNT: ""
+        - name: eraser-manager-config
+          mountPath: /eraser_manager_config.yaml
+          subPath: controller_manager_config.yaml
       nodeSelector:
         HELMSUBST_DEPLOYMENT_CONTROLLER_MANAGER_NODESELECTOR: ""
       tolerations:
