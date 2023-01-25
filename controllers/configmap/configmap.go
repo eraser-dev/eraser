@@ -66,6 +66,7 @@ func Add(mgr manager.Manager, cfg *eraserv1alpha1.EraserConfig) error {
 	err = c.Watch(
 		&source.Kind{Type: &corev1.ConfigMap{}},
 		&handler.EnqueueRequestForObject{},
+		predicate.ResourceVersionChangedPredicate{},
 		predicate.Funcs{
 			UpdateFunc: func(e event.UpdateEvent) bool {
 				cfg, ok := e.ObjectNew.(*corev1.ConfigMap)
@@ -126,8 +127,35 @@ func newReconciler(mgr manager.Manager, cfg *eraserv1alpha1.EraserConfig) reconc
 }
 
 // +kubebuilder:rbac:groups="",resources=configmaps,verbs=get;list;watch
+// +kubebuilder:rbac:groups="",resources=pods,verbs=get;list;watch,delete
 func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	os.Exit(1)
+	pods := corev1.PodList{}
+	err := r.List(ctx, &pods, client.MatchingLabels{
+		"control-plane": "controller-manager",
+	})
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
+	log.V(1).Info("pods", "pods", pods.Items)
+	if len(pods.Items) == 0 {
+		return ctrl.Result{}, nil
+	}
+
+	pod := pods.Items[0]
+	if len(pods.Items) > 1 {
+		for _, p := range pods.Items[1:] {
+			if p.Status.Phase == corev1.PodPhase(corev1.PodRunning) {
+				pod = p
+				break
+			}
+		}
+	}
+
+	err = r.Delete(ctx, &pod)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
 
 	return ctrl.Result{}, nil
 }
