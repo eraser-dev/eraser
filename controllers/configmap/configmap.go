@@ -36,8 +36,6 @@ const (
 
 var (
 	log      = logf.Log.WithName("controller").WithValues("process", "imagelist-controller")
-	exporter sdkmetric.Exporter
-	reader   sdkmetric.Reader
 	provider *sdkmetric.MeterProvider
 
 	configmap = types.NamespacedName{
@@ -113,7 +111,7 @@ func newReconciler(mgr manager.Manager, cfg *eraserv1alpha1.EraserConfig) reconc
 		ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 		defer cancel()
 
-		exporter, reader, provider = metrics.ConfigureMetrics(ctx, log, otlpEndpoint)
+		_, _, provider = metrics.ConfigureMetrics(ctx, log, otlpEndpoint)
 		global.SetMeterProvider(provider)
 	}
 
@@ -129,24 +127,25 @@ func newReconciler(mgr manager.Manager, cfg *eraserv1alpha1.EraserConfig) reconc
 // +kubebuilder:rbac:groups="",resources=configmaps,verbs=get;list;watch
 // +kubebuilder:rbac:groups="",resources=pods,verbs=get;list;watch,delete
 func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	pods := corev1.PodList{}
-	err := r.List(ctx, &pods, client.MatchingLabels{
+	podList := corev1.PodList{}
+	err := r.List(ctx, &podList, client.MatchingLabels{
 		"control-plane": "controller-manager",
 	})
 	if err != nil {
 		return ctrl.Result{}, err
 	}
 
-	log.V(1).Info("pods", "pods", pods.Items)
-	if len(pods.Items) == 0 {
+	log.V(1).Info("pods", "pods", podList.Items)
+	if len(podList.Items) == 0 {
 		return ctrl.Result{}, nil
 	}
 
-	pod := pods.Items[0]
-	if len(pods.Items) > 1 {
-		for _, p := range pods.Items[1:] {
-			if p.Status.Phase == corev1.PodPhase(corev1.PodRunning) {
-				pod = p
+	pods := podList.Items
+	pod := pods[0]
+	if len(podList.Items) > 1 {
+		for i := range pods[1:] {
+			if pods[i].Status.Phase == corev1.PodPhase(corev1.PodRunning) {
+				pod = pods[i]
 				break
 			}
 		}
