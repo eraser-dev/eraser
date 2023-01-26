@@ -80,6 +80,10 @@ func main() {
 		LeaderElection:         false,
 	}
 
+	if configFile == "" {
+		setupLog.Error(fmt.Errorf("config file was not supplied"), "aborting")
+	}
+
 	cfg := config.Default()
 	if configFile != "" {
 		o, err := options.AndFrom(ctrl.ConfigFile().AtPath(configFile).OfKind(cfg))
@@ -106,13 +110,13 @@ func main() {
 		os.Exit(1)
 	}
 
-	err = watcher.Watch("/config")
+	err = watcher.AddWatch(configFile, inotify.InDeleteSelf)
 	if err != nil {
 		setupLog.Error(err, "unable to start configuration file watcher")
 		os.Exit(1)
 	}
 
-	go setupConfigWatch(watcher, eraserOpts)
+	go setupConfigWatch(watcher, eraserOpts, configFile)
 
 	if managerOpts.Profile.Enabled {
 		go func() {
@@ -160,15 +164,16 @@ func main() {
 	}
 }
 
-func setupConfigWatch(watcher *inotify.Watcher, eraserOpts *config.Manager) {
+func setupConfigWatch(watcher *inotify.Watcher, eraserOpts *config.Manager, filename string) {
 	for {
 		select {
 		case ev := <-watcher.Event:
-			fileName := ev.Name
+			setupLog.Info("event", "event", ev)
+
 			cfg := config.Default()
-			_, err := ctrl.Options{Scheme: runtime.NewScheme()}.AndFrom(ctrl.ConfigFile().AtPath(fileName).OfKind(cfg))
+			_, err := ctrl.Options{Scheme: runtime.NewScheme()}.AndFrom(ctrl.ConfigFile().AtPath(filename).OfKind(cfg))
 			if err != nil {
-				setupLog.Error(err, "configuration is missing or invalid")
+				setupLog.Error(err, "configuration is missing or invalid", "event", ev, "filename", filename)
 				continue
 			}
 
@@ -184,7 +189,22 @@ func setupConfigWatch(watcher *inotify.Watcher, eraserOpts *config.Manager) {
 				continue
 			}
 
-			setupLog.Info("new configuration", "manager", newC.Manager, "components", newC.Components)
+			setupLog.Info("new configurationx", "manager", newC.Manager, "components", newC.Components)
+			// by default inotify removes a watch on a file on an IN_ATTRIB
+			// event, so we have to remove and reinstate the watch
+			if ev.Mask&inotify.InIgnored == 0 {
+				continue
+			}
+
+			err = watcher.RemoveWatch(filename)
+			if err != nil {
+				setupLog.Error(err, "unable to remove watch on config")
+			}
+
+			err = watcher.AddWatch(filename, inotify.InDeleteSelf)
+			if err != nil {
+				setupLog.Error(err, "unable to set up new watch on configuration")
+			}
 		case err := <-watcher.Error:
 			setupLog.Error(err, "file watcher error")
 		}
