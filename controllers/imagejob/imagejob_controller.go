@@ -327,6 +327,7 @@ func (r *Reconciler) handleNewJob(ctx context.Context, imageJob *eraserv1.ImageJ
 	if err != nil {
 		return err
 	}
+	log.V(1).Info("configuration used", "manager", eraserConfig.Manager, "components", eraserConfig.Components)
 
 	filterOpts := eraserConfig.Manager.NodeFilter
 	if !slices.Contains(filterOpts.Selectors, defaultFilterLabel) {

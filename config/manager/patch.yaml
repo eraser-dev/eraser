@@ -3,13 +3,19 @@
   value: []
 - op: add
   path: /spec/template/spec/containers/0/volumeMounts/-
-  value: { "name": "manager-config", "mountPath": "/controller_manager_config.yaml", "subPath": "controller_manager_config.yaml" }
+  value: { "name": "manager-config", "mountPath": "/config" }
+- op: add
+  path: /spec/template/spec/containers/0/volumeMounts/-
+  value: { "name": "manager-data", "mountPath": "/config/data" }
 - op: add
   path: /spec/template/spec/volumes
   value: []
 - op: add
   path: /spec/template/spec/volumes/-
-  value: { "name": "manager-config", "configMap": { "name": "manager-config" } }
+  value: { "name": "manager-config", "emptyDir": {} }
+- op: add
+  path: /spec/template/spec/volumes/-
+  value: { "name": "manager-data", "configMap": { "name": "manager-config" } }
 - op: add
   path: /spec/template/spec/containers/0/args/-
-  value: "--config=controller_manager_config.yaml"
+  value: "--config=/config/data/controller_manager_config.yaml"

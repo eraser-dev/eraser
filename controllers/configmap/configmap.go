@@ -8,7 +8,6 @@ import (
 	"syscall"
 	"time"
 
-	"gopkg.in/yaml.v3"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -155,17 +154,28 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	}
 
 	eraserYaml := cfg.Data["controller_manager_config.yaml"]
-	e := config.Default()
-
-	err = yaml.Unmarshal([]byte(eraserYaml), e)
+	err = os.WriteFile("/config/cmc.yaml", []byte(eraserYaml), 0o644)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
 
-	err = r.eraserConfig.Update(e)
+	c := config.Default()
+	_, err = ctrl.Options{Scheme: runtime.NewScheme()}.AndFrom(ctrl.ConfigFile().AtPath("/config/cmc.yaml").OfKind(c))
 	if err != nil {
 		return ctrl.Result{}, err
 	}
+
+	err = r.eraserConfig.Update(c)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
+	cc, err := r.eraserConfig.Read()
+	if err != nil {
+		return ctrl.Result{}, fmt.Errorf("could not read back configuration that was just written: %w", err)
+	}
+
+	log.Info("new configuration", "manager", cc.Manager, "components", cc.Components)
 
 	return ctrl.Result{}, nil
 }
