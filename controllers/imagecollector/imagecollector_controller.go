@@ -94,9 +94,14 @@ func Add(mgr manager.Manager, cfg *config.Manager) error {
 
 	collCfg := c.Components.Collector
 	if !collCfg.Enabled {
+		// don't add controller, but don't throw an error either
 		return nil
 	}
+
 	r, err := newReconciler(mgr, cfg)
+	if err != nil {
+		return err
+	}
 
 	return add(mgr, r)
 }

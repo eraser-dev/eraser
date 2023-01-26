@@ -104,19 +104,13 @@ func main() {
 	eraserOpts := config.NewManager(cfg)
 	managerOpts := cfg.Manager
 
-	watcher, err := inotify.NewWatcher()
+	watcher, err := setupWatcher(configFile)
 	if err != nil {
-		setupLog.Error(err, "unable to get configuration file watcher")
+		setupLog.Error(err, "unable to set up configuration file watch")
 		os.Exit(1)
 	}
 
-	err = watcher.AddWatch(configFile, inotify.InDeleteSelf)
-	if err != nil {
-		setupLog.Error(err, "unable to start configuration file watcher")
-		os.Exit(1)
-	}
-
-	go setupConfigWatch(watcher, eraserOpts, configFile)
+	go startConfigWatch(watcher, eraserOpts, configFile)
 
 	if managerOpts.Profile.Enabled {
 		go func() {
@@ -164,11 +158,43 @@ func main() {
 	}
 }
 
-func setupConfigWatch(watcher *inotify.Watcher, eraserOpts *config.Manager, filename string) {
+// Kubernetes manages configmap volume updates by creating a new file,
+// changing the symlink, then deleting the old file. Hence, we want to
+// watch for IN_DELETE_SELF events. In case the watch is dropped, we need
+// to reestablish, so watch of IN_IGNORED too.
+// https://ahmet.im/blog/kubernetes-inotify/ for more information.
+func setupWatcher(configFile string) (*inotify.Watcher, error) {
+	watcher, err := inotify.NewWatcher()
+	if err != nil {
+		return nil, err
+	}
+
+	err = watcher.AddWatch(configFile, inotify.InDeleteSelf|inotify.InIgnored)
+	if err != nil {
+		return nil, err
+	}
+	return watcher, nil
+}
+
+func startConfigWatch(watcher *inotify.Watcher, eraserOpts *config.Manager, filename string) {
 	for {
 		select {
 		case ev := <-watcher.Event:
-			setupLog.Info("event", "event", ev)
+			// by default inotify removes a watch on a file on an IN_DELETE_SELF
+			// event, so we have to remove and reinstate the watch
+			setupLog.V(1).Info("event", "event", ev)
+			if ev.Mask&inotify.InIgnored != 0 {
+				err := watcher.RemoveWatch(filename)
+				if err != nil {
+					setupLog.Error(err, "unable to remove watch on config")
+				}
+
+				err = watcher.AddWatch(filename, inotify.InDeleteSelf|inotify.InIgnored)
+				if err != nil {
+					setupLog.Error(err, "unable to set up new watch on configuration")
+				}
+				continue
+			}
 
 			cfg := config.Default()
 			_, err := ctrl.Options{Scheme: runtime.NewScheme()}.AndFrom(ctrl.ConfigFile().AtPath(filename).OfKind(cfg))
@@ -189,22 +215,7 @@ func setupConfigWatch(watcher *inotify.Watcher, eraserOpts *config.Manager, file
 				continue
 			}
 
-			setupLog.Info("new configurationx", "manager", newC.Manager, "components", newC.Components)
-			// by default inotify removes a watch on a file on an IN_ATTRIB
-			// event, so we have to remove and reinstate the watch
-			if ev.Mask&inotify.InIgnored == 0 {
-				continue
-			}
-
-			err = watcher.RemoveWatch(filename)
-			if err != nil {
-				setupLog.Error(err, "unable to remove watch on config")
-			}
-
-			err = watcher.AddWatch(filename, inotify.InDeleteSelf)
-			if err != nil {
-				setupLog.Error(err, "unable to set up new watch on configuration")
-			}
+			setupLog.V(1).Info("new configurationx", "manager", newC.Manager, "components", newC.Components)
 		case err := <-watcher.Error:
 			setupLog.Error(err, "file watcher error")
 		}

@@ -148,26 +148,25 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		}
 	}
 
-	pods := corev1.PodList{}
-	err = r.List(ctx, &pods, client.MatchingLabels{
+	p := corev1.PodList{}
+	err = r.List(ctx, &p, client.MatchingLabels{
 		"control-plane": "controller-manager",
 	})
 	if err != nil {
 		return ctrl.Result{}, err
 	}
+	pods := p.Items
 
-	log.V(1).Info("pods", "pods", pods.Items)
-	if len(pods.Items) == 0 {
+	log.V(1).Info("pods", "pods")
+	if len(pods) == 0 {
 		return ctrl.Result{}, nil
 	}
 
-	pod := pods.Items[0]
-	if len(pods.Items) > 1 {
-		for _, p := range pods.Items[1:] {
-			if p.Status.Phase == corev1.PodPhase(corev1.PodRunning) {
-				pod = p
-				break
-			}
+	pod := pods[0]
+	for i := range pods[1:] {
+		if pods[i].Status.Phase == corev1.PodPhase(corev1.PodRunning) {
+			pod = pods[i]
+			break
 		}
 	}
 
