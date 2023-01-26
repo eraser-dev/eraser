@@ -28,6 +28,7 @@ import (
 	// to ensure that exec-entrypoint and run can make use of them.
 
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
+	"k8s.io/utils/inotify"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -99,6 +100,20 @@ func main() {
 	eraserOpts := config.NewManager(cfg)
 	managerOpts := cfg.Manager
 
+	watcher, err := inotify.NewWatcher()
+	if err != nil {
+		setupLog.Error(err, "unable to get configuration file watcher")
+		os.Exit(1)
+	}
+
+	err = watcher.Watch("/config")
+	if err != nil {
+		setupLog.Error(err, "unable to start configuration file watcher")
+		os.Exit(1)
+	}
+
+	go setupConfigWatch(watcher, eraserOpts)
+
 	if managerOpts.Profile.Enabled {
 		go func() {
 			server := &http.Server{
@@ -142,5 +157,36 @@ func main() {
 	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
 		setupLog.Error(err, "problem running manager")
 		os.Exit(1)
+	}
+}
+
+func setupConfigWatch(watcher *inotify.Watcher, eraserOpts *config.Manager) {
+	for {
+		select {
+		case ev := <-watcher.Event:
+			fileName := ev.Name
+			cfg := config.Default()
+			_, err := ctrl.Options{Scheme: runtime.NewScheme()}.AndFrom(ctrl.ConfigFile().AtPath(fileName).OfKind(cfg))
+			if err != nil {
+				setupLog.Error(err, "configuration is missing or invalid")
+				continue
+			}
+
+			err = eraserOpts.Update(cfg)
+			if err != nil {
+				setupLog.Error(err, "configuration update failed")
+				continue
+			}
+
+			newC, err := eraserOpts.Read()
+			if err != nil {
+				setupLog.Error(err, "unable to read back new configuration")
+				continue
+			}
+
+			setupLog.Info("new configuration", "manager", newC.Manager, "components", newC.Components)
+		case err := <-watcher.Error:
+			setupLog.Error(err, "file watcher error")
+		}
 	}
 }

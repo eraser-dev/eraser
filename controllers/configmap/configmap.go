@@ -3,6 +3,7 @@ package configmap
 import (
 	"context"
 	"fmt"
+	"math/rand"
 	"os"
 	"os/signal"
 	"syscall"
@@ -147,35 +148,39 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		}
 	}
 
-	cfg := corev1.ConfigMap{}
-	err = r.Get(ctx, req.NamespacedName, &cfg)
+	pods := corev1.PodList{}
+	err = r.List(ctx, &pods, client.MatchingLabels{
+		"control-plane": "controller-manager",
+	})
 	if err != nil {
+		return ctrl.Result{}, err
+	}
+
+	log.V(1).Info("pods", "pods", pods.Items)
+	if len(pods.Items) == 0 {
 		return ctrl.Result{}, nil
 	}
 
-	eraserYaml := cfg.Data["controller_manager_config.yaml"]
-	err = os.WriteFile("/config/cmc.yaml", []byte(eraserYaml), 0o644)
+	pod := pods.Items[0]
+	if len(pods.Items) > 1 {
+		for _, p := range pods.Items[1:] {
+			if p.Status.Phase == corev1.PodPhase(corev1.PodRunning) {
+				pod = p
+				break
+			}
+		}
+	}
+
+	//nolint:all
+	newVersion := fmt.Sprintf("%d", rand.Int63())
+	if pod.Annotations == nil {
+		pod.Annotations = make(map[string]string)
+	}
+	pod.Annotations["eraser.sh/configVersion"] = newVersion
+
+	err = r.Update(ctx, &pod)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
-
-	c := config.Default()
-	_, err = ctrl.Options{Scheme: runtime.NewScheme()}.AndFrom(ctrl.ConfigFile().AtPath("/config/cmc.yaml").OfKind(c))
-	if err != nil {
-		return ctrl.Result{}, err
-	}
-
-	err = r.eraserConfig.Update(c)
-	if err != nil {
-		return ctrl.Result{}, err
-	}
-
-	cc, err := r.eraserConfig.Read()
-	if err != nil {
-		return ctrl.Result{}, fmt.Errorf("could not read back configuration that was just written: %w", err)
-	}
-
-	log.Info("new configuration", "manager", cc.Manager, "components", cc.Components)
-
 	return ctrl.Result{}, nil
 }

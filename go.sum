@@ -2294,13 +2294,13 @@ k8s.io/kube-scheduler v0.26.0/go.mod h1:FmptJbq36ATKYxeR+UqAvUtFaLeoFWgoDk1cdCpV
 k8s.io/kubectl v0.26.0 h1:xmrzoKR9CyNdzxBmXV7jW9Ln8WMrwRK6hGbbf69o4T0=
 k8s.io/kubectl v0.26.0/go.mod h1:eInP0b+U9XUJWSYeU9XZnTA+cVYuWyl3iYPGtru0qhQ=
 k8s.io/kubernetes v1.13.0/go.mod h1:ocZa8+6APFNC2tX1DZASIbocyYT5jHzqFVsY5aoB7Jk=
-k8s.io/kubernetes v1.26.0 h1:fL8VMr4xlfTazPORLhz5fsvO5I3bsFpmynVxZTH1ItQ=
-k8s.io/kubernetes v1.26.0/go.mod h1:z0aCJwn6DxzB/dDiWLbQaJO5jWOR2qoaCMnmSAx45XM=
+k8s.io/kubernetes v1.26.1 h1:N+qxlptxpSU/VSLvqBGWyyw/kNhJRpEn1b5YP57+5rk=
+k8s.io/kubernetes v1.26.1/go.mod h1:dEfAfGVZBOr2uZLeVazLPj/8E+t8jYFbQqCiBudkB8o=
 k8s.io/utils v0.0.0-20201110183641-67b214c5f920/go.mod h1:jPW/WVKK9YHAvNhRxK0md/EJ228hCsBRufyofKtW8HA=
 k8s.io/utils v0.0.0-20210802155522-efc7438f0176/go.mod h1:jPW/WVKK9YHAvNhRxK0md/EJ228hCsBRufyofKtW8HA=
 k8s.io/utils v0.0.0-20221107191617-1a15be271d1d/go.mod h1:OLgZIPagt7ERELqWJFomSt595RzquPNLL48iOWgYOg0=
-k8s.io/utils v0.0.0-20221128185143-99ec85e7a448 h1:KTgPnR10d5zhztWptI952TNtt/4u5h3IzDXkdIMuo2Y=
-k8s.io/utils v0.0.0-20221128185143-99ec85e7a448/go.mod h1:OLgZIPagt7ERELqWJFomSt595RzquPNLL48iOWgYOg0=
+k8s.io/utils v0.0.0-20230115233650-391b47cb4029 h1:L8zDtT4jrxj+TaQYD0k8KNlr556WaVQylDXswKmX+dE=
+k8s.io/utils v0.0.0-20230115233650-391b47cb4029/go.mod h1:OLgZIPagt7ERELqWJFomSt595RzquPNLL48iOWgYOg0=
 lukechampine.com/uint128 v1.1.1 h1:pnxCASz787iMf+02ssImqk6OLt+Z5QHMoZyUXR4z6JU=
 lukechampine.com/uint128 v1.1.1/go.mod h1:c4eWIwlEGaxC/+H1VguhU4PHXNWDCDMUlWdIWl2j1gk=
 modernc.org/cc/v3 v3.36.0 h1:0kmRkTmqNidmu3c7BNDSdVHCxXCkWLmWmCIVX4LUboo=
