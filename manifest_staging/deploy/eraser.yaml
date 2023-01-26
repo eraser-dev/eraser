@@ -530,7 +530,7 @@ spec:
     spec:
       containers:
       - args:
-        - --config=controller_manager_config.yaml
+        - --config=/config/controller_manager_config.yaml
         command:
         - /manager
         env:
@@ -573,9 +573,8 @@ spec:
           seccompProfile:
             type: RuntimeDefault
         volumeMounts:
-        - mountPath: /controller_manager_config.yaml
+        - mountPath: /config
           name: manager-config
-          subPath: controller_manager_config.yaml
       nodeSelector:
         kubernetes.io/os: linux
       serviceAccountName: eraser-controller-manager
