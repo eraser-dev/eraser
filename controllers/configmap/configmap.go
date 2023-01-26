@@ -2,8 +2,6 @@ package configmap
 
 import (
 	"context"
-	"fmt"
-	"math/rand"
 	"os"
 	"os/signal"
 	"syscall"
@@ -154,13 +152,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		}
 	}
 
-	newVersion := fmt.Sprintf("%d", rand.Int63())
-	if pod.Annotations == nil {
-		pod.Annotations = make(map[string]string)
-	}
-	pod.Annotations["eraser.sh/configVersion"] = newVersion
-
-	err = r.Update(ctx, &pod)
+	err = r.Delete(ctx, &pod)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
