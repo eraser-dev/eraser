@@ -3,7 +3,7 @@ package controllers
 import (
 	"errors"
 
-	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
+	"github.com/Azure/eraser/api/v1alpha1/config"
 	"github.com/Azure/eraser/controllers/configmap"
 	"github.com/Azure/eraser/controllers/imagecollector"
 	"github.com/Azure/eraser/controllers/imagejob"
@@ -13,7 +13,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
 
-type controllerSetupFunc func(manager.Manager, *eraserv1alpha1.EraserConfig) error
+type controllerSetupFunc func(manager.Manager, *config.Manager) error
 
 var (
 	controllerLog = ctrl.Log.WithName("controllerRuntimeLogger")
@@ -26,7 +26,7 @@ var (
 	}
 )
 
-func SetupWithManager(m manager.Manager, cfg *eraserv1alpha1.EraserConfig) error {
+func SetupWithManager(m manager.Manager, cfg *config.Manager) error {
 	controllerLog.Info("set up with manager")
 	for _, f := range controllerAddFuncs {
 		if err := f(m, cfg); err != nil {

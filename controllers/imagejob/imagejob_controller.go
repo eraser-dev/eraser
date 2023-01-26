@@ -62,8 +62,13 @@ var defaultTolerations = []corev1.Toleration{
 	},
 }
 
-func Add(mgr manager.Manager, cfg *eraserv1alpha1.EraserConfig) error {
-	filterOpts := cfg.Manager.NodeFilter
+func Add(mgr manager.Manager, cfg *config.Manager) error {
+	c, err := cfg.Read()
+	if err != nil {
+		return err
+	}
+
+	filterOpts := c.Manager.NodeFilter
 	if filterOpts.Type == "exclude" && !slices.Contains(filterOpts.Selectors, windowsFilterLabel) {
 		filterOpts.Selectors = append(filterOpts.Selectors, windowsFilterLabel)
 	}
@@ -72,15 +77,11 @@ func Add(mgr manager.Manager, cfg *eraserv1alpha1.EraserConfig) error {
 }
 
 // newReconciler returns a new reconcile.Reconciler.
-func newReconciler(mgr manager.Manager, cfg *eraserv1alpha1.EraserConfig) reconcile.Reconciler {
+func newReconciler(mgr manager.Manager, cfg *config.Manager) reconcile.Reconciler {
 	rec := &Reconciler{
 		Client:       mgr.GetClient(),
 		scheme:       mgr.GetScheme(),
-		eraserConfig: *config.Default(),
-	}
-
-	if cfg != nil {
-		rec.eraserConfig = *cfg
+		eraserConfig: cfg,
 	}
 
 	return rec
@@ -89,9 +90,8 @@ func newReconciler(mgr manager.Manager, cfg *eraserv1alpha1.EraserConfig) reconc
 // ImageJobReconciler reconciles a ImageJob object.
 type Reconciler struct {
 	client.Client
-	scheme *runtime.Scheme
-
-	eraserConfig eraserv1alpha1.EraserConfig
+	scheme       *runtime.Scheme
+	eraserConfig *config.Manager
 }
 
 // add adds a new Controller to mgr with r as the reconcile.Reconciler.
@@ -263,7 +263,12 @@ func (r *Reconciler) handleRunningJob(ctx context.Context, imageJob *eraserv1.Im
 
 	successAndSkipped := success + skipped
 
-	managerConfig := r.eraserConfig.Manager
+	eraserConfig, err := r.eraserConfig.Read()
+	if err != nil {
+		return err
+	}
+
+	managerConfig := eraserConfig.Manager
 	successRatio := managerConfig.ImageJob.SuccessRatio
 
 	if float64(successAndSkipped/imageJob.Status.Desired) < successRatio {
@@ -318,7 +323,12 @@ func (r *Reconciler) handleNewJob(ctx context.Context, imageJob *eraserv1.ImageJ
 		{Name: "NODE_NAME", ValueFrom: &corev1.EnvVarSource{FieldRef: &corev1.ObjectFieldSelector{FieldPath: "spec.nodeName"}}},
 	}
 
-	filterOpts := r.eraserConfig.Manager.NodeFilter
+	eraserConfig, err := r.eraserConfig.Read()
+	if err != nil {
+		return err
+	}
+
+	filterOpts := eraserConfig.Manager.NodeFilter
 	if !slices.Contains(filterOpts.Selectors, defaultFilterLabel) {
 		filterOpts.Selectors = append(filterOpts.Selectors, defaultFilterLabel)
 	}

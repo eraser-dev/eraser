@@ -75,18 +75,23 @@ func init() {
 	}
 }
 
-func Add(mgr manager.Manager, cfg *eraserv1alpha1.EraserConfig) error {
-	return add(mgr, newReconciler(mgr, cfg))
+func Add(mgr manager.Manager, cfg *config.Manager) error {
+	r, err := newReconciler(mgr, cfg)
+	if err != nil {
+		return err
+	}
+
+	return add(mgr, r)
 }
 
 // newReconciler returns a new reconcile.Reconciler.
-func newReconciler(mgr manager.Manager, cfg *eraserv1alpha1.EraserConfig) reconcile.Reconciler {
-	config := *config.Default()
-	if cfg != nil {
-		config = *cfg
+func newReconciler(mgr manager.Manager, cfg *config.Manager) (reconcile.Reconciler, error) {
+	c, err := cfg.Read()
+	if err != nil {
+		return nil, err
 	}
 
-	otlpEndpoint := config.Manager.OTLPEndpoint
+	otlpEndpoint := c.Manager.OTLPEndpoint
 	if otlpEndpoint != "" {
 		ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 		defer cancel()
@@ -98,10 +103,10 @@ func newReconciler(mgr manager.Manager, cfg *eraserv1alpha1.EraserConfig) reconc
 	rec := &Reconciler{
 		Client:       mgr.GetClient(),
 		scheme:       mgr.GetScheme(),
-		eraserConfig: config,
+		eraserConfig: cfg,
 	}
 
-	return rec
+	return rec, nil
 }
 
 // ImageJobReconciler reconciles a ImageJob object.
@@ -113,7 +118,7 @@ type ImageJobReconciler struct {
 type Reconciler struct {
 	client.Client
 	scheme       *runtime.Scheme
-	eraserConfig eraserv1alpha1.EraserConfig
+	eraserConfig *config.Manager
 }
 
 //+kubebuilder:rbac:groups=eraser.sh,resources=imagelists,verbs=get;list;watch;create;update;patch;delete
@@ -179,7 +184,12 @@ func (r *Reconciler) handleJobListEvent(ctx context.Context, imageList *eraserv1
 			return ctrl.Result{}, err
 		}
 
-		cleanupCfg := r.eraserConfig.Manager.ImageJob.Cleanup
+		eraserConfig, err := r.eraserConfig.Read()
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+
+		cleanupCfg := eraserConfig.Manager.ImageJob.Cleanup
 		successDelay := time.Duration(cleanupCfg.DelayOnSuccess)
 		errDelay := time.Duration(cleanupCfg.DelayOnFailure)
 
@@ -196,7 +206,7 @@ func (r *Reconciler) handleJobListEvent(ctx context.Context, imageList *eraserv1
 			return ctrl.Result{}, nil
 		}
 
-		otlpEndpoint := r.eraserConfig.Manager.OTLPEndpoint
+		otlpEndpoint := eraserConfig.Manager.OTLPEndpoint
 		if otlpEndpoint != "" {
 			// record metrics
 			if err := metrics.RecordMetricsController(ctx, global.MeterProvider(), float64(time.Since(startTime).Seconds()), int64(job.Status.Succeeded), int64(job.Status.Failed)); err != nil {
@@ -251,7 +261,12 @@ func (r *Reconciler) handleImageListEvent(ctx context.Context, req *ctrl.Request
 		"--log-level=" + logger.GetLevel(),
 	}
 
-	eraserContainerCfg := r.eraserConfig.Components.Eraser
+	eraserConfig, err := r.eraserConfig.Read()
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
+	eraserContainerCfg := eraserConfig.Components.Eraser
 	imageCfg := eraserContainerCfg.Image
 	image := fmt.Sprintf("%s:%s", imageCfg.Repo, imageCfg.Tag)
 
@@ -289,7 +304,7 @@ func (r *Reconciler) handleImageListEvent(ctx context.Context, req *ctrl.Request
 					Env: []corev1.EnvVar{
 						{
 							Name:  "OTEL_EXPORTER_OTLP_ENDPOINT",
-							Value: r.eraserConfig.Manager.OTLPEndpoint,
+							Value: eraserConfig.Manager.OTLPEndpoint,
 						},
 						{
 							Name:  "OTEL_SERVICE_NAME",

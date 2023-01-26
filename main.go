@@ -79,18 +79,25 @@ func main() {
 		LeaderElection:         false,
 	}
 
-	eraserOpts := *config.Default()
+	cfg := config.Default()
 	if configFile != "" {
-		options = options.AndFromOrDie(ctrl.ConfigFile().AtPath(configFile).OfKind(&eraserOpts))
+		o, err := options.AndFrom(ctrl.ConfigFile().AtPath(configFile).OfKind(cfg))
+		if err != nil {
+			setupLog.Error(err, "configuration is either missing or invalid")
+			os.Exit(1)
+		}
+
+		options = o
 	}
 
 	setupLog.V(1).Info("eraser config",
-		"manager", eraserOpts.Manager,
-		"component", eraserOpts.Components,
+		"manager", cfg.Manager,
+		"component", cfg.Components,
 		"options", fmt.Sprintf("%#v\n", options),
 	)
 
-	managerOpts := eraserOpts.Manager
+	eraserOpts := config.NewManager(cfg)
+	managerOpts := cfg.Manager
 
 	if managerOpts.Profile.Enabled {
 		go func() {
@@ -115,7 +122,7 @@ func main() {
 	}
 
 	setupLog.Info("setup controllers")
-	if err = controllers.SetupWithManager(mgr, &eraserOpts); err != nil {
+	if err = controllers.SetupWithManager(mgr, eraserOpts); err != nil {
 		setupLog.Error(err, "unable to setup controllers")
 		os.Exit(1)
 	}

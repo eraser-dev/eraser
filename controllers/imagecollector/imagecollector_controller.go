@@ -83,25 +83,32 @@ func init() {
 type Reconciler struct {
 	client.Client
 	Scheme       *runtime.Scheme
-	eraserConfig eraserv1alpha1.EraserConfig
+	eraserConfig *config.Manager
 }
 
-func Add(mgr manager.Manager, cfg *eraserv1alpha1.EraserConfig) error {
-	collCfg := cfg.Components.Collector
+func Add(mgr manager.Manager, cfg *config.Manager) error {
+	c, err := cfg.Read()
+	if err != nil {
+		return err
+	}
+
+	collCfg := c.Components.Collector
 	if !collCfg.Enabled {
 		return nil
 	}
+	r, err := newReconciler(mgr, cfg)
 
-	return add(mgr, newReconciler(mgr, cfg))
+	return add(mgr, r)
 }
 
 // newReconciler returns a new reconcile.Reconciler.
-func newReconciler(mgr manager.Manager, cfg *eraserv1alpha1.EraserConfig) *Reconciler {
-	config := *config.Default()
-	if cfg != nil {
-		config = *cfg
+func newReconciler(mgr manager.Manager, cfg *config.Manager) (*Reconciler, error) {
+	c, err := cfg.Read()
+	if err != nil {
+		return nil, err
 	}
-	otlpEndpoint := config.Manager.OTLPEndpoint
+
+	otlpEndpoint := c.Manager.OTLPEndpoint
 	if otlpEndpoint != "" {
 		ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 		defer cancel()
@@ -113,10 +120,10 @@ func newReconciler(mgr manager.Manager, cfg *eraserv1alpha1.EraserConfig) *Recon
 	rec := &Reconciler{
 		Client:       mgr.GetClient(),
 		Scheme:       mgr.GetScheme(),
-		eraserConfig: config,
+		eraserConfig: cfg,
 	}
 
-	return rec
+	return rec, nil
 }
 
 func add(mgr manager.Manager, r *Reconciler) error {
@@ -157,7 +164,12 @@ func add(mgr manager.Manager, r *Reconciler) error {
 		return err
 	}
 
-	scheduleCfg := r.eraserConfig.Manager.Scheduling
+	eraserConfig, err := r.eraserConfig.Read()
+	if err != nil {
+		return err
+	}
+
+	scheduleCfg := eraserConfig.Manager.Scheduling
 	delay := time.Duration(scheduleCfg.RepeatInterval)
 	if scheduleCfg.BeginImmediately {
 		delay = 0 * time.Second
@@ -241,8 +253,13 @@ func (r *Reconciler) handleJobDeletion(ctx context.Context, job *eraserv1.ImageJ
 }
 
 func (r *Reconciler) createImageJob(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	mgrCfg := r.eraserConfig.Manager
-	compCfg := r.eraserConfig.Components
+	eraserConfig, err := r.eraserConfig.Read()
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
+	mgrCfg := eraserConfig.Manager
+	compCfg := eraserConfig.Components
 
 	scanCfg := compCfg.Scanner
 	collectorCfg := compCfg.Collector
@@ -262,7 +279,7 @@ func (r *Reconciler) createImageJob(ctx context.Context, req ctrl.Request) (ctrl
 	iCfg := collectorCfg.Image
 	collectorImg := fmt.Sprintf("%s:%s", iCfg.Repo, iCfg.Tag)
 
-	profileConfig := r.eraserConfig.Manager.Profile
+	profileConfig := eraserConfig.Manager.Profile
 	profileArgs := []string{
 		"--enable-pprof=" + strconv.FormatBool(profileConfig.Enabled),
 		fmt.Sprintf("--pprof-port=%d", profileConfig.Port),
@@ -275,7 +292,7 @@ func (r *Reconciler) createImageJob(ctx context.Context, req ctrl.Request) (ctrl
 	eraserArgs = append(eraserArgs, profileArgs...)
 
 	pullSecrets := []corev1.LocalObjectReference{}
-	for _, secret := range r.eraserConfig.Manager.PullSecrets {
+	for _, secret := range eraserConfig.Manager.PullSecrets {
 		pullSecrets = append(pullSecrets, corev1.LocalObjectReference{Name: secret})
 	}
 
@@ -448,11 +465,15 @@ func (r *Reconciler) createImageJob(ctx context.Context, req ctrl.Request) (ctrl
 }
 
 func (r *Reconciler) handleCompletedImageJob(ctx context.Context, req ctrl.Request, childJob *eraserv1.ImageJob) (ctrl.Result, error) {
-	var err error
-	otlpEndpoint := r.eraserConfig.Manager.OTLPEndpoint
-	repeatInterval := time.Duration(r.eraserConfig.Manager.Scheduling.RepeatInterval)
+	eraserConfig, err := r.eraserConfig.Read()
+	if err != nil {
+		return ctrl.Result{}, err
+	}
 
-	cleanupCfg := r.eraserConfig.Manager.ImageJob.Cleanup
+	otlpEndpoint := eraserConfig.Manager.OTLPEndpoint
+	repeatInterval := time.Duration(eraserConfig.Manager.Scheduling.RepeatInterval)
+
+	cleanupCfg := eraserConfig.Manager.ImageJob.Cleanup
 	successDelay := time.Duration(cleanupCfg.DelayOnSuccess)
 	errDelay := time.Duration(cleanupCfg.DelayOnFailure)
 

@@ -2,10 +2,13 @@ package configmap
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
+	"gopkg.in/yaml.v3"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -18,7 +21,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
+	eraserv1 "github.com/Azure/eraser/api/v1"
 	"github.com/Azure/eraser/api/v1alpha1/config"
 	controllerUtils "github.com/Azure/eraser/controllers/util"
 	"github.com/Azure/eraser/pkg/metrics"
@@ -48,11 +51,14 @@ var (
 type Reconciler struct {
 	client.Client
 	scheme       *runtime.Scheme
-	eraserConfig eraserv1alpha1.EraserConfig
+	eraserConfig *config.Manager
 }
 
-func Add(mgr manager.Manager, cfg *eraserv1alpha1.EraserConfig) error {
-	r := newReconciler(mgr, cfg)
+func Add(mgr manager.Manager, cfg *config.Manager) error {
+	r, err := newReconciler(mgr, cfg)
+	if err != nil {
+		return err
+	}
 
 	c, err := controller.New("imagelist-controller", mgr, controller.Options{
 		Reconciler: r,
@@ -100,13 +106,13 @@ func Add(mgr manager.Manager, cfg *eraserv1alpha1.EraserConfig) error {
 }
 
 // newReconciler returns a new reconcile.Reconciler.
-func newReconciler(mgr manager.Manager, cfg *eraserv1alpha1.EraserConfig) reconcile.Reconciler {
-	config := *config.Default()
-	if cfg != nil {
-		config = *cfg
+func newReconciler(mgr manager.Manager, cfg *config.Manager) (reconcile.Reconciler, error) {
+	c, err := cfg.Read()
+	if err != nil {
+		return nil, err
 	}
 
-	otlpEndpoint := config.Manager.OTLPEndpoint
+	otlpEndpoint := c.Manager.OTLPEndpoint
 	if otlpEndpoint != "" {
 		ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 		defer cancel()
@@ -118,40 +124,45 @@ func newReconciler(mgr manager.Manager, cfg *eraserv1alpha1.EraserConfig) reconc
 	rec := &Reconciler{
 		Client:       mgr.GetClient(),
 		scheme:       mgr.GetScheme(),
-		eraserConfig: config,
+		eraserConfig: cfg,
 	}
 
-	return rec
+	return rec, nil
 }
 
 // +kubebuilder:rbac:groups="",resources=configmaps,verbs=get;list;watch
 // +kubebuilder:rbac:groups="",resources=pods,verbs=get;list;watch,delete
 func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	podList := corev1.PodList{}
-	err := r.List(ctx, &podList, client.MatchingLabels{
-		"control-plane": "controller-manager",
-	})
+	j := eraserv1.ImageJobList{}
+	err := r.List(ctx, &j)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
 
-	log.V(1).Info("pods", "pods", podList.Items)
-	if len(podList.Items) == 0 {
-		return ctrl.Result{}, nil
-	}
-
-	pods := podList.Items
-	pod := pods[0]
-	if len(podList.Items) > 1 {
-		for i := range pods[1:] {
-			if pods[i].Status.Phase == corev1.PodPhase(corev1.PodRunning) {
-				pod = pods[i]
-				break
-			}
+	jobs := j.Items
+	for i := range jobs {
+		if jobs[i].Status.Phase == eraserv1.PhaseRunning {
+			return ctrl.Result{
+				RequeueAfter: 15 * time.Second,
+			}, fmt.Errorf("job is currently running; deferring configmap update")
 		}
 	}
 
-	err = r.Delete(ctx, &pod)
+	cfg := corev1.ConfigMap{}
+	err = r.Get(ctx, req.NamespacedName, &cfg)
+	if err != nil {
+		return ctrl.Result{}, nil
+	}
+
+	eraserYaml := cfg.Data["controller_manager_config.yaml"]
+	e := config.Default()
+
+	err = yaml.Unmarshal([]byte(eraserYaml), e)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
+	err = r.eraserConfig.Update(e)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
