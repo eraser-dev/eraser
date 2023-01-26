@@ -3,7 +3,10 @@
   value: []
 - op: add
   path: /spec/template/spec/containers/0/volumeMounts/-
-  value: { "name": "manager-config", "mountPath": "/controller_manager_config.yaml", "subPath": "controller_manager_config.yaml" }
+  value: { "name": "config-data", "mountPath": "/eraser_config" }
+- op: add
+  path: /spec/template/spec/containers/0/volumeMounts/-
+  value: { "name": "manager-config", "mountPath": "/eraser_config/config" }
 - op: add
   path: /spec/template/spec/volumes
   value: []
@@ -11,5 +14,8 @@
   path: /spec/template/spec/volumes/-
   value: { "name": "manager-config", "configMap": { "name": "manager-config" } }
 - op: add
+  path: /spec/template/spec/volumes/-
+  value: { "name": "config-data", "emptyDir": { } }
+- op: add
   path: /spec/template/spec/containers/0/args/-
-  value: "--config=controller_manager_config.yaml"
+  value: "--config=/eraser_config/config/controller_manager_config.yaml"
