@@ -152,7 +152,16 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		}
 	}
 
-	// we don't need cryptographically sound random numbers here
+	// the configmap is mounted to the filesystem, but the normal
+	// reconciliation loop will not update it on the node's filesystem until
+	// about 60-90 seconds later. updating the annotations will trigger an
+	// almost immediate update, which is monitored by an inotify watch set up in
+	// the main() function.
+	//
+	// the annotation only needs to be different from the previous value, so we
+	// don't need cryptographically sound random numbers here. the following
+	// comment disables the linter which prefers random numbers from the
+	// crypto/rand library.
 	//nolint:all
 	newVersion := fmt.Sprintf("%d", rand.Int63())
 	if pod.Annotations == nil {
