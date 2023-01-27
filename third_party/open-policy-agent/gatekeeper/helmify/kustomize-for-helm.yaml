@@ -14,7 +14,7 @@ spec:
       containers:
       - name: manager
         args:
-        - --config=/eraser_manager_config.yaml
+        - --config=/config/controller_manager_config.yaml
         - HELMSUBST_DEPLOYMENT_CONTROLLER_MANAGER_ADDITIONAL_ARGS
         command:
         - /manager
@@ -38,8 +38,7 @@ spec:
           allowPrivilegeEscalation: false
         volumeMounts:
         - name: eraser-manager-config
-          mountPath: /eraser_manager_config.yaml
-          subPath: controller_manager_config.yaml
+          mountPath: /config
       nodeSelector:
         HELMSUBST_DEPLOYMENT_CONTROLLER_MANAGER_NODESELECTOR: ""
       tolerations:

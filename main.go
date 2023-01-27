@@ -82,6 +82,7 @@ func main() {
 
 	if configFile == "" {
 		setupLog.Error(fmt.Errorf("config file was not supplied"), "aborting")
+		os.Exit(1)
 	}
 
 	cfg := config.Default()
@@ -215,7 +216,7 @@ func startConfigWatch(watcher *inotify.Watcher, eraserOpts *config.Manager, file
 				continue
 			}
 
-			setupLog.V(1).Info("new configurationx", "manager", newC.Manager, "components", newC.Components)
+			setupLog.V(1).Info("new configuration", "manager", newC.Manager, "components", newC.Components)
 		case err := <-watcher.Error:
 			setupLog.Error(err, "file watcher error")
 		}

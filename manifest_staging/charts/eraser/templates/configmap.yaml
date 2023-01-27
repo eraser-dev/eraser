@@ -3,8 +3,6 @@ kind: ConfigMap
 metadata:
   name: eraser-manager-config
   namespace: "{{ .Release.Namespace }}"
-  annotations:
-    checksum/config: "{{ toYaml .Values.runtimeConfig | sha256sum }}"
 data:
   controller_manager_config.yaml: |
     {{- toYaml .Values.runtimeConfig | nindent 4 }}

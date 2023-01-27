@@ -33,17 +33,13 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
-const (
-	configmapName = "eraser-manager-config"
-)
-
 var (
 	log      = logf.Log.WithName("controller").WithValues("process", "imagelist-controller")
 	provider *sdkmetric.MeterProvider
 
 	configmap = types.NamespacedName{
 		Namespace: eraserUtils.GetNamespace(),
-		Name:      configmapName,
+		Name:      controllerUtils.EraserConfigmapName,
 	}
 )
 
@@ -157,7 +153,6 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	}
 	pods := p.Items
 
-	log.V(1).Info("pods", "pods")
 	if len(pods) == 0 {
 		return ctrl.Result{}, nil
 	}
