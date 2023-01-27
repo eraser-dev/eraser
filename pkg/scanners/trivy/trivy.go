@@ -40,18 +40,9 @@ const (
 )
 
 var (
-	cacheDir               = flag.String("cache-dir", "/var/lib/trivy", "path to the cache dir")
-	enableProfile          = flag.Bool("enable-pprof", false, "enable pprof profiling")
-	ignoreUnfixed          = flag.Bool("ignore-unfixed", true, "report only fixed vulnerabilities")
-	profilePort            = flag.Int("pprof-port", 6060, "port for pprof profiling. defaulted to 6060 if unspecified")
-	securityChecks         = flag.String("security-checks", "vuln", "comma-separated list of what security issues to detect")
-	severity               = flag.String("severity", "CRITICAL", "list of severity levels to report")
-	vulnTypes              = flag.String("vuln-type", "os,library", "comma separated list of vulnerability types")
-	vulnDBRepository       = flag.String("db-repository", "ghcr.io/aquasecurity/trivy-db", "vulnerability database repository")
-	rekorURL               = flag.String("rekor-url", "https://rekor.sigstore.dev", "Rekor URL")
-	deleteScanFailedImages = flag.Bool("delete-scan-failed-images", true, "whether or not to delete images for which scanning has failed")
-	imageScanTimeout       = flag.Duration("image-scan-timeout", time.Hour, "Duration for timeout for images scanned. Default unit is ns")
-	imageScanTotalTimeout  = flag.Duration("image-scan-total-timeout", time.Hour*23, "Duration for timeout for total scan job. Default unit is ns")
+	config        = flag.String("config", "", "path to the configuration file")
+	enableProfile = flag.Bool("enable-pprof", false, "enable pprof profiling")
+	profilePort   = flag.Int("pprof-port", 6060, "port for pprof profiling. defaulted to 6060 if unspecified")
 
 	// Will be modified by parseCommaSeparatedOptions() to reflect the
 	// `severity` CLI flag These are the only recognized severities and the
@@ -108,8 +99,31 @@ var (
 func main() {
 	flag.Parse()
 
+	err := logger.Configure()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "error setting up logger: %s", err)
+		os.Exit(generalErr)
+	}
+
+	log.Info("config", "config", *config)
+
+	userConfig := *DefaultConfig()
+	if *config != "" {
+		var err error
+		userConfig, err = loadConfig(*config)
+		if err != nil {
+			log.Error(err, "unable to read config")
+			os.Exit(generalErr)
+		}
+	}
+
+	log.V(1).Info("userConfig",
+		"json", userConfig,
+		"struct", fmt.Sprintf("%#v\n", userConfig),
+	)
+
 	// Initializes logger and parses CLI options into hashmap configs
-	err := initGlobals()
+	err = initGlobals(&userConfig.Vulnerabilities)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error initializing options: %v", err)
 		os.Exit(generalErr)
@@ -129,7 +143,7 @@ func main() {
 		template.WithContext(ctx),
 		template.WithLogger(log),
 		template.WithMetrics(recordMetrics),
-		template.WithDeleteScanFailedImages(*deleteScanFailedImages),
+		template.WithDeleteScanFailedImages(userConfig.DeleteFailedImages),
 	)
 
 	allImages, err := provider.ReceiveImages()
@@ -138,7 +152,7 @@ func main() {
 		os.Exit(generalErr)
 	}
 
-	s, err := initScanner()
+	s, err := initScanner(&userConfig)
 	if err != nil {
 		log.Error(err, "error initializing scanner")
 	}
@@ -169,35 +183,37 @@ func main() {
 }
 
 // Initializes logger and parses CLI options into hashmap configs.
-func initGlobals() error {
-	err := logger.Configure()
-	if err != nil {
-		return fmt.Errorf("error setting up logger: %w", err)
+func initGlobals(cfg *VulnConfig) error {
+	if cfg == nil {
+		return fmt.Errorf("valid configuration required")
 	}
 
 	allSetsOfCommaSeparatedOptions := []optionSet{
 		{
-			input: *severity,
+			input: cfg.Severities,
 			m:     severityMap,
 		},
 		{
-			input: *vulnTypes,
+			input: cfg.Types,
 			m:     vulnTypeMap,
 		},
 		{
-			input: *securityChecks,
+			input: cfg.SecurityChecks,
 			m:     securityCheckMap,
 		},
 	}
 
 	for _, oSet := range allSetsOfCommaSeparatedOptions {
-		err := parseCommaSeparatedOptions(oSet.m, oSet.input)
-		if err != nil {
-			return fmt.Errorf("unable to parse options %w", err)
-		}
+		fillMap(oSet.input, oSet.m)
 	}
 
 	return nil
+}
+
+func fillMap(sl []string, m map[string]bool) {
+	for _, s := range sl {
+		m[s] = true
+	}
 }
 
 func runProfileServer() {
@@ -209,10 +225,15 @@ func runProfileServer() {
 	log.Error(err, "pprof server failed")
 }
 
-func initScanner() (Scanner, error) {
-	err := downloadAndInitDB(*cacheDir)
+func initScanner(userConfig *Config) (Scanner, error) {
+	if userConfig == nil {
+		return nil, fmt.Errorf("invalid trivy scanner config")
+	}
+
+	cacheDir := userConfig.CacheDir
+	err := downloadAndInitDB(userConfig)
 	if err != nil {
-		return nil, fmt.Errorf("unable to initialize trivy db. cacheDir: %s, error: %w", *cacheDir, err)
+		return nil, fmt.Errorf("unable to initialize trivy db. cacheDir: %s, error: %w", cacheDir, err)
 	}
 
 	logger, err := zap.NewProduction()
@@ -226,7 +247,7 @@ func initScanner() (Scanner, error) {
 	vulnTypeList := trueMapKeys(vulnTypeMap)
 	securityCheckList := trueMapKeys(securityCheckMap)
 
-	scanConfig, err := setupScanner(*cacheDir, vulnTypeList, securityCheckList)
+	scanConfig, err := setupScanner(cacheDir, vulnTypeList, securityCheckList)
 	if err != nil {
 		return nil, err
 	}
@@ -237,9 +258,14 @@ func initScanner() (Scanner, error) {
 		return nil, fmt.Errorf("unable to determine runtime from environment: %w", err)
 	}
 
+	totalTimeout := time.Duration(userConfig.Timeout.Total)
+	timer := time.NewTimer(totalTimeout)
+
 	var s Scanner = &ImageScanner{
-		scanConfig:         scanConfig,
+		trivyScanConfig:    scanConfig,
 		imageSourceOptions: imageSourceOptions,
+		userConfig:         *userConfig,
+		timer:              timer,
 	}
 	return s, nil
 }
@@ -248,13 +274,12 @@ func scan(s Scanner, allImages []unversioned.Image) ([]unversioned.Image, []unve
 	vulnerableImages := make([]unversioned.Image, 0, len(allImages))
 	failedImages := make([]unversioned.Image, 0, len(allImages))
 	// track total scan job time
-	timer := time.NewTimer(*imageScanTotalTimeout)
 
 	for idx, img := range allImages {
 		select {
-		case <-timer.C:
+		case <-s.Timer().C:
 			failedImages = append(failedImages, allImages[idx:]...)
-			return vulnerableImages, failedImages, errors.New("image scan total timeout exceeded " + imageScanTotalTimeout.String())
+			return vulnerableImages, failedImages, errors.New("image scan total timeout exceeded")
 		default:
 			// Logs scan failures
 			status, err := s.Scan(img)

@@ -3,8 +3,10 @@ package main
 import (
 	"context"
 	"fmt"
+	"os"
 	"strings"
 
+	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
 	"github.com/aquasecurity/trivy-db/pkg/db"
 	dlDb "github.com/aquasecurity/trivy/pkg/db"
 	"github.com/aquasecurity/trivy/pkg/detector/ospkg"
@@ -14,7 +16,36 @@ import (
 	"github.com/aquasecurity/trivy/pkg/scanner/local"
 	trivyTypes "github.com/aquasecurity/trivy/pkg/types"
 	"github.com/aquasecurity/trivy/pkg/vulnerability"
+	"k8s.io/apimachinery/pkg/util/yaml"
 )
+
+func loadConfig(filename string) (Config, error) {
+	cfg := *DefaultConfig()
+
+	b, err := os.ReadFile(filename)
+	if err != nil {
+		return cfg, err
+	}
+
+	var eraserConfig eraserv1alpha1.EraserConfig
+	err = yaml.Unmarshal(b, &eraserConfig)
+	if err != nil {
+		return cfg, err
+	}
+
+	scanCfgYaml := eraserConfig.Components.Scanner.Config
+	scanCfgBytes := []byte("")
+	if scanCfgYaml != nil {
+		scanCfgBytes = []byte(*scanCfgYaml)
+	}
+
+	err = yaml.Unmarshal(scanCfgBytes, &cfg)
+	if err != nil {
+		return cfg, err
+	}
+
+	return cfg, nil
+}
 
 // side effects: map `m` will be modified according to the values in `commaSeparatedList`.
 func parseCommaSeparatedOptions(m map[string]bool, commaSeparatedList string) error {
@@ -31,13 +62,17 @@ func parseCommaSeparatedOptions(m map[string]bool, commaSeparatedList string) er
 	return nil
 }
 
-func downloadAndInitDB(cacheDir string) error {
-	err := downloadDB(cacheDir)
+func downloadAndInitDB(cfg *Config) error {
+	if cfg == nil {
+		return fmt.Errorf("valid configuration required")
+	}
+
+	err := downloadDB(cfg)
 	if err != nil {
 		return err
 	}
 
-	err = db.Init(cacheDir)
+	err = db.Init(cfg.CacheDir)
 	if err != nil {
 		return err
 	}
@@ -45,8 +80,12 @@ func downloadAndInitDB(cacheDir string) error {
 	return nil
 }
 
-func downloadDB(cacheDir string) error {
-	client := dlDb.NewClient(cacheDir, true, true, dlDb.WithDBRepository(*vulnDBRepository))
+func downloadDB(cfg *Config) error {
+	if cfg == nil {
+		return fmt.Errorf("valid configuration required")
+	}
+
+	client := dlDb.NewClient(cfg.CacheDir, true, true, dlDb.WithDBRepository(cfg.DBRepo))
 	ctx := context.Background()
 	needsUpdate, err := client.NeedsUpdate(trivyVersion, false)
 	if err != nil {
@@ -54,7 +93,7 @@ func downloadDB(cacheDir string) error {
 	}
 
 	if needsUpdate {
-		if err = client.Download(ctx, cacheDir); err != nil {
+		if err = client.Download(ctx, cfg.CacheDir); err != nil {
 			return err
 		}
 	}

@@ -29,6 +29,7 @@ func TestMain(m *testing.M) {
 		envfuncs.CreateNamespace(util.TestNamespace),
 		envfuncs.LoadDockerImageToCluster(util.KindClusterName, util.ManagerImage),
 		envfuncs.LoadDockerImageToCluster(util.KindClusterName, util.Image),
+		envfuncs.LoadDockerImageToCluster(util.KindClusterName, util.BusyboxImage),
 		util.DeployEraserHelm(util.TestNamespace,
 			"--set", util.CollectorEnable.Set("false"),
 			"--set", util.ScannerEnable.Set("false"),
@@ -36,7 +37,6 @@ func TestMain(m *testing.M) {
 			"--set", util.EraserImageTag.Set(eraserImage.Tag),
 			"--set", util.ManagerImageRepo.Set(managerImage.Repo),
 			"--set", util.ManagerImageTag.Set(managerImage.Tag),
-			"--set", util.FilterNodesType.Set("include"),
 			"--set", util.CleanupOnSuccessDelay.Set("1m"),
 		),
 	).Finish(

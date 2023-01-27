@@ -53,16 +53,29 @@ const (
 	FilterNodeSelector   = "kubernetes.io/hostname=eraser-e2e-test-worker"
 	FilterLabelKey       = "eraser.sh/cleanup.filter"
 	FilterLabelValue     = "true"
+)
 
-	ScannerImageRepo   = HelmPath("scanner.image.repository")
-	ScannerImageTag    = HelmPath("scanner.image.tag")
-	CollectorImageRepo = HelmPath("collector.image.repository")
-	CollectorImageTag  = HelmPath("collector.image.tag")
-	ManagerImageRepo   = HelmPath("controllerManager.image.repository")
-	ManagerImageTag    = HelmPath("controllerManager.image.tag")
-	EraserImageRepo    = HelmPath("eraser.image.repository")
-	EraserImageTag     = HelmPath("eraser.image.tag")
-	ImagePullSecrets   = HelmPath("imagePullSecrets")
+const (
+	CollectorEnable    = HelmPath("runtimeConfig.components.collector.enabled")
+	CollectorImageRepo = HelmPath("runtimeConfig.components.collector.image.repo")
+	CollectorImageTag  = HelmPath("runtimeConfig.components.collector.image.tag")
+
+	ScannerEnable    = HelmPath("runtimeConfig.components.scanner.enabled")
+	ScannerImageRepo = HelmPath("runtimeConfig.components.scanner.image.repo")
+	ScannerImageTag  = HelmPath("runtimeConfig.components.scanner.image.tag")
+
+	EraserImageRepo = HelmPath("runtimeConfig.components.eraser.image.repo")
+	EraserImageTag  = HelmPath("runtimeConfig.components.eraser.image.tag")
+
+	ManagerImageRepo = HelmPath("deploy.image.repo")
+	ManagerImageTag  = HelmPath("deploy.image.tag")
+
+	ImagePullSecrets = HelmPath("runtimeConfig.manager.pullSecrets")
+	OTLPEndpoint     = HelmPath("runtimeConfig.manager.otlpEndpoint")
+
+	CleanupOnSuccessDelay = HelmPath("runtimeConfig.manager.imageJob.cleanup.delayOnSuccess")
+	FilterNodesType       = HelmPath("runtimeConfig.manager.nodeFilter.type")
+	ScheduleImmediate     = HelmPath("runtimeConfig.manager.scheduling.beginImmediately")
 )
 
 var (
@@ -73,6 +86,7 @@ var (
 	ScannerImage       = os.Getenv("SCANNER_IMAGE")
 	VulnerableImage    = os.Getenv("VULNERABLE_IMAGE")
 	NonVulnerableImage = os.Getenv("NON_VULNERABLE_IMAGE")
+	BusyboxImage       = os.Getenv("BUSYBOX_IMAGE")
 	NodeVersion        = os.Getenv("NODE_VERSION")
 	TestNamespace      = envconf.RandomName("test-ns", 16)
 	EraserNamespace    = pkgUtil.GetNamespace()
@@ -80,7 +94,7 @@ var (
 
 	ParsedImages        *Images
 	Timeout             = time.Minute * 5
-	ImagePullSecretJSON = fmt.Sprintf(`[{"name":"%s"}]`, ImagePullSecret)
+	ImagePullSecretJSON = fmt.Sprintf(`["%s"]`, ImagePullSecret)
 
 	ManagerAdditionalArgs = HelmSet{
 		key:  "controllerManager.additionalArgs",

@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: eraser-manager-config
+  namespace: "{{ .Release.Namespace }}"
+data:
+  controller_manager_config.yaml: |
+    {{- toYaml .Values.runtimeConfig | nindent 4 }}
