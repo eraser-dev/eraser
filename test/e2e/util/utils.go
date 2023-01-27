@@ -86,6 +86,7 @@ var (
 	ScannerImage       = os.Getenv("SCANNER_IMAGE")
 	VulnerableImage    = os.Getenv("VULNERABLE_IMAGE")
 	NonVulnerableImage = os.Getenv("NON_VULNERABLE_IMAGE")
+	BusyboxImage       = os.Getenv("BUSYBOX_IMAGE")
 	NodeVersion        = os.Getenv("NODE_VERSION")
 	TestNamespace      = envconf.RandomName("test-ns", 16)
 	EraserNamespace    = pkgUtil.GetNamespace()

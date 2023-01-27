@@ -15,6 +15,7 @@ ERASER_IMG ?= ${ERASER_REPO}:${ERASER_TAG}
 COLLECTOR_REPO ?= ghcr.io/azure/collector
 COLLECTOR_IMG ?= ${COLLECTOR_REPO}:${COLLECTOR_TAG}
 VULNERABLE_IMG ?= docker.io/library/alpine:3.7.3
+BUSYBOX_BASE_IMG ?= busybox:1.36.0
 NON_VULNERABLE_IMG ?= ghcr.io/azure/non-vulnerable:latest
 E2E_TESTS ?= $(shell find ./test/e2e/tests/ -mindepth 1 -type d)
 TEST_LOGDIR ?= $(PWD)/test_logs
@@ -133,6 +134,12 @@ vet: ## Run go vet against code.
 test: manifests generate fmt vet envtest ## Run unit tests.
 	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) -p path)" go test ./... -coverprofile cover.out
 
+busybox-img:
+	docker build -t busybox-e2e-test:latest \
+		-f test/e2e/test-data/Dockerfile.busybox \
+		--build-arg IMG=$(BUSYBOX_BASE_IMG) test/e2e/test-data
+BUSYBOX_IMG=busybox-e2e-test:latest
+
 vulnerable-img:
 	docker pull $(VULNERABLE_IMG)
 
@@ -145,13 +152,14 @@ non-vulnerable-img:
 		-t ${NON_VULNERABLE_IMG} \
 		--target non-vulnerable .
 
-e2e-test: vulnerable-img non-vulnerable-img
+e2e-test: vulnerable-img non-vulnerable-img busybox-img
 	for test in $(E2E_TESTS); do \
 		CGO_ENABLED=0 \
 			IMAGE=${ERASER_IMG} \
 			MANAGER_IMAGE=${MANAGER_IMG} \
 			COLLECTOR_IMAGE=${COLLECTOR_IMG} \
 			SCANNER_IMAGE=${TRIVY_SCANNER_IMG} \
+			BUSYBOX_IMAGE=${BUSYBOX_IMG} \
 			VULNERABLE_IMAGE=${VULNERABLE_IMG} \
 			NON_VULNERABLE_IMAGE=${NON_VULNERABLE_IMG} \
 			NODE_VERSION=kindest/node:v${KUBERNETES_VERSION} \
