@@ -62,7 +62,6 @@ components:
 			if err != nil {
 				t.Error("unable to update configmap", err)
 			}
-			fmt.Printf("%#v", configMap)
 
 			return ctx
 		}).
