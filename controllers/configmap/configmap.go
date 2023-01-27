@@ -75,20 +75,10 @@ func Add(mgr manager.Manager, cfg *config.Manager) error {
 					return false
 				}
 
-				log.Info("configmap was updated, rebooting...")
+				log.Info("configmap was updated, reloading")
 				return true
 			},
-			DeleteFunc: func(e event.DeleteEvent) bool {
-				cfg, ok := e.Object.(*corev1.ConfigMap)
-				n := types.NamespacedName{Namespace: cfg.GetNamespace(), Name: cfg.GetName()}
-
-				if !ok || n != configmap {
-					return false
-				}
-
-				log.Info("configmap was deleted, shutting down...")
-				return true
-			},
+			DeleteFunc:  controllerUtils.NeverOnDelete,
 			GenericFunc: controllerUtils.NeverOnGeneric,
 			CreateFunc:  controllerUtils.NeverOnCreate,
 		},
@@ -137,7 +127,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	jobs := j.Items
 	for i := range jobs {
 		if jobs[i].Status.Phase == eraserv1.PhaseRunning {
-			return ctrl.Result{}, fmt.Errorf("job is currently running, deferring configmap update...")
+			return ctrl.Result{}, fmt.Errorf("job is currently running, deferring configmap update")
 		}
 	}
 
