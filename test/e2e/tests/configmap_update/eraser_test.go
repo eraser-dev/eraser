@@ -21,14 +21,16 @@ import (
 )
 
 const (
-	expectedImagesRemoved = 3
-	collectorLabel        = "name=eraser"
+	numPods        = 3
+	collectorLabel = "name=eraser"
+	configKey      = "controller_manager_config.yaml"
+	configmapName  = "eraser-manager-config"
 )
 
 var ()
 
-func TestMetricsEraserOnly(t *testing.T) {
-	metrics := features.New("Images_removed_run_total metric should report 1").
+func TestConfigmapUpdate(t *testing.T) {
+	metrics := features.New("Updating the eraser image in the configmap should cause the manager to deploy using the new image").
 		Assess("Update configmap, change eraser image to busybox", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
 			client, err := cfg.NewClient()
 			if err != nil {
@@ -36,7 +38,7 @@ func TestMetricsEraserOnly(t *testing.T) {
 			}
 
 			configMap := corev1.ConfigMap{}
-			err = client.Resources().Get(ctx, "eraser-manager-config", util.TestNamespace, &configMap)
+			err = client.Resources().Get(ctx, configmapName, util.TestNamespace, &configMap)
 			if err != nil {
 				t.Error("Unable to get configmap", err)
 			}
@@ -55,7 +57,7 @@ components:
       tag: %s
     `, bbRepo, bbTag)
 
-			configMap.Data["controller_manager_config.yaml"] = cmString
+			configMap.Data[configKey] = cmString
 			err = client.Resources().Update(ctx, &configMap)
 			if err != nil {
 				t.Error("unable to update configmap", err)
@@ -72,18 +74,14 @@ components:
 
 			return ctx
 		}).
-		Assess("Check eraser pods for appropriate configuration", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
+		Assess("Check eraser pods for change in configuration", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
 			c, err := cfg.NewClient()
 			if err != nil {
 				t.Error("Failed to create new client", err)
 			}
-			// deploy imagelist config
-			if err := util.DeployEraserConfig(cfg.KubeconfigFile(), cfg.Namespace(), "../../test-data", "imagelist_alpine.yaml"); err != nil {
-				t.Error("Failed to deploy image list config", err)
-			}
 
 			err = wait.For(
-				util.NumPodsPresentForLabel(ctx, c, 3, collectorLabel),
+				util.NumPodsPresentForLabel(ctx, c, numPods, collectorLabel),
 				wait.WithTimeout(time.Minute*2),
 				wait.WithInterval(time.Millisecond*500),
 			)
