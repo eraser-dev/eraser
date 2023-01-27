@@ -7,7 +7,6 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
-	"time"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -34,7 +33,7 @@ import (
 )
 
 var (
-	log      = logf.Log.WithName("controller").WithValues("process", "imagelist-controller")
+	log      = logf.Log.WithName("controller").WithValues("process", "configmap-controller")
 	provider *sdkmetric.MeterProvider
 
 	configmap = types.NamespacedName{
@@ -138,9 +137,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	jobs := j.Items
 	for i := range jobs {
 		if jobs[i].Status.Phase == eraserv1.PhaseRunning {
-			return ctrl.Result{
-				RequeueAfter: 15 * time.Second,
-			}, fmt.Errorf("job is currently running; deferring configmap update")
+			return ctrl.Result{}, fmt.Errorf("job is currently running, deferring configmap update...")
 		}
 	}
 
@@ -165,6 +162,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		}
 	}
 
+	// we don't need cryptographically sound random numbers here
 	//nolint:all
 	newVersion := fmt.Sprintf("%d", rand.Int63())
 	if pod.Annotations == nil {
