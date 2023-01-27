@@ -204,8 +204,7 @@ func startConfigWatch(watcher *inotify.Watcher, eraserOpts *config.Manager, file
 				continue
 			}
 
-			err = eraserOpts.Update(cfg)
-			if err != nil {
+			if err = eraserOpts.Update(cfg); err != nil {
 				setupLog.Error(err, "configuration update failed")
 				continue
 			}
