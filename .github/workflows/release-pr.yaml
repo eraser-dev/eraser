@@ -17,6 +17,12 @@ jobs:
   create-release-pull-request:
     runs-on: ubuntu-latest
     steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@18bf8ad2ca49c14cbb28b91346d626ccfb00c518
+        with:
+          disable-sudo: true
+          egress-policy: audit
+
       - name: Set up Go 1.19
         uses: actions/setup-go@v3
         with:

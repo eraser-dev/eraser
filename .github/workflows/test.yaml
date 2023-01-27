@@ -20,6 +20,10 @@ jobs:
     name: "Build E2E Test List"
     runs-on: ubuntu-latest
     steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@18bf8ad2ca49c14cbb28b91346d626ccfb00c518
+        with:
+          egress-policy: audit
       - name: Check out code into the Go module directory
         uses: actions/checkout@v3
       - id: set-test-matrix
@@ -38,7 +42,17 @@ jobs:
       - name: Harden Runner
         uses: step-security/harden-runner@18bf8ad2ca49c14cbb28b91346d626ccfb00c518
         with:
-          egress-policy: audit
+          disable-sudo: true
+          egress-policy: block
+          allowed-endpoints: >
+            auth.docker.io:443
+            gcr.io:443
+            github.com:443
+            production.cloudflare.docker.com:443
+            proxy.golang.org:443
+            registry-1.docker.io:443
+            storage.googleapis.com:443
+            raw.githubusercontent.com:443
       - uses: actions/checkout@v3
       - name: Set up Go 1.19
         uses: actions/setup-go@v3
@@ -79,7 +93,17 @@ jobs:
       - name: Harden Runner
         uses: step-security/harden-runner@18bf8ad2ca49c14cbb28b91346d626ccfb00c518
         with:
-          egress-policy: audit
+          disable-sudo: true
+          egress-policy: block
+          allowed-endpoints: >
+            auth.docker.io:443
+            gcr.io:443
+            github.com:443
+            production.cloudflare.docker.com:443
+            proxy.golang.org:443
+            sum.golang.org:443
+            registry-1.docker.io:443
+            storage.googleapis.com:443
       - name: Set up Go 1.19
         uses: actions/setup-go@v3
         with:
@@ -111,7 +135,16 @@ jobs:
       - name: Harden Runner
         uses: step-security/harden-runner@18bf8ad2ca49c14cbb28b91346d626ccfb00c518
         with:
-          egress-policy: audit
+          disable-sudo: true
+          egress-policy: block
+          allowed-endpoints: >
+            proxy.golang.org:443
+            storage.googleapis.com:443
+            vstsmms.actions.githubusercontent.com:443
+            auth.docker.io:443
+            production.cloudflare.docker.com:443
+            proxy.golang.org:443
+            sum.golang.org:443
       - name: Check out code into the Go module directory
         uses: actions/checkout@v3
       - name: Set up Go 1.19
@@ -142,7 +175,16 @@ jobs:
         - name: Harden Runner
           uses: step-security/harden-runner@18bf8ad2ca49c14cbb28b91346d626ccfb00c518
           with:
-            egress-policy: audit
+            disable-sudo: true
+            egress-policy: block
+            allowed-endpoints: >
+              auth.docker.io:443
+              gcr.io:443
+              github.com:443
+              production.cloudflare.docker.com:443
+              proxy.golang.org:443
+              registry-1.docker.io:443
+              storage.googleapis.com:443
         - name: Check out code into the Go module directory
           uses: actions/checkout@v3
         - name: Set up Go 1.19
@@ -202,7 +244,17 @@ jobs:
       - name: Harden Runner
         uses: step-security/harden-runner@18bf8ad2ca49c14cbb28b91346d626ccfb00c518
         with:
-          egress-policy: audit
+          disable-sudo: true
+          egress-policy: block
+          allowed-endpoints: >
+            auth.docker.io:443
+            gcr.io:443
+            github.com:443
+            production.cloudflare.docker.com:443
+            proxy.golang.org:443
+            registry-1.docker.io:443
+            storage.googleapis.com:443
+            objects.githubusercontent.com:443
 
       - name: Check out code into the Go module directory
         uses: actions/checkout@v3
