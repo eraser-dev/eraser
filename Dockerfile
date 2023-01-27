@@ -3,6 +3,7 @@
 ARG BUILDERIMAGE="golang:1.19-bullseye"
 ARG STATICBASEIMAGE="gcr.io/distroless/static:latest"
 ARG STATICNONROOTBASEIMAGE="gcr.io/distroless/static:nonroot"
+ARG BUILDKIT_SBOM_SCAN_STAGE=builder,manager-build,collector-build,eraser-build,trivy-scanner-build
 
 # Build the manager binary
 FROM --platform=$BUILDPLATFORM $BUILDERIMAGE AS builder
@@ -30,11 +31,11 @@ RUN \
     --mount=type=cache,target=/go/pkg/mod \
     GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build ${LDFLAGS:+-ldflags "$LDFLAGS"} -o out/manager main.go
 
-FROM builder AS trivy-scanner-build
+FROM builder AS collector-build
 RUN \
     --mount=type=cache,target=${GOCACHE} \
     --mount=type=cache,target=/go/pkg/mod \
-    GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build ${LDFLAGS:+-ldflags "$LDFLAGS"} -o out/trivy-scanner ./pkg/scanners/trivy
+    GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build ${LDFLAGS:+-ldflags "$LDFLAGS"} -o out/collector ./pkg/collector
 
 FROM builder AS eraser-build
 RUN \
@@ -42,11 +43,17 @@ RUN \
     --mount=type=cache,target=/go/pkg/mod \
     GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build ${LDFLAGS:+-ldflags "$LDFLAGS"} -o out/eraser ./pkg/eraser
 
-FROM builder AS collector-build
+FROM builder AS trivy-scanner-build
 RUN \
     --mount=type=cache,target=${GOCACHE} \
     --mount=type=cache,target=/go/pkg/mod \
-    GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build ${LDFLAGS:+-ldflags "$LDFLAGS"} -o out/collector ./pkg/collector
+    GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build ${LDFLAGS:+-ldflags "$LDFLAGS"} -o out/trivy-scanner ./pkg/scanners/trivy
+
+FROM --platform=$TARGETPLATFORM $STATICNONROOTBASEIMAGE AS manager
+WORKDIR /
+COPY --from=manager-build /workspace/out/manager .
+USER 65532:65532
+ENTRYPOINT ["/manager"]
 
 FROM --platform=$TARGETPLATFORM $STATICBASEIMAGE as collector
 COPY --from=collector-build /workspace/out/collector /
@@ -55,14 +62,6 @@ ENTRYPOINT ["/collector"]
 FROM --platform=$TARGETPLATFORM $STATICBASEIMAGE as eraser
 COPY --from=eraser-build /workspace/out/eraser /
 ENTRYPOINT ["/eraser"]
-
-# Use distroless as minimal base image to package the manager binary
-# Refer to https://github.com/GoogleContainerTools/distroless for more details
-FROM --platform=$TARGETPLATFORM $STATICNONROOTBASEIMAGE AS manager
-WORKDIR /
-COPY --from=manager-build /workspace/out/manager .
-USER 65532:65532
-ENTRYPOINT ["/manager"]
 
 FROM --platform=$TARGETPLATFORM $STATICBASEIMAGE as trivy-scanner
 COPY --from=trivy-scanner-build /workspace/out/trivy-scanner /

@@ -140,6 +140,7 @@ jobs:
           allowed-endpoints: >
             proxy.golang.org:443
             storage.googleapis.com:443
+            github.com:443
             vstsmms.actions.githubusercontent.com:443
             auth.docker.io:443
             production.cloudflare.docker.com:443

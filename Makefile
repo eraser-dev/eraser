@@ -39,6 +39,10 @@ ifdef CACHE_FROM
 _CACHE_FROM := --cache-from $(CACHE_FROM)
 endif
 
+ifdef GENERATE_ATTESTATIONS
+_ATTESTATIONS := --attest type=sbom --attest type=provenance,mode=max
+endif
+
 OUTPUT_TYPE ?= type=docker
 TOOLS_DIR := hack/tools
 TOOLS_BIN_DIR := $(abspath $(TOOLS_DIR)/bin)
@@ -162,6 +166,7 @@ run: manifests generate fmt vet ## Run a controller from your host.
 docker-build-manager: ## Build docker image with the manager.
 	docker buildx build \
 		$(_CACHE_FROM) $(_CACHE_TO) \
+		$(_ATTESTATIONS) \
 		--build-arg LDFLAGS="$(LDFLAGS)" \
 		--platform="$(PLATFORM)" \
 		--output=$(OUTPUT_TYPE) \
@@ -171,6 +176,7 @@ docker-build-manager: ## Build docker image with the manager.
 docker-build-trivy-scanner: ## Build docker image for trivy-scanner image.
 	docker buildx build \
 		$(_CACHE_FROM) $(_CACHE_TO) \
+		$(_ATTESTATIONS) \
 		--build-arg LDFLAGS="$(TRIVY_SCANNER_LDFLAGS)" \
 		--platform="$(PLATFORM)" \
 		--output=$(OUTPUT_TYPE) \
@@ -180,6 +186,7 @@ docker-build-trivy-scanner: ## Build docker image for trivy-scanner image.
 docker-build-eraser: ## Build docker image for eraser image.
 	docker buildx build \
 		$(_CACHE_FROM) $(_CACHE_TO) \
+		$(_ATTESTATIONS) \
 		--build-arg LDFLAGS="$(ERASER_LDFLAGS)" \
 		--platform="$(PLATFORM)" \
 		--output=$(OUTPUT_TYPE) \
@@ -189,6 +196,7 @@ docker-build-eraser: ## Build docker image for eraser image.
 docker-build-collector:
 	docker buildx build \
 		$(_CACHE_FROM) $(_CACHE_TO) \
+		$(_ATTESTATIONS) \
 		--build-arg LDFLAGS="$(LDFLAGS)" \
 		--platform="$(PLATFORM)" \
 		--output=$(OUTPUT_TYPE) \

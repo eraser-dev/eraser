@@ -72,6 +72,7 @@ jobs:
           CACHE_TO=type=gha,scope=eraser-manager,mode=max \
           PLATFORM="linux/amd64,linux/arm64,linux/arm/v7" \
           OUTPUT_TYPE=type=registry \
+          GENERATE_ATTESTATIONS=true \
           MANAGER_IMG=${{ env.REGISTRY }}/${REPO_OWNER}/eraser-manager:${TAG}
 
       - name: Build eraser
@@ -80,6 +81,7 @@ jobs:
           CACHE_TO=type=gha,scope=eraser-node,mode=max \
           PLATFORM="linux/amd64,linux/arm64,linux/arm/v7" \
           OUTPUT_TYPE=type=registry \
+          GENERATE_ATTESTATIONS=true \
           ERASER_IMG=${{ env.REGISTRY }}/${REPO_OWNER}/eraser:${TAG}
 
       - name: Build collector
@@ -88,6 +90,7 @@ jobs:
           CACHE_TO=type=gha,scope=collector,mode=max \
           PLATFORM="linux/amd64,linux/arm64,linux/arm/v7" \
           OUTPUT_TYPE=type=registry \
+          GENERATE_ATTESTATIONS=true \
           COLLECTOR_IMG=${{ env.REGISTRY }}/${REPO_OWNER}/collector:${TAG}
 
       - name: Build Trivy scanner
@@ -96,6 +99,7 @@ jobs:
           CACHE_TO=type=gha,scope=trivy-scanner,mode=max \
           PLATFORM="linux/amd64,linux/arm64,linux/arm/v7" \
           OUTPUT_TYPE=type=registry \
+          GENERATE_ATTESTATIONS=true \
           TRIVY_SCANNER_IMG=${{ env.REGISTRY }}/${REPO_OWNER}/eraser-trivy-scanner:${TAG}
 
       - name: Create GitHub release
