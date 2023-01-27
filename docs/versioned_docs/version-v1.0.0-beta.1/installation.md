@@ -7,7 +7,7 @@ title: Installation
 To install Eraser with the manifest file, run the following command:
 
 ```bash
-kubectl apply -f https://raw.githubusercontent.com/Azure/eraser/v0.4.0/deploy/eraser.yaml
+kubectl apply -f https://raw.githubusercontent.com/Azure/eraser/v1.0.0-beta.1/deploy/eraser.yaml
 ```
 
 ## Helm
