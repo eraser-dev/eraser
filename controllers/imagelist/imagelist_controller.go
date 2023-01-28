@@ -281,6 +281,7 @@ func (r *Reconciler) handleImageListEvent(ctx context.Context, req *ctrl.Request
 				},
 			},
 			RestartPolicy: corev1.RestartPolicyNever,
+			PriorityClassName: eraserConfig.Manager.PriorityClassName,
 			Containers: []corev1.Container{
 				{
 					Name:            "eraser",
