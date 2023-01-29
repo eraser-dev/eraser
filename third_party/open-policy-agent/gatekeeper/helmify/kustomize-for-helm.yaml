@@ -45,4 +45,4 @@ spec:
         HELMSUBST_DEPLOYMENT_CONTROLLER_MANAGER_TOLERATIONS: ""
       affinity:
         HELMSUBST_DEPLOYMENT_CONTROLLER_MANAGER_AFFINITY: ""
-
+      priorityClassName: "{{ .Values.deploy.priorityClassName }}"

@@ -24,6 +24,7 @@ runtimeConfig:
         # delayOnSuccess: ""
         # delayOnFailure: ""
     pullSecrets: [] # image pull secrets for collector/scanner/eraser
+    priorityClassName: "" # priority class name for collector/scanner/eraser
     nodeFilter: {}
       # type: exclude # must be either exclude|include
       # selectors:
@@ -85,6 +86,7 @@ deploy:
     # Overrides the image tag whose default is the chart appVersion.
     tag: ""
   additionalArgs: []
+  priorityClassName: ""
 
   securityContext:
     allowPrivilegeEscalation: false
