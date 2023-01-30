@@ -297,6 +297,5 @@ version-docs:
 	docker run --rm \
 		-v $(shell pwd)/docs:/docs \
 		-w /docs \
-		-u $(shell id -u):$(shell id -g) \
 		node:${NODE_VERSION} \
 		sh -c "yarn install --frozen-lockfile && yarn run docusaurus docs:version ${NEWVERSION}"
