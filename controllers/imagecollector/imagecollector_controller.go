@@ -503,7 +503,7 @@ func (r *Reconciler) handleCompletedImageJob(ctx context.Context, req ctrl.Reque
 			metrics.ExportMetrics(log, exporter, reader, provider)
 		}
 
-		timeRemaining = *repeatPeriod - *util.SuccessDel
+		timeRemaining = repeatInterval - successDelay
 		if res, err := r.handleJobDeletion(ctx, childJob); err != nil || res.RequeueAfter > 0 {
 			return res, err
 		}
@@ -525,7 +525,7 @@ func (r *Reconciler) handleCompletedImageJob(ctx context.Context, req ctrl.Reque
 			metrics.ExportMetrics(log, exporter, reader, provider)
 		}
 
-		timeRemaining = *repeatPeriod - *util.ErrDel
+		timeRemaining = repeatInterval - errDelay
 		if res, err := r.handleJobDeletion(ctx, childJob); err != nil || res.RequeueAfter > 0 {
 			return res, err
 		}
@@ -534,5 +534,9 @@ func (r *Reconciler) handleCompletedImageJob(ctx context.Context, req ctrl.Reque
 		log.Error(err, "imagejob not in completed or failed phase", "imagejob", childJob)
 	}
 
-	return ctrl.Result{RequeueAfter: repeatInterval}, err
+	if timeRemaining <= 0 {
+		return ctrl.Result{Requeue: true}, err
+	}
+
+	return ctrl.Result{RequeueAfter: timeRemaining}, err
 }
