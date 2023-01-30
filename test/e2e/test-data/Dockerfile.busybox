@@ -1,0 +1,6 @@
+ARG IMG
+FROM ${IMG}
+
+RUN echo 'echo "$@"; sleep 360;' > /script.sh && chmod +x /script.sh
+
+ENTRYPOINT ["/bin/sh", "/script.sh"]

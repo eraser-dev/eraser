@@ -1,11 +1,79 @@
-apiVersion: controller-runtime.sigs.k8s.io/v1alpha1
-kind: ControllerManagerConfig
-health:
-  healthProbeBindAddress: :8081
-metrics:
-  bindAddress: 127.0.0.1:8080
-webhook:
-  port: 9443
-leaderElection:
-  leaderElect: true
-  resourceName: e29e094a.k8s.io
+apiVersion: eraser.sh/v1alpha1
+kind: EraserConfig
+manager:
+  runtime: containerd
+  otlpEndpoint: ""
+  logLevel: info
+  scheduling:
+    repeatInterval: 24h
+    beginImmediately: true
+  profile:
+    enabled: false
+    port: 6060
+  imageJob:
+    successRatio: 1.0
+    cleanup:
+      delayOnSuccess: 0s
+      delayOnFailure: 24h
+  pullSecrets: [] # image pull secrets for collector/scanner/eraser
+  nodeFilter:
+    type: exclude # must be either exclude|include
+    selectors:
+      - eraser.sh/cleanup.filter
+components:
+  collector:
+    enabled: true
+    image:
+      repo: COLLECTOR_REPO
+      tag: COLLECTOR_TAG
+    request:
+      mem: 25Mi
+      cpu: 7m
+    limit:
+      mem: 500Mi
+      # https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/#how-pods-with-resource-limits-are-run
+      cpu: 0
+  scanner:
+    enabled: true
+    image:
+      repo: SCANNER_REPO # supply custom image for custom scanner
+      tag: SCANNER_TAG
+    request:
+      mem: 500Mi
+      cpu: 1000m
+    limit:
+      mem: 2Gi
+      # https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/#how-pods-with-resource-limits-are-run
+      cpu: 0
+    # The config needs to be passed through to the scanner as yaml, as a
+    # single string. Because we allow custom scanner images, the scanner is
+    # responsible for defining a schema, parsing, and validating.
+    config: |
+      # this is the schema for the provided 'trivy-scanner'. custom scanners
+      # will define their own configuration.
+      cacheDir: /var/lib/trivy
+      dbRepo: ghcr.io/aquasecurity/trivy-db
+      deleteFailedImages: true
+      vulnerabilities:
+        ignoreUnfixed: true
+        types:
+          - os
+          - library
+        securityChecks:
+          - vuln
+        severities:
+          - CRITICAL
+      timeout:
+        total: 23h
+        perImage: 1h
+  eraser:
+    image:
+      repo: ERASER_REPO
+      tag: ERASER_TAG
+    request:
+      mem: 25Mi
+      # https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/#how-pods-with-resource-limits-are-run
+      cpu: 0
+    limit:
+      mem: 30Mi
+      cpu: 1000m

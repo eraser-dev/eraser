@@ -15,6 +15,7 @@ require (
 	go.opentelemetry.io/otel/sdk v1.11.2
 	go.opentelemetry.io/otel/sdk/metric v0.34.0
 	go.uber.org/zap v1.24.0
+	golang.org/x/exp v0.0.0-20220823124025-807a23277127
 	golang.org/x/sys v0.3.0
 	google.golang.org/grpc v1.51.0
 	k8s.io/api v0.26.0
@@ -23,12 +24,14 @@ require (
 	// keeping this on 0.25 as updating to 0.26 will remove CRI v1alpha2 version
 	k8s.io/cri-api v0.25.5
 	k8s.io/klog/v2 v2.80.1
-	k8s.io/kubernetes v1.26.0
+	k8s.io/kubernetes v1.26.1
 	oras.land/oras-go v1.2.2
 	sigs.k8s.io/controller-runtime v0.14.1
 	sigs.k8s.io/e2e-framework v0.0.8
 	sigs.k8s.io/kind v0.15.0
 )
+
+require k8s.io/utils v0.0.0-20230115233650-391b47cb4029
 
 require (
 	cloud.google.com/go v0.104.0 // indirect
@@ -306,7 +309,6 @@ require (
 	go.uber.org/atomic v1.9.0 // indirect
 	go.uber.org/multierr v1.8.0 // indirect
 	golang.org/x/crypto v0.4.0 // indirect
-	golang.org/x/exp v0.0.0-20220823124025-807a23277127 // indirect
 	golang.org/x/mod v0.6.0 // indirect
 	golang.org/x/net v0.4.0 // indirect
 	golang.org/x/oauth2 v0.1.0 // indirect
@@ -336,7 +338,6 @@ require (
 	k8s.io/kube-openapi v0.0.0-20221012153701-172d655c2280 // indirect
 	k8s.io/kube-scheduler v0.0.0 // indirect
 	k8s.io/kubectl v0.26.0 // indirect
-	k8s.io/utils v0.0.0-20221128185143-99ec85e7a448 // indirect
 	lukechampine.com/uint128 v1.1.1 // indirect
 	modernc.org/cc/v3 v3.36.0 // indirect
 	modernc.org/ccgo/v3 v3.16.6 // indirect

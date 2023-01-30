@@ -1,0 +1,10 @@
+controllerManager:
+  config:
+    manager:
+      imageJob:
+        cleanup:
+          delayOnSuccess: 1m
+    components:
+      scanner:
+        config: |
+          deleteFailedImages: false

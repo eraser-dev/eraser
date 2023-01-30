@@ -36,6 +36,9 @@ func TestMain(m *testing.M) {
 		envfuncs.LoadDockerImageToCluster(util.KindClusterName, util.ScannerImage),
 		envfuncs.LoadDockerImageToCluster(util.KindClusterName, util.VulnerableImage),
 		util.DeployEraserHelm(util.TestNamespace,
+			"--set", util.OTLPEndpoint.Set("otel-collector:4318"),
+			"--set", util.ScannerEnable.Set("true"),
+			"--set", util.CollectorEnable.Set("true"),
 			"--set", util.CollectorImageRepo.Set(collectorImage.Repo),
 			"--set", util.CollectorImageTag.Set(collectorImage.Tag),
 			"--set", util.ScannerImageRepo.Set(scannerImage.Repo),
@@ -44,7 +47,7 @@ func TestMain(m *testing.M) {
 			"--set", util.EraserImageTag.Set(eraserImage.Tag),
 			"--set", util.ManagerImageRepo.Set(managerImage.Repo),
 			"--set", util.ManagerImageTag.Set(managerImage.Tag),
-			"--set", util.ManagerAdditionalArgs.Set("--job-cleanup-on-success-delay=1m").Set("--otlp-endpoint=otel-collector:4318").Set("--delete-scan-failed-images=false").String(),
+			"--set", util.CleanupOnSuccessDelay.Set("1m"),
 		),
 	).Finish(
 		envfuncs.DestroyKindCluster(util.KindClusterName),

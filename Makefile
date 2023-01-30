@@ -1,11 +1,21 @@
 VERSION := v1.0.0-beta.3
 
+MANAGER_TAG ?= ${VERSION}
+TRIVY_SCANNER_TAG ?= ${VERSION}
+COLLECTOR_TAG ?= ${VERSION}
+ERASER_TAG ?= ${VERSION}
+
 # Image URL to use all building/pushing image targets
-TRIVY_SCANNER_IMG ?= ghcr.io/azure/eraser-trivy-scanner:${VERSION}
-MANAGER_IMG ?= ghcr.io/azure/eraser-manager:${VERSION}
-ERASER_IMG ?= ghcr.io/azure/eraser:${VERSION}
-COLLECTOR_IMG ?= ghcr.io/azure/collector:${VERSION}
+TRIVY_SCANNER_REPO ?= ghcr.io/azure/eraser-trivy-scanner
+TRIVY_SCANNER_IMG ?= ${TRIVY_SCANNER_REPO}:${TRIVY_SCANNER_TAG}
+MANAGER_REPO ?= ghcr.io/azure/eraser-manager
+MANAGER_IMG ?= ${MANAGER_REPO}:${MANAGER_TAG}
+ERASER_REPO ?= ghcr.io/azure/eraser
+ERASER_IMG ?= ${ERASER_REPO}:${ERASER_TAG}
+COLLECTOR_REPO ?= ghcr.io/azure/collector
+COLLECTOR_IMG ?= ${COLLECTOR_REPO}:${COLLECTOR_TAG}
 VULNERABLE_IMG ?= docker.io/library/alpine:3.7.3
+BUSYBOX_BASE_IMG ?= busybox:1.36.0
 NON_VULNERABLE_IMG ?= ghcr.io/azure/non-vulnerable:latest
 E2E_TESTS ?= $(shell find ./test/e2e/tests/ -mindepth 1 -type d)
 TEST_LOGDIR ?= $(PWD)/test_logs
@@ -37,6 +47,10 @@ endif
 
 ifdef CACHE_FROM
 _CACHE_FROM := --cache-from $(CACHE_FROM)
+endif
+
+ifdef GENERATE_ATTESTATIONS
+_ATTESTATIONS := --attest type=sbom --attest type=provenance,mode=max
 endif
 
 OUTPUT_TYPE ?= type=docker
@@ -84,13 +98,9 @@ lint: $(GOLANGCI_LINT) ## Runs go linting.
 
 ##@ Development
 
-manifests: __controller-gen ## Generates k8s yaml for eraser deployment.
-	@sed -e "s~ERASER_IMG~${ERASER_IMG}~g" \
-		-e "s~COLLECTOR_IMG~${COLLECTOR_IMG}~g" \
-		-e "s~SCANNER_IMG~${TRIVY_SCANNER_IMG}~g" \
-		config/manager/kustomization.template.yaml > config/manager/kustomization.yaml
-	docker run --rm -v $(shell pwd)/config:/config -w /config/manager \
-		k8s.gcr.io/kustomize/kustomize:v${KUSTOMIZE_VERSION} edit set image controller=${MANAGER_IMG}
+#kustomize_
+
+manifests: __manifest_kustomize __helm_kustomize __controller-gen ## Generates k8s yaml for eraser deployment.
 	$(CONTROLLER_GEN) \
 		crd \
 		rbac:roleName=manager-role \
@@ -100,12 +110,10 @@ manifests: __controller-gen ## Generates k8s yaml for eraser deployment.
 	rm -rf manifest_staging
 	mkdir -p manifest_staging/deploy
 	mkdir -p manifest_staging/charts/eraser
-	docker run --rm -v $(shell pwd):/eraser \
-		k8s.gcr.io/kustomize/kustomize:v${KUSTOMIZE_VERSION} build \
-		/eraser/config/default -o /eraser/manifest_staging/deploy/eraser.yaml
-	docker run --rm -v $(shell pwd):/eraser \
-		k8s.gcr.io/kustomize/kustomize:v${KUSTOMIZE_VERSION} build \
-		--load_restrictor LoadRestrictionsNone /eraser/third_party/open-policy-agent/gatekeeper/helmify | go run third_party/open-policy-agent/gatekeeper/helmify/*.go
+	$(MANIFEST_KUSTOMIZE) build /eraser/config/default -o /eraser/manifest_staging/deploy/eraser.yaml
+	$(HELM_KUSTOMIZE) build \
+		--load_restrictor LoadRestrictionsNone /eraser/third_party/open-policy-agent/gatekeeper/helmify | \
+		go run third_party/open-policy-agent/gatekeeper/helmify/*.go
 
 # Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method
 # implementations. Also generate conversions between structs of different API versions.
@@ -126,6 +134,12 @@ vet: ## Run go vet against code.
 test: manifests generate fmt vet envtest ## Run unit tests.
 	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) -p path)" go test ./... -coverprofile cover.out
 
+busybox-img:
+	docker build -t busybox-e2e-test:latest \
+		-f test/e2e/test-data/Dockerfile.busybox \
+		--build-arg IMG=$(BUSYBOX_BASE_IMG) test/e2e/test-data
+BUSYBOX_IMG=busybox-e2e-test:latest
+
 vulnerable-img:
 	docker pull $(VULNERABLE_IMG)
 
@@ -138,13 +152,14 @@ non-vulnerable-img:
 		-t ${NON_VULNERABLE_IMG} \
 		--target non-vulnerable .
 
-e2e-test: vulnerable-img non-vulnerable-img
+e2e-test: vulnerable-img non-vulnerable-img busybox-img
 	for test in $(E2E_TESTS); do \
 		CGO_ENABLED=0 \
 			IMAGE=${ERASER_IMG} \
 			MANAGER_IMAGE=${MANAGER_IMG} \
 			COLLECTOR_IMAGE=${COLLECTOR_IMG} \
 			SCANNER_IMAGE=${TRIVY_SCANNER_IMG} \
+			BUSYBOX_IMAGE=${BUSYBOX_IMG} \
 			VULNERABLE_IMAGE=${VULNERABLE_IMG} \
 			NON_VULNERABLE_IMAGE=${NON_VULNERABLE_IMG} \
 			NODE_VERSION=kindest/node:v${KUBERNETES_VERSION} \
@@ -162,6 +177,7 @@ run: manifests generate fmt vet ## Run a controller from your host.
 docker-build-manager: ## Build docker image with the manager.
 	docker buildx build \
 		$(_CACHE_FROM) $(_CACHE_TO) \
+		$(_ATTESTATIONS) \
 		--build-arg LDFLAGS="$(LDFLAGS)" \
 		--platform="$(PLATFORM)" \
 		--output=$(OUTPUT_TYPE) \
@@ -171,6 +187,7 @@ docker-build-manager: ## Build docker image with the manager.
 docker-build-trivy-scanner: ## Build docker image for trivy-scanner image.
 	docker buildx build \
 		$(_CACHE_FROM) $(_CACHE_TO) \
+		$(_ATTESTATIONS) \
 		--build-arg LDFLAGS="$(TRIVY_SCANNER_LDFLAGS)" \
 		--platform="$(PLATFORM)" \
 		--output=$(OUTPUT_TYPE) \
@@ -180,6 +197,7 @@ docker-build-trivy-scanner: ## Build docker image for trivy-scanner image.
 docker-build-eraser: ## Build docker image for eraser image.
 	docker buildx build \
 		$(_CACHE_FROM) $(_CACHE_TO) \
+		$(_ATTESTATIONS) \
 		--build-arg LDFLAGS="$(ERASER_LDFLAGS)" \
 		--platform="$(PLATFORM)" \
 		--output=$(OUTPUT_TYPE) \
@@ -189,6 +207,7 @@ docker-build-eraser: ## Build docker image for eraser image.
 docker-build-collector:
 	docker buildx build \
 		$(_CACHE_FROM) $(_CACHE_TO) \
+		$(_ATTESTATIONS) \
 		--build-arg LDFLAGS="$(LDFLAGS)" \
 		--platform="$(PLATFORM)" \
 		--output=$(OUTPUT_TYPE) \
@@ -197,27 +216,17 @@ docker-build-collector:
 
 ##@ Deployment
 
-install: manifests ## Install CRDs into the K8s cluster specified in ~/.kube/config.
-	docker run --rm -v $(shell pwd)/config:/config \
-		k8s.gcr.io/kustomize/kustomize:v${KUSTOMIZE_VERSION} build \
-		/config/crd | kubectl apply -f -
+install: __manifest_kustomize ## Install CRDs into the K8s cluster specified in ~/.kube/config.
+	$(MANIFEST_KUSTOMIZE) build /eraser/config/crd | kubectl apply -f -
 
-uninstall: manifests ## Uninstall CRDs from the K8s cluster specified in ~/.kube/config.
-	docker run --rm -v $(shell pwd)/config:/config \
-		k8s.gcr.io/kustomize/kustomize:v${KUSTOMIZE_VERSION} build \
-		/config/crd | kubectl delete -f -
+uninstall: __manifest_kustomize ## Uninstall CRDs from the K8s cluster specified in ~/.kube/config.
+	$(MANIFEST_KUSTOMIZE) build /eraser/config/crd | kubectl delete -f -
 
-deploy: manifests ## Deploy controller to the K8s cluster specified in ~/.kube/config.
-	docker run --rm -v $(shell pwd)/config:/config -w /config/manager \
-		k8s.gcr.io/kustomize/kustomize:v${KUSTOMIZE_VERSION} edit set image controller=${MANAGER_IMG}
-	docker run --rm -v $(shell pwd)/config:/config \
-		k8s.gcr.io/kustomize/kustomize:v${KUSTOMIZE_VERSION} build \
-		/config/default | kubectl apply -f -
+deploy: __manifest_kustomize ## Deploy controller to the K8s cluster specified in ~/.kube/config.
+	$(MANIFEST_KUSTOMIZE) build /eraser/config/default | kubectl apply -f -
 
-undeploy: ## Undeploy controller from the K8s cluster specified in ~/.kube/config.
-	docker run --rm -v $(shell pwd)/config:/config \
-		k8s.gcr.io/kustomize/kustomize:v${KUSTOMIZE_VERSION} build \
-		/config/default | kubectl delete -f -
+undeploy: __manifest_kustomize ## Undeploy controller from the K8s cluster specified in ~/.kube/config.
+	$(MANIFEST_KUSTOMIZE) build /eraser/config/default | kubectl delete -f -
 
 ##@ Release
 
@@ -227,6 +236,7 @@ release-manifest: ## Generates manifests for a release.
 	@sed -i "s/appVersion: .*/appVersion: ${NEWVERSION}/" ./third_party/open-policy-agent/gatekeeper/helmify/static/Chart.yaml
 	@sed -i "s/version: .*/version: $$(echo ${NEWVERSION} | cut -c2-)/" ./third_party/open-policy-agent/gatekeeper/helmify/static/Chart.yaml
 	@sed -i 's/Current release version: `.*`/Current release version: `'"${NEWVERSION}"'`/' ./third_party/open-policy-agent/gatekeeper/helmify/static/README.md
+	@sed -i 's/https:\/\/raw\.githubusercontent\.com\/Azure\/eraser\/master\/deploy\/eraser\.yaml.*/https:\/\/raw\.githubusercontent\.com\/Azure\/eraser\/${NEWVERSION}\/deploy\/eraser\.yaml/' ./docs/docs/installation.md
 	export
 	$(MAKE) manifests
 
@@ -249,10 +259,36 @@ CONTROLLER_GEN=docker run --rm -v $(shell pwd):/eraser eraser-tooling controller
 __conversion-gen: __tooling-image
 CONVERSION_GEN=docker run --rm -v $(shell pwd):/eraser eraser-tooling conversion-gen
 
+__manifest_kustomize: __kustomize-manifest-image
+MANIFEST_KUSTOMIZE=docker run --rm -v $(shell pwd)/manifest_staging:/eraser/manifest_staging manifest-kustomize
+
+__helm_kustomize: __kustomize-helm-image
+HELM_KUSTOMIZE=docker run --rm -v $(shell pwd)/manifest_staging:/eraser/manifest_staging -v $(shell pwd)/third_party:/eraser/third_party helm-kustomize
+
 __tooling-image:
 	docker build . \
 		-t eraser-tooling \
 		-f build/tooling/Dockerfile
+
+__kustomize-helm-image:
+	docker build . \
+		-t helm-kustomize \
+		--build-arg KUSTOMIZE_VERSION=${KUSTOMIZE_VERSION} \
+		-f build/tooling/Dockerfile.helm
+
+__kustomize-manifest-image:
+	docker build . \
+		-t manifest-kustomize \
+		--build-arg KUSTOMIZE_VERSION=${KUSTOMIZE_VERSION} \
+		--build-arg TRIVY_SCANNER_REPO=${TRIVY_SCANNER_REPO} \
+		--build-arg MANAGER_REPO=${MANAGER_REPO} \
+		--build-arg ERASER_REPO=${ERASER_REPO} \
+		--build-arg COLLECTOR_REPO=${COLLECTOR_REPO} \
+		--build-arg MANAGER_TAG=${MANAGER_TAG} \
+		--build-arg TRIVY_SCANNER_TAG=${TRIVY_SCANNER_TAG} \
+		--build-arg COLLECTOR_TAG=${COLLECTOR_TAG} \
+		--build-arg ERASER_TAG=${ERASER_TAG} \
+		-f build/tooling/Dockerfile.manifest
 
 # Tags a new version for docs
 .PHONY: version-docs
