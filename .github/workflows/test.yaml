@@ -174,13 +174,25 @@ jobs:
             echo COLLECTOR_TAG=test >> $GITHUB_ENV
             echo TRIVY_SCANNER_TAG=test >> $GITHUB_ENV
         - name: Build eraser-manager
-          run: make docker-build-manager
+          run: |
+            make docker-build-manager \
+              CACHE_FROM=type=gha,scope=eraser-manager \
+              CACHE_TO=type=gha,scope=eraser-manager,mode=max
         - name: Build eraser
-          run: make docker-build-eraser
+          run: |
+            make docker-build-eraser \
+              CACHE_FROM=type=gha,scope=eraser-node \
+              CACHE_TO=type=gha,scope=eraser-node,mode=max
         - name: Build collector
-          run: make docker-build-collector
+          run: |
+            make docker-build-collector \
+              CACHE_FROM=type=gha,scope=collector \
+              CACHE_TO=type=gha,scope=collector,mode=max
         - name: Build trivy-scanner
-          run: make docker-build-trivy-scanner
+          run: |
+            make docker-build-trivy-scanner \
+              CACHE_FROM=type=gha,scope=trivy-scanner \
+              CACHE_TO=type=gha,scope=trivy-scanner,mode=max
         - name: Run e2e test
           run: |
             make e2e-test \
