@@ -31,7 +31,7 @@ runtimeConfig:
       #   - eraser.sh/cleanup.filter
   components:
     collector:
-      enabled: false
+      enabled: true
       image: {}
         # repo: ""
         # tag: ""
@@ -42,7 +42,7 @@ runtimeConfig:
         # mem: ""
         # cpu: ""
     scanner:
-      enabled: false
+      enabled: true
       image: {}
         # repo: ""
         # tag: ""
