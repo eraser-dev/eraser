@@ -16,8 +16,6 @@ var (
 	vcsCommit string
 )
 
-var ()
-
 // GetUserAgent returns a user agent of the format eraser/<component>/<version> (<goos>/<goarch>) <commit>/<timestamp>.
 func GetUserAgent(component string) string {
 	return fmt.Sprintf("eraser/%s/%s (%s/%s) %s/%s", component, BuildVersion, runtime.GOOS, runtime.GOARCH, vcsCommit, buildTime)
