@@ -15,9 +15,9 @@ var (
 )
 
 var (
-	// DefaultRepo is the default repo for images
+	// DefaultRepo is the default repo for images.
 	DefaultRepo = "ghcr.io/azure"
-	// DefaultTag is the default tag for images
+	// DefaultTag is the default tag for images.
 	DefaultTag = "latest"
 )
 
