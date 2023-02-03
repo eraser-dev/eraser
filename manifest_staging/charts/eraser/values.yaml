@@ -32,9 +32,9 @@ runtimeConfig:
   components:
     collector:
       enabled: true
-      image: {}
+      image:
         # repo: ""
-        # tag: ""
+        tag: "v1.0.0-beta.3"
       request: {}
         # mem: ""
         # cpu: ""
@@ -45,7 +45,7 @@ runtimeConfig:
       enabled: true
       image: {}
         # repo: ""
-        # tag: ""
+        tag: "v1.0.0-beta.3"
       request: {}
         # mem: ""
         # cpu: ""
@@ -71,7 +71,7 @@ runtimeConfig:
     eraser:
       image: {}
         # repo: ""
-        # tag: ""
+        tag: "v1.0.0-beta.3"
       request: {}
         # mem: ""
         # cpu: ""
