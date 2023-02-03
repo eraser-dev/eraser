@@ -88,6 +88,8 @@ version::ldflags() {
         add_ldflag "buildVersion" "$1"
     fi
 
+    add_ldflag "DefaultTag" "$1"
+
     # The -ldflags parameter takes a single string, so join the output.
     echo "${ldflags[*]-}"
 }
