@@ -319,8 +319,9 @@ func (r *Reconciler) createImageJob(ctx context.Context, req ctrl.Request) (ctrl
 					},
 				},
 			},
-			ImagePullSecrets: pullSecrets,
-			RestartPolicy:    corev1.RestartPolicyNever,
+			ImagePullSecrets:  pullSecrets,
+			RestartPolicy:     corev1.RestartPolicyNever,
+			PriorityClassName: eraserConfig.Manager.PriorityClassName,
 			Containers: []corev1.Container{
 				{
 					Name:            "collector",
