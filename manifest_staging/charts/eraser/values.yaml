@@ -43,7 +43,7 @@ runtimeConfig:
         # cpu: ""
     scanner:
       enabled: true
-      image: {}
+      image:
         # repo: ""
         tag: "v1.0.0-beta.3"
       request: {}
@@ -69,7 +69,7 @@ runtimeConfig:
         #   total: 23h
         #   perImage: 1h
     eraser:
-      image: {}
+      image:
         # repo: ""
         tag: "v1.0.0-beta.3"
       request: {}
