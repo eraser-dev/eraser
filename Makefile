@@ -235,6 +235,7 @@ release-manifest: ## Generates manifests for a release.
 	@sed -i'' -e 's@image: $(REPOSITORY):.*@image: $(REPOSITORY):'"$(NEWVERSION)"'@' ./config/manager/manager.yaml
 	@sed -i "s/appVersion: .*/appVersion: ${NEWVERSION}/" ./third_party/open-policy-agent/gatekeeper/helmify/static/Chart.yaml
 	@sed -i "s/version: .*/version: $$(echo ${NEWVERSION} | cut -c2-)/" ./third_party/open-policy-agent/gatekeeper/helmify/static/Chart.yaml
+	@sed -Ei "s/(tag:\s*).*/\1$(NEWVERSION)/" ./third_party/open-policy-agent/gatekeeper/helmify/static/values.yaml
 	@sed -i 's/Current release version: `.*`/Current release version: `'"${NEWVERSION}"'`/' ./third_party/open-policy-agent/gatekeeper/helmify/static/README.md
 	@sed -i 's/https:\/\/raw\.githubusercontent\.com\/Azure\/eraser\/master\/deploy\/eraser\.yaml.*/https:\/\/raw\.githubusercontent\.com\/Azure\/eraser\/${NEWVERSION}\/deploy\/eraser\.yaml/' ./docs/docs/installation.md
 	export
