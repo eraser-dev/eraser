@@ -82,6 +82,7 @@ spec:
           name: eraser-manager-config
       nodeSelector:
         {{- toYaml .Values.deploy.nodeSelector | nindent 8 }}
+      priorityClassName: '{{ .Values.deploy.priorityClassName }}'
       serviceAccountName: eraser-controller-manager
       terminationGracePeriodSeconds: 10
       tolerations:
