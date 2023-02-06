@@ -6,13 +6,11 @@ import (
 	"time"
 
 	v1alpha1 "github.com/Azure/eraser/api/v1alpha1"
+	"github.com/Azure/eraser/version"
 	"k8s.io/apimachinery/pkg/api/resource"
 )
 
-var (
-	version = "latest"
-
-	defaultScannerConfig = `
+var defaultScannerConfig = `
 cacheDir: /var/lib/trivy
 dbRepo: ghcr.io/aquasecurity/trivy-db
 deleteFailedImages: true
@@ -26,7 +24,6 @@ securityChecks: # need to be documented; determined by trivy, not us
 severities:
   - CRITICAL
 `
-)
 
 type Manager struct {
 	mtx sync.Mutex
@@ -107,8 +104,8 @@ func Default() *v1alpha1.EraserConfig {
 				Enabled: false,
 				ContainerConfig: v1alpha1.ContainerConfig{
 					Image: v1alpha1.RepoTag{
-						Repo: "ghcr.io/azure/eraser/collector",
-						Tag:  version,
+						Repo: repo("collector"),
+						Tag:  version.BuildVersion,
 					},
 					Request: v1alpha1.ResourceRequirements{
 						Mem: resource.MustParse("25Mi"),
@@ -125,8 +122,8 @@ func Default() *v1alpha1.EraserConfig {
 				Enabled: false,
 				ContainerConfig: v1alpha1.ContainerConfig{
 					Image: v1alpha1.RepoTag{
-						Repo: "ghcr.io/azure/eraser/trivy-scanner",
-						Tag:  version,
+						Repo: repo("eraser-trivy-scanner"),
+						Tag:  version.BuildVersion,
 					},
 					Request: v1alpha1.ResourceRequirements{
 						Mem: resource.MustParse("500Mi"),
@@ -141,8 +138,8 @@ func Default() *v1alpha1.EraserConfig {
 			},
 			Eraser: v1alpha1.ContainerConfig{
 				Image: v1alpha1.RepoTag{
-					Repo: "ghcr.io/azure/eraser/eraser",
-					Tag:  version,
+					Repo: repo("eraser"),
+					Tag:  version.BuildVersion,
 				},
 				Request: v1alpha1.ResourceRequirements{
 					Mem: resource.MustParse("25Mi"),
@@ -156,4 +153,12 @@ func Default() *v1alpha1.EraserConfig {
 			},
 		},
 	}
+}
+
+func repo(basename string) string {
+	if version.DefaultRepo == "" {
+		return basename
+	}
+
+	return fmt.Sprintf("%s/%s", version.DefaultRepo, basename)
 }

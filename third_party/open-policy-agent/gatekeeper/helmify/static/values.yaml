@@ -24,6 +24,7 @@ runtimeConfig:
         # delayOnSuccess: ""
         # delayOnFailure: ""
     pullSecrets: [] # image pull secrets for collector/scanner/eraser
+    priorityClassName: "" # priority class name for collector/scanner/eraser
     nodeFilter: {}
       # type: exclude # must be either exclude|include
       # selectors:
@@ -31,9 +32,9 @@ runtimeConfig:
   components:
     collector:
       enabled: true
-      image: {}
+      image:
         # repo: ""
-        # tag: ""
+        tag: "v1.0.0-rc.1"
       request: {}
         # mem: ""
         # cpu: ""
@@ -42,9 +43,9 @@ runtimeConfig:
         # cpu: ""
     scanner:
       enabled: true
-      image: {}
+      image:
         # repo: ""
-        # tag: ""
+        tag: "v1.0.0-rc.1"
       request: {}
         # mem: ""
         # cpu: ""
@@ -68,9 +69,9 @@ runtimeConfig:
         #   total: 23h
         #   perImage: 1h
     eraser:
-      image: {}
+      image:
         # repo: ""
-        # tag: ""
+        tag: "v1.0.0-rc.1"
       request: {}
         # mem: ""
         # cpu: ""
@@ -83,8 +84,9 @@ deploy:
     repo: ghcr.io/azure/eraser-manager
     pullPolicy: IfNotPresent
     # Overrides the image tag whose default is the chart appVersion.
-    tag: ""
+    tag: "v1.0.0-rc.1"
   additionalArgs: []
+  priorityClassName: ""
 
   securityContext:
     allowPrivilegeEscalation: false
