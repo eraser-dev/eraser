@@ -81,11 +81,11 @@ version::ldflags() {
     add_ldflag "vcsState" "${GIT_TREE_STATE}"
 
     if [[ ! -z ${GIT_VERSION} ]]; then
-        add_ldflag "buildVersion" "${GIT_VERSION}"
+        add_ldflag "BuildVersion" "${GIT_VERSION}"
         add_ldflag "vcsMajor" "${GIT_MAJOR}"
         add_ldflag "vcsMinor" "${GIT_MINOR}"
     elif [[ ! -z $1 ]]; then 
-        add_ldflag "buildVersion" "$1"
+        add_ldflag "BuildVersion" "$1"
     fi
 
     # The -ldflags parameter takes a single string, so join the output.
