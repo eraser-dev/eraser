@@ -252,19 +252,23 @@ ENVTEST = $(shell pwd)/bin/setup-envtest
 envtest: __tooling-image bin/setup-envtest
 
 bin/setup-envtest:
-	docker run --rm -v $(shell pwd)/bin:/go/bin -e GO111MODULE=on eraser-tooling go install sigs.k8s.io/controller-runtime/tools/setup-envtest@latest
+	docker run --rm \
+		-v $(shell pwd)/bin:/go/bin \
+		-e GO111MODULE=on \
+		-u $(shell id -u):$(shell id -g) \
+		eraser-tooling go install sigs.k8s.io/controller-runtime/tools/setup-envtest@latest
 
 __controller-gen: __tooling-image
-CONTROLLER_GEN=docker run --rm -v $(shell pwd):/eraser eraser-tooling controller-gen
+CONTROLLER_GEN=docker run --rm -v $(shell pwd):/eraser -u $(shell id -u):$(shell id -g) eraser-tooling controller-gen
 
 __conversion-gen: __tooling-image
-CONVERSION_GEN=docker run --rm -v $(shell pwd):/eraser eraser-tooling conversion-gen
+CONVERSION_GEN=docker run --rm -v $(shell pwd):/eraser -u $(shell id -u):$(shell id -g) eraser-tooling conversion-gen
 
 __manifest_kustomize: __kustomize-manifest-image
-MANIFEST_KUSTOMIZE=docker run --rm -v $(shell pwd)/manifest_staging:/eraser/manifest_staging manifest-kustomize
+MANIFEST_KUSTOMIZE=docker run --rm -v $(shell pwd)/manifest_staging:/eraser/manifest_staging -u $(shell id -u):$(shell id -g) manifest-kustomize
 
 __helm_kustomize: __kustomize-helm-image
-HELM_KUSTOMIZE=docker run --rm -v $(shell pwd)/manifest_staging:/eraser/manifest_staging -v $(shell pwd)/third_party:/eraser/third_party helm-kustomize
+HELM_KUSTOMIZE=docker run --rm -v $(shell pwd)/manifest_staging:/eraser/manifest_staging -v $(shell pwd)/third_party:/eraser/third_party -u $(shell id -u):$(shell id -g) helm-kustomize
 
 __tooling-image:
 	docker build . \
