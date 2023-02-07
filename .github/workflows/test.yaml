@@ -80,6 +80,10 @@ jobs:
         uses: step-security/harden-runner@18bf8ad2ca49c14cbb28b91346d626ccfb00c518
         with:
           egress-policy: audit
+      - name: Check out code into the Go module directory
+        uses: actions/checkout@v3
+      - name: Set workspace as safe
+        run: git config --global --add safe.directory $GITHUB_WORKSPACE
       - name: Set up Go 1.19
         uses: actions/setup-go@v3
         with:
@@ -92,8 +96,6 @@ jobs:
           path: |
             ~/go/pkg/mod
             ~/.cache/go-build
-      - name: Check out code into the Go module directory
-        uses: actions/checkout@v3
       - name: Unit test
         run: make test
       - name: Codecov upload
@@ -114,6 +116,8 @@ jobs:
           egress-policy: audit
       - name: Check out code into the Go module directory
         uses: actions/checkout@v3
+      - name: Set workspace as safe
+        run: git config --global --add safe.directory $GITHUB_WORKSPACE
       - name: Set up Go 1.19
         uses: actions/setup-go@v3
         with:

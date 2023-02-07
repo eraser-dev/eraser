@@ -57,6 +57,8 @@ jobs:
       - uses: actions/checkout@755da8c3cf115ac066823e79a1e1788f8940201b
         with:
           fetch-depth: 0
+      - name: Set workspace as safe
+        run: git config --global --add safe.directory $GITHUB_WORKSPACE
 
       - name: Create release branch if needed
         run: |
