@@ -25,7 +25,7 @@ runtimeConfig:
         # delayOnFailure: ""
     pullSecrets: [] # image pull secrets for collector/scanner/eraser
     priorityClassName: "" # priority class name for collector/scanner/eraser
-    nodeFilter: {}
+    nodeFilter:
       type: exclude # must be either exclude|include
       selectors:
         - eraser.sh/cleanup.filter
