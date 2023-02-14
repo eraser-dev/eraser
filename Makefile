@@ -32,7 +32,8 @@ KUBERNETES_VERSION ?= 1.25.3
 NODE_VERSION ?= 16-bullseye-slim
 ENVTEST_K8S_VERSION ?= 1.25
 GOLANGCI_LINT_VERSION := 1.43.0
-TRIVY_VERSION ?= $(shell go list -f '{{ .Version }}' -m github.com/aquasecurity/trivy)
+TRIVY_REPO ?= https://github.com/aquasecurity/trivy.git
+TRIVY_VERSION ?= v0.35.0
 
 PLATFORM ?= linux
 
@@ -210,6 +211,8 @@ docker-build-trivy-scanner: ## Build docker image for trivy-scanner image.
 		$(_CACHE_FROM) $(_CACHE_TO) \
 		$(_ATTESTATIONS) \
 		--build-arg LDFLAGS="$(TRIVY_SCANNER_LDFLAGS)" \
+		--build-arg TRIVY_REPO=$(TRIVY_REPO) \
+		--build-arg TRIVY_VERSION=$(TRIVY_VERSION) \
 		--platform="$(PLATFORM)" \
 		--output=$(OUTPUT_TYPE) \
 		-t ${TRIVY_SCANNER_IMG} \

@@ -9,13 +9,6 @@ import (
 	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
 	"github.com/aquasecurity/trivy-db/pkg/db"
 	dlDb "github.com/aquasecurity/trivy/pkg/db"
-	"github.com/aquasecurity/trivy/pkg/detector/ospkg"
-	"github.com/aquasecurity/trivy/pkg/fanal/applier"
-	"github.com/aquasecurity/trivy/pkg/fanal/cache"
-	fanalTypes "github.com/aquasecurity/trivy/pkg/fanal/types"
-	"github.com/aquasecurity/trivy/pkg/scanner/local"
-	trivyTypes "github.com/aquasecurity/trivy/pkg/types"
-	"github.com/aquasecurity/trivy/pkg/vulnerability"
 	"k8s.io/apimachinery/pkg/util/yaml"
 )
 
@@ -99,33 +92,6 @@ func downloadDB(cfg *Config) error {
 	}
 
 	return nil
-}
-
-func setupScanner(cacheDir string, vulnTypes, securityChecks []string) (scannerSetup, error) {
-	filesystemCache, err := cache.NewFSCache(cacheDir)
-	if err != nil {
-		return scannerSetup{}, err
-	}
-
-	app := applier.NewApplier(filesystemCache)
-	det := ospkg.Detector{}
-	dopts := fanalTypes.DockerOption{}
-	vc := vulnerability.NewClient(db.Config{})
-	scan := local.NewScanner(app, det, vc)
-
-	sopts := trivyTypes.ScanOptions{
-		VulnType:            vulnTypes,
-		SecurityChecks:      securityChecks,
-		ScanRemovedPackages: false,
-		ListAllPackages:     false,
-	}
-
-	return scannerSetup{
-		localScanner:  scan,
-		scanOptions:   sopts,
-		dockerOptions: dopts,
-		fscache:       filesystemCache,
-	}, nil
 }
 
 func mapKeys(m map[string]bool) []string {

@@ -5,6 +5,7 @@ ARG STATICBASEIMAGE="gcr.io/distroless/static:latest"
 ARG STATICNONROOTBASEIMAGE="gcr.io/distroless/static:nonroot"
 ARG BUILDKIT_SBOM_SCAN_STAGE=builder,manager-build,collector-build,eraser-build,trivy-scanner-build
 
+
 # Build the manager binary
 FROM --platform=$BUILDPLATFORM $BUILDERIMAGE AS builder
 WORKDIR /workspace
@@ -49,6 +50,26 @@ RUN \
     --mount=type=cache,target=/go/pkg/mod \
     GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build ${LDFLAGS:+-ldflags "$LDFLAGS"} -o out/trivy-scanner ./pkg/scanners/trivy
 
+FROM --platform=$BUILDPLATFORM builder as trivy-builder
+ARG TRIVY_REPO="https://github.com/aquasecurity/trivy.git"
+ARG TRIVY_VERSION
+WORKDIR /build
+ENV GOCACHE=/root/gocache
+ENV CGO_ENABLED=0
+RUN \
+    --mount=type=cache,target=${GOCACHE} \
+    --mount=type=cache,target=/go/pkg/mod \
+<<EOF
+set -e
+git init
+git remote add origin ${TRIVY_REPO} || git remote set-url origin ${TRIVY_REPO}
+git fetch --depth=1 origin +refs/tags/${TRIVY_VERSION}:refs/tags/${TRIVY_VERSION}
+git checkout ${TRIVY_VERSION}
+make build
+mkdir /out
+mv ./trivy /out
+EOF
+
 FROM --platform=$TARGETPLATFORM $STATICNONROOTBASEIMAGE AS manager
 WORKDIR /
 COPY --from=manager-build /workspace/out/manager .
@@ -64,6 +85,7 @@ COPY --from=eraser-build /workspace/out/eraser /
 ENTRYPOINT ["/eraser"]
 
 FROM --platform=$TARGETPLATFORM $STATICBASEIMAGE as trivy-scanner
+COPY --from=trivy-builder /out/trivy /usr/local/bin/trivy
 COPY --from=trivy-scanner-build /workspace/out/trivy-scanner /
 WORKDIR /var/lib/trivy
 ENTRYPOINT ["/trivy-scanner"]

@@ -1,19 +1,14 @@
 package main
 
 import (
-	"context"
+	"bytes"
+	"encoding/json"
+	"os/exec"
 	"time"
 
 	"github.com/Azure/eraser/api/unversioned"
 	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
-	"github.com/aquasecurity/trivy/pkg/fanal/analyzer"
-	"github.com/aquasecurity/trivy/pkg/fanal/artifact"
-	artifactImage "github.com/aquasecurity/trivy/pkg/fanal/artifact/image"
-	"github.com/aquasecurity/trivy/pkg/fanal/cache"
 	fanalImage "github.com/aquasecurity/trivy/pkg/fanal/image"
-	fanalTypes "github.com/aquasecurity/trivy/pkg/fanal/types"
-	"github.com/aquasecurity/trivy/pkg/scanner"
-	"github.com/aquasecurity/trivy/pkg/scanner/local"
 	trivyTypes "github.com/aquasecurity/trivy/pkg/types"
 )
 
@@ -43,13 +38,6 @@ type (
 	TimeoutConfig struct {
 		Total    eraserv1alpha1.Duration `json:"total,omitempty"`
 		PerImage eraserv1alpha1.Duration `json:"perImage,omitempty"`
-	}
-
-	scannerSetup struct {
-		fscache       cache.FSCache
-		localScanner  local.Scanner
-		scanOptions   trivyTypes.ScanOptions
-		dockerOptions fanalTypes.DockerOption
 	}
 
 	optionSet struct {
@@ -88,7 +76,6 @@ func DefaultConfig() *Config {
 }
 
 type ImageScanner struct {
-	trivyScanConfig    scannerSetup
 	imageSourceOptions []fanalImage.Option
 	userConfig         Config
 	timer              *time.Timer
@@ -106,43 +93,28 @@ func (s *ImageScanner) Scan(img unversioned.Image) (ScanStatus, error) {
 	refs = append(refs, img.Digests...)
 	refs = append(refs, img.Names...)
 
-	perImageTimeout := time.Duration(s.userConfig.Timeout.PerImage)
+	// perImageTimeout := time.Duration(s.userConfig.Timeout.PerImage)
 
 	scanSucceeded := false
 	log.Info("scanning image with id", "imageID", img.ImageID, "refs", refs)
 
 	for i := 0; i < len(refs) && !scanSucceeded; i++ {
 		ref := refs[i]
-		log.Info("scanning image with ref", "ref", ref)
 
-		dockerImage, cleanup, err := fanalImage.NewContainerImage(context.Background(), ref, s.trivyScanConfig.dockerOptions, s.imageSourceOptions...)
-		if err != nil {
-			log.Error(err, "could not find image by reference", "imageID", img.ImageID, "reference", ref)
-			cleanup()
-			continue
-		}
-		log.Info("found image with id under reference", "imageID", img.ImageID, "ref", ref)
+		cmd := exec.Command("trivy", "image", "-f", "json", ref)
+		stderr := new(bytes.Buffer)
+		stdout := new(bytes.Buffer)
+		cmd.Stderr = stderr
+		cmd.Stdout = stdout
 
-		artifactToScan, err := artifactImage.NewArtifact(dockerImage, s.trivyScanConfig.fscache, artifact.Option{
-			Offline:           true,
-			DisabledAnalyzers: analyzer.TypeLockfiles,
-			DisabledHandlers:  []fanalTypes.HandlerType{fanalTypes.UnpackagedPostHandler},
-			SBOMSources:       []string{},
-		})
-		if err != nil {
-			log.Error(err, "error registering config for artifact", "imageID", img.ImageID, "reference", ref)
-			cleanup()
+		if err := cmd.Run(); err != nil {
+			log.Error(err, "could not scan image", "ref", ref, "stderr", stderr.String())
 			continue
 		}
 
-		imageScanContext, cancel := context.WithTimeout(context.Background(), perImageTimeout)
-		defer cancel()
-
-		scanner := scanner.NewScanner(s.trivyScanConfig.localScanner, artifactToScan)
-		report, err := scanner.ScanArtifact(imageScanContext, s.trivyScanConfig.scanOptions)
-		if err != nil {
-			log.Error(err, "error scanning image", "imageID", img.ImageID, "reference", ref)
-			cleanup()
+		var report trivyTypes.Report
+		if err := json.Unmarshal(stderr.Bytes(), &report); err != nil {
+			log.Error(err, "unable to parse scan report", "report string", stdout.String())
 			continue
 		}
 
@@ -166,8 +138,6 @@ func (s *ImageScanner) Scan(img unversioned.Image) (ScanStatus, error) {
 				}
 			}
 		}
-
-		cleanup()
 
 		// causes a break from the loop
 		scanSucceeded = true

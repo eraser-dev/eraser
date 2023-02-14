@@ -245,14 +245,6 @@ func initScanner(userConfig *Config) (Scanner, error) {
 	sugar := logger.Sugar()
 	trivylogger.Logger = sugar
 
-	vulnTypeList := trueMapKeys(vulnTypeMap)
-	securityCheckList := trueMapKeys(securityCheckMap)
-
-	scanConfig, err := setupScanner(cacheDir, vulnTypeList, securityCheckList)
-	if err != nil {
-		return nil, err
-	}
-
 	runtime := os.Getenv(utils.EnvEraserContainerRuntime)
 	imageSourceOptions, ok := runtimeFanalOptionsMap[runtime]
 	if !ok {
@@ -263,7 +255,6 @@ func initScanner(userConfig *Config) (Scanner, error) {
 	timer := time.NewTimer(totalTimeout)
 
 	var s Scanner = &ImageScanner{
-		trivyScanConfig:    scanConfig,
 		imageSourceOptions: imageSourceOptions,
 		userConfig:         *userConfig,
 		timer:              timer,
