@@ -26,10 +26,11 @@ import (
 )
 
 var (
-	runtimePtr    = flag.String("runtime", "containerd", "container runtime")
-	imageListPtr  = flag.String("imagelist", "", "name of ImageList")
-	enableProfile = flag.Bool("enable-pprof", false, "enable pprof profiling")
-	profilePort   = flag.Int("pprof-port", 6060, "port for pprof profiling. defaulted to 6060 if unspecified")
+	runtimePtr      = flag.String("runtime", "containerd", "container runtime")
+	isCustomRuntime = flag.Bool("custom-runtime", false, "assume runtime passed is local socket path")
+	imageListPtr    = flag.String("imagelist", "", "name of ImageList")
+	enableProfile   = flag.Bool("enable-pprof", false, "enable pprof profiling")
+	profilePort     = flag.Int("pprof-port", 6060, "port for pprof profiling. defaulted to 6060 if unspecified")
 
 	// Timeout  of connecting to server (default: 5m).
 	timeout  = 5 * time.Minute
@@ -61,6 +62,14 @@ func main() {
 	}
 
 	socketPath, found := util.RuntimeSocketPathMap[*runtimePtr]
+	if *isCustomRuntime {
+		socketPath = *runtimePtr
+
+		// check if socketPath exists
+		if _, err := os.Stat(socketPath); err == nil {
+			found = true
+		}
+	}
 	if !found {
 		log.Error(fmt.Errorf("unsupported runtime"), "runtime", *runtimePtr)
 		os.Exit(generalErr)
