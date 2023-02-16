@@ -1423,6 +1423,29 @@
     url-loader "^4.1.1"
     webpack "^5.73.0"
 
+"@docusaurus/mdx-loader@2.3.1":
+  version "2.3.1"
+  resolved "https://registry.yarnpkg.com/@docusaurus/mdx-loader/-/mdx-loader-2.3.1.tgz#7ec6acee5eff0a280e1b399ea4dd690b15a793f7"
+  integrity sha512-Gzga7OsxQRpt3392K9lv/bW4jGppdLFJh3luKRknCKSAaZrmVkOQv2gvCn8LAOSZ3uRg5No7AgYs/vpL8K94lA==
+  dependencies:
+    "@babel/parser" "^7.18.8"
+    "@babel/traverse" "^7.18.8"
+    "@docusaurus/logger" "2.3.1"
+    "@docusaurus/utils" "2.3.1"
+    "@mdx-js/mdx" "^1.6.22"
+    escape-html "^1.0.3"
+    file-loader "^6.2.0"
+    fs-extra "^10.1.0"
+    image-size "^1.0.1"
+    mdast-util-to-string "^2.0.0"
+    remark-emoji "^2.2.0"
+    stringify-object "^3.3.0"
+    tslib "^2.4.0"
+    unified "^9.2.2"
+    unist-util-visit "^2.0.3"
+    url-loader "^4.1.1"
+    webpack "^5.73.0"
+
 "@docusaurus/module-type-aliases@2.3.0":
   version "2.3.0"
   resolved "https://registry.yarnpkg.com/@docusaurus/module-type-aliases/-/module-type-aliases-2.3.0.tgz#85861b0e56a3468d82cba76964e08287d1939c84"
@@ -1720,6 +1743,28 @@
     joi "^17.6.0"
     js-yaml "^4.1.0"
     tslib "^2.4.0"
+
+"@docusaurus/utils@2.3.1":
+  version "2.3.1"
+  resolved "https://registry.yarnpkg.com/@docusaurus/utils/-/utils-2.3.1.tgz#24b9cae3a23b1e6dc88f95c45722c7e82727b032"
+  integrity sha512-9WcQROCV0MmrpOQDXDGhtGMd52DHpSFbKLfkyaYumzbTstrbA5pPOtiGtxK1nqUHkiIv8UwexS54p0Vod2I1lg==
+  dependencies:
+    "@docusaurus/logger" "2.3.1"
+    "@svgr/webpack" "^6.2.1"
+    escape-string-regexp "^4.0.0"
+    file-loader "^6.2.0"
+    fs-extra "^10.1.0"
+    github-slugger "^1.4.0"
+    globby "^11.1.0"
+    gray-matter "^4.0.3"
+    js-yaml "^4.1.0"
+    lodash "^4.17.21"
+    micromatch "^4.0.5"
+    resolve-pathname "^3.0.0"
+    shelljs "^0.8.5"
+    tslib "^2.4.0"
+    url-loader "^4.1.1"
+    webpack "^5.73.0"
 
 "@docusaurus/utils@2.3.1":
   version "2.3.1"
@@ -3728,6 +3773,11 @@ esutils@^2.0.2:
   version "2.0.3"
   resolved "https://registry.yarnpkg.com/esutils/-/esutils-2.0.3.tgz#74d2eb4de0b8da1293711910d50775b9b710ef64"
   integrity sha512-kVscqXk4OCp68SZ0dkgEKVi6/8ij300KBWTJq32P/dYeWTSwK41WyTxalN1eRmA5Z9UU/LX9D7FWSmV9SAYx6g==
+
+eta@^2.0.0:
+  version "2.0.0"
+  resolved "https://registry.yarnpkg.com/eta/-/eta-2.0.0.tgz#376865fadebc899e5b6dfce82fae64cbbe47e594"
+  integrity sha512-NqE7S2VmVwgMS8yBxsH4VgNQjNjLq1gfGU0u9I6Cjh468nPRMoDfGdK9n1p/3Dvsw3ebklDkZsFAnKJ9sefjBA==
 
 eta@^2.0.0:
   version "2.0.0"
