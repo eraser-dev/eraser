@@ -427,6 +427,95 @@ subjects:
   name: eraser-controller-manager
   namespace: eraser-system
 ---
+apiVersion: v1
+data:
+  controller_manager_config.yaml: |
+    apiVersion: eraser.sh/v1alpha1
+    kind: EraserConfig
+    manager:
+      runtime: containerd
+      otlpEndpoint: ""
+      logLevel: info
+      scheduling:
+        repeatInterval: 24h
+        beginImmediately: true
+      profile:
+        enabled: false
+        port: 6060
+      imageJob:
+        successRatio: 1.0
+        cleanup:
+          delayOnSuccess: 0s
+          delayOnFailure: 24h
+      pullSecrets: [] # image pull secrets for collector/scanner/eraser
+      priorityClassName: "" # priority class name for collector/scanner/eraser
+      nodeFilter:
+        type: exclude # must be either exclude|include
+        selectors:
+          - eraser.sh/cleanup.filter
+          - kubernetes.io/os=windows
+    components:
+      collector:
+        enabled: true
+        image:
+          repo: ghcr.io/azure/collector
+          tag: v1.0.0
+        request:
+          mem: 25Mi
+          cpu: 7m
+        limit:
+          mem: 500Mi
+          # https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/#how-pods-with-resource-limits-are-run
+          cpu: 0
+      scanner:
+        enabled: true
+        image:
+          repo: ghcr.io/azure/eraser-trivy-scanner # supply custom image for custom scanner
+          tag: v1.0.0
+        request:
+          mem: 500Mi
+          cpu: 1000m
+        limit:
+          mem: 2Gi
+          # https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/#how-pods-with-resource-limits-are-run
+          cpu: 0
+        # The config needs to be passed through to the scanner as yaml, as a
+        # single string. Because we allow custom scanner images, the scanner is
+        # responsible for defining a schema, parsing, and validating.
+        config: |
+          # this is the schema for the provided 'trivy-scanner'. custom scanners
+          # will define their own configuration.
+          cacheDir: /var/lib/trivy
+          dbRepo: ghcr.io/aquasecurity/trivy-db
+          deleteFailedImages: true
+          vulnerabilities:
+            ignoreUnfixed: true
+            types:
+              - os
+              - library
+            securityChecks:
+              - vuln
+            severities:
+              - CRITICAL
+          timeout:
+            total: 23h
+            perImage: 1h
+      eraser:
+        image:
+          repo: ghcr.io/azure/eraser
+          tag: v1.0.0
+        request:
+          mem: 25Mi
+          # https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/#how-pods-with-resource-limits-are-run
+          cpu: 0
+        limit:
+          mem: 30Mi
+          cpu: 1000m
+kind: ConfigMap
+metadata:
+  name: eraser-manager-config
+  namespace: eraser-system
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -446,10 +535,7 @@ spec:
     spec:
       containers:
       - args:
-        - --leader-elect=false
-        - --eraser-image=ghcr.io/azure/eraser:v1.0.0-beta.3
-        - --collector-image=ghcr.io/azure/collector:v1.0.0-beta.3
-        - --scanner-image=ghcr.io/azure/eraser-trivy-scanner:v1.0.0-beta.3
+        - --config=/config/controller_manager_config.yaml
         command:
         - /manager
         env:
@@ -460,7 +546,7 @@ spec:
               fieldPath: metadata.namespace
         - name: OTEL_SERVICE_NAME
           value: eraser-manager
-        image: ghcr.io/azure/eraser-manager:v1.0.0-beta.3
+        image: ghcr.io/azure/eraser-manager:v1.0.0
         livenessProbe:
           httpGet:
             path: /healthz
@@ -491,7 +577,14 @@ spec:
           runAsUser: 65532
           seccompProfile:
             type: RuntimeDefault
+        volumeMounts:
+        - mountPath: /config
+          name: manager-config
       nodeSelector:
         kubernetes.io/os: linux
       serviceAccountName: eraser-controller-manager
       terminationGracePeriodSeconds: 10
+      volumes:
+      - configMap:
+          name: eraser-manager-config
+        name: manager-config
