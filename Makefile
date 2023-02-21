@@ -53,6 +53,11 @@ ifdef GENERATE_ATTESTATIONS
 _ATTESTATIONS := --attest type=sbom --attest type=provenance,mode=max
 endif
 
+IDFLAGS=
+ifeq (false,$(shell hack/rootless_docker.sh))
+IDFLAGS=-u $(shell id -u):$(shell id -g)
+endif
+
 OUTPUT_TYPE ?= type=docker
 TOOLS_DIR := hack/tools
 TOOLS_BIN_DIR := $(abspath $(TOOLS_DIR)/bin)
@@ -297,6 +302,6 @@ version-docs:
 	docker run --rm \
 		-v $(shell pwd)/docs:/docs \
 		-w /docs \
-		-u $(shell id -u):$(shell id -g) \
+		$(IDFLAGS) \
 		node:${NODE_VERSION} \
 		sh -c "yarn install --frozen-lockfile && yarn run docusaurus docs:version ${NEWVERSION}"
