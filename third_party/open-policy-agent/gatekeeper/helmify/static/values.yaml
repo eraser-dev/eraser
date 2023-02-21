@@ -25,10 +25,11 @@ runtimeConfig:
         # delayOnFailure: ""
     pullSecrets: [] # image pull secrets for collector/scanner/eraser
     priorityClassName: "" # priority class name for collector/scanner/eraser
-    nodeFilter: {}
-      # type: exclude # must be either exclude|include
-      # selectors:
-      #   - eraser.sh/cleanup.filter
+    nodeFilter:
+      type: exclude # must be either exclude|include
+      selectors:
+        - eraser.sh/cleanup.filter
+        - kubernetes.io/os=windows
   components:
     collector:
       enabled: true

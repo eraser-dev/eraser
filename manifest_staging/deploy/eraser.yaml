@@ -453,6 +453,7 @@ data:
         type: exclude # must be either exclude|include
         selectors:
           - eraser.sh/cleanup.filter
+          - kubernetes.io/os=windows
     components:
       collector:
         enabled: true
