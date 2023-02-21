@@ -63,16 +63,6 @@ var defaultTolerations = []corev1.Toleration{
 }
 
 func Add(mgr manager.Manager, cfg *config.Manager) error {
-	c, err := cfg.Read()
-	if err != nil {
-		return err
-	}
-
-	filterOpts := c.Manager.NodeFilter
-	if filterOpts.Type == "exclude" && !slices.Contains(filterOpts.Selectors, windowsFilterLabel) {
-		filterOpts.Selectors = append(filterOpts.Selectors, windowsFilterLabel)
-	}
-
 	return add(mgr, newReconciler(mgr, cfg))
 }
 
