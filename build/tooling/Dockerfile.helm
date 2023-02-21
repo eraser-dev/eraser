@@ -1,5 +1,5 @@
 ARG KUSTOMIZE_VERSION
-FROM k8s.gcr.io/kustomize/kustomize:v${KUSTOMIZE_VERSION}
+FROM registry.k8s.io/kustomize/kustomize:v${KUSTOMIZE_VERSION}
 WORKDIR /eraser
 COPY config config
 
