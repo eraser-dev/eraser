@@ -68,7 +68,7 @@ docker build . \
 [+] Building 7.8s (8/8) FINISHED
  => => naming to docker.io/library/eraser-tooling                           0.0s
 docker run -v /home/eraser/config:/config -w /config/manager \
-        k8s.gcr.io/kustomize/kustomize:v3.8.9 edit set image controller=eraser-manager:dev
+        registry.k8s.io/kustomize/kustomize:v3.8.9 edit set image controller=eraser-manager:dev
 docker run -v /home/eraser:/eraser eraser-tooling controller-gen \
         crd \
         rbac:roleName=manager-role \
@@ -78,7 +78,7 @@ docker run -v /home/eraser:/eraser eraser-tooling controller-gen \
 rm -rf manifest_staging
 mkdir -p manifest_staging/deploy
 docker run --rm -v /home/eraser:/eraser \
-        k8s.gcr.io/kustomize/kustomize:v3.8.9 build \
+        registry.k8s.io/kustomize/kustomize:v3.8.9 build \
         /eraser/config/default -o /eraser/manifest_staging/deploy/eraser.yaml
 docker run -v /home/eraser:/eraser eraser-tooling controller-gen object:headerFile="hack/boilerplate.go.txt" paths="./..."
 go fmt ./...
