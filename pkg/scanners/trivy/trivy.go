@@ -231,12 +231,6 @@ func initScanner(userConfig *Config) (Scanner, error) {
 		return nil, fmt.Errorf("invalid trivy scanner config")
 	}
 
-	cacheDir := userConfig.CacheDir
-	err := downloadAndInitDB(userConfig)
-	if err != nil {
-		return nil, fmt.Errorf("unable to initialize trivy db. cacheDir: %s, error: %w", cacheDir, err)
-	}
-
 	logger, err := zap.NewProduction()
 	if err != nil {
 		return nil, fmt.Errorf("error setting up trivy logger: %w", err)
