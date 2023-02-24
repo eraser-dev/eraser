@@ -2,7 +2,7 @@
 title: Metrics
 ---
 
-To view Eraser metrics, you will need to deploy an Open Telemetry collector in the 'eraser-system' namespace, and an exporter. An example collector with a Prometheus exporter is [otelcollector.yaml](https://github.com/Azure/eraser/blob/main/test/e2e/test-data/otelcollector.yaml), and the endpoint can be specified using the [configmap](eraser/docs/customization#universal-options). In this example, we are logging the collected data to the otel-collector pod, and exporting metrics through Prometheus at 'http://localhost:8889/metrics', but a separate exporter can also be configured.
+To view Eraser metrics, you will need to deploy an Open Telemetry collector in the 'eraser-system' namespace, and an exporter. An example collector with a Prometheus exporter is [otelcollector.yaml](https://github.com/Azure/eraser/blob/main/test/e2e/test-data/otelcollector.yaml), and the endpoint can be specified using the [configmap](https://azure.github.io/eraser/docs/customization#universal-options). In this example, we are logging the collected data to the otel-collector pod, and exporting metrics through Prometheus at 'http://localhost:8889/metrics', but a separate exporter can also be configured.
 
 Below is the list of metrics provided by Eraser per run:
 
