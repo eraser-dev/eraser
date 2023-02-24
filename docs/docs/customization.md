@@ -29,7 +29,7 @@ cluster's nodes, and to remove the images you don't want. There are two stages:
 
 ### Scheduling
 
-An _ImageJob_ can either be created on-demand (see [Manual Removal](/eraser/docs/manual-removal)),
+An _ImageJob_ can either be created on-demand (see [Manual Removal](https://azure.github.io/eraser/docs/manual-removal)),
 or they can be spawned on a timer like a cron job. On-demand jobs skip the
 assessment stage and get right down to the business of removing the images you
 specified. The behavior of an on-demand job is quite different from that of

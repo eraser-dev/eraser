@@ -22,4 +22,4 @@ $ kubectl label configmap excluded eraser.sh/exclude.list=true -n eraser-system
 ```
 
 ## Exempting Nodes from the Eraser Pipeline
-Exempting nodes from cleanup was added in v1.0.0. When deploying Eraser, you can specify whether there is a list of nodes you would like to `include` or `exclude` from the cleanup process using the configmap. For more information, see the section on [customization](/eraser/docs/customization).
+Exempting nodes from cleanup was added in v1.0.0. When deploying Eraser, you can specify whether there is a list of nodes you would like to `include` or `exclude` from the cleanup process using the configmap. For more information, see the section on [customization](https://azure.github.io/eraser/docs/customization).
