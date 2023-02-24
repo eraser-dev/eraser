@@ -70,6 +70,15 @@ take place when:
 1. The collector and/or scanner `components` are enabled, AND
 1. The job was *not* triggered manually by creating an _ImageList_.
 
+### Swapping out components
+
+The collector, scanner, and eraser components can all be swapped out. This
+enables you to build and host the images yourself. In addition, the scanner's
+behavior can be completely tailored to your needs by swapping out the default
+image with one of your own. To specify the images, use the
+`components.<component>.image.repo` and `components.<component>.image.tag`,
+where `<component>` is one of `collector`, `scanner`, or `eraser`.
+
 ## Universal Options
 
 The following portions of the configmap apply no matter how you spawn your
