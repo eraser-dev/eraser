@@ -87,7 +87,7 @@ func TestHelmPullSecret(t *testing.T) {
 			return ctx
 		}).
 		Assess("Get logs", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
-			if err := util.GetPodLogs(ctx, cfg, t, false); err != nil {
+			if err := util.GetPodLogs(ctx, cfg, t, true); err != nil {
 				t.Error("error getting collector pod logs", err)
 			}
 
