@@ -270,6 +270,11 @@ func (r *Reconciler) handleImageListEvent(ctx context.Context, req *ctrl.Request
 	imageCfg := eraserContainerCfg.Image
 	image := fmt.Sprintf("%s:%s", imageCfg.Repo, imageCfg.Tag)
 
+	pullSecrets := []corev1.LocalObjectReference{}
+	for _, secret := range eraserConfig.Manager.PullSecrets {
+		pullSecrets = append(pullSecrets, corev1.LocalObjectReference{Name: secret})
+	}
+
 	jobTemplate := corev1.PodTemplateSpec{
 		Spec: corev1.PodSpec{
 			Volumes: []corev1.Volume{
@@ -280,6 +285,7 @@ func (r *Reconciler) handleImageListEvent(ctx context.Context, req *ctrl.Request
 					},
 				},
 			},
+			ImagePullSecrets:  pullSecrets,
 			RestartPolicy:     corev1.RestartPolicyNever,
 			PriorityClassName: eraserConfig.Manager.PriorityClassName,
 			Containers: []corev1.Container{
