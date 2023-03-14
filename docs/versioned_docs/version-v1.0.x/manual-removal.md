@@ -6,7 +6,7 @@ Create an `ImageList` and specify the images you would like to remove. In this c
 
 ```shell
 cat <<EOF | kubectl apply -f -
-apiVersion: eraser.sh/v1alpha1
+apiVersion: eraser.sh/v1
 kind: ImageList
 metadata:
   name: imagelist
