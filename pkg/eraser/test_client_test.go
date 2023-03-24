@@ -69,13 +69,13 @@ func (c *testClient) logf(format string, args ...interface{}) {
 	c.t.Logf(format, args...)
 }
 
-func (c *testClient) ListImages(ctx context.Context) (list []*v1.Image, err error) {
+func (c *testClient) ListImages(_ context.Context) (list []*v1.Image, err error) {
 	images := make([]*v1.Image, len(c.images))
 	copy(images, c.images)
 	return images, nil
 }
 
-func (c *testClient) ListContainers(ctx context.Context) (list []*v1.Container, err error) {
+func (c *testClient) ListContainers(_ context.Context) (list []*v1.Container, err error) {
 	containers := make([]*v1.Container, len(c.containers))
 	copy(containers, c.containers)
 	return containers, nil
@@ -87,7 +87,7 @@ func (c *testClient) removeImageFromSlice(index int) {
 	c.images = s
 }
 
-func (c *testClient) DeleteImage(ctx context.Context, image string) (err error) {
+func (c *testClient) DeleteImage(_ context.Context, image string) (err error) {
 	c.logf("DeleteImage: %s", image)
 	if image == "" {
 		return errImageEmpty
@@ -303,7 +303,7 @@ func testDeleteImage(t *testing.T) {
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), timeoutTest)
-	cancel()
+	defer cancel()
 
 	for i, tc := range testCases {
 		e := tc.imagesInput.DeleteImage(ctx, tc.imageToDelete)

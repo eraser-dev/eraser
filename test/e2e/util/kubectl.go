@@ -62,7 +62,7 @@ func KubectlDelete(kubeconfigPath, namespace string, args []string) error {
 	return err
 }
 
-func KubectlExecCurl(kubeconfigPath, podName string, endpoint, namespace string) (string, error) {
+func KubectlExecCurl(podName string, endpoint, namespace string) (string, error) {
 	args := []string{
 		"exec",
 		"-i",
@@ -123,7 +123,7 @@ func KubectlDescribe(kubeconfigPath, podName, namespace string) (string, error) 
 }
 
 // KubectlDescribe executes "kubectl describe" given a list of arguments.
-func KubectlCurlPod(kubeconfigPath, namespace string) (string, error) {
+func KubectlCurlPod(namespace string) (string, error) {
 	args := []string{
 		"run",
 		"temp",

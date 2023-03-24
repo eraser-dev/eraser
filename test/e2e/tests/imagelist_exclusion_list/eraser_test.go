@@ -98,7 +98,7 @@ func TestExclusionList(t *testing.T) {
 			ctxT, cancel := context.WithTimeout(ctx, util.Timeout)
 			defer cancel()
 			// since docker.io/library/* was excluded, nginx should still exist following deletion
-			util.CheckImagesExist(ctxT, t, util.GetClusterNodes(t), util.Nginx)
+			util.CheckImagesExist(t, util.GetClusterNodes(t), util.Nginx)
 
 			return ctx
 		}).
