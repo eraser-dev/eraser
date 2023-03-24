@@ -445,7 +445,7 @@ data:
       imageJob:
         successRatio: 1.0
         cleanup:
-          delayOnSuccess: 30m
+          delayOnSuccess: 0s
           delayOnFailure: 24h
       pullSecrets: [] # image pull secrets for collector/scanner/eraser
       priorityClassName: "" # priority class name for collector/scanner/eraser
