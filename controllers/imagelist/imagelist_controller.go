@@ -266,8 +266,8 @@ func (r *Reconciler) handleImageListEvent(ctx context.Context, req *ctrl.Request
 		return ctrl.Result{}, err
 	}
 
-	eraserContainerCfg := eraserConfig.Components.Eraser
-	imageCfg := eraserContainerCfg.Image
+	removerContainerCfg := eraserConfig.Components.Remover
+	imageCfg := removerContainerCfg.Image
 	image := fmt.Sprintf("%s:%s", imageCfg.Repo, imageCfg.Tag)
 
 	pullSecrets := []corev1.LocalObjectReference{}
@@ -290,7 +290,7 @@ func (r *Reconciler) handleImageListEvent(ctx context.Context, req *ctrl.Request
 			PriorityClassName: eraserConfig.Manager.PriorityClassName,
 			Containers: []corev1.Container{
 				{
-					Name:            "eraser",
+					Name:            "remover",
 					Image:           image,
 					ImagePullPolicy: corev1.PullIfNotPresent,
 					Args:            args,
@@ -299,11 +299,11 @@ func (r *Reconciler) handleImageListEvent(ctx context.Context, req *ctrl.Request
 					},
 					Resources: corev1.ResourceRequirements{
 						Requests: corev1.ResourceList{
-							"cpu":    eraserContainerCfg.Request.CPU,
-							"memory": eraserContainerCfg.Request.Mem,
+							"cpu":    removerContainerCfg.Request.CPU,
+							"memory": removerContainerCfg.Request.Mem,
 						},
 						Limits: corev1.ResourceList{
-							"memory": eraserContainerCfg.Limit.Mem,
+							"memory": removerContainerCfg.Limit.Mem,
 						},
 					},
 					SecurityContext: utils.SharedSecurityContext,
@@ -315,7 +315,7 @@ func (r *Reconciler) handleImageListEvent(ctx context.Context, req *ctrl.Request
 						},
 						{
 							Name:  "OTEL_SERVICE_NAME",
-							Value: "eraser",
+							Value: "remover",
 						},
 					},
 				},

@@ -268,18 +268,18 @@ func (r *Reconciler) createImageJob(ctx context.Context, req ctrl.Request) (ctrl
 
 	scanCfg := compCfg.Scanner
 	collectorCfg := compCfg.Collector
-	eraserCfg := compCfg.Eraser
+	removerCfg := compCfg.Remover
 
 	scanDisabled := !scanCfg.Enabled
 	startTime = time.Now()
 
-	eraserImg := *util.EraserImage
-	if eraserImg == "" {
-		iCfg := eraserCfg.Image
-		eraserImg = fmt.Sprintf("%s:%s", iCfg.Repo, iCfg.Tag)
+	removerImg := *util.RemoverImage
+	if removerImg == "" {
+		iCfg := removerCfg.Image
+		removerImg = fmt.Sprintf("%s:%s", iCfg.Repo, iCfg.Tag)
 	}
 
-	log.V(1).Info("eraserImg", "eraserImg", eraserImg)
+	log.V(1).Info("eraserImg", "eraserImg", removerImg)
 
 	iCfg := collectorCfg.Image
 	collectorImg := fmt.Sprintf("%s:%s", iCfg.Repo, iCfg.Tag)
@@ -293,8 +293,8 @@ func (r *Reconciler) createImageJob(ctx context.Context, req ctrl.Request) (ctrl
 	collArgs := []string{"--scan-disabled=" + strconv.FormatBool(scanDisabled)}
 	collArgs = append(collArgs, profileArgs...)
 
-	eraserArgs := []string{"--log-level=" + logger.GetLevel()}
-	eraserArgs = append(eraserArgs, profileArgs...)
+	removerArgs := []string{"--log-level=" + logger.GetLevel()}
+	removerArgs = append(removerArgs, profileArgs...)
 
 	pullSecrets := []corev1.LocalObjectReference{}
 	for _, secret := range eraserConfig.Manager.PullSecrets {
@@ -342,20 +342,20 @@ func (r *Reconciler) createImageJob(ctx context.Context, req ctrl.Request) (ctrl
 					},
 				},
 				{
-					Name:            "eraser",
-					Image:           eraserImg,
+					Name:            "remover",
+					Image:           removerImg,
 					ImagePullPolicy: corev1.PullIfNotPresent,
-					Args:            eraserArgs,
+					Args:            removerArgs,
 					VolumeMounts: []corev1.VolumeMount{
 						{MountPath: "/run/eraser.sh/shared-data", Name: "shared-data"},
 					},
 					Resources: corev1.ResourceRequirements{
 						Requests: corev1.ResourceList{
-							"cpu":    eraserCfg.Request.CPU,
-							"memory": eraserCfg.Request.Mem,
+							"cpu":    removerCfg.Request.CPU,
+							"memory": removerCfg.Request.Mem,
 						},
 						Limits: corev1.ResourceList{
-							"memory": eraserCfg.Limit.Mem,
+							"memory": removerCfg.Limit.Mem,
 						},
 					},
 					SecurityContext: utils.SharedSecurityContext,
@@ -366,7 +366,7 @@ func (r *Reconciler) createImageJob(ctx context.Context, req ctrl.Request) (ctrl
 						},
 						{
 							Name:  "OTEL_SERVICE_NAME",
-							Value: "eraser",
+							Value: "remover",
 						},
 					},
 				},
