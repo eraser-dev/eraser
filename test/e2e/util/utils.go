@@ -34,6 +34,7 @@ import (
 const (
 	providerResourceChartDir  = "manifest_staging/charts"
 	providerResourceDeployDir = "manifest_staging/deploy"
+	publishedHelmRepo         = "https://azure.github.io/eraser/charts"
 
 	KindClusterName  = "eraser-e2e-test"
 	ProviderResource = "eraser.yaml"
@@ -215,10 +216,13 @@ func parseRepoTag(img string) (RepoTag, error) {
 
 func HelmDeployLatestEraserRelease(namespace string, extraArgs ...string) env.Func {
 	return func(ctx context.Context, cfg *envconf.Config) (context.Context, error) {
-		addEraserRepoCmd := exec.Command("bash", "-ec", `
-        helm repo add eraser https://azure.github.io/eraser/charts
-        helm repo update
-        `)
+		scriptTemplate := `
+            helm repo add eraser '%[1]s'
+            helm repo update
+        `
+
+		script := fmt.Sprintf(scriptTemplate, publishedHelmRepo)
+		addEraserRepoCmd := exec.Command("bash", "-ec", script)
 
 		if _, err := addEraserRepoCmd.CombinedOutput(); err != nil {
 			return ctx, err
