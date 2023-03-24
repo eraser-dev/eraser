@@ -143,7 +143,7 @@ func main() {
 		exporter, reader, provider := metrics.ConfigureMetrics(ctx, log, os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT"))
 		global.SetMeterProvider(provider)
 
-		if err := metrics.RecordMetricsEraser(ctx, global.MeterProvider(), int64(removed)); err != nil {
+		if err := metrics.RecordMetricsRemover(ctx, global.MeterProvider(), int64(removed)); err != nil {
 			log.Error(err, "error recording metrics")
 		}
 		metrics.ExportMetrics(log, exporter, reader, provider)
