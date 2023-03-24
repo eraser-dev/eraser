@@ -3,15 +3,15 @@ VERSION := v1.1.0-beta.0
 MANAGER_TAG ?= ${VERSION}
 TRIVY_SCANNER_TAG ?= ${VERSION}
 COLLECTOR_TAG ?= ${VERSION}
-ERASER_TAG ?= ${VERSION}
+REMOVER_TAG ?= ${VERSION}
 
 # Image URL to use all building/pushing image targets
 TRIVY_SCANNER_REPO ?= ghcr.io/azure/eraser-trivy-scanner
 TRIVY_SCANNER_IMG ?= ${TRIVY_SCANNER_REPO}:${TRIVY_SCANNER_TAG}
 MANAGER_REPO ?= ghcr.io/azure/eraser-manager
 MANAGER_IMG ?= ${MANAGER_REPO}:${MANAGER_TAG}
-ERASER_REPO ?= ghcr.io/azure/eraser
-ERASER_IMG ?= ${ERASER_REPO}:${ERASER_TAG}
+REMOVER_REPO ?= ghcr.io/azure/remover
+REMOVER_IMG ?= ${REMOVER_REPO}:${REMOVER_TAG}
 COLLECTOR_REPO ?= ghcr.io/azure/collector
 COLLECTOR_IMG ?= ${COLLECTOR_REPO}:${COLLECTOR_TAG}
 VULNERABLE_IMG ?= docker.io/library/alpine:3.7.3
@@ -199,15 +199,15 @@ docker-build-trivy-scanner: ## Build docker image for trivy-scanner image.
 		-t ${TRIVY_SCANNER_IMG} \
 		--target trivy-scanner .
 
-docker-build-eraser: ## Build docker image for eraser image.
+docker-build-remover: ## Build docker image for remover image.
 	docker buildx build \
 		$(_CACHE_FROM) $(_CACHE_TO) \
 		$(_ATTESTATIONS) \
 		--build-arg LDFLAGS="$(ERASER_LDFLAGS)" \
 		--platform="$(PLATFORM)" \
 		--output=$(OUTPUT_TYPE) \
-		-t ${ERASER_IMG} \
-		--target eraser .
+		-t ${REMOVER_IMG} \
+		--target remover .
 
 docker-build-collector:
 	docker buildx build \
@@ -288,12 +288,12 @@ __kustomize-manifest-image:
 		--build-arg KUSTOMIZE_VERSION=${KUSTOMIZE_VERSION} \
 		--build-arg TRIVY_SCANNER_REPO=${TRIVY_SCANNER_REPO} \
 		--build-arg MANAGER_REPO=${MANAGER_REPO} \
-		--build-arg ERASER_REPO=${ERASER_REPO} \
+		--build-arg REMOVER_REPO=${REMOVER_REPO} \
 		--build-arg COLLECTOR_REPO=${COLLECTOR_REPO} \
 		--build-arg MANAGER_TAG=${MANAGER_TAG} \
 		--build-arg TRIVY_SCANNER_TAG=${TRIVY_SCANNER_TAG} \
 		--build-arg COLLECTOR_TAG=${COLLECTOR_TAG} \
-		--build-arg ERASER_TAG=${ERASER_TAG} \
+		--build-arg REMOVER_TAG=${REMOVER_TAG} \
 		-f build/tooling/Dockerfile.manifest
 
 # Tags a new version for docs

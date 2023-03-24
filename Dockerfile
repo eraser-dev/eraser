@@ -3,7 +3,7 @@
 ARG BUILDERIMAGE="golang:1.19-bullseye"
 ARG STATICBASEIMAGE="gcr.io/distroless/static:latest"
 ARG STATICNONROOTBASEIMAGE="gcr.io/distroless/static:nonroot"
-ARG BUILDKIT_SBOM_SCAN_STAGE=builder,manager-build,collector-build,eraser-build,trivy-scanner-build
+ARG BUILDKIT_SBOM_SCAN_STAGE=builder,manager-build,collector-build,remover-build,trivy-scanner-build
 
 # Build the manager binary
 FROM --platform=$BUILDPLATFORM $BUILDERIMAGE AS builder
@@ -37,11 +37,11 @@ RUN \
     --mount=type=cache,target=/go/pkg/mod \
     GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build ${LDFLAGS:+-ldflags "$LDFLAGS"} -o out/collector ./pkg/collector
 
-FROM builder AS eraser-build
+FROM builder AS remover-build
 RUN \
     --mount=type=cache,target=${GOCACHE} \
     --mount=type=cache,target=/go/pkg/mod \
-    GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build ${LDFLAGS:+-ldflags "$LDFLAGS"} -o out/eraser ./pkg/eraser
+    GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build ${LDFLAGS:+-ldflags "$LDFLAGS"} -o out/remover ./pkg/remover
 
 FROM builder AS trivy-scanner-build
 RUN \
@@ -59,9 +59,9 @@ FROM --platform=$TARGETPLATFORM $STATICBASEIMAGE as collector
 COPY --from=collector-build /workspace/out/collector /
 ENTRYPOINT ["/collector"]
 
-FROM --platform=$TARGETPLATFORM $STATICBASEIMAGE as eraser
-COPY --from=eraser-build /workspace/out/eraser /
-ENTRYPOINT ["/eraser"]
+FROM --platform=$TARGETPLATFORM $STATICBASEIMAGE as remover
+COPY --from=remover-build /workspace/out/remover /
+ENTRYPOINT ["/remover"]
 
 FROM --platform=$TARGETPLATFORM $STATICBASEIMAGE as trivy-scanner
 COPY --from=trivy-scanner-build /workspace/out/trivy-scanner /
