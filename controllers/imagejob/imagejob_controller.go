@@ -361,7 +361,7 @@ func (r *Reconciler) handleNewJob(ctx context.Context, imageJob *eraserv1.ImageJ
 			Spec:     *podSpec,
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace:    eraserUtils.GetNamespace(),
-				GenerateName: containerName + "-" + nodeName + "-",
+				GenerateName: "eraser-" + nodeName + "-",
 				Labels:       map[string]string{"name": containerName},
 				OwnerReferences: []metav1.OwnerReference{
 					*metav1.NewControllerRef(imageJob, imageJob.GroupVersionKind()),
