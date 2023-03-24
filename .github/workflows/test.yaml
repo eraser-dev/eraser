@@ -176,7 +176,7 @@ jobs:
         - name: Build eraser-manager
           run: make docker-build-manager
         - name: Build eraser
-          run: make docker-build-eraser
+          run: make docker-build-remover
         - name: Build collector
           run: make docker-build-collector
         - name: Build trivy-scanner
