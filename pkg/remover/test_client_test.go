@@ -21,7 +21,7 @@ type testClient struct {
 }
 
 var (
-	_ cri.Eraser = &testClient{}
+	_ cri.Remover = &testClient{}
 
 	errImageNotRemoved = errors.New("image not removed")
 	errImageEmpty      = errors.New("unable to remove empty image")

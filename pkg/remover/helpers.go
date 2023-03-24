@@ -8,7 +8,7 @@ import (
 	util "github.com/Azure/eraser/pkg/utils"
 )
 
-func removeImages(c cri.Eraser, targetImages []string) (int, error) {
+func removeImages(c cri.Remover, targetImages []string) (int, error) {
 	removed := 0
 
 	backgroundContext, cancel := context.WithTimeout(context.Background(), timeout)

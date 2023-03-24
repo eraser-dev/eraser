@@ -22,7 +22,7 @@ type ImageProvider interface {
 	// receive list of all non-running, non-excluded images from collector container to process.
 	ReceiveImages() ([]unversioned.Image, error)
 
-	// sends non-compliant images found to eraser container for removal.
+	// sends non-compliant images found to remover container for removal.
 	SendImages(nonCompliantImages, failedImages []unversioned.Image) error
 
 	// completes scanner communication process - required after custom scanning finishes.

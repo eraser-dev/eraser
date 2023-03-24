@@ -33,7 +33,7 @@ var (
 
 	// Timeout  of connecting to server (default: 5m).
 	timeout  = 5 * time.Minute
-	log      = logf.Log.WithName("eraser")
+	log      = logf.Log.WithName("remover")
 	excluded map[string]struct{}
 )
 
@@ -66,7 +66,7 @@ func main() {
 		os.Exit(generalErr)
 	}
 
-	client, err := cri.NewEraserClient(socketPath)
+	client, err := cri.NewRemoverClient(socketPath)
 	if err != nil {
 		log.Error(err, "failed to get image client")
 		os.Exit(generalErr)

@@ -21,7 +21,7 @@ type (
 		ListContainers(context.Context) ([]*v1.Container, error)
 	}
 
-	Eraser interface {
+	Remover interface {
 		Collector
 		DeleteImage(context.Context, string) error
 	}
@@ -30,10 +30,10 @@ type (
 )
 
 func NewCollectorClient(socketPath string) (Collector, error) {
-	return NewEraserClient(socketPath)
+	return NewRemoverClient(socketPath)
 }
 
-func NewEraserClient(socketPath string) (Eraser, error) {
+func NewRemoverClient(socketPath string) (Remover, error) {
 	ctx := context.Background()
 
 	conn, err := utils.GetConn(ctx, socketPath)
@@ -44,7 +44,7 @@ func NewEraserClient(socketPath string) (Eraser, error) {
 	return newClientWithFallback(ctx, conn)
 }
 
-func newClientWithFallback(ctx context.Context, conn *grpc.ClientConn) (Eraser, error) {
+func newClientWithFallback(ctx context.Context, conn *grpc.ClientConn) (Remover, error) {
 	errs := new(errors)
 	funcs := []runtimeTryFunc{tryV1, tryV1Alpha2}
 
@@ -91,7 +91,7 @@ func tryV1(ctx context.Context, conn *grpc.ClientConn) (string, error) {
 	return resp.RuntimeApiVersion, err
 }
 
-func getClientFromRuntimeVersion(conn *grpc.ClientConn, runtimeAPIVersion string) (Eraser, error) {
+func getClientFromRuntimeVersion(conn *grpc.ClientConn, runtimeAPIVersion string) (Remover, error) {
 	switch runtimeAPIVersion {
 	case string(RuntimeV1):
 		imageClient := v1.NewImageServiceClient(conn)
