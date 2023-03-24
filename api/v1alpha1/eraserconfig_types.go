@@ -135,7 +135,7 @@ type RepoTag struct {
 type Components struct {
 	Collector OptionalContainerConfig `json:"collector,omitempty"`
 	Scanner   OptionalContainerConfig `json:"scanner,omitempty"`
-	Eraser    ContainerConfig         `json:"eraser,omitempty"`
+	Remover   ContainerConfig         `json:"remover,omitempty"`
 }
 
 //+kubebuilder:object:root=true
