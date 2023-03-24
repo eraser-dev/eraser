@@ -160,7 +160,7 @@ non-vulnerable-img:
 e2e-test: vulnerable-img non-vulnerable-img busybox-img
 	for test in $(E2E_TESTS); do \
 		CGO_ENABLED=0 \
-			IMAGE=${ERASER_IMG} \
+			REMOVER_IMAGE=${REMOVER_IMG} \
 			MANAGER_IMAGE=${MANAGER_IMG} \
 			COLLECTOR_IMAGE=${COLLECTOR_IMG} \
 			SCANNER_IMAGE=${TRIVY_SCANNER_IMG} \
