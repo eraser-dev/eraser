@@ -445,7 +445,7 @@ data:
       imageJob:
         successRatio: 1.0
         cleanup:
-          delayOnSuccess: 0s
+          delayOnSuccess: 30m
           delayOnFailure: 24h
       pullSecrets: [] # image pull secrets for collector/scanner/eraser
       priorityClassName: "" # priority class name for collector/scanner/eraser
@@ -500,9 +500,9 @@ data:
           timeout:
             total: 23h
             perImage: 1h
-      eraser:
+      remover:
         image:
-          repo: ghcr.io/azure/eraser
+          repo: ghcr.io/azure/remover
           tag: v1.1.0-beta.0
         request:
           mem: 25Mi
