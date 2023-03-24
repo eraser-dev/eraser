@@ -63,14 +63,14 @@ jobs:
           GENERATE_ATTESTATIONS=true \
           MANAGER_IMG=${{ env.REGISTRY }}/${REPO_OWNER}/eraser-manager:${TAG}
 
-      - name: Build eraser
-        run: make docker-build-eraser \
+      - name: Build remover
+        run: make docker-build-remover \
           CACHE_FROM=type=gha,scope=eraser-node \
           CACHE_TO=type=gha,scope=eraser-node,mode=max \
           PLATFORM="linux/amd64,linux/arm64,linux/arm/v7" \
           OUTPUT_TYPE=type=registry \
           GENERATE_ATTESTATIONS=true \
-          ERASER_IMG=${{ env.REGISTRY }}/${REPO_OWNER}/eraser:${TAG}
+          REMOVER_IMG=${{ env.REGISTRY }}/${REPO_OWNER}/remover:${TAG}
 
       - name: Build collector
         run: make docker-build-collector \
