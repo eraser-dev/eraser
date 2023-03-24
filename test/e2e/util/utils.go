@@ -64,8 +64,8 @@ const (
 	ScannerImageRepo = HelmPath("runtimeConfig.components.scanner.image.repo")
 	ScannerImageTag  = HelmPath("runtimeConfig.components.scanner.image.tag")
 
-	EraserImageRepo = HelmPath("runtimeConfig.components.eraser.image.repo")
-	EraserImageTag  = HelmPath("runtimeConfig.components.eraser.image.tag")
+	RemoverImageRepo = HelmPath("runtimeConfig.components.remover.image.repo")
+	RemoverImageTag  = HelmPath("runtimeConfig.components.remover.image.tag")
 
 	ManagerImageRepo = HelmPath("deploy.image.repo")
 	ManagerImageTag  = HelmPath("deploy.image.tag")
@@ -80,7 +80,7 @@ const (
 
 var (
 	Testenv            env.Environment
-	Image              = os.Getenv("IMAGE")
+	RemoverImage       = os.Getenv("REMOVER_IMAGE")
 	ManagerImage       = os.Getenv("MANAGER_IMAGE")
 	CollectorImage     = os.Getenv("COLLECTOR_IMAGE")
 	ScannerImage       = os.Getenv("SCANNER_IMAGE")
@@ -110,7 +110,7 @@ type (
 
 	Images struct {
 		CollectorImage RepoTag
-		EraserImage    RepoTag
+		RemoverImage   RepoTag
 		ManagerImage   RepoTag
 		ScannerImage   RepoTag
 	}
@@ -138,7 +138,7 @@ func (hs *HelmSet) String() string {
 
 func init() {
 	var err error
-	ParsedImages, err = parsedImages(Image, ManagerImage, CollectorImage, ScannerImage)
+	ParsedImages, err = parsedImages(RemoverImage, ManagerImage, CollectorImage, ScannerImage)
 	if err != nil {
 		klog.Error(err)
 		panic(err)
@@ -157,8 +157,8 @@ func toRepoTag(ref registry.Reference) RepoTag {
 	return repoTag
 }
 
-func parsedImages(eraserImage, managerImage, collectorImage, scannerImage string) (*Images, error) {
-	eraserRepoTag, err := parseRepoTag(eraserImage)
+func parsedImages(removerImage, managerImage, collectorImage, scannerImage string) (*Images, error) {
+	removerRepoTag, err := parseRepoTag(removerImage)
 	if err != nil {
 		return nil, err
 	}
@@ -180,7 +180,7 @@ func parsedImages(eraserImage, managerImage, collectorImage, scannerImage string
 
 	return &Images{
 		CollectorImage: collectorRepoTag,
-		EraserImage:    eraserRepoTag,
+		RemoverImage:   removerRepoTag,
 		ManagerImage:   managerRepoTag,
 		ScannerImage:   scannerRepoTag,
 	}, nil
@@ -434,13 +434,13 @@ func CheckDeploymentCleanedUp(ctx context.Context, t *testing.T, client klient.C
 			return
 		default:
 			var pods corev1.PodList
-			err := client.Resources().List(ctx, &pods, resources.WithLabelSelector("name=eraser"))
+			err := client.Resources().List(ctx, &pods, resources.WithLabelSelector("name=remover"))
 			if err != nil {
 				t.Fatalf("error listing images: %s", err)
 			}
 
 			if len(pods.Items) > 0 {
-				t.Errorf("imagejob got restarted when it shouldn't: %d eraser pods still present", len(pods.Items))
+				t.Errorf("imagejob got restarted when it shouldn't: %d remover pods still present", len(pods.Items))
 				t.FailNow()
 			}
 		}
@@ -699,7 +699,7 @@ func GetPodLogs(ctx context.Context, cfg *envconf.Config, t *testing.T, imagelis
 
 	labelSelectorSet := map[string]string{"name": "collector"}
 	if imagelistTest {
-		labelSelectorSet = map[string]string{"name": "eraser"}
+		labelSelectorSet = map[string]string{"name": "remover"}
 	}
 
 	var ls corev1.PodList
