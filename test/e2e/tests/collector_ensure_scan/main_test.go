@@ -19,7 +19,7 @@ import (
 func TestMain(m *testing.M) {
 	utilruntime.Must(eraserv1alpha1.AddToScheme(scheme.Scheme))
 
-	removerImage := util.ParsedImagesRemoverImage
+	removerImage := util.ParsedImages.RemoverImage
 	managerImage := util.ParsedImages.ManagerImage
 	collectorImage := util.ParsedImages.CollectorImage
 	scannerImage := util.ParsedImages.ScannerImage

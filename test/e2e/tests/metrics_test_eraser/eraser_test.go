@@ -58,7 +58,7 @@ func TestMetricsEraserOnly(t *testing.T) {
 				t.Error(err, "error with otlp curl request")
 			}
 
-			r := regexp.MustCompile(`images_removed_run_total{job="eraser",node_name=".+"} (\d+)`)
+			r := regexp.MustCompile(`images_removed_run_total{job="remover",node_name=".+"} (\d+)`)
 			results := r.FindAllStringSubmatch(output, -1)
 
 			totalRemoved := 0
