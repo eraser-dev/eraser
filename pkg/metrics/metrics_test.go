@@ -28,7 +28,7 @@ func TestConfigureMetrics(t *testing.T) {
 }
 
 func TestRecordMetrics(t *testing.T) {
-	if err := RecordMetricsEraser(context.Background(), global.MeterProvider(), 1); err != nil {
+	if err := RecordMetricsRemover(context.Background(), global.MeterProvider(), 1); err != nil {
 		t.Fatal("could not record eraser metrics")
 	}
 
