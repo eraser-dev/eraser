@@ -19,7 +19,7 @@ import (
 func TestMain(m *testing.M) {
 	utilruntime.Must(eraserv1alpha1.AddToScheme(scheme.Scheme))
 
-	eraserImage := util.ParsedImages.EraserImage
+	removerImage := util.ParsedImages.RemoverImage
 	managerImage := util.ParsedImages.ManagerImage
 	collectorImg := util.ParsedImages.CollectorImage
 
@@ -31,15 +31,15 @@ func TestMain(m *testing.M) {
 		util.DeployOtelCollector(util.TestNamespace),
 		envfuncs.LoadDockerImageToCluster(util.KindClusterName, util.ManagerImage),
 		envfuncs.LoadDockerImageToCluster(util.KindClusterName, util.CollectorImage),
-		envfuncs.LoadDockerImageToCluster(util.KindClusterName, util.Image),
+		envfuncs.LoadDockerImageToCluster(util.KindClusterName, util.RemoverImage),
 		envfuncs.LoadDockerImageToCluster(util.KindClusterName, util.VulnerableImage),
 		util.DeployEraserHelm(util.TestNamespace,
 			"--set", util.ScannerEnable.Set("false"),
 			"--set", util.CollectorEnable.Set("true"),
 			"--set", util.CollectorImageRepo.Set(collectorImg.Repo),
 			"--set", util.CollectorImageTag.Set(collectorImg.Tag),
-			"--set", util.EraserImageRepo.Set(eraserImage.Repo),
-			"--set", util.EraserImageTag.Set(eraserImage.Tag),
+			"--set", util.RemoverImageRepo.Set(removerImage.Repo),
+			"--set", util.RemoverImageTag.Set(removerImage.Tag),
 			"--set", util.ManagerImageRepo.Set(managerImage.Repo),
 			"--set", util.ManagerImageTag.Set(managerImage.Tag),
 			"--set", util.OTLPEndpoint.Set("otel-collector:4318"),

@@ -14,7 +14,7 @@ import (
 )
 
 func TestEnsureScannerFunctions(t *testing.T) {
-	collectScanErasePipelineFeat := features.New("Collector pods should run automatically, trigger the scanner, then the eraser pods. Manifest deployment test.").
+	collectScanErasePipelineFeat := features.New("Eraser pods with collector container should run automatically, trigger the scanner, then the remover containers. Manifest deployment test.").
 		Assess("Vulnerable Image successfully deleted from all nodes", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
 			ctxT, cancel := context.WithTimeout(ctx, util.Timeout)
 			defer cancel()
@@ -28,7 +28,7 @@ func TestEnsureScannerFunctions(t *testing.T) {
 			}
 
 			if err := util.GetPodLogs(ctx, cfg, t, false); err != nil {
-				t.Error("error getting manager logs", err)
+				t.Error("error getting eraser pod logs", err)
 			}
 
 			return ctx

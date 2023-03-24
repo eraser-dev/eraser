@@ -19,7 +19,7 @@ import (
 func TestMain(m *testing.M) {
 	utilruntime.Must(eraserv1alpha1.AddToScheme(scheme.Scheme))
 
-	eraserImage := util.ParsedImages.EraserImage
+	removerImage := util.ParsedImagesRemoverImage
 	managerImage := util.ParsedImages.ManagerImage
 	collectorImage := util.ParsedImages.CollectorImage
 	scannerImage := util.ParsedImages.ScannerImage
@@ -39,8 +39,8 @@ func TestMain(m *testing.M) {
 			"--set", util.ScannerEnable.Set("true"),
 			"--set", util.ScannerImageRepo.Set(scannerImage.Repo),
 			"--set", util.ScannerImageTag.Set(scannerImage.Tag),
-			"--set", util.EraserImageRepo.Set(eraserImage.Repo),
-			"--set", util.EraserImageTag.Set(eraserImage.Tag),
+			"--set", util.RemoverImageRepo.Set(removerImage.Repo),
+			"--set", util.RemoverImageTag.Set(removerImage.Tag),
 			"--set", util.CollectorEnable.Set("true"),
 			"--set", util.CollectorImageRepo.Set(collectorImage.Repo),
 			"--set", util.CollectorImageTag.Set(collectorImage.Tag),

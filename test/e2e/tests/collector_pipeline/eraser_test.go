@@ -19,7 +19,7 @@ import (
 )
 
 func TestCollectScanErasePipeline(t *testing.T) {
-	collectScanErasePipelineFeat := features.New("Collector pods should run automatically, trigger the scanner, then the eraser pods. Manifest deployment test.").
+	collectScanErasePipelineFeat := features.New("Eraser pods should run automatically, trigger the collector then,scanner, then the eraser pods. Manifest deployment test.").
 		Assess("Vulnerable Image successfully deleted from all nodes", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
 			ctxT, cancel := context.WithTimeout(ctx, util.Timeout)
 			defer cancel()

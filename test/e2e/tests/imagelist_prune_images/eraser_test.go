@@ -159,7 +159,7 @@ func TestPrune(t *testing.T) {
 		}).
 		Assess("Get logs", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
 			if err := util.GetPodLogs(ctx, cfg, t, true); err != nil {
-				t.Error("error getting collector pod logs", err)
+				t.Error("error getting eraser pod logs", err)
 			}
 
 			if err := util.GetManagerLogs(ctx, cfg, t); err != nil {

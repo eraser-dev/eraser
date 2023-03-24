@@ -19,7 +19,7 @@ import (
 func TestMain(m *testing.M) {
 	utilruntime.Must(eraserv1alpha1.AddToScheme(scheme.Scheme))
 
-	eraserImage := util.ParsedImages.EraserImage
+	removerImage := util.ParsedImages.RemoverImage
 	managerImage := util.ParsedImages.ManagerImage
 	collectorImage := util.ParsedImages.CollectorImage
 
@@ -29,14 +29,14 @@ func TestMain(m *testing.M) {
 		envfuncs.CreateKindClusterWithConfig(util.KindClusterName, util.NodeVersion, "../../kind-config.yaml"),
 		envfuncs.CreateNamespace(util.TestNamespace),
 		envfuncs.LoadDockerImageToCluster(util.KindClusterName, util.ManagerImage),
-		envfuncs.LoadDockerImageToCluster(util.KindClusterName, util.Image),
+		envfuncs.LoadDockerImageToCluster(util.KindClusterName, util.RemoverImage),
 		util.DeployEraserHelm(util.TestNamespace,
 			"--set", util.ScannerEnable.Set("false"),
 			"--set", util.CollectorEnable.Set("true"),
 			"--set", util.CollectorImageRepo.Set(collectorImage.Repo),
 			"--set", util.CollectorImageTag.Set(collectorImage.Tag),
-			"--set", util.EraserImageRepo.Set(eraserImage.Repo),
-			"--set", util.EraserImageTag.Set(eraserImage.Tag),
+			"--set", util.RemoverImageRepo.Set(removerImage.Repo),
+			"--set", util.RemoverImageTag.Set(removerImage.Tag),
 			"--set", util.ManagerImageRepo.Set(managerImage.Repo),
 			"--set", util.ManagerImageTag.Set(managerImage.Tag),
 			"--set", util.ScheduleImmediate.Set("false"),
