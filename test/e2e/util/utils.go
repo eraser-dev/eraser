@@ -213,6 +213,46 @@ func parseRepoTag(img string) (RepoTag, error) {
 	return RepoTag{}, err
 }
 
+func HelmDeployLatestEraserRelease(namespace string, extraArgs ...string) env.Func {
+	return func(ctx context.Context, cfg *envconf.Config) (context.Context, error) {
+		addEraserRepoCmd := exec.Command("bash", "-ec", `
+        helm repo add eraser https://azure.github.io/eraser/charts
+        helm repo update
+        `)
+
+		if _, err := addEraserRepoCmd.CombinedOutput(); err != nil {
+			return ctx, err
+		}
+
+		args := []string{"eraser/eraser"}
+		args = append(args, extraArgs...)
+
+		if err := HelmInstall(cfg.KubeconfigFile(), namespace, args); err != nil {
+			return ctx, err
+		}
+
+		client, err := cfg.NewClient()
+		if err != nil {
+			klog.ErrorS(err, "Failed to create new Client")
+			return ctx, err
+		}
+
+		// wait for the deployment to finish becoming available
+		eraserManagerDep := appsv1.Deployment{
+			ObjectMeta: metav1.ObjectMeta{Name: "eraser-controller-manager", Namespace: namespace},
+		}
+
+		if err := wait.For(conditions.New(client.Resources()).DeploymentConditionMatch(&eraserManagerDep, appsv1.DeploymentAvailable, corev1.ConditionTrue),
+			wait.WithTimeout(Timeout)); err != nil {
+			klog.ErrorS(err, "failed to deploy eraser manager")
+
+			return ctx, err
+		}
+
+		return ctx, nil
+	}
+}
+
 func IsNotFound(err error) bool {
 	return err != nil && client.IgnoreNotFound(err) == nil
 }
@@ -575,6 +615,52 @@ func DeployEraserHelm(namespace string, args ...string) env.Func {
 		allArgs := []string{providerResourceAbsolutePath, "-f", emptyValuesPath}
 		allArgs = append(allArgs, args...)
 		if err := HelmInstall(cfg.KubeconfigFile(), namespace, allArgs); err != nil {
+			return ctx, err
+		}
+
+		client, err := cfg.NewClient()
+		if err != nil {
+			klog.ErrorS(err, "Failed to create new Client")
+			return ctx, err
+		}
+
+		// wait for the deployment to finish becoming available
+		eraserManagerDep := appsv1.Deployment{
+			ObjectMeta: metav1.ObjectMeta{Name: "eraser-controller-manager", Namespace: namespace},
+		}
+
+		if err = wait.For(conditions.New(client.Resources()).DeploymentConditionMatch(&eraserManagerDep, appsv1.DeploymentAvailable, corev1.ConditionTrue),
+			wait.WithTimeout(Timeout)); err != nil {
+			klog.ErrorS(err, "failed to deploy eraser manager")
+
+			return ctx, err
+		}
+
+		return ctx, nil
+	}
+}
+
+func UpgradeEraserHelm(namespace string, args ...string) env.Func {
+	return func(ctx context.Context, cfg *envconf.Config) (context.Context, error) {
+		wd, err := os.Getwd()
+		if err != nil {
+			return ctx, err
+		}
+
+		providerResourceAbsolutePath, err := filepath.Abs(filepath.Join(wd, "../../../../", providerResourceChartDir, "eraser"))
+		if err != nil {
+			return ctx, err
+		}
+
+		emptyValuesPath, err := filepath.Abs(filepath.Join(wd, "../../test-data/helm-empty-values.yaml"))
+		if err != nil {
+			return ctx, err
+		}
+
+		// start deployment
+		allArgs := []string{providerResourceAbsolutePath, "-f", emptyValuesPath}
+		allArgs = append(allArgs, args...)
+		if err := HelmUpgrade(cfg.KubeconfigFile(), namespace, allArgs); err != nil {
 			return ctx, err
 		}
 
