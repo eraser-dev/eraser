@@ -164,12 +164,12 @@ jobs:
         - uses: crazy-max/ghaction-github-runtime@v2
         - name: Set env
           run: |
-            echo ERASER_REPO=eraser >> $GITHUB_ENV
+            echo REMOVER_REPO=eraser >> $GITHUB_ENV
             echo MANAGER_REPO=manager >> $GITHUB_ENV
             echo COLLECTOR_REPO=collector >> $GITHUB_ENV
             echo TRIVY_SCANNER_REPO=scanner >> $GITHUB_ENV
 
-            echo ERASER_TAG=test >> $GITHUB_ENV
+            echo REMOVER_TAG=test >> $GITHUB_ENV
             echo MANAGER_TAG=test >> $GITHUB_ENV
             echo COLLECTOR_TAG=test >> $GITHUB_ENV
             echo TRIVY_SCANNER_TAG=test >> $GITHUB_ENV
