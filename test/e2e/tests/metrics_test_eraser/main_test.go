@@ -30,7 +30,7 @@ func TestMain(m *testing.M) {
 		util.DeployOtelCollector(util.TestNamespace),
 		envfuncs.LoadImageArchiveToCluster(util.KindClusterName, util.ManagerImage),
 		envfuncs.LoadImageArchiveToCluster(util.KindClusterName, util.Image),
-		envfuncs.LoadImageArchiveToCluster(util.KindClusterName, util.VulnerableImage),
+		envfuncs.LoadDockerArchiveToCluster(util.KindClusterName, util.VulnerableImage),
 		util.HelmDeployLatestEraserRelease(util.TestNamespace,
 			"--set", util.ScannerEnable.Set("false"),
 			"--set", util.CollectorEnable.Set("false"),

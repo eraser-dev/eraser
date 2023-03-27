@@ -33,7 +33,7 @@ func TestMain(m *testing.M) {
 		envfuncs.LoadImageArchiveToCluster(util.KindClusterName, util.Image),
 		envfuncs.LoadImageArchiveToCluster(util.KindClusterName, util.ScannerImage),
 		envfuncs.LoadImageArchiveToCluster(util.KindClusterName, util.CollectorImage),
-		envfuncs.LoadImageArchiveToCluster(util.KindClusterName, util.VulnerableImage),
+		envfuncs.LoadDockerArchiveToCluster(util.KindClusterName, util.VulnerableImage),
 		util.MakeDeploy(map[string]string{
 			"ERASER_REPO":        eraser.Repo,
 			"MANAGER_REPO":       manager.Repo,

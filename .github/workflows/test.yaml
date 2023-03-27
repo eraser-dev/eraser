@@ -16,6 +16,17 @@ env:
 permissions: read-all
 
 jobs:
+  build-id:
+    name: "Generate build id"
+    runs-on: ubuntu-latest
+    steps:
+      - id: generate-build-id
+        run: |
+          echo "build-id=$(date +%s)" | tee -a $GITHUB_OUTPUT
+    outputs:
+      build-id: ${{ steps.set-test-matrix.outputs.build-id }}
+
+
   build-e2e-test-list:
     name: "Build E2E Test List"
     runs-on: ubuntu-latest
@@ -32,6 +43,8 @@ jobs:
 
   build-eraser:
     name: "Build eraser image for e2e tests"
+    needs:
+      - build-id
     runs-on: ubuntu-latest
     steps:
       - name: Harden Runner
@@ -67,12 +80,14 @@ jobs:
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@v2
         with:
-          name: docker-images
+          name: docker-images-${{ needs.build-id.outputs.build-id }}
           path: eraser_test.tar
 
   build-trivy-scanner:
     name: "Build trivy-scanner image for e2e tests"
     runs-on: ubuntu-latest
+    needs:
+      - build-id
     steps:
       - name: Harden Runner
         uses: step-security/harden-runner@1f99358870fe1c846a3ccba386cc2b2246836776
@@ -106,11 +121,13 @@ jobs:
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@v2
         with:
-          name: docker-images
+          name: docker-images-${{ needs.build-id.outputs.build-id }}
           path: trivy-scanner_test.tar
 
   build-manager:
     name: "Build manager image for e2e tests"
+    needs:
+      - build-id
     runs-on: ubuntu-latest
     steps:
       - name: Harden Runner
@@ -145,11 +162,13 @@ jobs:
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@v2
         with:
-          name: docker-images
+          name: docker-images-${{ needs.build-id.outputs.build-id }}
           path: manager_test.tar
 
   build-collector:
     name: "Build collector image for e2e tests"
+    needs:
+      - build-id
     runs-on: ubuntu-latest
     steps:
       - name: Harden Runner
@@ -184,7 +203,7 @@ jobs:
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@v2
         with:
-          name: docker-images
+          name: docker-images-${{ needs.build-id.outputs.build-id }}
           path: collector_test.tar
 
   lint:
@@ -294,6 +313,7 @@ jobs:
       - build-manager
       - build-collector
       - build-trivy-scanner
+      - build-id
     strategy:
       fail-fast: false
       matrix:
@@ -309,7 +329,8 @@ jobs:
       - name: Fetch Build Artifacts
         uses: actions/download-artifact@v2
         with:
-          name: docker-images
+          name: docker-images-${{ needs.build-id.outputs.build-id }}
+          path: ${{ github.workspace }}/images
       - name: Set up Go 1.19
         uses: actions/setup-go@v3
         with:
@@ -329,18 +350,20 @@ jobs:
           echo MANAGER_REPO=manager >> $GITHUB_ENV
           echo COLLECTOR_REPO=collector >> $GITHUB_ENV
           echo TRIVY_SCANNER_REPO=scanner >> $GITHUB_ENV
-
           echo ERASER_TAG=test >> $GITHUB_ENV
           echo MANAGER_TAG=test >> $GITHUB_ENV
           echo COLLECTOR_TAG=test >> $GITHUB_ENV
           echo TRIVY_SCANNER_TAG=test >> $GITHUB_ENV
+          echo ARCHIVE_DIR=${{ github.workspace }}/images >> $GITHUB_ENV
+
+          ls $ARCHIVE_DIR
       - name: Run e2e test
         run: |
           make e2e-test \
-            ERASER_IMG=${ERASER_REPO}_${ERASER_TAG}.tar \
-            MANAGER_IMG=${MANAGER_REPO}_${MANAGER_TAG}.tar \
-            COLLECTOR_IMG=${COLLECTOR_REPO}_${COLLECTOR_TAG}.tar \
-            SCANNER_IMG=${TRIVY_SCANNER_REPO}_${TRIVY_SCANNER_TAG}.tar \
+            ERASER_IMG=$ARCHIVE_DIR/${ERASER_REPO}_${ERASER_TAG}.tar \
+            MANAGER_IMG=$ARCHIVE_DIR/${MANAGER_REPO}_${MANAGER_TAG}.tar \
+            COLLECTOR_IMG=$ARCHIVE_DIR/${COLLECTOR_REPO}_${COLLECTOR_TAG}.tar \
+            SCANNER_IMG=$ARCHIVE_DIR/${TRIVY_SCANNER_REPO}_${TRIVY_SCANNER_TAG}.tar \
             KUBERNETES_VERSION=${{ matrix.KUBERNETES_VERSION }} \
             E2E_TESTS=${{ matrix.E2E_TEST }}
       - name: Upload artifacts
