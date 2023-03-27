@@ -153,7 +153,7 @@ func TestPrune(t *testing.T) {
 			util.CheckImageRemoved(ctxT, t, util.GetClusterNodes(t), util.Caddy)
 
 			// Make sure nginx is still there
-			util.CheckImagesExist(ctx, t, util.GetClusterNodes(t), util.Nginx)
+			util.CheckImagesExist(t, util.GetClusterNodes(t), util.Nginx)
 
 			return ctx
 		}).

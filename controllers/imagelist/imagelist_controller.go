@@ -159,7 +159,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 
 	switch len(items) {
 	case 0:
-		return r.handleImageListEvent(ctx, &req, &imageList)
+		return r.handleImageListEvent(ctx, &imageList)
 	case 1:
 		job := items[0]
 
@@ -212,7 +212,7 @@ func (r *Reconciler) handleJobListEvent(ctx context.Context, imageList *eraserv1
 			if err := metrics.RecordMetricsController(ctx, global.MeterProvider(), float64(time.Since(startTime).Seconds()), int64(job.Status.Succeeded), int64(job.Status.Failed)); err != nil {
 				log.Error(err, "error recording metrics")
 			}
-			metrics.ExportMetrics(log, exporter, reader, provider)
+			metrics.ExportMetrics(log, exporter, reader)
 		}
 
 		return r.handleJobDeletion(ctx, job)
@@ -237,7 +237,7 @@ func (r *Reconciler) handleJobDeletion(ctx context.Context, job *eraserv1.ImageJ
 	return ctrl.Result{}, nil
 }
 
-func (r *Reconciler) handleImageListEvent(ctx context.Context, req *ctrl.Request, imageList *eraserv1.ImageList) (ctrl.Result, error) {
+func (r *Reconciler) handleImageListEvent(ctx context.Context, imageList *eraserv1.ImageList) (ctrl.Result, error) {
 	imgListJSON, err := json.Marshal(imageList.Spec.Images)
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("marshal image list: %w", err)

@@ -146,7 +146,7 @@ func main() {
 		if err := metrics.RecordMetricsEraser(ctx, global.MeterProvider(), int64(removed)); err != nil {
 			log.Error(err, "error recording metrics")
 		}
-		metrics.ExportMetrics(log, exporter, reader, provider)
+		metrics.ExportMetrics(log, exporter, reader)
 		cancel()
 	}
 
