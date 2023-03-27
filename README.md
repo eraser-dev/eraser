@@ -21,6 +21,9 @@ When you submit a pull request, a CLA bot will automatically determine whether y
 
 This project has adopted the [Microsoft Open Source Code of Conduct](https://opensource.microsoft.com/codeofconduct/). For more information see the [Code of Conduct FAQ](https://opensource.microsoft.com/codeofconduct/faq/) or contact [opencode@microsoft.com](mailto:opencode@microsoft.com) with any additional questions or comments.
 
+## Roadmap
+You can view the public roadmap for Eraser on the GitHub Project [here](https://github.com/orgs/Azure/projects/441). Note that all target dates are aspirational and subject to change.
+
 ## Support
 
 ### How to file issues and get help
