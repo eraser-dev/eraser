@@ -24,6 +24,7 @@ import (
 	"sigs.k8s.io/e2e-framework/klient/wait/conditions"
 	"sigs.k8s.io/e2e-framework/pkg/env"
 	"sigs.k8s.io/e2e-framework/pkg/envconf"
+	"sigs.k8s.io/e2e-framework/pkg/envfuncs"
 	"sigs.k8s.io/kind/pkg/cluster"
 
 	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
@@ -212,6 +213,14 @@ func parseRepoTag(img string) (RepoTag, error) {
 	}
 
 	return RepoTag{}, err
+}
+
+func LoadImageToCluster(clusterName, dockerArchiveOrImage string) env.Func {
+	if strings.HasSuffix(dockerArchiveOrImage, ".tar") {
+		return envfuncs.LoadImageArchiveToCluster(clusterName, dockerArchiveOrImage)
+	}
+
+	return envfuncs.LoadDockerImageToCluster(clusterName, dockerArchiveOrImage)
 }
 
 func HelmDeployLatestEraserRelease(namespace string, extraArgs ...string) env.Func {
