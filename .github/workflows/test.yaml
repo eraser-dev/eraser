@@ -16,17 +16,6 @@ env:
 permissions: read-all
 
 jobs:
-  build-id:
-    name: "Generate build id"
-    runs-on: ubuntu-latest
-    steps:
-      - id: generate-build-id
-        run: |
-          echo "build-id=$(date +%s)" | tee -a $GITHUB_OUTPUT
-    outputs:
-      build-id: ${{ steps.set-test-matrix.outputs.build-id }}
-
-
   build-e2e-test-list:
     name: "Build E2E Test List"
     runs-on: ubuntu-latest
@@ -43,8 +32,6 @@ jobs:
 
   build-eraser:
     name: "Build eraser image for e2e tests"
-    needs:
-      - build-id
     runs-on: ubuntu-latest
     steps:
       - name: Harden Runner
@@ -80,14 +67,12 @@ jobs:
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@v2
         with:
-          name: docker-images-${{ needs.build-id.outputs.build-id }}
+          name: docker-images
           path: eraser_test.tar
 
   build-trivy-scanner:
     name: "Build trivy-scanner image for e2e tests"
     runs-on: ubuntu-latest
-    needs:
-      - build-id
     steps:
       - name: Harden Runner
         uses: step-security/harden-runner@1f99358870fe1c846a3ccba386cc2b2246836776
@@ -121,13 +106,11 @@ jobs:
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@v2
         with:
-          name: docker-images-${{ needs.build-id.outputs.build-id }}
+          name: docker-images
           path: trivy-scanner_test.tar
 
   build-manager:
     name: "Build manager image for e2e tests"
-    needs:
-      - build-id
     runs-on: ubuntu-latest
     steps:
       - name: Harden Runner
@@ -162,13 +145,11 @@ jobs:
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@v2
         with:
-          name: docker-images-${{ needs.build-id.outputs.build-id }}
+          name: docker-images
           path: manager_test.tar
 
   build-collector:
     name: "Build collector image for e2e tests"
-    needs:
-      - build-id
     runs-on: ubuntu-latest
     steps:
       - name: Harden Runner
@@ -203,7 +184,7 @@ jobs:
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@v2
         with:
-          name: docker-images-${{ needs.build-id.outputs.build-id }}
+          name: docker-images
           path: collector_test.tar
 
   lint:
@@ -313,7 +294,6 @@ jobs:
       - build-manager
       - build-collector
       - build-trivy-scanner
-      - build-id
     strategy:
       fail-fast: false
       matrix:
@@ -329,7 +309,7 @@ jobs:
       - name: Fetch Build Artifacts
         uses: actions/download-artifact@v2
         with:
-          name: docker-images-${{ needs.build-id.outputs.build-id }}
+          name: docker-images
           path: ${{ github.workspace }}/images
       - name: Set up Go 1.19
         uses: actions/setup-go@v3
