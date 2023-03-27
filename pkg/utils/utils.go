@@ -128,7 +128,7 @@ func ListImages(ctx context.Context, images v1.ImageServiceClient) (list []*v1.I
 }
 
 func ListContainers(ctx context.Context, runtime v1.RuntimeServiceClient) (list []*v1.Container, err error) {
-	resp, err := runtime.ListContainers(context.Background(), new(v1.ListContainersRequest))
+	resp, err := runtime.ListContainers(ctx, new(v1.ListContainersRequest))
 	if err != nil {
 		return nil, err
 	}

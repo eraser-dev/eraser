@@ -270,11 +270,7 @@ func (r *Reconciler) handleRunningJob(ctx context.Context, imageJob *eraserv1.Im
 		imageJob.Status.Phase = eraserv1.PhaseFailed
 	}
 
-	if err := r.updateJobStatus(ctx, imageJob); err != nil {
-		return err
-	}
-
-	return nil
+	return r.updateJobStatus(ctx, imageJob)
 }
 
 func (r *Reconciler) handleNewJob(ctx context.Context, imageJob *eraserv1.ImageJob) error {

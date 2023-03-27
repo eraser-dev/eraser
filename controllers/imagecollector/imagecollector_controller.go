@@ -225,17 +225,17 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 				return ctrl.Result{}, err
 			}
 		}
-		return r.createImageJob(ctx, req)
+		return r.createImageJob(ctx)
 	}
 
 	switch len(imageJobList.Items) {
 	case 0:
 		// If we reach this point, reconcile has been called on a timer, and we want to begin a
 		// collector ImageJob
-		return r.createImageJob(ctx, req)
+		return r.createImageJob(ctx)
 	case 1:
 		// an imagejob has just completed; proceed to imagelist creation.
-		return r.handleCompletedImageJob(ctx, req, &imageJobList.Items[0])
+		return r.handleCompletedImageJob(ctx, &imageJobList.Items[0])
 	default:
 		return ctrl.Result{}, fmt.Errorf("more than one collector ImageJobs are scheduled")
 	}
@@ -257,7 +257,7 @@ func (r *Reconciler) handleJobDeletion(ctx context.Context, job *eraserv1.ImageJ
 	return ctrl.Result{}, nil
 }
 
-func (r *Reconciler) createImageJob(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+func (r *Reconciler) createImageJob(ctx context.Context) (ctrl.Result, error) {
 	eraserConfig, err := r.eraserConfig.Read()
 	if err != nil {
 		return ctrl.Result{}, err
@@ -470,7 +470,7 @@ func (r *Reconciler) createImageJob(ctx context.Context, req ctrl.Request) (ctrl
 	return reconcile.Result{}, nil
 }
 
-func (r *Reconciler) handleCompletedImageJob(ctx context.Context, req ctrl.Request, childJob *eraserv1.ImageJob) (ctrl.Result, error) {
+func (r *Reconciler) handleCompletedImageJob(ctx context.Context, childJob *eraserv1.ImageJob) (ctrl.Result, error) {
 	var err error
 	var timeRemaining time.Duration
 	eraserConfig, err := r.eraserConfig.Read()
@@ -501,7 +501,7 @@ func (r *Reconciler) handleCompletedImageJob(ctx context.Context, req ctrl.Reque
 			if err := metrics.RecordMetricsController(ctx, global.MeterProvider(), float64(time.Since(startTime).Seconds()), int64(childJob.Status.Succeeded), int64(childJob.Status.Failed)); err != nil {
 				log.Error(err, "error recording metrics")
 			}
-			metrics.ExportMetrics(log, exporter, reader, provider)
+			metrics.ExportMetrics(log, exporter, reader)
 		}
 
 		timeRemaining = repeatInterval - successDelay
@@ -523,7 +523,7 @@ func (r *Reconciler) handleCompletedImageJob(ctx context.Context, req ctrl.Reque
 			if err := metrics.RecordMetricsController(ctx, global.MeterProvider(), float64(time.Since(startTime).Milliseconds()), int64(childJob.Status.Succeeded), int64(childJob.Status.Failed)); err != nil {
 				log.Error(err, "error recording metrics")
 			}
-			metrics.ExportMetrics(log, exporter, reader, provider)
+			metrics.ExportMetrics(log, exporter, reader)
 		}
 
 		timeRemaining = repeatInterval - errDelay

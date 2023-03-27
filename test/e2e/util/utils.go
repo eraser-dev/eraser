@@ -407,7 +407,7 @@ func GetClusterNodes(t *testing.T) []string {
 	return ourNodes
 }
 
-func CheckImagesExist(ctx context.Context, t *testing.T, nodes []string, images ...string) {
+func CheckImagesExist(t *testing.T, nodes []string, images ...string) {
 	t.Helper()
 
 	for _, node := range nodes {
@@ -533,10 +533,7 @@ func DeleteImageListsAndJobs(kubeConfig string) error {
 	if err := KubectlDelete(kubeConfig, "", []string{"imagejob", "--all"}); err != nil {
 		return err
 	}
-	if err := KubectlDelete(kubeConfig, "", []string{"imagelist", "--all"}); err != nil {
-		return err
-	}
-	return nil
+	return KubectlDelete(kubeConfig, "", []string{"imagelist", "--all"})
 }
 
 func DeleteStringFromSlice(strings []string, s string) []string {

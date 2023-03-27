@@ -95,10 +95,10 @@ func TestExclusionList(t *testing.T) {
 				t.Error("Failed to deploy image list config", err)
 			}
 
-			ctxT, cancel := context.WithTimeout(ctx, util.Timeout)
+			_, cancel := context.WithTimeout(ctx, util.Timeout)
 			defer cancel()
 			// since docker.io/library/* was excluded, nginx should still exist following deletion
-			util.CheckImagesExist(ctxT, t, util.GetClusterNodes(t), util.Nginx)
+			util.CheckImagesExist(t, util.GetClusterNodes(t), util.Nginx)
 
 			return ctx
 		}).

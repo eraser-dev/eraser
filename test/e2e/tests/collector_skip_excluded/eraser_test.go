@@ -45,16 +45,16 @@ func TestCollectorExcluded(t *testing.T) {
 			return ctx
 		}).
 		Assess("Alpine image is not removed", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
-			ctxT, cancel := context.WithTimeout(ctx, util.Timeout)
+			_, cancel := context.WithTimeout(ctx, util.Timeout)
 			defer cancel()
-			util.CheckImagesExist(ctxT, t, util.GetClusterNodes(t), util.VulnerableImage)
+			util.CheckImagesExist(t, util.GetClusterNodes(t), util.VulnerableImage)
 
 			return ctx
 		}).
 		Assess("Non-vulnerable image is not removed", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
-			ctxT, cancel := context.WithTimeout(ctx, util.Timeout)
+			_, cancel := context.WithTimeout(ctx, util.Timeout)
 			defer cancel()
-			util.CheckImagesExist(ctxT, t, util.GetClusterNodes(t), util.NonVulnerableImage)
+			util.CheckImagesExist(t, util.GetClusterNodes(t), util.NonVulnerableImage)
 
 			return ctx
 		}).
