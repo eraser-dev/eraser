@@ -29,11 +29,11 @@ func TestMain(m *testing.M) {
 	util.Testenv.Setup(
 		envfuncs.CreateKindClusterWithConfig(util.KindClusterName, util.NodeVersion, "../../kind-config.yaml"),
 		envfuncs.CreateNamespace(util.EraserNamespace),
-		envfuncs.LoadDockerImageToCluster(util.KindClusterName, util.ManagerImage),
-		envfuncs.LoadDockerImageToCluster(util.KindClusterName, util.Image),
-		envfuncs.LoadDockerImageToCluster(util.KindClusterName, util.ScannerImage),
-		envfuncs.LoadDockerImageToCluster(util.KindClusterName, util.CollectorImage),
-		envfuncs.LoadDockerImageToCluster(util.KindClusterName, util.VulnerableImage),
+		envfuncs.LoadImageArchiveToCluster(util.KindClusterName, util.ManagerImage),
+		envfuncs.LoadImageArchiveToCluster(util.KindClusterName, util.Image),
+		envfuncs.LoadImageArchiveToCluster(util.KindClusterName, util.ScannerImage),
+		envfuncs.LoadImageArchiveToCluster(util.KindClusterName, util.CollectorImage),
+		envfuncs.LoadImageArchiveToCluster(util.KindClusterName, util.VulnerableImage),
 		util.MakeDeploy(map[string]string{
 			"ERASER_REPO":        eraser.Repo,
 			"MANAGER_REPO":       manager.Repo,
