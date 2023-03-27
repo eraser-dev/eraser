@@ -216,6 +216,10 @@ func parseRepoTag(img string) (RepoTag, error) {
 
 func HelmDeployLatestEraserRelease(namespace string, extraArgs ...string) env.Func {
 	return func(ctx context.Context, cfg *envconf.Config) (context.Context, error) {
+		if os.Getenv("HELM_UPGRADE_TEST") == "" {
+			return ctx, nil
+		}
+
 		scriptTemplate := `
             helm repo add eraser '%[1]s'
             helm repo update
@@ -664,6 +668,10 @@ func UpgradeEraserHelm(namespace string, args ...string) env.Func {
 		// start deployment
 		allArgs := []string{providerResourceAbsolutePath, "-f", emptyValuesPath}
 		allArgs = append(allArgs, args...)
+		if os.Getenv("HELM_UPGRADE_TEST") == "" {
+			allArgs = append(allArgs, "--install")
+		}
+
 		if err := HelmUpgrade(cfg.KubeconfigFile(), namespace, allArgs); err != nil {
 			return ctx, err
 		}
