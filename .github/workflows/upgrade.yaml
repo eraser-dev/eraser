@@ -37,4 +37,5 @@ jobs:
       - build-images
       - generate-bucket-id
     with:
+      upgrade-test: "1"
       bucket-id: ${{ needs.generate-bucket-id.outputs.bucket-id }}
