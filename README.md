@@ -6,6 +6,10 @@ Eraser helps Kubernetes admins remove a list of non-running images from all Kube
 
 You can find a quick start guide in the Eraser [documentation](https://azure.github.io/eraser/docs/quick-start).
 
+## Demo
+
+![intro](demo/demo.gif)
+
 ## Contributing
 
 There are several ways to get involved:
