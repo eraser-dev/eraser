@@ -69,7 +69,7 @@ runtimeConfig:
         # timeout:
         #   total: 23h
         #   perImage: 1h
-    eraser:
+    remover:
       image:
         # repo: ""
         tag: "v1.1.0-beta.0"
