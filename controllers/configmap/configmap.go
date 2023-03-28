@@ -117,7 +117,7 @@ func newReconciler(mgr manager.Manager, cfg *config.Manager) (reconcile.Reconcil
 
 // +kubebuilder:rbac:groups="",resources=configmaps,verbs=get;list;watch
 // +kubebuilder:rbac:groups="",resources=pods,verbs=get;list;watch,delete
-func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+func (r *Reconciler) Reconcile(ctx context.Context, _ ctrl.Request) (ctrl.Result, error) {
 	j := eraserv1.ImageJobList{}
 	err := r.List(ctx, &j)
 	if err != nil {

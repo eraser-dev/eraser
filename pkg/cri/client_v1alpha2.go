@@ -17,7 +17,7 @@ type (
 )
 
 func (c *v1alpha2Client) ListContainers(ctx context.Context) (list []*v1.Container, err error) {
-	resp, err := c.runtime.ListContainers(context.Background(), new(v1alpha2.ListContainersRequest))
+	resp, err := c.runtime.ListContainers(ctx, new(v1alpha2.ListContainersRequest))
 	if err != nil {
 		return nil, err
 	}

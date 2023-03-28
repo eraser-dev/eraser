@@ -140,7 +140,7 @@ func TestIncludeNodes(t *testing.T) {
 			clusterNodes = util.DeleteStringFromSlice(clusterNodes, util.FilterNodeName)
 
 			// the imagejob has done its work, so now we can check the node to make sure it didn't remove the images from the remaining nodes
-			util.CheckImagesExist(ctx, t, clusterNodes, util.Nginx)
+			util.CheckImagesExist(t, clusterNodes, util.Nginx)
 
 			return ctx
 		}).

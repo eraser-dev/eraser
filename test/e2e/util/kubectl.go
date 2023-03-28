@@ -37,6 +37,21 @@ func HelmInstall(kubeconfigPath, namespace string, args []string) error {
 	return err
 }
 
+// HelmUpgrade executes "helm upgrade" given a list of arguments.
+func HelmUpgrade(kubeconfigPath, namespace string, args []string) error {
+	args = append([]string{
+		"upgrade",
+		"eraser-e2e-test",
+		"--wait",
+		"--debug",
+		fmt.Sprintf("--kubeconfig=%s", kubeconfigPath),
+		fmt.Sprintf("--namespace=%s", namespace),
+	}, args...)
+
+	_, err := Helm(args)
+	return err
+}
+
 // HelmUninstall executes "helm uninstall" given a list of arguments.
 func HelmUninstall(kubeconfigPath, namespace string, args []string) error {
 	args = append([]string{
@@ -69,6 +84,8 @@ func KubectlExecCurl(kubeconfigPath, podName string, endpoint, namespace string)
 		podName,
 		"-n",
 		namespace,
+		"--kubeconfig",
+		kubeconfigPath,
 		"--",
 		"curl",
 		endpoint,
@@ -131,6 +148,8 @@ func KubectlCurlPod(kubeconfigPath, namespace string) (string, error) {
 		namespace,
 		"--image",
 		"curlimages/curl",
+		"--kubeconfig",
+		kubeconfigPath,
 		"--",
 		"tail",
 		"-f",
