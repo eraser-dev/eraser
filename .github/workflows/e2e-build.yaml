@@ -11,6 +11,7 @@ jobs:
   build-eraser:
     name: "Build eraser image for e2e tests"
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - name: Harden Runner
         uses: step-security/harden-runner@1f99358870fe1c846a3ccba386cc2b2246836776
@@ -51,6 +52,7 @@ jobs:
   build-trivy-scanner:
     name: "Build trivy-scanner image for e2e tests"
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - name: Harden Runner
         uses: step-security/harden-runner@1f99358870fe1c846a3ccba386cc2b2246836776
@@ -90,6 +92,7 @@ jobs:
   build-manager:
     name: "Build manager image for e2e tests"
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - name: Harden Runner
         uses: step-security/harden-runner@1f99358870fe1c846a3ccba386cc2b2246836776
@@ -129,6 +132,7 @@ jobs:
   build-collector:
     name: "Build collector image for e2e tests"
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - name: Harden Runner
         uses: step-security/harden-runner@1f99358870fe1c846a3ccba386cc2b2246836776
