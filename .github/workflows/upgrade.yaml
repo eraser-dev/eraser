@@ -62,19 +62,19 @@ jobs:
       - uses: crazy-max/ghaction-github-runtime@v2
       - name: Set env
         run: |
-          echo ERASER_REPO=eraser >> $GITHUB_ENV
+          echo REMOVER_REPO=remover >> $GITHUB_ENV
           echo MANAGER_REPO=manager >> $GITHUB_ENV
           echo COLLECTOR_REPO=collector >> $GITHUB_ENV
           echo TRIVY_SCANNER_REPO=scanner >> $GITHUB_ENV
 
-          echo ERASER_TAG=test >> $GITHUB_ENV
+          echo REMOVER_TAG=test >> $GITHUB_ENV
           echo MANAGER_TAG=test >> $GITHUB_ENV
           echo COLLECTOR_TAG=test >> $GITHUB_ENV
           echo TRIVY_SCANNER_TAG=test >> $GITHUB_ENV
       - name: Build eraser-manager
         run: make docker-build-manager
-      - name: Build eraser
-        run: make docker-build-eraser
+      - name: Build remover
+        run: make docker-build-remover
       - name: Build collector
         run: make docker-build-collector
       - name: Build trivy-scanner
