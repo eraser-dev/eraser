@@ -22,7 +22,7 @@ runtimeConfig:
       image:
         repo: "aezoqcrjrsmxryrn"
         tag: "mwojcakgxrqcudmn"
-    eraser:
+    remover:
       image:
         repo: "eultpoofmlmfdthr"
         tag: "otosqrwfwrgdrvzo"
