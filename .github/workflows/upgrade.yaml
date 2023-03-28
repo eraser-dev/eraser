@@ -229,23 +229,35 @@ jobs:
       - uses: crazy-max/ghaction-github-runtime@v2
       - name: Set env
         run: |
-          echo ERASER_REPO=eraser >> $GITHUB_ENV
-          echo MANAGER_REPO=manager >> $GITHUB_ENV
-          echo COLLECTOR_REPO=collector >> $GITHUB_ENV
-          echo TRIVY_SCANNER_REPO=scanner >> $GITHUB_ENV
-          echo ERASER_TAG=test >> $GITHUB_ENV
-          echo MANAGER_TAG=test >> $GITHUB_ENV
-          echo COLLECTOR_TAG=test >> $GITHUB_ENV
-          echo TRIVY_SCANNER_TAG=test >> $GITHUB_ENV
-          echo ARCHIVE_DIR=${{ github.workspace }}/images >> $GITHUB_ENV
+          ARCHIVE_DIR=${{ github.workspace }}/images
+          ERASER_REPO=eraser
+          MANAGER_REPO=manager
+          COLLECTOR_REPO=collector
+          TRIVY_SCANNER_REPO=scanner
+          ERASER_TAG=test
+          MANAGER_TAG=test
+          COLLECTOR_TAG=test
+          TRIVY_SCANNER_TAG=test
+
+          echo ERASER_REPO=$ERASER_REPO >> $GITHUB_ENV
+          echo MANAGER_REPO=$MANAGER_REPO >> $GITHUB_ENV
+          echo COLLECTOR_REPO=$COLLECTOR_REPO >> $GITHUB_ENV
+          echo TRIVY_SCANNER_REPO=$TRIVY_SCANNER_REPO >> $GITHUB_ENV
+          echo ERASER_TAG=$ERASER_TAG >> $GITHUB_ENV
+          echo MANAGER_TAG=$MANAGER_TAG >> $GITHUB_ENV
+          echo COLLECTOR_TAG=$COLLECTOR_TAG >> $GITHUB_ENV
+          echo TRIVY_SCANNER_TAG=$TRIVY_SCANNER_TAG >> $GITHUB_ENV
+          echo ARCHIVE_DIR=$ARCHIVE_DIR >> $GITHUB_ENV
+
+          echo ERASER_TARBALL_PATH=$ARCHIVE_DIR/${ERASER_REPO}_${ERASER_TAG}.tar >> $GITHUB_ENV
+          echo MANAGER_TARBALL_PATH=$ARCHIVE_DIR/${MANAGER_REPO}_${MANAGER_TAG}.tar >> $GITHUB_ENV
+          echo COLLECTOR_TARBALL_PATH=$ARCHIVE_DIR/${COLLECTOR_REPO}_${COLLECTOR_TAG}.tar >> $GITHUB_ENV
+          echo SCANNER_TARBALL_PATH=$ARCHIVE_DIR/${TRIVY_SCANNER_REPO}_${TRIVY_SCANNER_TAG}.tar >> $GITHUB_ENV
+
+          echo HELM_UPGRADE_TEST=1 >> $GITHUB_ENV
       - name: Run e2e test
         run: |
           make e2e-test \
-            HELM_UPGRADE_TEST=1 \
-            ERASER_IMG=$ARCHIVE_DIR/${ERASER_REPO}_${ERASER_TAG}.tar \
-            MANAGER_IMG=$ARCHIVE_DIR/${MANAGER_REPO}_${MANAGER_TAG}.tar \
-            COLLECTOR_IMG=$ARCHIVE_DIR/${COLLECTOR_REPO}_${COLLECTOR_TAG}.tar \
-            SCANNER_IMG=$ARCHIVE_DIR/${TRIVY_SCANNER_REPO}_${TRIVY_SCANNER_TAG}.tar \
             KUBERNETES_VERSION=${{ matrix.KUBERNETES_VERSION }} \
             E2E_TESTS=${{ matrix.E2E_TEST }}
       - name: Upload artifacts
