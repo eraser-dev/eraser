@@ -1,0 +1,107 @@
+name: Run E2E tests
+
+on:
+  workflow_call:
+    inputs:
+      upgrade-test:
+        required: false
+        type: string
+      bucket-id:
+        required: true
+        type: string
+
+jobs:
+  build-e2e-test-list:
+    name: "Build E2E Test List"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code into the Go module directory
+        uses: actions/checkout@v3
+      - id: set-test-matrix
+        run: |
+          readarray -d '' test_dirs < <(find ./test/e2e/tests -mindepth 1 -type d -print0)
+          json_array="$(printf "%s\n" "${test_dirs[@]}" | jq -R . | jq -cs)"
+          echo "e2e-tests=${json_array}" > $GITHUB_OUTPUT
+    outputs:
+      e2e-tests: ${{ steps.set-test-matrix.outputs.e2e-tests }}
+  e2e-test:
+    name: "E2E Tests"
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs:
+      - build-e2e-test-list
+    permissions:
+      contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        KUBERNETES_VERSION: ["1.24.7", "1.25.3", "1.26.0"]
+        E2E_TEST: ${{ fromJson(needs.build-e2e-test-list.outputs.e2e-tests) }}
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@1f99358870fe1c846a3ccba386cc2b2246836776
+        with:
+          egress-policy: audit
+      - name: Check out code into the Go module directory
+        uses: actions/checkout@v3
+      - name: Fetch Build Artifacts
+        uses: actions/download-artifact@v2
+        with:
+          name: ${{ inputs.bucket-id }}
+          path: ${{ github.workspace }}/images
+      - name: Set up Go 1.19
+        uses: actions/setup-go@v3
+        with:
+          go-version: 1.19
+      - uses: actions/cache@v3.3.1
+        with:
+          key: ${{ runner.OS }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+          path: |
+            ~/go/pkg/mod
+            ~/.cache/go-build
+      - uses: crazy-max/ghaction-github-runtime@v2
+      - name: Set env
+        run: |
+          ARCHIVE_DIR=${{ github.workspace }}/images
+          ERASER_REPO=eraser
+          MANAGER_REPO=manager
+          COLLECTOR_REPO=collector
+          TRIVY_SCANNER_REPO=scanner
+
+          ERASER_TAG=test
+          MANAGER_TAG=test
+          COLLECTOR_TAG=test
+          TRIVY_SCANNER_TAG=test
+
+          echo ERASER_REPO=$ERASER_REPO >> $GITHUB_ENV
+          echo MANAGER_REPO=$MANAGER_REPO >> $GITHUB_ENV
+          echo COLLECTOR_REPO=$COLLECTOR_REPO >> $GITHUB_ENV
+          echo TRIVY_SCANNER_REPO=$TRIVY_SCANNER_REPO >> $GITHUB_ENV
+
+          echo ERASER_TAG=$ERASER_TAG >> $GITHUB_ENV
+          echo MANAGER_TAG=$MANAGER_TAG >> $GITHUB_ENV
+          echo COLLECTOR_TAG=$COLLECTOR_TAG >> $GITHUB_ENV
+          echo TRIVY_SCANNER_TAG=$TRIVY_SCANNER_TAG >> $GITHUB_ENV
+          echo ARCHIVE_DIR=$ARCHIVE_DIR >> $GITHUB_ENV
+
+          echo ERASER_TARBALL_PATH=$ARCHIVE_DIR/${ERASER_REPO}_${ERASER_TAG}.tar >> $GITHUB_ENV
+          echo MANAGER_TARBALL_PATH=$ARCHIVE_DIR/${MANAGER_REPO}_${MANAGER_TAG}.tar >> $GITHUB_ENV
+          echo COLLECTOR_TARBALL_PATH=$ARCHIVE_DIR/${COLLECTOR_REPO}_${COLLECTOR_TAG}.tar >> $GITHUB_ENV
+          echo SCANNER_TARBALL_PATH=$ARCHIVE_DIR/${TRIVY_SCANNER_REPO}_${TRIVY_SCANNER_TAG}.tar >> $GITHUB_ENV
+
+          if [[ -n "${{ inputs.upgrade-test }}" ]]; then
+            echo HELM_UPGRADE_TEST=1 >> $GITHUB_ENV
+          fi
+      - name: Run e2e test
+        run: |
+          make e2e-test \
+            KUBERNETES_VERSION=${{ matrix.KUBERNETES_VERSION }} \
+            E2E_TESTS=${{ matrix.E2E_TEST }}
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: test_logs
+          path: ${{ github.workspace }}/test_logs/*
+          retention-days: 1
