@@ -62,7 +62,6 @@ type ImageJobStatus struct {
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:scope="Cluster"
-// +kubebuilder:storageversion
 // ImageJob is the Schema for the imagejobs API.
 type ImageJob struct {
 	metav1.TypeMeta   `json:",inline"`
@@ -72,7 +71,6 @@ type ImageJob struct {
 }
 
 // +kubebuilder:object:root=true
-// +kubebuilder:storageversion
 // ImageJobList contains a list of ImageJob.
 type ImageJobList struct {
 	metav1.TypeMeta `json:",inline"`
