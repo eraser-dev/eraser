@@ -18,6 +18,7 @@ VULNERABLE_IMG ?= docker.io/library/alpine:3.7.3
 BUSYBOX_BASE_IMG ?= busybox:1.36.0
 NON_VULNERABLE_IMG ?= ghcr.io/azure/non-vulnerable:latest
 E2E_TESTS ?= $(shell find ./test/e2e/tests/ -mindepth 1 -type d)
+HELM_UPGRADE_TEST ?=
 TEST_LOGDIR ?= $(PWD)/test_logs
 
 KUSTOMIZE_VERSION ?= 3.8.9
@@ -160,6 +161,7 @@ non-vulnerable-img:
 e2e-test: vulnerable-img non-vulnerable-img busybox-img
 	for test in $(E2E_TESTS); do \
 		CGO_ENABLED=0 \
+			HELM_UPGRADE_TEST=${HELM_UPGRADE_TEST} \
 			IMAGE=${ERASER_IMG} \
 			MANAGER_IMAGE=${MANAGER_IMG} \
 			COLLECTOR_IMAGE=${COLLECTOR_IMG} \

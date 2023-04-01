@@ -100,7 +100,7 @@ func (cfg *config) SendImages(nonCompliantImages, failedImages []unversioned.Ima
 			return err
 		}
 
-		metrics.ExportMetrics(cfg.log, exporter, reader, provider)
+		metrics.ExportMetrics(cfg.log, exporter, reader)
 	}
 	return nil
 }
