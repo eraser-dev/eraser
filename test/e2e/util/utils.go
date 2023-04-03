@@ -24,6 +24,7 @@ import (
 	"sigs.k8s.io/e2e-framework/klient/wait/conditions"
 	"sigs.k8s.io/e2e-framework/pkg/env"
 	"sigs.k8s.io/e2e-framework/pkg/envconf"
+	"sigs.k8s.io/e2e-framework/pkg/envfuncs"
 	"sigs.k8s.io/kind/pkg/cluster"
 
 	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
@@ -88,10 +89,16 @@ var (
 	VulnerableImage    = os.Getenv("VULNERABLE_IMAGE")
 	NonVulnerableImage = os.Getenv("NON_VULNERABLE_IMAGE")
 	BusyboxImage       = os.Getenv("BUSYBOX_IMAGE")
-	NodeVersion        = os.Getenv("NODE_VERSION")
-	TestNamespace      = envconf.RandomName("test-ns", 16)
-	EraserNamespace    = pkgUtil.GetNamespace()
-	TestLogDir         = os.Getenv("TEST_LOGDIR")
+
+	RemoverTarballPath   = os.Getenv("REMOVER_TARBALL_PATH")
+	ManagerTarballPath   = os.Getenv("MANAGER_TARBALL_PATH")
+	CollectorTarballPath = os.Getenv("COLLECTOR_TARBALL_PATH")
+	ScannerTarballPath   = os.Getenv("SCANNER_TARBALL_PATH")
+
+	NodeVersion     = os.Getenv("NODE_VERSION")
+	TestNamespace   = envconf.RandomName("test-ns", 16)
+	EraserNamespace = pkgUtil.GetNamespace()
+	TestLogDir      = os.Getenv("TEST_LOGDIR")
 
 	ParsedImages        *Images
 	Timeout             = time.Minute * 5
@@ -212,6 +219,14 @@ func parseRepoTag(img string) (RepoTag, error) {
 	}
 
 	return RepoTag{}, err
+}
+
+func LoadImageToCluster(clusterName, imageRef, tarballPath string) env.Func {
+	if strings.HasSuffix(tarballPath, ".tar") {
+		return envfuncs.LoadImageArchiveToCluster(clusterName, tarballPath)
+	}
+
+	return envfuncs.LoadDockerImageToCluster(clusterName, imageRef)
 }
 
 func HelmDeployLatestEraserRelease(namespace string, extraArgs ...string) env.Func {
