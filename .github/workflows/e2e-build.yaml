@@ -39,7 +39,7 @@ jobs:
       - run: 'echo ${{ inputs.bucket-id }}'
       - name: Set env
         run: |
-          echo REMOVER_REPO=remver >> $GITHUB_ENV
+          echo REMOVER_REPO=remover >> $GITHUB_ENV
           echo REMOVER_TAG=test >> $GITHUB_ENV
       - name: Build remover
         run: 'make docker-build-remover OUTPUT_TYPE=type=oci,dest=./${REMOVER_REPO}_${REMOVER_TAG}.tar,name=${REMOVER_REPO}:${REMOVER_TAG}'
