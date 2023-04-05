@@ -115,7 +115,7 @@ func TestIncludeNodes(t *testing.T) {
 			}
 
 			// deploy imageJob config
-			if err = util.DeployEraserConfig(cfg.KubeconfigFile(), cfg.Namespace(), "../../test-data", "eraser_v1alpha1_imagelist.yaml"); err != nil {
+			if err = util.DeployEraserConfig(cfg.KubeconfigFile(), cfg.Namespace(), "../../test-data", "eraser_v1alpha2_imagelist.yaml"); err != nil {
 				t.Error("Failed to deploy image list config", err)
 			}
 

@@ -22,7 +22,7 @@ func TestMain(m *testing.M) {
 	removerImage := util.ParsedImages.RemoverImage
 	managerImage := util.ParsedImages.ManagerImage
 	collectorImg := util.ParsedImages.CollectorImage
-	eraserImage := util.ParsedImages.eraserImage
+	eraserImage := util.ParsedImages.EraserImage
 
 	util.Testenv = env.NewWithConfig(envconf.New())
 	// Create KinD Cluster

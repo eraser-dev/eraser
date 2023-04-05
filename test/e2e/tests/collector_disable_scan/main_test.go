@@ -20,7 +20,7 @@ func TestMain(m *testing.M) {
 	utilruntime.Must(eraserv1alpha2.AddToScheme(scheme.Scheme))
 
 	removerImage := util.ParsedImages.RemoverImage
-	eraserImage = util.ParsedImages.EraserImage
+	eraserImage := util.ParsedImages.EraserImage
 	managerImage := util.ParsedImages.ManagerImage
 	collectorImage := util.ParsedImages.CollectorImage
 
