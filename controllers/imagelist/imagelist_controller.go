@@ -42,8 +42,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	eraserv1 "github.com/Azure/eraser/api/v1"
-	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
-	"github.com/Azure/eraser/api/v1alpha1/config"
+	eraserv1alpha2 "github.com/Azure/eraser/api/v1alpha2"
+	"github.com/Azure/eraser/api/v1alpha2/config"
 	"github.com/Azure/eraser/controllers/util"
 	"github.com/Azure/eraser/pkg/logger"
 	"github.com/Azure/eraser/pkg/metrics"
@@ -331,7 +331,7 @@ func (r *Reconciler) handleImageListEvent(ctx context.Context, imageList *eraser
 				util.ImageJobOwnerLabelKey: ownerLabelValue,
 			},
 			OwnerReferences: []metav1.OwnerReference{
-				*metav1.NewControllerRef(imageList, eraserv1alpha1.GroupVersion.WithKind("ImageList")),
+				*metav1.NewControllerRef(imageList, eraserv1alpha2.GroupVersion.WithKind("ImageList")),
 			},
 		},
 	}
@@ -370,7 +370,7 @@ func (r *Reconciler) handleImageListEvent(ctx context.Context, imageList *eraser
 			Name:      job.GetName(),
 			Namespace: utils.GetNamespace(),
 			OwnerReferences: []metav1.OwnerReference{
-				*metav1.NewControllerRef(job, eraserv1alpha1.GroupVersion.WithKind("ImageJob")),
+				*metav1.NewControllerRef(job, eraserv1alpha2.GroupVersion.WithKind("ImageJob")),
 			},
 		},
 		Template: jobTemplate,
@@ -381,7 +381,7 @@ func (r *Reconciler) handleImageListEvent(ctx context.Context, imageList *eraser
 		return reconcile.Result{}, err
 	}
 
-	configMap.ObjectMeta.OwnerReferences = []metav1.OwnerReference{*metav1.NewControllerRef(job, eraserv1alpha1.GroupVersion.WithKind("ImageJob"))}
+	configMap.ObjectMeta.OwnerReferences = []metav1.OwnerReference{*metav1.NewControllerRef(job, eraserv1alpha2.GroupVersion.WithKind("ImageJob"))}
 	err = r.Update(ctx, &configMap)
 	if err != nil {
 		return reconcile.Result{}, err
