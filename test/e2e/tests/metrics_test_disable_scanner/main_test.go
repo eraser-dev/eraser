@@ -22,6 +22,7 @@ func TestMain(m *testing.M) {
 	removerImage := util.ParsedImages.RemoverImage
 	managerImage := util.ParsedImages.ManagerImage
 	collectorImg := util.ParsedImages.CollectorImage
+	eraserImage := util.ParsedImages.eraserImage
 
 	util.Testenv = env.NewWithConfig(envconf.New())
 	// Create KinD Cluster
@@ -36,8 +37,8 @@ func TestMain(m *testing.M) {
 		util.HelmDeployLatestEraserRelease(util.TestNamespace,
 			"--set", util.ScannerEnable.Set("false"),
 			"--set", util.CollectorEnable.Set("false"),
-			"--set", util.RemoverImageRepo.Set(removerImage.Repo),
-			"--set", util.RemoverImageTag.Set(removerImage.Tag),
+			"--set", util.EraserImageRepo.Set(eraserImage.Repo),
+			"--set", util.EraserImageTag.Set(eraserImage.Tag),
 		),
 		util.UpgradeEraserHelm(util.TestNamespace,
 			"--set", util.ScannerEnable.Set("false"),

@@ -69,6 +69,10 @@ const (
 	RemoverImageRepo = HelmPath("runtimeConfig.components.remover.image.repo")
 	RemoverImageTag  = HelmPath("runtimeConfig.components.remover.image.tag")
 
+	// Remove once updated to v1alpha2
+	EraserImageRepo = HelmPath("runtimeConfig.components.eraser.image.repo")
+	EraserImageTag  = HelmPath("runtimeConfig.components.eraser.image.tag")
+
 	ManagerImageRepo = HelmPath("deploy.image.repo")
 	ManagerImageTag  = HelmPath("deploy.image.tag")
 
@@ -83,6 +87,7 @@ const (
 var (
 	Testenv            env.Environment
 	RemoverImage       = os.Getenv("REMOVER_IMAGE")
+	EraserImage        = os.Getenv("Eraser_IMAGE")
 	ManagerImage       = os.Getenv("MANAGER_IMAGE")
 	CollectorImage     = os.Getenv("COLLECTOR_IMAGE")
 	ScannerImage       = os.Getenv("SCANNER_IMAGE")
@@ -121,6 +126,7 @@ type (
 		RemoverImage   RepoTag
 		ManagerImage   RepoTag
 		ScannerImage   RepoTag
+		EraserImage    RepoTag
 	}
 
 	HelmPath string
@@ -146,7 +152,7 @@ func (hs *HelmSet) String() string {
 
 func init() {
 	var err error
-	ParsedImages, err = parsedImages(RemoverImage, ManagerImage, CollectorImage, ScannerImage)
+	ParsedImages, err = parsedImages(EraserImage, RemoverImage, ManagerImage, CollectorImage, ScannerImage)
 	if err != nil {
 		klog.Error(err)
 		panic(err)
@@ -165,7 +171,12 @@ func toRepoTag(ref registry.Reference) RepoTag {
 	return repoTag
 }
 
-func parsedImages(removerImage, managerImage, collectorImage, scannerImage string) (*Images, error) {
+func parsedImages(eraserImage, removerImage, managerImage, collectorImage, scannerImage string) (*Images, error) {
+	eraserRepoTag, err := parseRepoTag(eraserImage)
+	if err != nil {
+		return nil, err
+	}
+
 	removerRepoTag, err := parseRepoTag(removerImage)
 	if err != nil {
 		return nil, err
@@ -189,6 +200,7 @@ func parsedImages(removerImage, managerImage, collectorImage, scannerImage strin
 	return &Images{
 		CollectorImage: collectorRepoTag,
 		RemoverImage:   removerRepoTag,
+		EraserImage:    eraserRepoTag,
 		ManagerImage:   managerRepoTag,
 		ScannerImage:   scannerRepoTag,
 	}, nil

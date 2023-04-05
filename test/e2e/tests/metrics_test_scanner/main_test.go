@@ -23,6 +23,7 @@ func TestMain(m *testing.M) {
 	managerImage := util.ParsedImages.ManagerImage
 	collectorImage := util.ParsedImages.CollectorImage
 	scannerImage := util.ParsedImages.ScannerImage
+	eraserImage := util.ParsedImages.EraserImage
 
 	util.Testenv = env.NewWithConfig(envconf.New())
 	// Create KinD Cluster
@@ -38,8 +39,8 @@ func TestMain(m *testing.M) {
 		util.HelmDeployLatestEraserRelease(util.TestNamespace,
 			"--set", util.ScannerEnable.Set("false"),
 			"--set", util.CollectorEnable.Set("false"),
-			"--set", util.RemoverImageRepo.Set(removerImage.Repo),
-			"--set", util.RemoverImageTag.Set(removerImage.Tag),
+			"--set", util.EraserImageRepo.Set(eraserImage.Repo),
+			"--set", util.EraserImageTag.Set(eraserImage.Tag),
 		),
 		util.UpgradeEraserHelm(util.TestNamespace,
 			"--set", util.OTLPEndpoint.Set("otel-collector:4318"),

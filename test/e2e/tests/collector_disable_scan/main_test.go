@@ -7,7 +7,7 @@ import (
 	"os"
 	"testing"
 
-	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
+	eraserv1alpha2 "github.com/Azure/eraser/api/v1alpha2"
 	"github.com/Azure/eraser/test/e2e/util"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/kubernetes/scheme"
@@ -17,9 +17,10 @@ import (
 )
 
 func TestMain(m *testing.M) {
-	utilruntime.Must(eraserv1alpha1.AddToScheme(scheme.Scheme))
+	utilruntime.Must(eraserv1alpha2.AddToScheme(scheme.Scheme))
 
 	removerImage := util.ParsedImages.RemoverImage
+	eraserImage = util.ParsedImages.EraserImage
 	managerImage := util.ParsedImages.ManagerImage
 	collectorImage := util.ParsedImages.CollectorImage
 
@@ -35,8 +36,8 @@ func TestMain(m *testing.M) {
 		util.HelmDeployLatestEraserRelease(util.TestNamespace,
 			"--set", util.ScannerEnable.Set("false"),
 			"--set", util.CollectorEnable.Set("false"),
-			"--set", util.RemoverImageRepo.Set(removerImage.Repo),
-			"--set", util.RemoverImageTag.Set(removerImage.Tag),
+			"--set", util.EraserImageRepo.Set(eraserImage.Repo),
+			"--set", util.EraserImageTag.Set(eraserImage.Tag),
 		),
 		util.UpgradeEraserHelm(util.TestNamespace,
 			"--set", util.ScannerEnable.Set("false"),

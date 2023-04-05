@@ -20,6 +20,7 @@ func TestMain(m *testing.M) {
 	utilruntime.Must(eraserv1alpha1.AddToScheme(scheme.Scheme))
 
 	removerImage := util.ParsedImages.RemoverImage
+	eraserImage := util.ParsedImages.EraserImage
 	managerImage := util.ParsedImages.ManagerImage
 	collectorImage := util.ParsedImages.CollectorImage
 	scannerImage := util.ParsedImages.ScannerImage
@@ -40,8 +41,8 @@ func TestMain(m *testing.M) {
 		util.HelmDeployLatestEraserRelease(util.TestNamespace,
 			"--set", util.ScannerEnable.Set("false"),
 			"--set", util.CollectorEnable.Set("false"),
-			"--set", util.RemoverImageRepo.Set(removerImage.Repo),
-			"--set", util.RemoverImageTag.Set(removerImage.Tag),
+			"--set", util.EraserImageRepo.Set(eraserImage.Repo),
+			"--set", util.EraserImageTag.Set(eraserImage.Tag),
 		),
 		util.UpgradeEraserHelm(util.TestNamespace,
 			"--set", util.ScannerEnable.Set("true"),
