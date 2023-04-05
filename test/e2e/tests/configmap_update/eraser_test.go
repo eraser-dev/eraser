@@ -48,7 +48,7 @@ func TestConfigmapUpdate(t *testing.T) {
 			bbTag := bbSplit[1]
 
 			cmString := fmt.Sprintf(`---
-apiVersion: eraser.sh/v1alpha1
+apiVersion: eraser.sh/v1alpha2
 kind: EraserConfig
 components:
   remover:
