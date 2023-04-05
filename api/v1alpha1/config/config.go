@@ -136,9 +136,9 @@ func Default() *v1alpha1.EraserConfig {
 					Config: &defaultScannerConfig,
 				},
 			},
-			Remover: v1alpha1.ContainerConfig{
+			Eraser: v1alpha1.ContainerConfig{
 				Image: v1alpha1.RepoTag{
-					Repo: repo("remover"),
+					Repo: repo("eraser"),
 					Tag:  version.BuildVersion,
 				},
 				Request: v1alpha1.ResourceRequirements{
