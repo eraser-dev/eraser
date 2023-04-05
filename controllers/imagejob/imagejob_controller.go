@@ -43,8 +43,8 @@ import (
 	"sigs.k8s.io/kind/pkg/errors"
 
 	eraserv1 "github.com/Azure/eraser/api/v1"
-	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
-	"github.com/Azure/eraser/api/v1alpha1/config"
+	eraserv1alpha2 "github.com/Azure/eraser/api/v1alpha2"
+	"github.com/Azure/eraser/api/v1alpha2/config"
 	controllerUtils "github.com/Azure/eraser/controllers/util"
 	eraserUtils "github.com/Azure/eraser/pkg/utils"
 )
@@ -117,7 +117,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 			Type: &corev1.Pod{},
 		},
 		&handler.EnqueueRequestForOwner{
-			OwnerType:    &eraserv1alpha1.ImageJob{},
+			OwnerType:    &eraserv1alpha2.ImageJob{},
 			IsController: true,
 		},
 	)
@@ -130,7 +130,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 			Type: &corev1.PodTemplate{},
 		},
 		&handler.EnqueueRequestForOwner{
-			OwnerType:    &eraserv1alpha1.ImageJob{},
+			OwnerType:    &eraserv1alpha2.ImageJob{},
 			IsController: true,
 		},
 	)

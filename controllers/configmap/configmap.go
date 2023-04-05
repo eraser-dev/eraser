@@ -21,7 +21,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	eraserv1 "github.com/Azure/eraser/api/v1"
-	"github.com/Azure/eraser/api/v1alpha1/config"
+	"github.com/Azure/eraser/api/v1alpha2/config"
 	controllerUtils "github.com/Azure/eraser/controllers/util"
 	"github.com/Azure/eraser/pkg/metrics"
 	eraserUtils "github.com/Azure/eraser/pkg/utils"

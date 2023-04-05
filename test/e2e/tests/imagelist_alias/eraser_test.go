@@ -7,7 +7,7 @@ import (
 	"context"
 	"testing"
 
-	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
+	eraserv1alpha2 "github.com/Azure/eraser/api/v1alpha2"
 	"github.com/Azure/eraser/test/e2e/util"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -118,9 +118,9 @@ func TestEnsureAliasedImageRemoved(t *testing.T) {
 			return ctx
 		}).
 		Assess("Image deleted when referencing by alias", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
-			imgList := &eraserv1alpha1.ImageList{
+			imgList := &eraserv1alpha2.ImageList{
 				ObjectMeta: metav1.ObjectMeta{Name: util.Prune},
-				Spec: eraserv1alpha1.ImageListSpec{
+				Spec: eraserv1alpha2.ImageListSpec{
 					Images: []string{util.NginxAliasTwo},
 				},
 			}
