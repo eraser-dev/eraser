@@ -231,6 +231,11 @@ func LoadImageToCluster(clusterName, imageRef, tarballPath string) env.Func {
 
 func HelmDeployLatestEraserRelease(namespace string, extraArgs ...string) env.Func {
 	return func(ctx context.Context, cfg *envconf.Config) (context.Context, error) {
+		wd, err := os.Getwd()
+		if err != nil {
+			return ctx, err
+		}
+
 		if os.Getenv("HELM_UPGRADE_TEST") == "" {
 			return ctx, nil
 		}
@@ -247,10 +252,16 @@ func HelmDeployLatestEraserRelease(namespace string, extraArgs ...string) env.Fu
 			return ctx, err
 		}
 
-		args := []string{"eraser/eraser"}
-		args = append(args, extraArgs...)
+		emptyValuesPath, err := filepath.Abs(filepath.Join(wd, "../../test-data/helm-empty-values.yaml"))
+		if err != nil {
+			return ctx, err
+		}
 
-		if err := HelmInstall(cfg.KubeconfigFile(), namespace, args); err != nil {
+		allArgs := []string{"-f", emptyValuesPath}
+		allArgs = append(allArgs, "eraser/eraser")
+		allArgs = append(allArgs, extraArgs...)
+
+		if err := HelmInstall(cfg.KubeconfigFile(), namespace, allArgs); err != nil {
 			return ctx, err
 		}
 
