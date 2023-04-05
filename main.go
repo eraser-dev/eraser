@@ -38,8 +38,8 @@ import (
 
 	eraserv1 "github.com/Azure/eraser/api/v1"
 	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
-	"github.com/Azure/eraser/api/v1alpha1/config"
 	eraserv1alpha2 "github.com/Azure/eraser/api/v1alpha2"
+	"github.com/Azure/eraser/api/v1alpha2/config"
 	"github.com/Azure/eraser/controllers"
 	"github.com/Azure/eraser/pkg/logger"
 	"github.com/Azure/eraser/version"
