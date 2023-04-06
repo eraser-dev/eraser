@@ -87,7 +87,7 @@ const (
 var (
 	Testenv            env.Environment
 	RemoverImage       = os.Getenv("REMOVER_IMAGE")
-	EraserImage        = os.Getenv("Eraser_IMAGE")
+	EraserImage        = os.Getenv("ERASER_IMAGE")
 	ManagerImage       = os.Getenv("MANAGER_IMAGE")
 	CollectorImage     = os.Getenv("COLLECTOR_IMAGE")
 	ScannerImage       = os.Getenv("SCANNER_IMAGE")
@@ -99,6 +99,7 @@ var (
 	ManagerTarballPath   = os.Getenv("MANAGER_TARBALL_PATH")
 	CollectorTarballPath = os.Getenv("COLLECTOR_TARBALL_PATH")
 	ScannerTarballPath   = os.Getenv("SCANNER_TARBALL_PATH")
+	EraserTarballPath    = os.Getenv("ERASER_TARBALL_PATH")
 
 	NodeVersion     = os.Getenv("NODE_VERSION")
 	TestNamespace   = envconf.RandomName("test-ns", 16)
@@ -106,7 +107,7 @@ var (
 	TestLogDir      = os.Getenv("TEST_LOGDIR")
 
 	ParsedImages        *Images
-	Timeout             = time.Minute * 5
+	Timeout             = time.Minute * 7
 	ImagePullSecretJSON = fmt.Sprintf(`["%s"]`, ImagePullSecret)
 
 	ManagerAdditionalArgs = HelmSet{
