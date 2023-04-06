@@ -41,6 +41,8 @@ func TestMain(m *testing.M) {
 			"--set", util.CollectorEnable.Set("false"),
 			"--set", util.EraserImageRepo.Set(eraserImage.Repo),
 			"--set", util.EraserImageTag.Set(eraserImage.Tag),
+			"--set", util.ManagerImageRepo.Set(managerImage.Repo),
+			"--set", util.ManagerImageTag.Set(managerImage.Tag),
 		),
 		util.UpgradeEraserHelm(util.TestNamespace,
 			"--set", util.OTLPEndpoint.Set("otel-collector:4318"),
