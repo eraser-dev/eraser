@@ -66,28 +66,33 @@ jobs:
         run: |
           ARCHIVE_DIR=${{ github.workspace }}/images
           REMOVER_REPO=remover
+          ERASER_REPO=eraser
           MANAGER_REPO=manager
           COLLECTOR_REPO=collector
           TRIVY_SCANNER_REPO=scanner
 
           REMOVER_TAG=test
+          ERASER_TAG=test
           MANAGER_TAG=test
           COLLECTOR_TAG=test
           TRIVY_SCANNER_TAG=test
 
           echo REMOVER_REPO=$REMOVER_REPO >> $GITHUB_ENV
+          echo ERASER_REPO=$ERASER_REPO >> $GITHUB_ENV
           echo MANAGER_REPO=$MANAGER_REPO >> $GITHUB_ENV
           echo COLLECTOR_REPO=$COLLECTOR_REPO >> $GITHUB_ENV
           echo TRIVY_SCANNER_REPO=$TRIVY_SCANNER_REPO >> $GITHUB_ENV
 
           echo REMOVER_TAG=$REMOVER_TAG >> $GITHUB_ENV
           echo MANAGER_TAG=$MANAGER_TAG >> $GITHUB_ENV
+          echo ERASER_TAG=$ERASER_TAG >> $GITHUB_ENV
           echo COLLECTOR_TAG=$COLLECTOR_TAG >> $GITHUB_ENV
           echo TRIVY_SCANNER_TAG=$TRIVY_SCANNER_TAG >> $GITHUB_ENV
           echo ARCHIVE_DIR=$ARCHIVE_DIR >> $GITHUB_ENV
 
           echo REMOVER_TARBALL_PATH=$ARCHIVE_DIR/${REMOVER_REPO}_${REMOVER_TAG}.tar >> $GITHUB_ENV
           echo MANAGER_TARBALL_PATH=$ARCHIVE_DIR/${MANAGER_REPO}_${MANAGER_TAG}.tar >> $GITHUB_ENV
+          echo ERASER_TARBALL_PATH=$ARCHIVE_DIR/${ERASER_REPO}_${ERASER_TAG}.tar >> $GITHUB_ENV
           echo COLLECTOR_TARBALL_PATH=$ARCHIVE_DIR/${COLLECTOR_REPO}_${COLLECTOR_TAG}.tar >> $GITHUB_ENV
           echo SCANNER_TARBALL_PATH=$ARCHIVE_DIR/${TRIVY_SCANNER_REPO}_${TRIVY_SCANNER_TAG}.tar >> $GITHUB_ENV
 
