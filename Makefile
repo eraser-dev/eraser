@@ -316,7 +316,7 @@ __kustomize-manifest-image:
 		--build-arg TRIVY_SCANNER_REPO=${TRIVY_SCANNER_REPO} \
 		--build-arg MANAGER_REPO=${MANAGER_REPO} \
 		--build-arg REMOVER_REPO=${REMOVER_REPO} \
-		build-arg ERASER_REPO=${ERASER_REPO} \
+		--build-arg ERASER_REPO=${ERASER_REPO} \
 		--build-arg COLLECTOR_REPO=${COLLECTOR_REPO} \
 		--build-arg MANAGER_TAG=${MANAGER_TAG} \
 		--build-arg TRIVY_SCANNER_TAG=${TRIVY_SCANNER_TAG} \
