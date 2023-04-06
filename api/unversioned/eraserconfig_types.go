@@ -150,7 +150,3 @@ type EraserConfig struct {
 	Manager    ManagerConfig `json:"manager"`
 	Components Components    `json:"components"`
 }
-
-func init() {
-	SchemeBuilder.Register(&EraserConfig{})
-}
