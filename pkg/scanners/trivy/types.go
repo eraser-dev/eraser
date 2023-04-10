@@ -28,6 +28,7 @@ type (
 		CacheDir           string        `json:"cacheDir,omitempty"`
 		DBRepo             string        `json:"dbRepo,omitempty"`
 		DeleteFailedImages bool          `json:"deleteFailedImages,omitempty"`
+		DeleteEOLImages    bool          `json:"deleteEOLImages,omitempty"`
 		Vulnerabilities    VulnConfig    `json:"vulnerabilities,omitempty"`
 		Timeout            TimeoutConfig `json:"timeout,omitempty"`
 	}
@@ -69,6 +70,7 @@ func DefaultConfig() *Config {
 		CacheDir:           "/var/lib/trivy",
 		DBRepo:             "ghcr.io/aquasecurity/trivy-db",
 		DeleteFailedImages: true,
+		DeleteEOLImages:    true,
 		Vulnerabilities: VulnConfig{
 			IgnoreUnfixed: true,
 			Types: []string{
@@ -142,6 +144,11 @@ func (s *ImageScanner) Scan(img unversioned.Image) (ScanStatus, error) {
 			log.Error(err, "error scanning image", "imageID", img.ImageID, "reference", ref)
 			cleanup()
 			continue
+		}
+
+		if report.Metadata.OS.Eosl {
+			log.Info("image is end of life", "imageID", img.ImageID, "reference", ref)
+			return StatusNonCompliant, nil
 		}
 
 		for i := range report.Results {
