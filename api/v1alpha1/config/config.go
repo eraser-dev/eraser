@@ -23,6 +23,9 @@ securityChecks: # need to be documented; determined by trivy, not us
   - vuln
 severities:
   - CRITICAL
+  - HIGH
+  - MEDIUM
+  - LOW
 `
 
 type Manager struct {
