@@ -15,6 +15,7 @@ ERASER_IMG ?= ${ERASER_REPO}:${ERASER_TAG}
 COLLECTOR_REPO ?= ghcr.io/azure/collector
 COLLECTOR_IMG ?= ${COLLECTOR_REPO}:${COLLECTOR_TAG}
 VULNERABLE_IMG ?= docker.io/library/alpine:3.7.3
+EOL_IMG ?= docker.io/library/alpine:3.1
 BUSYBOX_BASE_IMG ?= busybox:1.36.0
 NON_VULNERABLE_IMG ?= ghcr.io/azure/non-vulnerable:latest
 E2E_TESTS ?= $(shell find ./test/e2e/tests/ -mindepth 1 -type d)
@@ -178,6 +179,7 @@ e2e-test: vulnerable-img non-vulnerable-img busybox-img
 			BUSYBOX_IMAGE=${BUSYBOX_IMG} \
 			VULNERABLE_IMAGE=${VULNERABLE_IMG} \
 			NON_VULNERABLE_IMAGE=${NON_VULNERABLE_IMG} \
+			EOL_IMAGE=${EOL_IMG} \
 			NODE_VERSION=kindest/node:v${KUBERNETES_VERSION} \
 			TEST_LOGDIR=${TEST_LOGDIR} \
 			go test -count=$(TEST_COUNT) -timeout=$(TIMEOUT) $(TESTFLAGS) -tags=e2e -v $$test ; \

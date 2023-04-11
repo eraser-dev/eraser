@@ -34,6 +34,7 @@ func TestMain(m *testing.M) {
 		util.LoadImageToCluster(util.KindClusterName, util.CollectorImage, util.CollectorTarballPath),
 		util.LoadImageToCluster(util.KindClusterName, util.VulnerableImage, ""),
 		util.LoadImageToCluster(util.KindClusterName, util.NonVulnerableImage, ""),
+		util.LoadImageToCluster(util.KindClusterName, util.EOLImage, ""),
 		util.LoadImageToCluster(util.KindClusterName, util.ScannerImage, util.ScannerTarballPath),
 		util.HelmDeployLatestEraserRelease(util.TestNamespace,
 			"--set", util.ScannerEnable.Set("false"),

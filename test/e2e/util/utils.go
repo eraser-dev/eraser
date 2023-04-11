@@ -88,6 +88,7 @@ var (
 	ScannerImage       = os.Getenv("SCANNER_IMAGE")
 	VulnerableImage    = os.Getenv("VULNERABLE_IMAGE")
 	NonVulnerableImage = os.Getenv("NON_VULNERABLE_IMAGE")
+	EOLImage           = os.Getenv("EOL_IMAGE")
 	BusyboxImage       = os.Getenv("BUSYBOX_IMAGE")
 
 	EraserTarballPath    = os.Getenv("ERASER_TARBALL_PATH")
