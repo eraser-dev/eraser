@@ -2,7 +2,7 @@
 
 Eraser helps Kubernetes admins remove a list of non-running images from all Kubernetes nodes in a cluster.
 
-[![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/{owner}/{repo}/badge)](https://api.securityscorecards.dev/projects/github.com/{owner}/{repo})
+[![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/Azure/eraser/badge)](https://api.securityscorecards.dev/projects/github.com/Azure/eraser)
 
 ## Getting started
 
