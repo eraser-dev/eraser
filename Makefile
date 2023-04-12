@@ -155,6 +155,9 @@ BUSYBOX_IMG=busybox-e2e-test:latest
 vulnerable-img:
 	docker pull $(VULNERABLE_IMG)
 
+eol-img:
+	docker pull $(EOL_IMG)
+
 non-vulnerable-img:
 	docker buildx build \
 		$(_CACHE_FROM) $(_CACHE_TO) \
@@ -164,7 +167,7 @@ non-vulnerable-img:
 		-t ${NON_VULNERABLE_IMG} \
 		--target non-vulnerable .
 
-e2e-test: vulnerable-img non-vulnerable-img busybox-img
+e2e-test: vulnerable-img eol-img non-vulnerable-img busybox-img
 	for test in $(E2E_TESTS); do \
 		CGO_ENABLED=0 \
             ERASER_TARBALL_PATH=${ERASER_TARBALL_PATH} \
