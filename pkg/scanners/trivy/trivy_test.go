@@ -104,11 +104,6 @@ func TestSetupScanner(t *testing.T) {
 	vulnTypes := []string{"os"}
 	securityChecks := []string{"vuln", "secret", "config"}
 
-	scanOpts, err := setupScanner(tmp, vulnTypes, securityChecks)
-	if err != nil {
-		t.Fatal(err)
-	}
-
 	_, err = os.Stat(filepath.Join(tmp, "fanal", "fanal.db"))
 	if err != nil {
 		t.Fatal(err)

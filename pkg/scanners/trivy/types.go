@@ -3,7 +3,9 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"os/exec"
+	"strings"
 	"time"
 
 	"github.com/Azure/eraser/api/unversioned"
@@ -73,6 +75,45 @@ func DefaultConfig() *Config {
 			PerImage: eraserv1alpha1.Duration(time.Hour),
 		},
 	}
+}
+
+func (config *Config) Invocation() []string {
+	args := []string{"trivy"}
+	if config.CacheDir != "" {
+		args = append(args, fmt.Sprintf("--cache-dir=%s", config.CacheDir))
+	}
+
+	var zero eraserv1alpha1.Duration
+	if config.Timeout.PerImage != zero {
+		args = append(args, fmt.Sprintf("--timeout=%s", time.Duration(config.Timeout.PerImage).String()))
+	}
+
+	args = append(args, "image", "--format=json")
+
+	if config.DBRepo != "" {
+		args = append(args, fmt.Sprintf("--db-repository=%s", config.DBRepo))
+	}
+
+	if config.Vulnerabilities.IgnoreUnfixed {
+		args = append(args, "--ignore-unfixed")
+	}
+
+	if len(config.Vulnerabilities.Types) != 0 {
+		s := strings.Join(config.Vulnerabilities.Types, ",")
+		args = append(args, fmt.Sprintf("--vuln-type=%s", s))
+	}
+
+	if len(config.Vulnerabilities.SecurityChecks) != 0 {
+		s := strings.Join(config.Vulnerabilities.SecurityChecks, ",")
+		args = append(args, fmt.Sprintf("--scanners=%s", s))
+	}
+
+	if len(config.Vulnerabilities.Severities) != 0 {
+		s := strings.Join(config.Vulnerabilities.Severities, ",")
+		args = append(args, fmt.Sprintf("--severity=%s", s))
+	}
+
+	return args
 }
 
 type ImageScanner struct {

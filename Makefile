@@ -33,7 +33,7 @@ NODE_VERSION ?= 16-bullseye-slim
 ENVTEST_K8S_VERSION ?= 1.25
 GOLANGCI_LINT_VERSION := 1.43.0
 TRIVY_REPO ?= https://github.com/aquasecurity/trivy.git
-TRIVY_VERSION ?= v0.35.0
+TRIVY_VERSION ?= v0.39.1
 
 PLATFORM ?= linux
 

@@ -44,33 +44,7 @@ var (
 	enableProfile = flag.Bool("enable-pprof", false, "enable pprof profiling")
 	profilePort   = flag.Int("pprof-port", 6060, "port for pprof profiling. defaulted to 6060 if unspecified")
 
-	// Will be modified by parseCommaSeparatedOptions() to reflect the
-	// `severity` CLI flag These are the only recognized severities and the
-	// keys of this map should never be modified.
-	severityMap = map[string]bool{
-		severityCritical: false,
-		severityHigh:     false,
-		severityMedium:   false,
-		severityLow:      false,
-		severityUnknown:  false,
-	}
-
-	// Will be modified by parseCommaSeparatedOptions() to reflect the
-	// `security-checks` CLI flag These are the only recognized security checks
-	// and the keys of this map should never be modified.
-	securityCheckMap = map[string]bool{
-		securityCheckVuln:   false,
-		securityCheckSecret: false,
-		securityCheckConfig: false,
-	}
-
-	// Will be modified by parseCommaSeparatedOptions()  to reflect the
-	// `vuln-type` CLI flag These are the only recognized vulnerability types
-	// and the keys of this map should never be modified.
-	vulnTypeMap = map[string]bool{
-		vulnTypeOs:      false,
-		vulnTypeLibrary: false,
-	}
+	scanConfig Config
 
 	runtimeFanalOptionsMap = map[string][]fanalImage.Option{
 		utils.RuntimeDocker: {
