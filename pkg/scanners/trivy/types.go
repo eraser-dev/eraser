@@ -159,7 +159,7 @@ func (s *ImageScanner) Scan(img unversioned.Image) (ScanStatus, error) {
 		}
 
 		var report trivyTypes.Report
-		if err := json.Unmarshal(stderr.Bytes(), &report); err != nil {
+		if err := json.Unmarshal(stdout.Bytes(), &report); err != nil {
 			log.Error(err, "unable to parse scan report", "report string", stdout.String())
 			continue
 		}
