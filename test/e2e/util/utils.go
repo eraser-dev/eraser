@@ -62,6 +62,7 @@ const (
 	CollectorImageRepo = HelmPath("runtimeConfig.components.collector.image.repo")
 	CollectorImageTag  = HelmPath("runtimeConfig.components.collector.image.tag")
 
+	ScannerConfig    = HelmPath("runtimeConfig.components.scanner.config")
 	ScannerEnable    = HelmPath("runtimeConfig.components.scanner.enabled")
 	ScannerImageRepo = HelmPath("runtimeConfig.components.scanner.image.repo")
 	ScannerImageTag  = HelmPath("runtimeConfig.components.scanner.image.tag")
@@ -104,6 +105,8 @@ var (
 	ParsedImages        *Images
 	Timeout             = time.Minute * 5
 	ImagePullSecretJSON = fmt.Sprintf(`["%s"]`, ImagePullSecret)
+
+	ScannerConfigNoDeleteFailedJSON = `"{ \"cacheDir\": \"/var/lib/trivy\", \"dbRepo\": \"ghcr.io/aquasecurity/trivy-db\", \"deleteFailedImages\": false, \"deleteEOLImages\": true, \"vulnerabilities\": null, \"ignoreUnfixed\": true, \"types\": [ \"os\", \"library\" ], \"securityChecks\": [ \"vuln\" ], \"severities\": [ \"CRITICAL\", \"HIGH\", \"MEDIUM\", \"LOW\" ] }"`
 
 	ManagerAdditionalArgs = HelmSet{
 		key:  "controllerManager.additionalArgs",
