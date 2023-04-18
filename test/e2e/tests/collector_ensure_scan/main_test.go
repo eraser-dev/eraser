@@ -51,6 +51,8 @@ func TestMain(m *testing.M) {
 			"--set", util.ManagerImageRepo.Set(managerImage.Repo),
 			"--set", util.ManagerImageTag.Set(managerImage.Tag),
 			"--set", util.CleanupOnSuccessDelay.Set("1m"),
+			// set deleteFailedImages to FALSE to catch a broken scanner
+			"--set-json", util.ScannerConfig.Set(util.ScannerConfigNoDeleteFailedJSON),
 		),
 	).Finish(
 		envfuncs.DestroyKindCluster(util.KindClusterName),
