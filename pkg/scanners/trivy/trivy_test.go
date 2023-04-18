@@ -93,39 +93,3 @@ func TestDownloadAndInitDB(t *testing.T) {
 		}
 	}
 }
-
-func TestSetupScanner(t *testing.T) {
-	tmp, err := os.MkdirTemp(os.TempDir(), "eraser-trivy-scanner-test")
-	defer os.RemoveAll(tmp)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	vulnTypes := []string{"os"}
-	securityChecks := []string{"vuln", "secret", "config"}
-
-	_, err = os.Stat(filepath.Join(tmp, "fanal", "fanal.db"))
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if len(scanOpts.scanOptions.VulnType) != len(vulnTypes) {
-		t.Fatalf("setupScanner() failed to propagate desired vulnerability types")
-	}
-
-	for i, vt := range scanOpts.scanOptions.VulnType {
-		if vt != vulnTypes[i] {
-			t.Fatalf("setupScanner() failed to propagate desired vulnerability types")
-		}
-	}
-
-	if len(scanOpts.scanOptions.SecurityChecks) != len(securityChecks) {
-		t.Fatalf("setupScanner() failed to propagate desired vulnerability types")
-	}
-
-	for i, vt := range scanOpts.scanOptions.SecurityChecks {
-		if vt != securityChecks[i] {
-			t.Fatalf("setupScanner() failed to propagate desired vulnerability types")
-		}
-	}
-}
