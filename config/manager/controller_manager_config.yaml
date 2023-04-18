@@ -66,6 +66,9 @@ components:
           - vuln
         severities:
           - CRITICAL
+          - HIGH
+          - MEDIUM
+          - LOW
       timeout:
         total: 23h
         perImage: 1h
