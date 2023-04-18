@@ -154,7 +154,7 @@ func (s *ImageScanner) Scan(img unversioned.Image) (ScanStatus, error) {
 		cmd.Stdout = stdout
 
 		if err := cmd.Run(); err != nil {
-			log.Error(err, "could not scan image", "ref", ref, "stderr", stderr.String())
+			log.Error(err, "could not scan image", "ref", ref, "stdout", stdout.String(), "stderr", stderr.String())
 			continue
 		}
 
