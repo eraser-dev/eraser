@@ -82,7 +82,7 @@ func DefaultConfig() *Config {
 	}
 }
 
-func (config *Config) Invocation() []string {
+func (config *Config) Invocation(ref string) []string {
 	args := []string{}
 	if config.CacheDir != "" {
 		args = append(args, fmt.Sprintf("--cache-dir=%s", config.CacheDir))
@@ -118,6 +118,7 @@ func (config *Config) Invocation() []string {
 		args = append(args, fmt.Sprintf("--severity=%s", s))
 	}
 
+	args = append(args, ref)
 	return args
 }
 
@@ -147,7 +148,7 @@ func (s *ImageScanner) Scan(img unversioned.Image) (ScanStatus, error) {
 	for i := 0; i < len(refs) && !scanSucceeded; i++ {
 		ref := refs[i]
 
-		cmd := exec.Command(trivy, s.userConfig.Invocation()...)
+		cmd := exec.Command(trivy, s.userConfig.Invocation(ref)...)
 		stderr := new(bytes.Buffer)
 		stdout := new(bytes.Buffer)
 		cmd.Stderr = stderr
