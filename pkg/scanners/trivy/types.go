@@ -76,7 +76,7 @@ func DefaultConfig() *Config {
 				vulnTypeLibrary,
 			},
 			SecurityChecks: []string{securityCheckVuln},
-			Severities:     []string{severityCritical},
+			Severities:     []string{severityCritical, severityHigh, severityMedium, severityLow},
 		},
 		Timeout: TimeoutConfig{
 			Total:    eraserv1alpha1.Duration(time.Hour * 23),
