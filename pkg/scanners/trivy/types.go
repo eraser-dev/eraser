@@ -21,6 +21,10 @@ const (
 	StatusOK
 )
 
+const (
+	trivy = "trivy"
+)
+
 type (
 	Config struct {
 		CacheDir           string        `json:"cacheDir,omitempty"`
@@ -79,7 +83,7 @@ func DefaultConfig() *Config {
 }
 
 func (config *Config) Invocation() []string {
-	args := []string{"trivy"}
+	args := []string{}
 	if config.CacheDir != "" {
 		args = append(args, fmt.Sprintf("--cache-dir=%s", config.CacheDir))
 	}
@@ -89,7 +93,7 @@ func (config *Config) Invocation() []string {
 		args = append(args, fmt.Sprintf("--timeout=%s", time.Duration(config.Timeout.PerImage).String()))
 	}
 
-	args = append(args, "image", "--format=json")
+	args = append(args, "image", "--runtime=containerd", "--format=json")
 
 	if config.DBRepo != "" {
 		args = append(args, fmt.Sprintf("--db-repository=%s", config.DBRepo))
@@ -143,7 +147,7 @@ func (s *ImageScanner) Scan(img unversioned.Image) (ScanStatus, error) {
 	for i := 0; i < len(refs) && !scanSucceeded; i++ {
 		ref := refs[i]
 
-		cmd := exec.Command("trivy", "image", "-f", "json", ref)
+		cmd := exec.Command(trivy, s.userConfig.Invocation()...)
 		stderr := new(bytes.Buffer)
 		stdout := new(bytes.Buffer)
 		cmd.Stderr = stderr
