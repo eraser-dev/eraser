@@ -50,7 +50,22 @@ RUN \
     --mount=type=cache,target=/go/pkg/mod \
     GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build ${LDFLAGS:+-ldflags "$LDFLAGS"} -o out/trivy-scanner ./pkg/scanners/trivy
 
-FROM --platform=$BUILDPLATFORM builder as trivy-builder
+FROM --platform=$BUILDPLATFORM builder as mage-builder
+ARG TRIVY_REPO="https://github.com/aquasecurity/trivy.git"
+ARG TRIVY_VERSION
+WORKDIR /mage
+ENV GOCACHE=/root/gocache
+ENV CGO_ENABLED=0
+RUN \
+    --mount=type=cache,target=${GOCACHE} \
+    --mount=type=cache,target=/go/pkg/mod \
+<<EOF
+git clone https://github.com/magefile/mage
+cd mage
+go run bootstrap.go
+EOF
+
+FROM --platform=$BUILDPLATFORM mage-builder as trivy-builder
 ARG TRIVY_REPO="https://github.com/aquasecurity/trivy.git"
 ARG TRIVY_VERSION
 WORKDIR /build
@@ -65,7 +80,7 @@ git init
 git remote add origin ${TRIVY_REPO} || git remote set-url origin ${TRIVY_REPO}
 git fetch --depth=1 origin +refs/tags/${TRIVY_VERSION}:refs/tags/${TRIVY_VERSION}
 git checkout ${TRIVY_VERSION}
-make build
+mage build
 mkdir /out
 mv ./trivy /out
 EOF

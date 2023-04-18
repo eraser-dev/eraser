@@ -12,6 +12,7 @@ import (
 	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
 	fanalImage "github.com/aquasecurity/trivy/pkg/fanal/image"
 	trivyTypes "github.com/aquasecurity/trivy/pkg/types"
+	"golang.org/x/exp/slices"
 )
 
 const (
@@ -174,7 +175,7 @@ func (s *ImageScanner) Scan(img unversioned.Image) (ScanStatus, error) {
 					report.Results[i].Vulnerabilities[j].Severity = severityUnknown
 				}
 
-				if severityMap[report.Results[i].Vulnerabilities[j].Severity] {
+				if slices.Contains(s.userConfig.Vulnerabilities.Severities, report.Results[i].Vulnerabilities[j].Severity) {
 					return StatusNonCompliant, nil
 				}
 			}

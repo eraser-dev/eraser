@@ -96,13 +96,6 @@ func main() {
 		"struct", fmt.Sprintf("%#v\n", userConfig),
 	)
 
-	// Initializes logger and parses CLI options into hashmap configs
-	err = initGlobals(&userConfig.Vulnerabilities)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "error initializing options: %v", err)
-		os.Exit(generalErr)
-	}
-
 	if *enableProfile {
 		go runProfileServer()
 	}
@@ -155,34 +148,6 @@ func main() {
 	}
 
 	log.Info("eraser job completed, shutting down...")
-}
-
-// Initializes logger and parses CLI options into hashmap configs.
-func initGlobals(cfg *VulnConfig) error {
-	if cfg == nil {
-		return fmt.Errorf("valid configuration required")
-	}
-
-	allSetsOfCommaSeparatedOptions := []optionSet{
-		{
-			input: cfg.Severities,
-			m:     severityMap,
-		},
-		{
-			input: cfg.Types,
-			m:     vulnTypeMap,
-		},
-		{
-			input: cfg.SecurityChecks,
-			m:     securityCheckMap,
-		},
-	}
-
-	for _, oSet := range allSetsOfCommaSeparatedOptions {
-		fillMap(oSet.input, oSet.m)
-	}
-
-	return nil
 }
 
 func fillMap(sl []string, m map[string]bool) {
