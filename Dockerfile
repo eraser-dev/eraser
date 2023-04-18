@@ -66,8 +66,8 @@ go run bootstrap.go
 EOF
 
 FROM --platform=$BUILDPLATFORM mage-builder as trivy-builder
-ARG TRIVY_REPO="https://github.com/aquasecurity/trivy.git"
-ARG TRIVY_VERSION
+ARG TRIVY_REPO="https://github.com/pmengelbert/trivy.git"
+ARG TRIVY_VERSION="v11.11.11"
 WORKDIR /build
 ENV GOCACHE=/root/gocache
 ENV CGO_ENABLED=0
