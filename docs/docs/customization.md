@@ -172,6 +172,7 @@ Values provided below are the defaults.
 cacheDir: /var/lib/trivy # The file path inside the container to store the cache
 dbRepo: ghcr.io/aquasecurity/trivy-db # The container registry from which to fetch the trivy database
 deleteFailedImages: true # if true, remove images for which scanning fails, regardless of why it failed
+deleteEOLImages: true # if true, remove images that have reached their end-of-life date
 vulnerabilities:
   ignoreUnfixed: true # consider the image compliant if there are no known fixes for the vulnerabilities found.
   types: # a list of vulnerability types. for more info, see trivy's documentation.

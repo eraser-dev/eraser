@@ -144,6 +144,7 @@ func main() {
 		template.WithLogger(log),
 		template.WithMetrics(recordMetrics),
 		template.WithDeleteScanFailedImages(userConfig.DeleteFailedImages),
+		template.WithDeleteEOLImages(userConfig.DeleteEOLImages),
 	)
 
 	allImages, err := provider.ReceiveImages()
