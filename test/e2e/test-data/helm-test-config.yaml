@@ -8,4 +8,4 @@ controllerManager:
       scanner:
         config: |
           deleteFailedImages: false
-          deleteEOLImages: false
+          deleteEOLImages: true
