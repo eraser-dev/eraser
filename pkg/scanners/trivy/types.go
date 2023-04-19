@@ -155,6 +155,7 @@ func (s *ImageScanner) Scan(img unversioned.Image) (ScanStatus, error) {
 		if err := cmd.Run(); err != nil {
 			if exit, ok := err.(*exec.ExitError); ok {
 				code := exit.ExitCode()
+				log.Info("STDOUT/STDERR", "stdout", stdout.String(), "stderr", stderr.String())
 
 				var report trivyTypes.Report
 				if err := json.Unmarshal(stdout.Bytes(), &report); err != nil {
