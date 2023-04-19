@@ -22,7 +22,9 @@ const (
 )
 
 const (
-	trivy = "trivy"
+	trivy          = "trivy"
+	codeVulnerable = 111
+	codeEOL        = 222
 )
 
 type (
@@ -30,7 +32,6 @@ type (
 		CacheDir           string        `json:"cacheDir,omitempty"`
 		DBRepo             string        `json:"dbRepo,omitempty"`
 		DeleteFailedImages bool          `json:"deleteFailedImages,omitempty"`
-		DeleteEOLImages    bool          `json:"deleteEOLImages,omitempty"`
 		Vulnerabilities    VulnConfig    `json:"vulnerabilities,omitempty"`
 		Timeout            TimeoutConfig `json:"timeout,omitempty"`
 	}
@@ -60,7 +61,6 @@ func DefaultConfig() *Config {
 		CacheDir:           "/var/lib/trivy",
 		DBRepo:             "ghcr.io/aquasecurity/trivy-db",
 		DeleteFailedImages: true,
-		DeleteEOLImages:    true,
 		Vulnerabilities: VulnConfig{
 			IgnoreUnfixed: true,
 			Types: []string{
@@ -88,7 +88,10 @@ func (config *Config) Invocation(ref string) []string {
 		args = append(args, fmt.Sprintf("--timeout=%s", time.Duration(config.Timeout.PerImage).String()))
 	}
 
-	args = append(args, "image", "--runtime=containerd", "--format=json")
+	args = append(args, "image", "--runtime=containerd", "--format=json",
+		fmt.Sprintf("--exit-code=%d", codeVulnerable),
+		fmt.Sprintf("--exit-on-eol=%d", codeEOL),
+	)
 
 	if config.DBRepo != "" {
 		args = append(args, fmt.Sprintf("--db-repository=%s", config.DBRepo))
@@ -150,34 +153,41 @@ func (s *ImageScanner) Scan(img unversioned.Image) (ScanStatus, error) {
 		cmd.Stdout = stdout
 
 		if err := cmd.Run(); err != nil {
-			log.Error(err, "could not scan image", "ref", ref, "stdout", stdout.String(), "stderr", stderr.String())
-			continue
-		}
+			if exit, ok := err.(*exec.ExitError); ok {
+				code := exit.ExitCode()
 
-		var report trivyTypes.Report
-		if err := json.Unmarshal(stdout.Bytes(), &report); err != nil {
-			log.Error(err, "unable to parse scan report", "report string", stdout.String())
-			continue
-		}
-
-		if report.Metadata.OS != nil && report.Metadata.OS.Eosl {
-			log.Info("image is end of life", "imageID", img.ImageID, "reference", ref)
-			return StatusNonCompliant, nil
-		}
-
-		for i := range report.Results {
-			for j := range report.Results[i].Vulnerabilities {
-				if s.userConfig.Vulnerabilities.IgnoreUnfixed && report.Results[i].Vulnerabilities[j].FixedVersion == "" {
+				var report trivyTypes.Report
+				if err := json.Unmarshal(stdout.Bytes(), &report); err != nil {
+					log.Error(err, "unable to parse scan report", "report string", stdout.String())
 					continue
 				}
 
-				if report.Results[i].Vulnerabilities[j].Severity == "" {
-					report.Results[i].Vulnerabilities[j].Severity = severityUnknown
-				}
+				switch code {
+				case codeVulnerable:
+					for i := range report.Results {
+						for j := range report.Results[i].Vulnerabilities {
+							if s.userConfig.Vulnerabilities.IgnoreUnfixed && report.Results[i].Vulnerabilities[j].FixedVersion == "" {
+								continue
+							}
 
-				if slices.Contains(s.userConfig.Vulnerabilities.Severities, report.Results[i].Vulnerabilities[j].Severity) {
-					return StatusNonCompliant, nil
+							if report.Results[i].Vulnerabilities[j].Severity == "" {
+								report.Results[i].Vulnerabilities[j].Severity = severityUnknown
+							}
+
+							if slices.Contains(s.userConfig.Vulnerabilities.Severities, report.Results[i].Vulnerabilities[j].Severity) {
+								return StatusNonCompliant, nil
+							}
+						}
+					}
+				case codeEOL:
+					//TODO(peter)
+				default:
+					log.Error(err, "could not scan image", "ref", ref, "stdout", stdout.String(), "stderr", stderr.String())
+					continue
 				}
+			} else {
+				log.Error(err, "could not scan image", "ref", ref, "stdout", stdout.String(), "stderr", stderr.String())
+				continue
 			}
 		}
 
