@@ -44,8 +44,6 @@ var (
 	enableProfile = flag.Bool("enable-pprof", false, "enable pprof profiling")
 	profilePort   = flag.Int("pprof-port", 6060, "port for pprof profiling. defaulted to 6060 if unspecified")
 
-	scanConfig Config
-
 	runtimeFanalOptionsMap = map[string][]fanalImage.Option{
 		utils.RuntimeDocker: {
 			fanalImage.DisableRemote(),
@@ -148,12 +146,6 @@ func main() {
 	}
 
 	log.Info("eraser job completed, shutting down...")
-}
-
-func fillMap(sl []string, m map[string]bool) {
-	for _, s := range sl {
-		m[s] = true
-	}
 }
 
 func runProfileServer() {

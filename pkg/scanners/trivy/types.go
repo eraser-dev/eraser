@@ -47,11 +47,6 @@ type (
 		PerImage eraserv1alpha1.Duration `json:"perImage,omitempty"`
 	}
 
-	optionSet struct {
-		input []string
-		m     map[string]bool
-	}
-
 	ScanStatus int
 
 	Scanner interface {
@@ -148,7 +143,7 @@ func (s *ImageScanner) Scan(img unversioned.Image) (ScanStatus, error) {
 	for i := 0; i < len(refs) && !scanSucceeded; i++ {
 		ref := refs[i]
 
-		cmd := exec.Command(trivy, s.userConfig.Invocation(ref)...)
+		cmd := exec.Command(trivy, s.userConfig.Invocation(ref)...) // #nosec G204
 		stderr := new(bytes.Buffer)
 		stdout := new(bytes.Buffer)
 		cmd.Stderr = stderr
