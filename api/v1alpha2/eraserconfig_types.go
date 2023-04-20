@@ -14,17 +14,15 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1alpha1
+package v1alpha2
 
 import (
 	"encoding/json"
 	"fmt"
 	"time"
 
-	"github.com/Azure/eraser/api/unversioned"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/conversion"
 	cfg "sigs.k8s.io/controller-runtime/pkg/config/v1alpha1"
 )
 
@@ -137,7 +135,7 @@ type RepoTag struct {
 type Components struct {
 	Collector OptionalContainerConfig `json:"collector,omitempty"`
 	Scanner   OptionalContainerConfig `json:"scanner,omitempty"`
-	Eraser    ContainerConfig         `json:"eraser,omitempty"`
+	Remover   ContainerConfig         `json:"remover,omitempty"`
 }
 
 //+kubebuilder:object:root=true
@@ -155,31 +153,4 @@ type EraserConfig struct {
 
 func init() {
 	SchemeBuilder.Register(&EraserConfig{})
-}
-
-func Convert_v1alpha1_Components_To_unversioned_Components(in *Components, out *unversioned.Components, s conversion.Scope) error {
-	if err := Convert_v1alpha1_OptionalContainerConfig_To_unversioned_OptionalContainerConfig(&in.Collector, &out.Collector, s); err != nil {
-		return err
-	}
-	if err := Convert_v1alpha1_OptionalContainerConfig_To_unversioned_OptionalContainerConfig(&in.Scanner, &out.Scanner, s); err != nil {
-		return err
-	}
-	if err := Convert_v1alpha1_ContainerConfig_To_unversioned_ContainerConfig(&in.Eraser, &out.Remover, s); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func Convert_unversioned_Components_To_v1alpha1_Components(in *unversioned.Components, out *Components, s conversion.Scope) error {
-	if err := Convert_unversioned_OptionalContainerConfig_To_v1alpha1_OptionalContainerConfig(&in.Collector, &out.Collector, s); err != nil {
-		return err
-	}
-	if err := Convert_unversioned_OptionalContainerConfig_To_v1alpha1_OptionalContainerConfig(&in.Scanner, &out.Scanner, s); err != nil {
-		return err
-	}
-	if err := Convert_unversioned_ContainerConfig_To_v1alpha1_ContainerConfig(&in.Remover, &out.Eraser, s); err != nil {
-		return err
-	}
-	return nil
 }
