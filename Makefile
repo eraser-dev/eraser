@@ -133,7 +133,7 @@ generate: __conversion-gen __controller-gen
 	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./..."
 	$(CONVERSION_GEN) \
 		--output-base=/eraser \
-		--input-dirs=./api/... \
+		--input-dirs=./api/v1alpha1,./api/v1alpha2/ \
 		--go-header-file=./hack/boilerplate.go.txt \
 		--output-file-base=zz_generated.conversion
 
