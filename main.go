@@ -27,6 +27,7 @@ import (
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
 
+	"gopkg.in/yaml.v3"
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 	"k8s.io/utils/inotify"
 
@@ -36,9 +37,14 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 
+	"github.com/Azure/eraser/api/unversioned"
 	"github.com/Azure/eraser/api/unversioned/config"
 	eraserv1 "github.com/Azure/eraser/api/v1"
+	"github.com/Azure/eraser/api/v1alpha1"
 	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
+	v1alpha1Config "github.com/Azure/eraser/api/v1alpha1/config"
+	eraserv1alpha2 "github.com/Azure/eraser/api/v1alpha2"
+	v1alpha2Config "github.com/Azure/eraser/api/v1alpha2/config"
 	"github.com/Azure/eraser/controllers"
 	"github.com/Azure/eraser/pkg/logger"
 	"github.com/Azure/eraser/version"
@@ -56,6 +62,10 @@ func init() {
 	utilruntime.Must(eraserv1alpha1.AddToScheme(scheme))
 	utilruntime.Must(eraserv1.AddToScheme(scheme))
 	//+kubebuilder:scaffold:scheme
+}
+
+type apiVersion struct {
+	APIVerison string `yaml:"apiVersion"`
 }
 
 func main() {
@@ -85,21 +95,20 @@ func main() {
 		os.Exit(1)
 	}
 
-	cfg := config.Default()
-	if configFile != "" {
-		o, err := options.AndFrom(ctrl.ConfigFile().AtPath(configFile).OfKind(cfg))
-		if err != nil {
-			setupLog.Error(err, "configuration is either missing or invalid")
-			os.Exit(1)
-		}
-
-		options = o
+	var cfg *unversioned.EraserConfig
+	var err error
+	cfg, options, err = getConfig(configFile, options)
+	if err != nil {
+		setupLog.Error(err, "error getting configuration")
+		os.Exit(1)
 	}
 
-	setupLog.V(1).Info("eraser config",
+	setupLog.Info("eraser config",
 		"manager", cfg.Manager,
-		"component", cfg.Components,
+		"components", cfg.Components,
 		"options", fmt.Sprintf("%#v\n", options),
+		"typeMeta", fmt.Sprintf("%#v\n", cfg.TypeMeta),
+		"ControllerManagerConfigurationSpec", fmt.Sprintf("%#v\n", cfg.ControllerManagerConfigurationSpec),
 	)
 
 	eraserOpts := config.NewManager(cfg)
@@ -159,6 +168,58 @@ func main() {
 	}
 }
 
+func getConfig(configFile string, options ctrl.Options) (*unversioned.EraserConfig, ctrl.Options, error) {
+	var cfg unversioned.EraserConfig
+
+	b, err := os.ReadFile(configFile)
+	if err != nil {
+		setupLog.Error(err, "configuration is either missing or invalid")
+		os.Exit(1)
+	}
+	setupLog.Info("string read from file", "string", string(b))
+
+	var av apiVersion
+	if err := yaml.Unmarshal(b, &av); err != nil {
+		setupLog.Error(err, "cannot unmarshal yaml", "bytes", string(b), "av", av)
+		os.Exit(1)
+	}
+
+	setupLog.Info("APIVERSION", "apiVersion", av)
+
+	switch av.APIVerison {
+	case "eraser.sh/v1alpha1":
+		v1alpha1Config := v1alpha1Config.Default()
+		o, err := options.AndFrom(ctrl.ConfigFile().AtPath(configFile).OfKind(v1alpha1Config))
+		if err != nil {
+			setupLog.Error(err, "configuration is either missing or invalid")
+			return nil, ctrl.Options{}, err
+		}
+
+		options = o
+		if err := v1alpha1.Convert_v1alpha1_EraserConfig_To_unversioned_EraserConfig(v1alpha1Config, &cfg, nil); err != nil {
+			setupLog.Error(err, "CONVERSION FAILED")
+			return nil, ctrl.Options{}, err
+		}
+	case "eraser.sh/v1alpha2":
+		v1alpha2Config := v1alpha2Config.Default()
+		o, err := options.AndFrom(ctrl.ConfigFile().AtPath(configFile).OfKind(v1alpha2Config))
+		if err != nil {
+			setupLog.Error(err, "configuration is either missing or invalid")
+			return nil, ctrl.Options{}, err
+		}
+
+		options = o
+		if err := eraserv1alpha2.Convert__EraserConfig_To_unversioned_EraserConfig(v1alpha2Config, &cfg, nil); err != nil {
+			setupLog.Error(err, "CONVERSION FAILED")
+			return nil, ctrl.Options{}, err
+		}
+	default:
+		setupLog.Error(fmt.Errorf("unknown api version"), "error", "apiVersion", av.APIVerison)
+		return nil, ctrl.Options{}, err
+	}
+	return &cfg, options, nil
+}
+
 // Kubernetes manages configmap volume updates by creating a new file,
 // changing the symlink, then deleting the old file. Hence, we want to
 // watch for IN_DELETE_SELF events. In case the watch is dropped, we need
@@ -197,8 +258,10 @@ func startConfigWatch(watcher *inotify.Watcher, eraserOpts *config.Manager, file
 				continue
 			}
 
-			cfg := config.Default()
-			_, err := ctrl.Options{Scheme: runtime.NewScheme()}.AndFrom(ctrl.ConfigFile().AtPath(filename).OfKind(cfg))
+			var cfg *unversioned.EraserConfig
+			var err error
+			var options ctrl.Options
+			cfg, _, err = getConfig(filename, options)
 			if err != nil {
 				setupLog.Error(err, "configuration is missing or invalid", "event", ev, "filename", filename)
 				continue
@@ -215,7 +278,7 @@ func startConfigWatch(watcher *inotify.Watcher, eraserOpts *config.Manager, file
 				continue
 			}
 
-			setupLog.V(1).Info("new configuration", "manager", newC.Manager, "components", newC.Components)
+			setupLog.Info("new configuration", "manager", newC.Manager, "components", newC.Components)
 		case err := <-watcher.Error:
 			setupLog.Error(err, "file watcher error")
 		}

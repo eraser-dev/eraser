@@ -130,7 +130,7 @@ manifests: __manifest_kustomize __helm_kustomize __controller-gen ## Generates k
 # Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method
 # implementations. Also generate conversions between structs of different API versions.
 generate: __conversion-gen __controller-gen
-	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./..."
+	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./api/..."
 	$(CONVERSION_GEN) \
 		--output-base=/eraser \
 		--input-dirs=./api/v1alpha1,./api/v1alpha2/,./api/v1 \
