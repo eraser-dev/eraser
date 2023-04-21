@@ -41,9 +41,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
+	"github.com/Azure/eraser/api/unversioned/config"
 	eraserv1 "github.com/Azure/eraser/api/v1"
 	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
-	"github.com/Azure/eraser/api/v1alpha1/config"
 	"github.com/Azure/eraser/controllers/util"
 	"github.com/Azure/eraser/pkg/logger"
 	"github.com/Azure/eraser/pkg/metrics"
@@ -266,7 +266,7 @@ func (r *Reconciler) handleImageListEvent(ctx context.Context, imageList *eraser
 		return ctrl.Result{}, err
 	}
 
-	eraserContainerCfg := eraserConfig.Components.Eraser
+	eraserContainerCfg := eraserConfig.Components.Remover
 	imageCfg := eraserContainerCfg.Image
 	image := fmt.Sprintf("%s:%s", imageCfg.Repo, imageCfg.Tag)
 
