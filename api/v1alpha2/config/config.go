@@ -5,7 +5,7 @@ import (
 	"sync"
 	"time"
 
-	v1alpha1 "github.com/Azure/eraser/api/v1alpha1"
+	"github.com/Azure/eraser/api/v1alpha2"
 	"github.com/Azure/eraser/version"
 	"k8s.io/apimachinery/pkg/api/resource"
 )
@@ -31,22 +31,22 @@ severities:
 
 type Manager struct {
 	mtx sync.Mutex
-	cfg *v1alpha1.EraserConfig
+	cfg *v1alpha2.EraserConfig
 }
 
-func (m *Manager) Read() (v1alpha1.EraserConfig, error) {
+func (m *Manager) Read() (v1alpha2.EraserConfig, error) {
 	m.mtx.Lock()
 	defer m.mtx.Unlock()
 
 	if m.cfg == nil {
-		return v1alpha1.EraserConfig{}, fmt.Errorf("ConfigManager configuration is nil, aborting")
+		return v1alpha2.EraserConfig{}, fmt.Errorf("ConfigManager configuration is nil, aborting")
 	}
 
 	cfg := *m.cfg
 	return cfg, nil
 }
 
-func (m *Manager) Update(newC *v1alpha1.EraserConfig) error {
+func (m *Manager) Update(newC *v1alpha2.EraserConfig) error {
 	m.mtx.Lock()
 	defer m.mtx.Unlock()
 
@@ -62,7 +62,7 @@ func (m *Manager) Update(newC *v1alpha1.EraserConfig) error {
 	return nil
 }
 
-func NewManager(cfg *v1alpha1.EraserConfig) *Manager {
+func NewManager(cfg *v1alpha2.EraserConfig) *Manager {
 	return &Manager{
 		mtx: sync.Mutex{},
 		cfg: cfg,
@@ -70,86 +70,86 @@ func NewManager(cfg *v1alpha1.EraserConfig) *Manager {
 }
 
 const (
-	noDelay = v1alpha1.Duration(0)
-	oneDay  = v1alpha1.Duration(time.Hour * 24)
+	noDelay = v1alpha2.Duration(0)
+	oneDay  = v1alpha2.Duration(time.Hour * 24)
 )
 
-func Default() *v1alpha1.EraserConfig {
-	return &v1alpha1.EraserConfig{
-		Manager: v1alpha1.ManagerConfig{
+func Default() *v1alpha2.EraserConfig {
+	return &v1alpha2.EraserConfig{
+		Manager: v1alpha2.ManagerConfig{
 			Runtime:      "containerd",
 			OTLPEndpoint: "",
 			LogLevel:     "info",
-			Scheduling: v1alpha1.ScheduleConfig{
-				RepeatInterval:   v1alpha1.Duration(oneDay),
+			Scheduling: v1alpha2.ScheduleConfig{
+				RepeatInterval:   v1alpha2.Duration(oneDay),
 				BeginImmediately: true,
 			},
-			Profile: v1alpha1.ProfileConfig{
+			Profile: v1alpha2.ProfileConfig{
 				Enabled: false,
 				Port:    6060,
 			},
-			ImageJob: v1alpha1.ImageJobConfig{
+			ImageJob: v1alpha2.ImageJobConfig{
 				SuccessRatio: 1.0,
-				Cleanup: v1alpha1.ImageJobCleanupConfig{
+				Cleanup: v1alpha2.ImageJobCleanupConfig{
 					DelayOnSuccess: noDelay,
 					DelayOnFailure: oneDay,
 				},
 			},
 			PullSecrets: []string{},
-			NodeFilter: v1alpha1.NodeFilterConfig{
+			NodeFilter: v1alpha2.NodeFilterConfig{
 				Type: "exclude",
 				Selectors: []string{
 					"eraser.sh/cleanup.filter",
 				},
 			},
 		},
-		Components: v1alpha1.Components{
-			Collector: v1alpha1.OptionalContainerConfig{
+		Components: v1alpha2.Components{
+			Collector: v1alpha2.OptionalContainerConfig{
 				Enabled: false,
-				ContainerConfig: v1alpha1.ContainerConfig{
-					Image: v1alpha1.RepoTag{
+				ContainerConfig: v1alpha2.ContainerConfig{
+					Image: v1alpha2.RepoTag{
 						Repo: repo("collector"),
 						Tag:  version.BuildVersion,
 					},
-					Request: v1alpha1.ResourceRequirements{
+					Request: v1alpha2.ResourceRequirements{
 						Mem: resource.MustParse("25Mi"),
 						CPU: resource.MustParse("7m"),
 					},
-					Limit: v1alpha1.ResourceRequirements{
+					Limit: v1alpha2.ResourceRequirements{
 						Mem: resource.MustParse("500Mi"),
 						CPU: resource.Quantity{},
 					},
 					Config: nil,
 				},
 			},
-			Scanner: v1alpha1.OptionalContainerConfig{
+			Scanner: v1alpha2.OptionalContainerConfig{
 				Enabled: false,
-				ContainerConfig: v1alpha1.ContainerConfig{
-					Image: v1alpha1.RepoTag{
+				ContainerConfig: v1alpha2.ContainerConfig{
+					Image: v1alpha2.RepoTag{
 						Repo: repo("eraser-trivy-scanner"),
 						Tag:  version.BuildVersion,
 					},
-					Request: v1alpha1.ResourceRequirements{
+					Request: v1alpha2.ResourceRequirements{
 						Mem: resource.MustParse("500Mi"),
 						CPU: resource.MustParse("1000m"),
 					},
-					Limit: v1alpha1.ResourceRequirements{
+					Limit: v1alpha2.ResourceRequirements{
 						Mem: resource.MustParse("2Gi"),
 						CPU: resource.MustParse("1500m"),
 					},
 					Config: &defaultScannerConfig,
 				},
 			},
-			Eraser: v1alpha1.ContainerConfig{
-				Image: v1alpha1.RepoTag{
+			Eraser: v1alpha2.ContainerConfig{
+				Image: v1alpha2.RepoTag{
 					Repo: repo("eraser"),
 					Tag:  version.BuildVersion,
 				},
-				Request: v1alpha1.ResourceRequirements{
+				Request: v1alpha2.ResourceRequirements{
 					Mem: resource.MustParse("25Mi"),
 					CPU: resource.MustParse("7m"),
 				},
-				Limit: v1alpha1.ResourceRequirements{
+				Limit: v1alpha2.ResourceRequirements{
 					Mem: resource.MustParse("30Mi"),
 					CPU: resource.Quantity{},
 				},
