@@ -31,6 +31,7 @@ import (
 	"k8s.io/utils/inotify"
 	"sigs.k8s.io/yaml"
 
+	"k8s.io/apimachinery/pkg/conversion"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
@@ -166,72 +167,56 @@ func main() {
 }
 
 func getConfig(configFile string) (*unversioned.EraserConfig, error) {
-	var cfg unversioned.EraserConfig
-
-	b, err := os.ReadFile(configFile)
+	fileBytes, err := os.ReadFile(configFile)
 	if err != nil {
 		setupLog.Error(err, "configuration is either missing or invalid")
 		os.Exit(1)
 	}
 
 	var av apiVersion
-	if err := yaml.Unmarshal(b, &av); err != nil {
-		setupLog.Error(err, "cannot unmarshal yaml", "bytes", string(b), "av", av)
+	if err := yaml.Unmarshal(fileBytes, &av); err != nil {
+		setupLog.Error(err, "cannot unmarshal yaml", "bytes", string(fileBytes), "av", av)
 		os.Exit(1)
 	}
 
 	switch av.APIVerison {
 	case "eraser.sh/v1alpha1":
-		def := v1alpha1Config.Default()
-		var v1alpha1Config eraserv1alpha1.EraserConfig
-		if err := yaml.Unmarshal(b, &v1alpha1Config); err != nil {
-			setupLog.Error(err, "configuration is either missing or invalid")
-			return nil, err
-		}
-
-		b, err := yaml.Marshal(def)
-		if err != nil {
-			setupLog.Error(err, "could not marshal default config")
-			return nil, err
-		}
-
-		if err := yaml.Unmarshal(b, &v1alpha1Config); err != nil {
-			setupLog.Error(err, "configuration is either missing or invalid")
-			return nil, err
-		}
-
-		if err := v1alpha1.Convert_v1alpha1_EraserConfig_To_unversioned_EraserConfig(&v1alpha1Config, &cfg, nil); err != nil {
-			setupLog.Error(err, "conversion failed")
-			return nil, err
-		}
+		defaults := v1alpha1Config.Default()
+		return getUnversioned(fileBytes, defaults, v1alpha1.Convert_v1alpha1_EraserConfig_To_unversioned_EraserConfig)
 	case "eraser.sh/v1alpha2":
-		def := v1alpha2Config.Default()
-		var v1alpha2Config eraserv1alpha2.EraserConfig
-		if err := yaml.Unmarshal(b, &v1alpha2Config); err != nil {
-			setupLog.Error(err, "configuration is either missing or invalid")
-			return nil, err
-		}
-
-		b, err := yaml.Marshal(def)
-		if err != nil {
-			setupLog.Error(err, "could not marshal default config")
-			return nil, err
-		}
-
-		if err := yaml.Unmarshal(b, &v1alpha2Config); err != nil {
-			setupLog.Error(err, "configuration is either missing or invalid")
-			return nil, err
-		}
-
-		if err := eraserv1alpha2.Convert_v1alpha2_EraserConfig_To_unversioned_EraserConfig(&v1alpha2Config, &cfg, nil); err != nil {
-			setupLog.Error(err, "conversion failed")
-			return nil, err
-		}
+		defaults := v1alpha2Config.Default()
+		return getUnversioned(fileBytes, defaults, eraserv1alpha2.Convert_v1alpha2_EraserConfig_To_unversioned_EraserConfig)
 	default:
 		setupLog.Error(fmt.Errorf("unknown api version"), "error", "apiVersion", av.APIVerison)
 		return nil, err
 	}
-	return &cfg, nil
+}
+
+func getUnversioned[T any](b []byte, defaults *T, convert func(*T, *unversioned.EraserConfig, conversion.Scope) error) (*unversioned.EraserConfig, error) {
+	var cfg T
+
+	if err := yaml.Unmarshal(b, &cfg); err != nil {
+		setupLog.Error(err, "configuration is either missing or invalid")
+		return nil, err
+	}
+
+	defaultBytes, err := yaml.Marshal(defaults)
+	if err != nil {
+		setupLog.Error(err, "could not marshal default config")
+		return nil, err
+	}
+
+	if err := yaml.Unmarshal(defaultBytes, &cfg); err != nil {
+		setupLog.Error(err, "configuration is either missing or invalid")
+		return nil, err
+	}
+
+	var unv unversioned.EraserConfig
+	if err := convert(&cfg, &unv, nil); err != nil {
+		return nil, err
+	}
+
+	return &unv, nil
 }
 
 // Kubernetes manages configmap volume updates by creating a new file,
