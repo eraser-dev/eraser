@@ -54,6 +54,10 @@ func (td *Duration) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
+func (td *Duration) MarshalJSON() ([]byte, error) {
+	return []byte(fmt.Sprintf(`"%s"`, time.Duration(*td).String())), nil
+}
+
 func (r *Runtime) UnmarshalJSON(b []byte) error {
 	var str string
 	err := json.Unmarshal(b, &str)
