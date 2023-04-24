@@ -29,7 +29,7 @@ FROM builder AS manager-build
 RUN \
     --mount=type=cache,target=${GOCACHE} \
     --mount=type=cache,target=/go/pkg/mod \
-    GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build ${LDFLAGS:+-ldflags "$LDFLAGS"} -o out/manager main.go
+    GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -gcflags='-N -l' ${LDFLAGS:+-ldflags "$LDFLAGS"} -o out/manager main.go
 
 FROM builder AS collector-build
 RUN \

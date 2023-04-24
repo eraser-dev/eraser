@@ -39,6 +39,7 @@ node_modules/
 !build/
 build/*
 !build/tooling/
+!build/version.sh
 
 # e2e test log outputs
 test/e2e/tests/eraser_logs/
