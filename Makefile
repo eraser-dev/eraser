@@ -20,7 +20,7 @@ BUSYBOX_BASE_IMG ?= busybox:1.36.0
 NON_VULNERABLE_IMG ?= ghcr.io/azure/non-vulnerable:latest
 E2E_TESTS ?= $(shell find ./test/e2e/tests/ -mindepth 1 -type d)
 
-_api_versions ?= $(shell find ./api/ -mindepth 1 -maxdepth 1 -type d -not -name unversioned)
+_api_versions := $(shell find ./api/ -mindepth 1 -maxdepth 1 -type d -not -name unversioned)
 empty :=
 space := $(empty) $(empty)
 comma := ,
