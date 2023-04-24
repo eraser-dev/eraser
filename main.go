@@ -68,6 +68,8 @@ type apiVersion struct {
 	APIVerison string `json:"apiVersion" yaml:"apiVersion"`
 }
 
+type convertFunc[T any] func(*T, *unversioned.EraserConfig, conversion.Scope) error
+
 func main() {
 	var configFile string
 	flag.StringVar(&configFile, "config", "",
@@ -191,7 +193,7 @@ func getConfig(configFile string) (*unversioned.EraserConfig, error) {
 	}
 }
 
-func getUnversioned[T any](b []byte, defaults *T, convert func(*T, *unversioned.EraserConfig, conversion.Scope) error) (*unversioned.EraserConfig, error) {
+func getUnversioned[T any](b []byte, defaults *T, convert convertFunc[T]) (*unversioned.EraserConfig, error) {
 	var cfg T
 
 	if err := yaml.Unmarshal(b, &cfg); err != nil {
