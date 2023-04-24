@@ -156,29 +156,22 @@ func init() {
 	SchemeBuilder.Register(&EraserConfig{})
 }
 
-func Convert_v1alpha1_Components_To_unversioned_Components(in *Components, out *unversioned.Components, s conversion.Scope) error {
+func Convert_v1alpha1_Components_To_unversioned_Components(in *Components, out *unversioned.Components, s conversion.Scope) error { //nolint:revive
 	if err := Convert_v1alpha1_OptionalContainerConfig_To_unversioned_OptionalContainerConfig(&in.Collector, &out.Collector, s); err != nil {
 		return err
 	}
 	if err := Convert_v1alpha1_OptionalContainerConfig_To_unversioned_OptionalContainerConfig(&in.Scanner, &out.Scanner, s); err != nil {
 		return err
 	}
-	if err := Convert_v1alpha1_ContainerConfig_To_unversioned_ContainerConfig(&in.Eraser, &out.Remover, s); err != nil {
-		return err
-	}
-
-	return nil
+	return Convert_v1alpha1_ContainerConfig_To_unversioned_ContainerConfig(&in.Eraser, &out.Remover, s)
 }
 
-func Convert_unversioned_Components_To_v1alpha1_Components(in *unversioned.Components, out *Components, s conversion.Scope) error {
+func Convert_unversioned_Components_To_v1alpha1_Components(in *unversioned.Components, out *Components, s conversion.Scope) error { //nolint:revive
 	if err := Convert_unversioned_OptionalContainerConfig_To_v1alpha1_OptionalContainerConfig(&in.Collector, &out.Collector, s); err != nil {
 		return err
 	}
 	if err := Convert_unversioned_OptionalContainerConfig_To_v1alpha1_OptionalContainerConfig(&in.Scanner, &out.Scanner, s); err != nil {
 		return err
 	}
-	if err := Convert_unversioned_ContainerConfig_To_v1alpha1_ContainerConfig(&in.Remover, &out.Eraser, s); err != nil {
-		return err
-	}
-	return nil
+	return Convert_unversioned_ContainerConfig_To_v1alpha1_ContainerConfig(&in.Remover, &out.Eraser, s)
 }
