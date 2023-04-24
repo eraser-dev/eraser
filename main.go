@@ -41,7 +41,6 @@ import (
 	"github.com/Azure/eraser/api/unversioned"
 	"github.com/Azure/eraser/api/unversioned/config"
 	eraserv1 "github.com/Azure/eraser/api/v1"
-	"github.com/Azure/eraser/api/v1alpha1"
 	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
 	v1alpha1Config "github.com/Azure/eraser/api/v1alpha1/config"
 	eraserv1alpha2 "github.com/Azure/eraser/api/v1alpha2"
@@ -182,7 +181,7 @@ func getConfig(configFile string) (*unversioned.EraserConfig, error) {
 	switch av.APIVerison {
 	case "eraser.sh/v1alpha1":
 		defaults := v1alpha1Config.Default()
-		return getUnversioned(fileBytes, defaults, v1alpha1.Convert_v1alpha1_EraserConfig_To_unversioned_EraserConfig)
+		return getUnversioned(fileBytes, defaults, eraserv1alpha1.Convert_v1alpha1_EraserConfig_To_unversioned_EraserConfig)
 	case "eraser.sh/v1alpha2":
 		defaults := v1alpha2Config.Default()
 		return getUnversioned(fileBytes, defaults, eraserv1alpha2.Convert_v1alpha2_EraserConfig_To_unversioned_EraserConfig)
@@ -257,9 +256,7 @@ func startConfigWatch(watcher *inotify.Watcher, eraserOpts *config.Manager, file
 				continue
 			}
 
-			var cfg *unversioned.EraserConfig
-			var err error
-			cfg, err = getConfig(filename)
+			cfg, err := getConfig(filename)
 			if err != nil {
 				setupLog.Error(err, "configuration is missing or invalid", "event", ev, "filename", filename)
 				continue
