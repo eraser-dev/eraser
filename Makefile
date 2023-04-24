@@ -19,6 +19,13 @@ EOL_IMG ?= docker.io/library/alpine:3.1
 BUSYBOX_BASE_IMG ?= busybox:1.36.0
 NON_VULNERABLE_IMG ?= ghcr.io/azure/non-vulnerable:latest
 E2E_TESTS ?= $(shell find ./test/e2e/tests/ -mindepth 1 -type d)
+
+_api_versions ?= $(shell find ./api/ -mindepth 1 -maxdepth 1 -type d -not -name unversioned)
+empty :=
+space := $(empty) $(empty)
+comma := ,
+API_VERSIONS ?= $(subst $(space),$(comma),$(_api_versions))
+
 HELM_UPGRADE_TEST ?=
 TEST_LOGDIR ?= $(PWD)/test_logs
 
@@ -133,7 +140,7 @@ generate: __conversion-gen __controller-gen
 	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./api/..."
 	$(CONVERSION_GEN) \
 		--output-base=/eraser \
-		--input-dirs=./api/v1alpha1,./api/v1alpha2/,./api/v1 \
+		--input-dirs=$(API_VERSIONS) \
 		--go-header-file=./hack/boilerplate.go.txt \
 		--output-file-base=zz_generated.conversion
 
