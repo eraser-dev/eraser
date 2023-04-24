@@ -109,7 +109,7 @@ func Default() *v1alpha1.EraserConfig {
 				ContainerConfig: v1alpha1.ContainerConfig{
 					Image: v1alpha1.RepoTag{
 						Repo: repo("collector"),
-						Tag:  version.BuildVersion,
+						// Tag will be populated by configmap
 					},
 					Request: v1alpha1.ResourceRequirements{
 						Mem: resource.MustParse("25Mi"),
@@ -127,7 +127,7 @@ func Default() *v1alpha1.EraserConfig {
 				ContainerConfig: v1alpha1.ContainerConfig{
 					Image: v1alpha1.RepoTag{
 						Repo: repo("eraser-trivy-scanner"),
-						Tag:  version.BuildVersion,
+						// Tag will be populated by configmap
 					},
 					Request: v1alpha1.ResourceRequirements{
 						Mem: resource.MustParse("500Mi"),
@@ -143,7 +143,7 @@ func Default() *v1alpha1.EraserConfig {
 			Eraser: v1alpha1.ContainerConfig{
 				Image: v1alpha1.RepoTag{
 					Repo: repo("eraser"),
-					Tag:  version.BuildVersion,
+					// Tag will be populated by configmap
 				},
 				Request: v1alpha1.ResourceRequirements{
 					Mem: resource.MustParse("25Mi"),

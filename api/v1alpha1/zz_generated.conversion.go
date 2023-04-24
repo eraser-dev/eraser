@@ -300,7 +300,6 @@ func Convert_unversioned_ContainerConfig_To_v1alpha1_ContainerConfig(in *unversi
 }
 
 func autoConvert_v1alpha1_EraserConfig_To_unversioned_EraserConfig(in *EraserConfig, out *unversioned.EraserConfig, s conversion.Scope) error {
-	out.ControllerManagerConfigurationSpec = in.ControllerManagerConfigurationSpec
 	if err := Convert_v1alpha1_ManagerConfig_To_unversioned_ManagerConfig(&in.Manager, &out.Manager, s); err != nil {
 		return err
 	}
@@ -316,7 +315,6 @@ func Convert_v1alpha1_EraserConfig_To_unversioned_EraserConfig(in *EraserConfig,
 }
 
 func autoConvert_unversioned_EraserConfig_To_v1alpha1_EraserConfig(in *unversioned.EraserConfig, out *EraserConfig, s conversion.Scope) error {
-	out.ControllerManagerConfigurationSpec = in.ControllerManagerConfigurationSpec
 	if err := Convert_unversioned_ManagerConfig_To_v1alpha1_ManagerConfig(&in.Manager, &out.Manager, s); err != nil {
 		return err
 	}

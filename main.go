@@ -95,20 +95,17 @@ func main() {
 		os.Exit(1)
 	}
 
-	var cfg *unversioned.EraserConfig
-	var err error
-	cfg, options, err = getConfig(configFile, options)
+	cfg, err := getConfig(configFile)
 	if err != nil {
 		setupLog.Error(err, "error getting configuration")
 		os.Exit(1)
 	}
 
-	setupLog.Info("eraser config",
+	setupLog.V(1).Info("eraser config",
 		"manager", cfg.Manager,
 		"components", cfg.Components,
 		"options", fmt.Sprintf("%#v\n", options),
 		"typeMeta", fmt.Sprintf("%#v\n", cfg.TypeMeta),
-		"ControllerManagerConfigurationSpec", fmt.Sprintf("%#v\n", cfg.ControllerManagerConfigurationSpec),
 	)
 
 	eraserOpts := config.NewManager(cfg)
@@ -168,7 +165,7 @@ func main() {
 	}
 }
 
-func getConfig(configFile string, options ctrl.Options) (*unversioned.EraserConfig, ctrl.Options, error) {
+func getConfig(configFile string) (*unversioned.EraserConfig, error) {
 	var cfg unversioned.EraserConfig
 
 	b, err := os.ReadFile(configFile)
@@ -176,48 +173,43 @@ func getConfig(configFile string, options ctrl.Options) (*unversioned.EraserConf
 		setupLog.Error(err, "configuration is either missing or invalid")
 		os.Exit(1)
 	}
-	setupLog.Info("string read from file", "string", string(b))
-
 	var av apiVersion
 	if err := yaml.Unmarshal(b, &av); err != nil {
 		setupLog.Error(err, "cannot unmarshal yaml", "bytes", string(b), "av", av)
 		os.Exit(1)
 	}
 
-	setupLog.Info("APIVERSION", "apiVersion", av)
-
 	switch av.APIVerison {
 	case "eraser.sh/v1alpha1":
 		v1alpha1Config := v1alpha1Config.Default()
-		o, err := options.AndFrom(ctrl.ConfigFile().AtPath(configFile).OfKind(v1alpha1Config))
+		setupLog.Info("DEFAULT config", "manager", v1alpha1Config.Manager, "components", v1alpha1Config.Components)
+		err := yaml.Unmarshal(b, v1alpha1Config)
 		if err != nil {
 			setupLog.Error(err, "configuration is either missing or invalid")
-			return nil, ctrl.Options{}, err
+			return nil, err
 		}
 
-		options = o
 		if err := v1alpha1.Convert_v1alpha1_EraserConfig_To_unversioned_EraserConfig(v1alpha1Config, &cfg, nil); err != nil {
-			setupLog.Error(err, "CONVERSION FAILED")
-			return nil, ctrl.Options{}, err
+			setupLog.Error(err, "conversion failed")
+			return nil, err
 		}
 	case "eraser.sh/v1alpha2":
 		v1alpha2Config := v1alpha2Config.Default()
-		o, err := options.AndFrom(ctrl.ConfigFile().AtPath(configFile).OfKind(v1alpha2Config))
+		err := yaml.Unmarshal(b, v1alpha2Config)
 		if err != nil {
 			setupLog.Error(err, "configuration is either missing or invalid")
-			return nil, ctrl.Options{}, err
+			return nil, err
 		}
 
-		options = o
 		if err := eraserv1alpha2.Convert__EraserConfig_To_unversioned_EraserConfig(v1alpha2Config, &cfg, nil); err != nil {
-			setupLog.Error(err, "CONVERSION FAILED")
-			return nil, ctrl.Options{}, err
+			setupLog.Error(err, "conversion failed")
+			return nil, err
 		}
 	default:
 		setupLog.Error(fmt.Errorf("unknown api version"), "error", "apiVersion", av.APIVerison)
-		return nil, ctrl.Options{}, err
+		return nil, err
 	}
-	return &cfg, options, nil
+	return &cfg, nil
 }
 
 // Kubernetes manages configmap volume updates by creating a new file,
