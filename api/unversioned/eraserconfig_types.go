@@ -69,6 +69,10 @@ func (r *Runtime) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
+func (td *Duration) MarshalJSON() ([]byte, error) {
+	return []byte(fmt.Sprintf(`"%s"`, time.Duration(*td).String())), nil
+}
+
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 

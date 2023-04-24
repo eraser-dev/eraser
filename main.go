@@ -27,9 +27,9 @@ import (
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
 
-	"gopkg.in/yaml.v3"
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 	"k8s.io/utils/inotify"
+	"sigs.k8s.io/yaml"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -65,7 +65,7 @@ func init() {
 }
 
 type apiVersion struct {
-	APIVerison string `yaml:"apiVersion"`
+	APIVerison string `json:"apiVersion" yaml:"apiVersion"`
 }
 
 func main() {
@@ -173,6 +173,7 @@ func getConfig(configFile string) (*unversioned.EraserConfig, error) {
 		setupLog.Error(err, "configuration is either missing or invalid")
 		os.Exit(1)
 	}
+
 	var av apiVersion
 	if err := yaml.Unmarshal(b, &av); err != nil {
 		setupLog.Error(err, "cannot unmarshal yaml", "bytes", string(b), "av", av)
@@ -181,27 +182,48 @@ func getConfig(configFile string) (*unversioned.EraserConfig, error) {
 
 	switch av.APIVerison {
 	case "eraser.sh/v1alpha1":
-		v1alpha1Config := v1alpha1Config.Default()
-		setupLog.Info("DEFAULT config", "manager", v1alpha1Config.Manager, "components", v1alpha1Config.Components)
-		err := yaml.Unmarshal(b, v1alpha1Config)
-		if err != nil {
+		def := v1alpha1Config.Default()
+		var v1alpha1Config eraserv1alpha1.EraserConfig
+		if err := yaml.Unmarshal(b, &v1alpha1Config); err != nil {
 			setupLog.Error(err, "configuration is either missing or invalid")
 			return nil, err
 		}
 
-		if err := v1alpha1.Convert_v1alpha1_EraserConfig_To_unversioned_EraserConfig(v1alpha1Config, &cfg, nil); err != nil {
+		b, err := yaml.Marshal(def)
+		if err != nil {
+			setupLog.Error(err, "could not marshal default config")
+			return nil, err
+		}
+
+		if err := yaml.Unmarshal(b, &v1alpha1Config); err != nil {
+			setupLog.Error(err, "configuration is either missing or invalid")
+			return nil, err
+		}
+
+		if err := v1alpha1.Convert_v1alpha1_EraserConfig_To_unversioned_EraserConfig(&v1alpha1Config, &cfg, nil); err != nil {
 			setupLog.Error(err, "conversion failed")
 			return nil, err
 		}
 	case "eraser.sh/v1alpha2":
-		v1alpha2Config := v1alpha2Config.Default()
-		err := yaml.Unmarshal(b, v1alpha2Config)
-		if err != nil {
+		def := v1alpha2Config.Default()
+		var v1alpha2Config eraserv1alpha2.EraserConfig
+		if err := yaml.Unmarshal(b, &v1alpha2Config); err != nil {
 			setupLog.Error(err, "configuration is either missing or invalid")
 			return nil, err
 		}
 
-		if err := eraserv1alpha2.Convert__EraserConfig_To_unversioned_EraserConfig(v1alpha2Config, &cfg, nil); err != nil {
+		b, err := yaml.Marshal(def)
+		if err != nil {
+			setupLog.Error(err, "could not marshal default config")
+			return nil, err
+		}
+
+		if err := yaml.Unmarshal(b, &v1alpha2Config); err != nil {
+			setupLog.Error(err, "configuration is either missing or invalid")
+			return nil, err
+		}
+
+		if err := eraserv1alpha2.Convert_v1alpha2_EraserConfig_To_unversioned_EraserConfig(&v1alpha2Config, &cfg, nil); err != nil {
 			setupLog.Error(err, "conversion failed")
 			return nil, err
 		}
@@ -252,8 +274,7 @@ func startConfigWatch(watcher *inotify.Watcher, eraserOpts *config.Manager, file
 
 			var cfg *unversioned.EraserConfig
 			var err error
-			var options ctrl.Options
-			cfg, _, err = getConfig(filename, options)
+			cfg, err = getConfig(filename)
 			if err != nil {
 				setupLog.Error(err, "configuration is missing or invalid", "event", ev, "filename", filename)
 				continue
