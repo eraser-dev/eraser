@@ -68,7 +68,7 @@ func init() {
 }
 
 type apiVersion struct {
-	APIVerison string `json:"apiVersion" yaml:"apiVersion"`
+	APIVersion string `json:"apiVersion"`
 }
 
 type convertFunc[T any] func(*T, *unversioned.EraserConfig, conversion.Scope) error
@@ -183,13 +183,13 @@ func getConfig(configFile string) (*unversioned.EraserConfig, error) {
 		os.Exit(1)
 	}
 
-	switch av.APIVerison {
+	switch av.APIVersion {
 	case "eraser.sh/v1alpha1":
 		return getUnversioned(fileBytes, v1alpha1Config.Default(), fromV1alpha1)
 	case "eraser.sh/v1alpha2":
 		return getUnversioned(fileBytes, v1alpha2Config.Default(), fromV1alpha2)
 	default:
-		setupLog.Error(fmt.Errorf("unknown api version"), "error", "apiVersion", av.APIVerison)
+		setupLog.Error(fmt.Errorf("unknown api version"), "error", "apiVersion", av.APIVersion)
 		return nil, err
 	}
 }
