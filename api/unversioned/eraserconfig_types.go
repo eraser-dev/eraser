@@ -77,77 +77,77 @@ func (td *Duration) MarshalJSON() ([]byte, error) {
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
 type OptionalContainerConfig struct {
-	Enabled         bool `json:"enabled,omitempty" yaml:"enabled,omitempty"`
-	ContainerConfig `json:",inline" yaml:",inline"`
+	Enabled         bool `json:"enabled,omitempty"`
+	ContainerConfig `json:",inline"`
 }
 
 type ContainerConfig struct {
-	Image   RepoTag              `json:"image,omitempty" yaml:"image,omitempty"`
-	Request ResourceRequirements `json:"request,omitempty" yaml:"request,omitempty"`
-	Limit   ResourceRequirements `json:"limit,omitempty" yaml:"limit,omitempty"`
-	Config  *string              `json:"config,omitempty" yaml:"config,omitempty"`
+	Image   RepoTag              `json:"image,omitempty"`
+	Request ResourceRequirements `json:"request,omitempty"`
+	Limit   ResourceRequirements `json:"limit,omitempty"`
+	Config  *string              `json:"config,omitempty"`
 }
 
 type ManagerConfig struct {
-	Runtime           Runtime          `json:"runtime,omitempty" yaml:"runtime,omitempty"`
-	OTLPEndpoint      string           `json:"otlpEndpoint,omitempty" yaml:"otlpEndpoint,omitempty"`
-	LogLevel          string           `json:"logLevel,omitempty" yaml:"logLevel,omitempty"`
-	Scheduling        ScheduleConfig   `json:"scheduling,omitempty" yaml:"scheduling,omitempty"`
-	Profile           ProfileConfig    `json:"profile,omitempty" yaml:"profile,omitempty"`
-	ImageJob          ImageJobConfig   `json:"imageJob,omitempty" yaml:"imageJob,omitempty"`
-	PullSecrets       []string         `json:"pullSecrets,omitempty" yaml:"pullSecrets,omitempty"`
-	NodeFilter        NodeFilterConfig `json:"nodeFilter,omitempty" yaml:"nodeFilter,omitempty"`
-	PriorityClassName string           `json:"priorityClassName,omitempty" yaml:"priorityClassName,omitempty"`
+	Runtime           Runtime          `json:"runtime,omitempty"`
+	OTLPEndpoint      string           `json:"otlpEndpoint,omitempty"`
+	LogLevel          string           `json:"logLevel,omitempty"`
+	Scheduling        ScheduleConfig   `json:"scheduling,omitempty"`
+	Profile           ProfileConfig    `json:"profile,omitempty"`
+	ImageJob          ImageJobConfig   `json:"imageJob,omitempty"`
+	PullSecrets       []string         `json:"pullSecrets,omitempty"`
+	NodeFilter        NodeFilterConfig `json:"nodeFilter,omitempty"`
+	PriorityClassName string           `json:"priorityClassName,omitempty"`
 }
 
 type ScheduleConfig struct {
-	RepeatInterval   Duration `json:"repeatInterval,omitempty" yaml:"repeatInterval,omitempty"`
-	BeginImmediately bool     `json:"beginImmediately,omitempty" yaml:"beginImmediately,omitempty"`
+	RepeatInterval   Duration `json:"repeatInterval,omitempty"`
+	BeginImmediately bool     `json:"beginImmediately,omitempty"`
 }
 
 type ProfileConfig struct {
-	Enabled bool `json:"enabled,omitempty" yaml:"enabled,omitempty"`
-	Port    int  `json:"port,omitempty" yaml:"port,omitempty"`
+	Enabled bool `json:"enabled,omitempty"`
+	Port    int  `json:"port,omitempty"`
 }
 
 type ImageJobConfig struct {
-	SuccessRatio float64               `json:"successRatio,omitempty" yaml:"successRatio,omitempty"`
-	Cleanup      ImageJobCleanupConfig `json:"cleanup,omitempty" yaml:"cleanup,omitempty"`
+	SuccessRatio float64               `json:"successRatio,omitempty"`
+	Cleanup      ImageJobCleanupConfig `json:"cleanup,omitempty"`
 }
 
 type ImageJobCleanupConfig struct {
-	DelayOnSuccess Duration `json:"delayOnSuccess,omitempty" yaml:"delayOnSuccess,omitempty"`
-	DelayOnFailure Duration `json:"delayOnFailure,omitempty" yaml:"delayOnFailure,omitempty"`
+	DelayOnSuccess Duration `json:"delayOnSuccess,omitempty"`
+	DelayOnFailure Duration `json:"delayOnFailure,omitempty"`
 }
 
 type NodeFilterConfig struct {
-	Type      string   `json:"type,omitempty" yaml:"type,omitempty"`
-	Selectors []string `json:"selectors,omitempty" yaml:"selectors,omitempty"`
+	Type      string   `json:"type,omitempty"`
+	Selectors []string `json:"selectors,omitempty"`
 }
 
 type ResourceRequirements struct {
-	Mem resource.Quantity `json:"mem,omitempty" yaml:"mem,omitempty"`
-	CPU resource.Quantity `json:"cpu,omitempty" yaml:"cpu,omitempty"`
+	Mem resource.Quantity `json:"mem,omitempty"`
+	CPU resource.Quantity `json:"cpu,omitempty"`
 }
 
 type RepoTag struct {
-	Repo string `json:"repo,omitempty" yaml:"repo,omitempty"`
-	Tag  string `json:"tag,omitempty" yaml:"tag,omitempty"`
+	Repo string `json:"repo,omitempty"`
+	Tag  string `json:"tag,omitempty"`
 }
 
 type Components struct {
-	Collector OptionalContainerConfig `json:"collector,omitempty" yaml:"collector,omitempty"`
-	Scanner   OptionalContainerConfig `json:"scanner,omitempty" yaml:"scanner,omitempty"`
-	Remover   ContainerConfig         `json:"remover,omitempty" yaml:"remover,omitempty"`
+	Collector OptionalContainerConfig `json:"collector,omitempty"`
+	Scanner   OptionalContainerConfig `json:"scanner,omitempty"`
+	Remover   ContainerConfig         `json:"remover,omitempty"`
 }
 
 //+kubebuilder:object:root=true
 
 // EraserConfig is the Schema for the eraserconfigs API.
 type EraserConfig struct {
-	metav1.TypeMeta `json:",inline" yaml:",inline"`
-	Manager         ManagerConfig `json:"manager" yaml:"manager"`
-	Components      Components    `json:"components" yaml:"components"`
+	metav1.TypeMeta `json:",inline"`
+	Manager         ManagerConfig `json:"manager"`
+	Components      Components    `json:"components"`
 }
 
 func init() {
