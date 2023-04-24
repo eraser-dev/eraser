@@ -54,6 +54,9 @@ import (
 var (
 	scheme   = runtime.NewScheme()
 	setupLog = ctrl.Log.WithName("setup")
+
+	fromV1alpha1 = eraserv1alpha1.Convert_v1alpha1_EraserConfig_To_unversioned_EraserConfig
+	fromV1alpha2 = eraserv1alpha2.Convert_v1alpha2_EraserConfig_To_unversioned_EraserConfig
 )
 
 func init() {
@@ -182,11 +185,9 @@ func getConfig(configFile string) (*unversioned.EraserConfig, error) {
 
 	switch av.APIVerison {
 	case "eraser.sh/v1alpha1":
-		defaults := v1alpha1Config.Default()
-		return getUnversioned(fileBytes, defaults, eraserv1alpha1.Convert_v1alpha1_EraserConfig_To_unversioned_EraserConfig)
+		return getUnversioned(fileBytes, v1alpha1Config.Default(), fromV1alpha1)
 	case "eraser.sh/v1alpha2":
-		defaults := v1alpha2Config.Default()
-		return getUnversioned(fileBytes, defaults, eraserv1alpha2.Convert_v1alpha2_EraserConfig_To_unversioned_EraserConfig)
+		return getUnversioned(fileBytes, v1alpha2Config.Default(), fromV1alpha2)
 	default:
 		setupLog.Error(fmt.Errorf("unknown api version"), "error", "apiVersion", av.APIVerison)
 		return nil, err
@@ -194,26 +195,15 @@ func getConfig(configFile string) (*unversioned.EraserConfig, error) {
 }
 
 func getUnversioned[T any](b []byte, defaults *T, convert convertFunc[T]) (*unversioned.EraserConfig, error) {
-	var cfg T
+	cfg := defaults
 
-	if err := yaml.Unmarshal(b, &cfg); err != nil {
-		setupLog.Error(err, "configuration is either missing or invalid")
-		return nil, err
-	}
-
-	defaultBytes, err := yaml.Marshal(defaults)
-	if err != nil {
-		setupLog.Error(err, "could not marshal default config")
-		return nil, err
-	}
-
-	if err := yaml.Unmarshal(defaultBytes, &cfg); err != nil {
+	if err := yaml.Unmarshal(b, cfg); err != nil {
 		setupLog.Error(err, "configuration is either missing or invalid")
 		return nil, err
 	}
 
 	var unv unversioned.EraserConfig
-	if err := convert(&cfg, &unv, nil); err != nil {
+	if err := convert(cfg, &unv, nil); err != nil {
 		return nil, err
 	}
 
