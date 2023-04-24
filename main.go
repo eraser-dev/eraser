@@ -273,7 +273,7 @@ func startConfigWatch(watcher *inotify.Watcher, eraserOpts *config.Manager, file
 				continue
 			}
 
-			setupLog.Info("new configuration", "manager", newC.Manager, "components", newC.Components)
+			setupLog.V(1).Info("new configuration", "manager", newC.Manager, "components", newC.Components)
 		case err := <-watcher.Error:
 			setupLog.Error(err, "file watcher error")
 		}
