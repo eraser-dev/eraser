@@ -38,7 +38,8 @@ import (
 
 	"github.com/Azure/eraser/api/unversioned/config"
 	eraserv1 "github.com/Azure/eraser/api/v1"
-	eraserv1alpha2 "github.com/Azure/eraser/api/v1alpha2"
+	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
+	eraserv1alpha2 "github.com/Azure/eraser/api/v1alpha1"
 	"github.com/Azure/eraser/controllers/util"
 	"github.com/Azure/eraser/pkg/utils"
 
@@ -375,7 +376,7 @@ func (r *Reconciler) createImageJob(ctx context.Context) (ctrl.Result, error) {
 		},
 	}
 
-	job := &eraserv1alpha2.ImageJob{
+	job := &eraserv1alpha1.ImageJob{
 		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: "imagejob-",
 			Labels: map[string]string{
