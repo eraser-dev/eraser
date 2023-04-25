@@ -70,7 +70,7 @@ const (
 	RemoverImageRepo = HelmPath("runtimeConfig.components.remover.image.repo")
 	RemoverImageTag  = HelmPath("runtimeConfig.components.remover.image.tag")
 
-	// Remove once updated to v1alpha2
+	// Remove once updated to v1alpha2.
 	EraserImageRepo = HelmPath("runtimeConfig.components.eraser.image.repo")
 	EraserImageTag  = HelmPath("runtimeConfig.components.eraser.image.tag")
 
