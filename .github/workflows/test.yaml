@@ -45,7 +45,7 @@ jobs:
     timeout-minutes: 40
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@1f99358870fe1c846a3ccba386cc2b2246836776
+        uses: step-security/harden-runner@6b3083af2869dc3314a0257a42f4af696cc79ba3
         with:
           egress-policy: audit
       - uses: actions/checkout@v3
@@ -86,7 +86,7 @@ jobs:
     timeout-minutes: 40
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@1f99358870fe1c846a3ccba386cc2b2246836776
+        uses: step-security/harden-runner@6b3083af2869dc3314a0257a42f4af696cc79ba3
         with:
           egress-policy: audit
       - name: Set up Go 1.20
@@ -118,7 +118,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@1f99358870fe1c846a3ccba386cc2b2246836776
+        uses: step-security/harden-runner@6b3083af2869dc3314a0257a42f4af696cc79ba3
         with:
           egress-policy: audit
       - name: Check out code into the Go module directory
@@ -142,7 +142,7 @@ jobs:
       contents: read
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@1f99358870fe1c846a3ccba386cc2b2246836776
+        uses: step-security/harden-runner@6b3083af2869dc3314a0257a42f4af696cc79ba3
         with:
           egress-policy: audit
 
