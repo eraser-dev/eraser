@@ -142,7 +142,7 @@ func Default() *unversioned.EraserConfig {
 			},
 			Remover: unversioned.ContainerConfig{
 				Image: unversioned.RepoTag{
-					Repo: repo("eraser"),
+					Repo: repo("remover"),
 					Tag:  version.BuildVersion,
 				},
 				Request: unversioned.ResourceRequirements{
