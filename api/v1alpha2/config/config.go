@@ -142,7 +142,7 @@ func Default() *v1alpha2.EraserConfig {
 			},
 			Remover: v1alpha2.ContainerConfig{
 				Image: v1alpha2.RepoTag{
-					Repo: repo("eraser"),
+					Repo: repo("remover"),
 					Tag:  version.BuildVersion,
 				},
 				Request: v1alpha2.ResourceRequirements{
