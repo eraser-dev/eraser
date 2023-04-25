@@ -76,7 +76,7 @@ func (r *Runtime) UnmarshalJSON(b []byte) error {
 }
 
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
-// NOTE: yaml tags are required.  Any new fields you add must have yaml tags for the fields to be serialized.
+// NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
 type OptionalContainerConfig struct {
 	Enabled         bool `json:"enabled,omitempty"`
@@ -156,6 +156,12 @@ func init() {
 	SchemeBuilder.Register(&EraserConfig{})
 }
 
+// In future versions of EraserConfig (for example, v1alpha2), the
+// .Components.Eraser field has been renamed to .Components.Remover
+// conversion-gen is unable to make the conversion automatically,
+// and provides stubs for these functions, with a warning that they
+// will not work properly. Because they are called by other generated
+// functions, the names of these functions cannot change.
 func Convert_v1alpha1_Components_To_unversioned_Components(in *Components, out *unversioned.Components, s conversion.Scope) error { //nolint:revive
 	if err := Convert_v1alpha1_OptionalContainerConfig_To_unversioned_OptionalContainerConfig(&in.Collector, &out.Collector, s); err != nil {
 		return err
