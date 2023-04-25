@@ -180,7 +180,7 @@ func getConfig(configFile string) (*unversioned.EraserConfig, error) {
 
 	var av apiVersion
 	if err := yaml.Unmarshal(fileBytes, &av); err != nil {
-		setupLog.Error(err, "cannot unmarshal yaml", "bytes", string(fileBytes), "av", av)
+		setupLog.Error(err, "cannot unmarshal yaml", "bytes", string(fileBytes), "apiVersion", av)
 		os.Exit(1)
 	}
 

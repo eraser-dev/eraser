@@ -25,14 +25,11 @@ require (
 	k8s.io/cri-api v0.25.5
 	k8s.io/klog/v2 v2.80.1
 	k8s.io/kubernetes v1.26.1
+	k8s.io/utils v0.0.0-20230115233650-391b47cb4029
 	oras.land/oras-go v1.2.2
 	sigs.k8s.io/controller-runtime v0.14.1
 	sigs.k8s.io/e2e-framework v0.0.8
 	sigs.k8s.io/kind v0.15.0
-)
-
-require (
-	k8s.io/utils v0.0.0-20230115233650-391b47cb4029
 	sigs.k8s.io/yaml v1.3.0
 )
 
@@ -355,6 +352,9 @@ require (
 )
 
 replace (
+	// v0.3.1-0.20230104082527-d6f58551be3f is taken from github.com/moby/buildkit v0.11.0
+	// spdx logic write on v0.3.0 and incompatible with v0.3.1-0.20230104082527-d6f58551be3f
+	github.com/spdx/tools-golang => github.com/spdx/tools-golang v0.3.0
 	k8s.io/api => k8s.io/api v0.26.0
 	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.26.0
 	k8s.io/apimachinery => k8s.io/apimachinery v0.26.0
@@ -381,12 +381,7 @@ replace (
 	k8s.io/sample-apiserver => k8s.io/sample-apiserver v0.26.0
 	k8s.io/sample-cli-plugin => k8s.io/sample-cli-plugin v0.26.0
 	k8s.io/sample-controller => k8s.io/sample-controller v0.26.0
+	// v1.2.0 is taken from github.com/open-policy-agent/opa v0.42.0
+	// v1.2.0 incompatible with github.com/docker/docker v23.0.0-rc.1+incompatible
+	oras.land/oras-go => oras.land/oras-go v1.1.1
 )
-
-// v1.2.0 is taken from github.com/open-policy-agent/opa v0.42.0
-// v1.2.0 incompatible with github.com/docker/docker v23.0.0-rc.1+incompatible
-replace oras.land/oras-go => oras.land/oras-go v1.1.1
-
-// v0.3.1-0.20230104082527-d6f58551be3f is taken from github.com/moby/buildkit v0.11.0
-// spdx logic write on v0.3.0 and incompatible with v0.3.1-0.20230104082527-d6f58551be3f
-replace github.com/spdx/tools-golang => github.com/spdx/tools-golang v0.3.0
