@@ -109,11 +109,7 @@ func Default() *unversioned.EraserConfig {
 				ContainerConfig: unversioned.ContainerConfig{
 					Image: unversioned.RepoTag{
 						Repo: repo("collector"),
-<<<<<<< HEAD
-						// Tag:  version.BuildVersion,
-=======
 						Tag:  version.BuildVersion,
->>>>>>> 3c2e1955985aaaebdd34b86adc93588a285021dc
 					},
 					Request: unversioned.ResourceRequirements{
 						Mem: resource.MustParse("25Mi"),
@@ -131,11 +127,7 @@ func Default() *unversioned.EraserConfig {
 				ContainerConfig: unversioned.ContainerConfig{
 					Image: unversioned.RepoTag{
 						Repo: repo("eraser-trivy-scanner"),
-<<<<<<< HEAD
-						// Tag:  version.BuildVersion,
-=======
 						Tag:  version.BuildVersion,
->>>>>>> 3c2e1955985aaaebdd34b86adc93588a285021dc
 					},
 					Request: unversioned.ResourceRequirements{
 						Mem: resource.MustParse("500Mi"),
@@ -151,11 +143,7 @@ func Default() *unversioned.EraserConfig {
 			Remover: unversioned.ContainerConfig{
 				Image: unversioned.RepoTag{
 					Repo: repo("eraser"),
-<<<<<<< HEAD
-					// Tag:  version.BuildVersion,
-=======
 					Tag:  version.BuildVersion,
->>>>>>> 3c2e1955985aaaebdd34b86adc93588a285021dc
 				},
 				Request: unversioned.ResourceRequirements{
 					Mem: resource.MustParse("25Mi"),
