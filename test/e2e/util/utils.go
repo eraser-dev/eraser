@@ -89,6 +89,7 @@ var (
 	ScannerImage       = os.Getenv("SCANNER_IMAGE")
 	VulnerableImage    = os.Getenv("VULNERABLE_IMAGE")
 	NonVulnerableImage = os.Getenv("NON_VULNERABLE_IMAGE")
+	EOLImage           = os.Getenv("EOL_IMAGE")
 	BusyboxImage       = os.Getenv("BUSYBOX_IMAGE")
 
 	EraserTarballPath    = os.Getenv("ERASER_TARBALL_PATH")
@@ -105,7 +106,7 @@ var (
 	Timeout             = time.Minute * 5
 	ImagePullSecretJSON = fmt.Sprintf(`["%s"]`, ImagePullSecret)
 
-	ScannerConfigNoDeleteFailedJSON = `"{ \"cacheDir\": \"/var/lib/trivy\", \"dbRepo\": \"ghcr.io/aquasecurity/trivy-db\", \"deleteFailedImages\": false, \"vulnerabilities\": null, \"ignoreUnfixed\": true, \"types\": [ \"os\", \"library\" ], \"securityChecks\": [ \"vuln\" ], \"severities\": [ \"CRITICAL\", \"HIGH\", \"MEDIUM\", \"LOW\" ] }"`
+	ScannerConfigNoDeleteFailedJSON = `"{ \"cacheDir\": \"/var/lib/trivy\", \"dbRepo\": \"ghcr.io/aquasecurity/trivy-db\", \"deleteFailedImages\": false, \"deleteEOLImages\": true, \"vulnerabilities\": null, \"ignoreUnfixed\": true, \"types\": [ \"os\", \"library\" ], \"securityChecks\": [ \"vuln\" ], \"severities\": [ \"CRITICAL\", \"HIGH\", \"MEDIUM\", \"LOW\" ] }"`
 
 	ManagerAdditionalArgs = HelmSet{
 		key:  "controllerManager.additionalArgs",
