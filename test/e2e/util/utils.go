@@ -62,6 +62,7 @@ const (
 	CollectorImageRepo = HelmPath("runtimeConfig.components.collector.image.repo")
 	CollectorImageTag  = HelmPath("runtimeConfig.components.collector.image.tag")
 
+	ScannerConfig    = HelmPath("runtimeConfig.components.scanner.config")
 	ScannerEnable    = HelmPath("runtimeConfig.components.scanner.enabled")
 	ScannerImageRepo = HelmPath("runtimeConfig.components.scanner.image.repo")
 	ScannerImageTag  = HelmPath("runtimeConfig.components.scanner.image.tag")
@@ -93,6 +94,7 @@ var (
 	ScannerImage       = os.Getenv("SCANNER_IMAGE")
 	VulnerableImage    = os.Getenv("VULNERABLE_IMAGE")
 	NonVulnerableImage = os.Getenv("NON_VULNERABLE_IMAGE")
+	EOLImage           = os.Getenv("EOL_IMAGE")
 	BusyboxImage       = os.Getenv("BUSYBOX_IMAGE")
 
 	RemoverTarballPath   = os.Getenv("REMOVER_TARBALL_PATH")
@@ -109,6 +111,8 @@ var (
 	ParsedImages        *Images
 	Timeout             = time.Minute * 7
 	ImagePullSecretJSON = fmt.Sprintf(`["%s"]`, ImagePullSecret)
+
+	ScannerConfigNoDeleteFailedJSON = `"{ \"cacheDir\": \"/var/lib/trivy\", \"dbRepo\": \"ghcr.io/aquasecurity/trivy-db\", \"deleteFailedImages\": false, \"deleteEOLImages\": true, \"vulnerabilities\": null, \"ignoreUnfixed\": true, \"types\": [ \"os\", \"library\" ], \"securityChecks\": [ \"vuln\" ], \"severities\": [ \"CRITICAL\", \"HIGH\", \"MEDIUM\", \"LOW\" ] }"`
 
 	ManagerAdditionalArgs = HelmSet{
 		key:  "controllerManager.additionalArgs",

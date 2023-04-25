@@ -35,6 +35,7 @@ func TestMain(m *testing.M) {
 		util.LoadImageToCluster(util.KindClusterName, util.CollectorImage, util.CollectorTarballPath),
 		util.LoadImageToCluster(util.KindClusterName, util.VulnerableImage, ""),
 		util.LoadImageToCluster(util.KindClusterName, util.NonVulnerableImage, ""),
+		util.LoadImageToCluster(util.KindClusterName, util.EOLImage, ""),
 		util.LoadImageToCluster(util.KindClusterName, util.ScannerImage, util.ScannerTarballPath),
 		util.LoadImageToCluster(util.KindClusterName, util.EraserImage, util.EraserTarballPath),
 		util.HelmDeployLatestEraserRelease(util.TestNamespace,
@@ -57,6 +58,8 @@ func TestMain(m *testing.M) {
 			"--set", util.ManagerImageRepo.Set(managerImage.Repo),
 			"--set", util.ManagerImageTag.Set(managerImage.Tag),
 			"--set", util.CleanupOnSuccessDelay.Set("1m"),
+			// set deleteFailedImages to FALSE to catch a broken scanner
+			"--set-json", util.ScannerConfig.Set(util.ScannerConfigNoDeleteFailedJSON),
 		),
 	).Finish(
 		envfuncs.DestroyKindCluster(util.KindClusterName),

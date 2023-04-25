@@ -14,8 +14,8 @@ import (
 )
 
 func TestEnsureScannerFunctions(t *testing.T) {
-	collectScanErasePipelineFeat := features.New("Eraser pods with collector container should run automatically, trigger the scanner, then the remover containers. Manifest deployment test.").
-		Assess("Vulnerable Image successfully deleted from all nodes", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
+	collectScanErasePipelineFeat := features.New("Collector pods should run automatically, trigger the scanner, then the eraser pods. Helm test.").
+		Assess("Vulnerable and EOL images are successfully deleted from all nodes", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
 			ctxT, cancel := context.WithTimeout(ctx, util.Timeout)
 			defer cancel()
 			util.CheckImageRemoved(ctxT, t, util.GetClusterNodes(t), util.Alpine)

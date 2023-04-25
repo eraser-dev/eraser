@@ -18,9 +18,12 @@ ERASER_IMG ?= ${ERASER_REPO}:${ERASER_TAG}
 COLLECTOR_REPO ?= ghcr.io/azure/collector
 COLLECTOR_IMG ?= ${COLLECTOR_REPO}:${COLLECTOR_TAG}
 VULNERABLE_IMG ?= docker.io/library/alpine:3.7.3
+EOL_IMG ?= docker.io/library/alpine:3.1
 BUSYBOX_BASE_IMG ?= busybox:1.36.0
 NON_VULNERABLE_IMG ?= ghcr.io/azure/non-vulnerable:latest
 E2E_TESTS ?= $(shell find ./test/e2e/tests/ -mindepth 1 -type d)
+API_VERSIONS ?= $(shell find ./api/ -mindepth 1 -maxdepth 1 -type d -not -name unversioned -print0 | tr '\0' ',' | sed -E 's\#,$$\#\#')
+
 HELM_UPGRADE_TEST ?=
 TEST_LOGDIR ?= $(PWD)/test_logs
 
@@ -133,10 +136,10 @@ manifests: __manifest_kustomize __helm_kustomize __controller-gen ## Generates k
 # Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method
 # implementations. Also generate conversions between structs of different API versions.
 generate: __conversion-gen __controller-gen
-	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./..."
+	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./api/..."
 	$(CONVERSION_GEN) \
 		--output-base=/eraser \
-		--input-dirs=./api/... \
+		--input-dirs=$(API_VERSIONS) \
 		--go-header-file=./hack/boilerplate.go.txt \
 		--output-file-base=zz_generated.conversion
 
@@ -158,6 +161,9 @@ BUSYBOX_IMG=busybox-e2e-test:latest
 vulnerable-img:
 	docker pull $(VULNERABLE_IMG)
 
+eol-img:
+	docker pull $(EOL_IMG)
+
 non-vulnerable-img:
 	docker buildx build \
 		$(_CACHE_FROM) $(_CACHE_TO) \
@@ -167,7 +173,7 @@ non-vulnerable-img:
 		-t ${NON_VULNERABLE_IMG} \
 		--target non-vulnerable .
 
-e2e-test: vulnerable-img non-vulnerable-img busybox-img
+e2e-test: vulnerable-img eol-img non-vulnerable-img busybox-img
 	for test in $(E2E_TESTS); do \
 		CGO_ENABLED=0 \
             REMOVER_TARBALL_PATH=${REMOVER_TARBALL_PATH} \
@@ -184,6 +190,7 @@ e2e-test: vulnerable-img non-vulnerable-img busybox-img
 			BUSYBOX_IMAGE=${BUSYBOX_IMG} \
 			VULNERABLE_IMAGE=${VULNERABLE_IMG} \
 			NON_VULNERABLE_IMAGE=${NON_VULNERABLE_IMG} \
+			EOL_IMAGE=${EOL_IMG} \
 			NODE_VERSION=kindest/node:v${KUBERNETES_VERSION} \
 			TEST_LOGDIR=${TEST_LOGDIR} \
 			go test -count=$(TEST_COUNT) -timeout=$(TIMEOUT) $(TESTFLAGS) -tags=e2e -v $$test ; \

@@ -1,4 +1,6 @@
 runtimeConfig:
+  apiVersion: eraser.sh/v1alpha1
+  kind: EraserConfig
   health: {}
     # healthProbeBindAddress: :8081
   metrics: {}
@@ -57,6 +59,7 @@ runtimeConfig:
         # cacheDir: /var/lib/trivy
         # dbRepo: ghcr.io/aquasecurity/trivy-db
         # deleteFailedImages: true
+        # deleteEOLImages: true
         # vulnerabilities:
         #   ignoreUnfixed: true
         #   types:
@@ -66,6 +69,9 @@ runtimeConfig:
         #     - vuln
         #   severities:
         #     - CRITICAL
+        #     - HIGH
+        #     - MEDIUM
+        #     - LOW
         # timeout:
         #   total: 23h
         #   perImage: 1h

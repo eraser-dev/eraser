@@ -34,6 +34,7 @@ func TestMain(m *testing.M) {
 		util.LoadImageToCluster(util.KindClusterName, util.ScannerImage, util.ScannerTarballPath),
 		util.LoadImageToCluster(util.KindClusterName, util.CollectorImage, util.CollectorTarballPath),
 		util.LoadImageToCluster(util.KindClusterName, util.VulnerableImage, ""),
+		util.LoadImageToCluster(util.KindClusterName, util.EOLImage, ""),
 		util.MakeDeploy(map[string]string{
 			"REMOVER_REPO":       remover.Repo,
 			"MANAGER_REPO":       manager.Repo,

@@ -23,7 +23,6 @@ import (
 
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	cfg "sigs.k8s.io/controller-runtime/pkg/config/v1alpha1"
 )
 
 type (
@@ -68,6 +67,10 @@ func (r *Runtime) UnmarshalJSON(b []byte) error {
 	}
 
 	return nil
+}
+
+func (td *Duration) MarshalJSON() ([]byte, error) {
+	return []byte(fmt.Sprintf(`"%s"`, time.Duration(*td).String())), nil
 }
 
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
@@ -143,10 +146,10 @@ type Components struct {
 // EraserConfig is the Schema for the eraserconfigs API.
 type EraserConfig struct {
 	metav1.TypeMeta `json:",inline"`
+	Manager         ManagerConfig `json:"manager"`
+	Components      Components    `json:"components"`
+}
 
-	// ControllerManagerConfigurationSpec returns the configurations for controllers
-	cfg.ControllerManagerConfigurationSpec `json:",inline"`
-
-	Manager    ManagerConfig `json:"manager"`
-	Components Components    `json:"components"`
+func init() {
+	SchemeBuilder.Register(&EraserConfig{})
 }

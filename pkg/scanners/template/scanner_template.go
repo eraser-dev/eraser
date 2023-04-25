@@ -33,6 +33,7 @@ type config struct {
 	ctx                    context.Context
 	log                    logr.Logger
 	deleteScanFailedImages bool
+	deleteEOLImages        bool
 	reportMetrics          bool
 }
 
@@ -140,6 +141,13 @@ func WithContext(ctx context.Context) ConfigFunc {
 func WithDeleteScanFailedImages(deleteScanFailedImages bool) ConfigFunc {
 	return func(cfg *config) {
 		cfg.deleteScanFailedImages = deleteScanFailedImages
+	}
+}
+
+// sets deleteEOLimages flag.
+func WithDeleteEOLImages(deleteEOLImages bool) ConfigFunc {
+	return func(cfg *config) {
+		cfg.deleteEOLImages = deleteEOLImages
 	}
 }
 

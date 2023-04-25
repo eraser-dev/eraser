@@ -5,7 +5,7 @@ import (
 	"sync"
 	"time"
 
-	v1alpha2 "github.com/Azure/eraser/api/v1alpha2"
+	"github.com/Azure/eraser/api/v1alpha2"
 	"github.com/Azure/eraser/version"
 	"k8s.io/apimachinery/pkg/api/resource"
 )
@@ -14,6 +14,7 @@ var defaultScannerConfig = `
 cacheDir: /var/lib/trivy
 dbRepo: ghcr.io/aquasecurity/trivy-db
 deleteFailedImages: true
+deleteEOLImages: true
 vulnerabilities:
   ignoreUnfixed: true
   types:
@@ -23,6 +24,9 @@ securityChecks: # need to be documented; determined by trivy, not us
   - vuln
 severities:
   - CRITICAL
+  - HIGH
+  - MEDIUM
+  - LOW
 `
 
 type Manager struct {
@@ -105,7 +109,7 @@ func Default() *v1alpha2.EraserConfig {
 				ContainerConfig: v1alpha2.ContainerConfig{
 					Image: v1alpha2.RepoTag{
 						Repo: repo("collector"),
-						Tag:  version.BuildVersion,
+						// Tag:  version.BuildVersion,
 					},
 					Request: v1alpha2.ResourceRequirements{
 						Mem: resource.MustParse("25Mi"),
@@ -123,7 +127,7 @@ func Default() *v1alpha2.EraserConfig {
 				ContainerConfig: v1alpha2.ContainerConfig{
 					Image: v1alpha2.RepoTag{
 						Repo: repo("eraser-trivy-scanner"),
-						Tag:  version.BuildVersion,
+						// Tag:  version.BuildVersion,
 					},
 					Request: v1alpha2.ResourceRequirements{
 						Mem: resource.MustParse("500Mi"),
@@ -138,8 +142,8 @@ func Default() *v1alpha2.EraserConfig {
 			},
 			Remover: v1alpha2.ContainerConfig{
 				Image: v1alpha2.RepoTag{
-					Repo: repo("remover"),
-					Tag:  version.BuildVersion,
+					Repo: repo("eraser"),
+					// Tag:  version.BuildVersion,
 				},
 				Request: v1alpha2.ResourceRequirements{
 					Mem: resource.MustParse("25Mi"),

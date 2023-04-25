@@ -8,12 +8,14 @@ import (
 	v1alpha1 "github.com/Azure/eraser/api/v1alpha1"
 	"github.com/Azure/eraser/version"
 	"k8s.io/apimachinery/pkg/api/resource"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 var defaultScannerConfig = `
 cacheDir: /var/lib/trivy
 dbRepo: ghcr.io/aquasecurity/trivy-db
 deleteFailedImages: true
+deleteEOLImages: true
 vulnerabilities:
   ignoreUnfixed: true
   types:
@@ -23,6 +25,9 @@ securityChecks: # need to be documented; determined by trivy, not us
   - vuln
 severities:
   - CRITICAL
+  - HIGH
+  - MEDIUM
+  - LOW
 `
 
 type Manager struct {
@@ -72,6 +77,10 @@ const (
 
 func Default() *v1alpha1.EraserConfig {
 	return &v1alpha1.EraserConfig{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: "eraser.sh/v1alpha1",
+			Kind:       "EraserConfig",
+		},
 		Manager: v1alpha1.ManagerConfig{
 			Runtime:      "containerd",
 			OTLPEndpoint: "",
@@ -105,7 +114,7 @@ func Default() *v1alpha1.EraserConfig {
 				ContainerConfig: v1alpha1.ContainerConfig{
 					Image: v1alpha1.RepoTag{
 						Repo: repo("collector"),
-						Tag:  version.BuildVersion,
+						// Tag will be populated by configmap
 					},
 					Request: v1alpha1.ResourceRequirements{
 						Mem: resource.MustParse("25Mi"),
@@ -123,7 +132,7 @@ func Default() *v1alpha1.EraserConfig {
 				ContainerConfig: v1alpha1.ContainerConfig{
 					Image: v1alpha1.RepoTag{
 						Repo: repo("eraser-trivy-scanner"),
-						Tag:  version.BuildVersion,
+						// Tag will be populated by configmap
 					},
 					Request: v1alpha1.ResourceRequirements{
 						Mem: resource.MustParse("500Mi"),
@@ -139,7 +148,7 @@ func Default() *v1alpha1.EraserConfig {
 			Eraser: v1alpha1.ContainerConfig{
 				Image: v1alpha1.RepoTag{
 					Repo: repo("eraser"),
-					Tag:  version.BuildVersion,
+					// Tag will be populated by configmap
 				},
 				Request: v1alpha1.ResourceRequirements{
 					Mem: resource.MustParse("25Mi"),

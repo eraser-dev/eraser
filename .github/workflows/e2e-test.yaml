@@ -49,10 +49,10 @@ jobs:
         with:
           name: ${{ inputs.bucket-id }}
           path: ${{ github.workspace }}/images
-      - name: Set up Go 1.19
-        uses: actions/setup-go@v3
+      - name: Set up Go 1.20
+        uses: actions/setup-go@v4
         with:
-          go-version: 1.19
+          go-version: "1.20"
       - uses: actions/cache@v3.3.1
         with:
           key: ${{ runner.OS }}-go-${{ hashFiles('**/go.sum') }}

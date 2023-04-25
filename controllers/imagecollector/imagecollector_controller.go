@@ -36,9 +36,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
+	"github.com/Azure/eraser/api/unversioned/config"
 	eraserv1 "github.com/Azure/eraser/api/v1"
-	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha2"
-	"github.com/Azure/eraser/api/v1alpha2/config"
+	eraserv1alpha2 "github.com/Azure/eraser/api/v1alpha2"
 	"github.com/Azure/eraser/controllers/util"
 	"github.com/Azure/eraser/pkg/utils"
 
@@ -268,14 +268,14 @@ func (r *Reconciler) createImageJob(ctx context.Context) (ctrl.Result, error) {
 
 	scanCfg := compCfg.Scanner
 	collectorCfg := compCfg.Collector
-	removerCfg := compCfg.Remover
+	eraserCfg := compCfg.Remover
 
 	scanDisabled := !scanCfg.Enabled
 	startTime = time.Now()
 
 	removerImg := *util.RemoverImage
 	if removerImg == "" {
-		iCfg := removerCfg.Image
+		iCfg := eraserCfg.Image
 		removerImg = fmt.Sprintf("%s:%s", iCfg.Repo, iCfg.Tag)
 	}
 
@@ -351,11 +351,11 @@ func (r *Reconciler) createImageJob(ctx context.Context) (ctrl.Result, error) {
 					},
 					Resources: corev1.ResourceRequirements{
 						Requests: corev1.ResourceList{
-							"cpu":    removerCfg.Request.CPU,
-							"memory": removerCfg.Request.Mem,
+							"cpu":    eraserCfg.Request.CPU,
+							"memory": eraserCfg.Request.Mem,
 						},
 						Limits: corev1.ResourceList{
-							"memory": removerCfg.Limit.Mem,
+							"memory": eraserCfg.Limit.Mem,
 						},
 					},
 					SecurityContext: utils.SharedSecurityContext,
@@ -375,7 +375,7 @@ func (r *Reconciler) createImageJob(ctx context.Context) (ctrl.Result, error) {
 		},
 	}
 
-	job := &eraserv1alpha1.ImageJob{
+	job := &eraserv1alpha2.ImageJob{
 		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: "imagejob-",
 			Labels: map[string]string{
@@ -455,7 +455,7 @@ func (r *Reconciler) createImageJob(ctx context.Context) (ctrl.Result, error) {
 			Name:      job.GetName(),
 			Namespace: namespace,
 			OwnerReferences: []metav1.OwnerReference{
-				*metav1.NewControllerRef(job, eraserv1alpha1.GroupVersion.WithKind("ImageJob")),
+				*metav1.NewControllerRef(job, eraserv1alpha2.GroupVersion.WithKind("ImageJob")),
 			},
 		},
 		Template: jobTemplate,
