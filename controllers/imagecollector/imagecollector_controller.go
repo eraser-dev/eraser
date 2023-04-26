@@ -39,7 +39,7 @@ import (
 	"github.com/Azure/eraser/api/unversioned/config"
 	eraserv1 "github.com/Azure/eraser/api/v1"
 	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
-	eraserv1alpha2 "github.com/Azure/eraser/api/v1alpha1"
+	eraserv1alpha2 "github.com/Azure/eraser/api/v1alpha2"
 	"github.com/Azure/eraser/controllers/util"
 	"github.com/Azure/eraser/pkg/utils"
 
