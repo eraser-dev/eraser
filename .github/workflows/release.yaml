@@ -9,6 +9,9 @@ on:
 env:
   REGISTRY: ghcr.io
 
+permissions:
+  contents: read
+
 jobs:
   build-publish-release:
     name: "release"
@@ -24,14 +27,14 @@ jobs:
           egress-policy: audit
 
       - name: Check out code into the Go module directory
-        uses: actions/checkout@v3
+        uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
 
       - name: Setup buildx instance
-        uses: docker/setup-buildx-action@v2
+        uses: docker/setup-buildx-action@4b4e9c3e2d4531116a6f8ba8e71fc6e2cb6e6c8c # v2.5.0
         with:
           use: true
 
-      - uses: actions/cache@v3.3.1
+      - uses: actions/cache@88522ab9f39a2ea568f7027eddc7d8d8bc9d59c8 # v3.3.1
         with:
           key: ${{ runner.OS }}-go-${{ hashFiles('**/go.sum') }}
           restore-keys: |
@@ -39,7 +42,7 @@ jobs:
           path: |
             ~/go/pkg/mod
             ~/.cache/go-build
-      - uses: crazy-max/ghaction-github-runtime@v2
+      - uses: crazy-max/ghaction-github-runtime@747e98cd97bb9cfed8fe0165c821a83139bfdd67 # v2.1.0
 
       # need to convert repo name to lowercase for Docker
       - name: Get tag and repo
@@ -48,7 +51,7 @@ jobs:
           echo "REPO_OWNER=$(echo $GITHUB_REPOSITORY_OWNER | awk '{print tolower($0)}')" >> $GITHUB_ENV
 
       - name: Log in to the GHCR
-        uses: docker/login-action@v2
+        uses: docker/login-action@f4ef78c080cd8ba55a85445d5b36e214a81df20a # v2.1.0
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
@@ -91,13 +94,13 @@ jobs:
           TRIVY_SCANNER_IMG=${{ env.REGISTRY }}/${REPO_OWNER}/eraser-trivy-scanner:${TAG}
 
       - name: Create GitHub release
-        uses: "marvinpinto/action-automatic-releases@v1.2.1"
+        uses: "marvinpinto/action-automatic-releases@919008cf3f741b179569b7a6fb4d8860689ab7f0 # v1.2.1"
         with:
           repo_token: "${{ secrets.GITHUB_TOKEN }}"
           prerelease: false
 
       - name: Publish Helm chart
-        uses: stefanprodan/helm-gh-pages@v1.7.0
+        uses: stefanprodan/helm-gh-pages@0ad2bb377311d61ac04ad9eb6f252fb68e207260 # v1.7.0
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           charts_dir: charts
