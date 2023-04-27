@@ -38,6 +38,8 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 
+	"context"
+
 	"github.com/Azure/eraser/api/unversioned"
 	"github.com/Azure/eraser/api/unversioned/config"
 	eraserv1 "github.com/Azure/eraser/api/v1"
@@ -75,6 +77,13 @@ type apiVersion struct {
 type convertFunc[T any] func(*T, *unversioned.EraserConfig, conversion.Scope) error
 
 func main() {
+	ctx, cancel := context.WithCancel(context.Background())
+
+	go func() {
+		<-ctx.Done()
+		os.Exit(1)
+	}()
+
 	var configFile string
 	flag.StringVar(&configFile, "config", "",
 		"The controller will load its initial configuration from this file. "+
@@ -123,7 +132,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	go startConfigWatch(watcher, eraserOpts, configFile)
+	go startConfigWatch(cancel, watcher, eraserOpts, configFile)
 
 	if managerOpts.Profile.Enabled {
 		go func() {
@@ -229,7 +238,7 @@ func setupWatcher(configFile string) (*inotify.Watcher, error) {
 	return watcher, nil
 }
 
-func startConfigWatch(watcher *inotify.Watcher, eraserOpts *config.Manager, filename string) {
+func startConfigWatch(cancel context.CancelFunc, watcher *inotify.Watcher, eraserOpts *config.Manager, filename string) {
 	for {
 		select {
 		case ev := <-watcher.Event:
@@ -272,15 +281,15 @@ func startConfigWatch(watcher *inotify.Watcher, eraserOpts *config.Manager, file
 			}
 
 			type check struct {
-				c bool
-				s bool
+				collector bool
+				sscanner  bool
 			}
 
-			old := check{c: oldCfg.Components.Collector.Enabled, s: oldCfg.Components.Scanner.Enabled}
-			new := check{c: newC.Components.Collector.Enabled, s: newC.Components.Scanner.Enabled}
+			old := check{collector: oldCfg.Components.Collector.Enabled, sscanner: oldCfg.Components.Scanner.Enabled}
+			new := check{collector: newC.Components.Collector.Enabled, sscanner: newC.Components.Scanner.Enabled}
 			if old != new {
 				setupLog.Info("configurations differ in an irreconcileable way", "old", old, "new", new)
-				os.Exit(1)
+				cancel()
 			}
 
 			setupLog.V(1).Info("new configuration", "manager", newC.Manager, "components", newC.Components)
