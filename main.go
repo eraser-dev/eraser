@@ -249,13 +249,18 @@ func startConfigWatch(watcher *inotify.Watcher, eraserOpts *config.Manager, file
 				continue
 			}
 
-			cfg, err := getConfig(filename)
+			oldCfg, err := eraserOpts.Read()
+			if err != nil {
+				setupLog.Error(err, "configuration could not be read", "event", ev, "filename", filename)
+			}
+
+			newCfg, err := getConfig(filename)
 			if err != nil {
 				setupLog.Error(err, "configuration is missing or invalid", "event", ev, "filename", filename)
 				continue
 			}
 
-			if err = eraserOpts.Update(cfg); err != nil {
+			if err = eraserOpts.Update(newCfg); err != nil {
 				setupLog.Error(err, "configuration update failed")
 				continue
 			}
@@ -264,6 +269,18 @@ func startConfigWatch(watcher *inotify.Watcher, eraserOpts *config.Manager, file
 			if err != nil {
 				setupLog.Error(err, "unable to read back new configuration")
 				continue
+			}
+
+			type check struct {
+				c bool
+				s bool
+			}
+
+			old := check{c: oldCfg.Components.Collector.Enabled, s: oldCfg.Components.Scanner.Enabled}
+			new := check{c: newC.Components.Collector.Enabled, s: newC.Components.Scanner.Enabled}
+			if old != new {
+				setupLog.Info("configurations differ in an irreconcileable way", "old", old, "new", new)
+				os.Exit(1)
 			}
 
 			setupLog.V(1).Info("new configuration", "manager", newC.Manager, "components", newC.Components)
