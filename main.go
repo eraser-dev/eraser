@@ -285,10 +285,10 @@ func startConfigWatch(cancel context.CancelFunc, watcher *inotify.Watcher, erase
 				sscanner  bool
 			}
 
-			old := check{collector: oldCfg.Components.Collector.Enabled, sscanner: oldCfg.Components.Scanner.Enabled}
-			new := check{collector: newC.Components.Collector.Enabled, sscanner: newC.Components.Scanner.Enabled}
-			if old != new {
-				setupLog.Info("configurations differ in an irreconcileable way", "old", old, "new", new)
+			oldComponents := check{collector: oldCfg.Components.Collector.Enabled, sscanner: oldCfg.Components.Scanner.Enabled}
+			newComponents := check{collector: newC.Components.Collector.Enabled, sscanner: newC.Components.Scanner.Enabled}
+			if oldComponents != newComponents {
+				setupLog.Info("configurations differ in an irreconcileable way", "old", oldComponents, "new", newComponents)
 				cancel()
 			}
 
