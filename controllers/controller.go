@@ -3,7 +3,7 @@ package controllers
 import (
 	"errors"
 
-	"github.com/Azure/eraser/api/v1alpha1/config"
+	"github.com/Azure/eraser/api/unversioned/config"
 	"github.com/Azure/eraser/controllers/configmap"
 	"github.com/Azure/eraser/controllers/imagecollector"
 	"github.com/Azure/eraser/controllers/imagejob"

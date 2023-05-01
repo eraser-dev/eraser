@@ -60,7 +60,7 @@ version::get_version_vars() {
     if [[ -z ${SOURCE_DATE_EPOCH} ]]; then
         SOURCE_DATE="$(git show -s --format=%cI HEAD)"
         SOURCE_DATE_EPOCH="$(date -u --date "${SOURCE_DATE}" +%s)"
-    fi  
+    fi
 }
 
 # Prints the value that needs to be passed to the -ldflags parameter of go build
@@ -75,17 +75,17 @@ version::ldflags() {
             "-X 'github.com/Azure/eraser/version.${key}=${val}'"
         )
     }
-    
+
     add_ldflag "buildTime" "${SOURCE_DATE_EPOCH}"
     add_ldflag "vcsCommit" "${GIT_COMMIT}"
     add_ldflag "vcsState" "${GIT_TREE_STATE}"
 
     if [[ ! -z ${GIT_VERSION} ]]; then
-        add_ldflag "buildVersion" "${GIT_VERSION}"
+        add_ldflag "BuildVersion" "${GIT_VERSION}"
         add_ldflag "vcsMajor" "${GIT_MAJOR}"
         add_ldflag "vcsMinor" "${GIT_MINOR}"
-    elif [[ ! -z $1 ]]; then 
-        add_ldflag "buildVersion" "$1"
+    elif [[ -n $1 ]]; then
+        add_ldflag "BuildVersion" "$1"
     fi
 
     # The -ldflags parameter takes a single string, so join the output.

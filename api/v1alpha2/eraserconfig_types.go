@@ -14,17 +14,15 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1alpha1
+package v1alpha2
 
 import (
 	"encoding/json"
 	"fmt"
 	"time"
 
-	"github.com/Azure/eraser/api/unversioned"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/conversion"
 )
 
 type (
@@ -54,10 +52,6 @@ func (td *Duration) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
-func (td *Duration) MarshalJSON() ([]byte, error) {
-	return []byte(fmt.Sprintf(`"%s"`, time.Duration(*td).String())), nil
-}
-
 func (r *Runtime) UnmarshalJSON(b []byte) error {
 	var str string
 	err := json.Unmarshal(b, &str)
@@ -73,6 +67,10 @@ func (r *Runtime) UnmarshalJSON(b []byte) error {
 	}
 
 	return nil
+}
+
+func (td *Duration) MarshalJSON() ([]byte, error) {
+	return []byte(fmt.Sprintf(`"%s"`, time.Duration(*td).String())), nil
 }
 
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
@@ -140,7 +138,7 @@ type RepoTag struct {
 type Components struct {
 	Collector OptionalContainerConfig `json:"collector,omitempty"`
 	Scanner   OptionalContainerConfig `json:"scanner,omitempty"`
-	Eraser    ContainerConfig         `json:"eraser,omitempty"`
+	Remover   ContainerConfig         `json:"remover,omitempty"`
 }
 
 //+kubebuilder:object:root=true
@@ -154,30 +152,4 @@ type EraserConfig struct {
 
 func init() {
 	SchemeBuilder.Register(&EraserConfig{})
-}
-
-// In future versions of EraserConfig (for example, v1alpha2), the
-// .Components.Eraser field has been renamed to .Components.Remover
-// conversion-gen is unable to make the conversion automatically,
-// and provides stubs for these functions, with a warning that they
-// will not work properly. Because they are called by other generated
-// functions, the names of these functions cannot change.
-func Convert_v1alpha1_Components_To_unversioned_Components(in *Components, out *unversioned.Components, s conversion.Scope) error { //nolint:revive
-	if err := Convert_v1alpha1_OptionalContainerConfig_To_unversioned_OptionalContainerConfig(&in.Collector, &out.Collector, s); err != nil {
-		return err
-	}
-	if err := Convert_v1alpha1_OptionalContainerConfig_To_unversioned_OptionalContainerConfig(&in.Scanner, &out.Scanner, s); err != nil {
-		return err
-	}
-	return Convert_v1alpha1_ContainerConfig_To_unversioned_ContainerConfig(&in.Eraser, &out.Remover, s)
-}
-
-func Convert_unversioned_Components_To_v1alpha1_Components(in *unversioned.Components, out *Components, s conversion.Scope) error { //nolint:revive
-	if err := Convert_unversioned_OptionalContainerConfig_To_v1alpha1_OptionalContainerConfig(&in.Collector, &out.Collector, s); err != nil {
-		return err
-	}
-	if err := Convert_unversioned_OptionalContainerConfig_To_v1alpha1_OptionalContainerConfig(&in.Scanner, &out.Scanner, s); err != nil {
-		return err
-	}
-	return Convert_unversioned_ContainerConfig_To_v1alpha1_ContainerConfig(&in.Remover, &out.Eraser, s)
 }
