@@ -146,9 +146,11 @@ func (s *ImageScanner) Scan(img unversioned.Image) (ScanStatus, error) {
 			continue
 		}
 
-		if report.Metadata.OS != nil && report.Metadata.OS.Eosl {
-			log.Info("image is end of life", "imageID", img.ImageID, "reference", ref)
-			return StatusNonCompliant, nil
+		if s.userConfig.DeleteEOLImages {
+			if report.Metadata.OS != nil && report.Metadata.OS.Eosl {
+				log.Info("image is end of life", "imageID", img.ImageID, "reference", ref)
+				return StatusNonCompliant, nil
+			}
 		}
 
 		for i := range report.Results {
