@@ -10,13 +10,21 @@ on:
         required: true
         type: string
 
+permissions:
+  contents: read
+
 jobs:
   build-e2e-test-list:
     name: "Build E2E Test List"
     runs-on: ubuntu-latest
     steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@6b3083af2869dc3314a0257a42f4af696cc79ba3 # v2.3.1
+        with:
+          egress-policy: audit
+
       - name: Check out code into the Go module directory
-        uses: actions/checkout@v3
+        uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
       - id: set-test-matrix
         run: |
           readarray -d '' test_dirs < <(find ./test/e2e/tests -mindepth 1 -type d -print0)
@@ -27,7 +35,7 @@ jobs:
   e2e-test:
     name: "E2E Tests"
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 20
     needs:
       - build-e2e-test-list
     permissions:
@@ -43,17 +51,17 @@ jobs:
         with:
           egress-policy: audit
       - name: Check out code into the Go module directory
-        uses: actions/checkout@v3
+        uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
       - name: Fetch Build Artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a # v3.0.2
         with:
           name: ${{ inputs.bucket-id }}
           path: ${{ github.workspace }}/images
       - name: Set up Go 1.20
-        uses: actions/setup-go@v4
+        uses: actions/setup-go@4d34df0c2316fe8122ab82dc22947d607c0c91f9 # v4.0.0
         with:
           go-version: "1.20"
-      - uses: actions/cache@v3.3.1
+      - uses: actions/cache@88522ab9f39a2ea568f7027eddc7d8d8bc9d59c8 # v3.3.1
         with:
           key: ${{ runner.OS }}-go-${{ hashFiles('**/go.sum') }}
           restore-keys: |
@@ -61,7 +69,7 @@ jobs:
           path: |
             ~/go/pkg/mod
             ~/.cache/go-build
-      - uses: crazy-max/ghaction-github-runtime@v2
+      - uses: crazy-max/ghaction-github-runtime@747e98cd97bb9cfed8fe0165c821a83139bfdd67 # v2.1.0
       - name: Set env
         run: |
           ARCHIVE_DIR=${{ github.workspace }}/images
@@ -100,7 +108,7 @@ jobs:
             KUBERNETES_VERSION=${{ matrix.KUBERNETES_VERSION }} \
             E2E_TESTS=${{ matrix.E2E_TEST }}
       - name: Upload artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce # v3.1.2
         with:
           name: test_logs
           path: ${{ github.workspace }}/test_logs/*

@@ -70,7 +70,6 @@ func (in *ContainerConfig) DeepCopy() *ContainerConfig {
 func (in *EraserConfig) DeepCopyInto(out *EraserConfig) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
-	in.ControllerManagerConfigurationSpec.DeepCopyInto(&out.ControllerManagerConfigurationSpec)
 	in.Manager.DeepCopyInto(&out.Manager)
 	in.Components.DeepCopyInto(&out.Components)
 }

@@ -1,4 +1,6 @@
 runtimeConfig:
+  apiVersion: eraser.sh/v1alpha1
+  kind: EraserConfig
   health: {}
     # healthProbeBindAddress: :8081
   metrics: {}

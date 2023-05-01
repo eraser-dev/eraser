@@ -10,11 +10,19 @@ on:
         description: "docker-images-<build-id>"
         value: ${{ jobs.generate-build-id.outputs.bucket-id }}
 
+permissions:
+  contents: read
+
 jobs:
   generate-build-id:
     name: "Generate Build ID"
     runs-on: ubuntu-latest
     steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@6b3083af2869dc3314a0257a42f4af696cc79ba3 # v2.3.1
+        with:
+          egress-policy: audit
+
       - id: build-id
         run: |
           build_id="$(date +%s)"
