@@ -235,16 +235,6 @@ docker-build-remover: ## Build docker image for remover image.
 		-t ${REMOVER_IMG} \
 		--target remover .
 
-docker-build-eraser: ## Build docker image for eraser image.
-	docker buildx build \
-		$(_CACHE_FROM) $(_CACHE_TO) \
-		$(_ATTESTATIONS) \
-		--build-arg LDFLAGS="$(ERASER_LDFLAGS)" \
-		--platform="$(PLATFORM)" \
-		--output=$(OUTPUT_TYPE) \
-		-t ${ERASER_IMG} \
-		--target remover .
-
 docker-build-collector:
 	docker buildx build \
 		$(_CACHE_FROM) $(_CACHE_TO) \
