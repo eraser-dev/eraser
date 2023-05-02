@@ -82,7 +82,7 @@ jobs:
           echo ERASER_REPO=eraser >> $GITHUB_ENV
           echo ERASER_TAG=test >> $GITHUB_ENV
       - name: Build eraser
-        run: 'make docker-build-eraser OUTPUT_TYPE=type=oci,dest=./${ERASER_REPO}_${ERASER_TAG}.tar,name=${ERASER_REPO}:${ERASER_TAG}'
+        run: 'make docker-build-remover OUTPUT_TYPE=type=oci,dest=./${ERASER_REPO}_${ERASER_TAG}.tar,name=${ERASER_REPO}:${ERASER_TAG}'
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce # v3.1.2
         with:

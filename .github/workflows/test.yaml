@@ -58,7 +58,7 @@ jobs:
         with:
           version: latest
           args: --timeout=10m
-      - name: lint eraser
+      - name: lint remover
         uses: golangci/golangci-lint-action@08e2f20817b15149a52b5b3ebe7de50aff2ba8c5 # v3.4.0
         with:
           version: latest
@@ -169,7 +169,7 @@ jobs:
           make docker-build-remover REMOVER_REPO=${{ env.REGISTRY }}/remover REMOVER_TAG=test
       - name: Build eraser
         run: |
-          make docker-build-eraser ERASER_REPO=${{ env.REGISTRY }}/eraser ERASER_TAG=test
+          make docker-build-remover ERASER_REPO=${{ env.REGISTRY }}/eraser ERASER_TAG=test
       - name: Build collector
         run: |
           make docker-build-collector COLLECTOR_REPO=${{ env.REGISTRY }}/collector COLLECTOR_TAG=test
