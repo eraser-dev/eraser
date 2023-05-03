@@ -38,9 +38,6 @@ func TestMetricsEraserOnly(t *testing.T) {
 				t.Error("error getting eraser pod logs", err)
 			}
 
-			if err := util.GetManagerLogs(ctx, cfg, t); err != nil {
-				t.Error("error getting manager logs", err)
-			}
 
 			return ctx
 		}).
