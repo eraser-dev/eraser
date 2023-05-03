@@ -257,43 +257,51 @@ func startConfigWatch(cancel context.CancelFunc, watcher *inotify.Watcher, erase
 				continue
 			}
 
-			oldCfg, err := eraserOpts.Read()
+			var err error
+			oldConfig := new(unversioned.EraserConfig)
+
+			*oldConfig, err = eraserOpts.Read()
 			if err != nil {
 				setupLog.Error(err, "configuration could not be read", "event", ev, "filename", filename)
 			}
 
-			newCfg, err := getConfig(filename)
+			newConfig, err := getConfig(filename)
 			if err != nil {
 				setupLog.Error(err, "configuration is missing or invalid", "event", ev, "filename", filename)
 				continue
 			}
 
-			if err = eraserOpts.Update(newCfg); err != nil {
+			if err = eraserOpts.Update(newConfig); err != nil {
 				setupLog.Error(err, "configuration update failed")
 				continue
 			}
 
-			newC, err := eraserOpts.Read()
+			// read back the new configuration
+			*newConfig, err = eraserOpts.Read()
 			if err != nil {
 				setupLog.Error(err, "unable to read back new configuration")
 				continue
 			}
 
-			type check struct {
-				collector bool
-				scanner   bool
-			}
-
-			oldComponents := check{collector: oldCfg.Components.Collector.Enabled, scanner: oldCfg.Components.Scanner.Enabled}
-			newComponents := check{collector: newC.Components.Collector.Enabled, scanner: newC.Components.Scanner.Enabled}
-			if oldComponents != newComponents {
-				setupLog.Info("configurations differ in an irreconcileable way", "old", oldComponents, "new", newComponents)
+			if needsRestart(oldConfig, newConfig) {
+				setupLog.Info("configurations differ in an irreconcileable way, restarting", "old", oldConfig.Components, "new", newConfig.Components)
 				cancel()
 			}
 
-			setupLog.V(1).Info("new configuration", "manager", newC.Manager, "components", newC.Components)
+			setupLog.V(1).Info("new configuration", "manager", newConfig.Manager, "components", newConfig.Components)
 		case err := <-watcher.Error:
 			setupLog.Error(err, "file watcher error")
 		}
 	}
+}
+
+func needsRestart(oldConfig, newConfig *unversioned.EraserConfig) bool {
+	type check struct {
+		collector bool
+		scanner   bool
+	}
+
+	oldComponents := check{collector: oldConfig.Components.Collector.Enabled, scanner: oldConfig.Components.Scanner.Enabled}
+	newComponents := check{collector: newConfig.Components.Collector.Enabled, scanner: newConfig.Components.Scanner.Enabled}
+	return oldComponents != newComponents
 }
