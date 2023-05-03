@@ -39,7 +39,7 @@ import (
 	"github.com/Azure/eraser/api/unversioned/config"
 	eraserv1 "github.com/Azure/eraser/api/v1"
 	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
-	eraserv1alpha2 "github.com/Azure/eraser/api/v1alpha2"
+
 	"github.com/Azure/eraser/controllers/util"
 	"github.com/Azure/eraser/pkg/utils"
 
@@ -456,7 +456,7 @@ func (r *Reconciler) createImageJob(ctx context.Context) (ctrl.Result, error) {
 			Name:      job.GetName(),
 			Namespace: namespace,
 			OwnerReferences: []metav1.OwnerReference{
-				*metav1.NewControllerRef(job, eraserv1alpha2.GroupVersion.WithKind("ImageJob")),
+				*metav1.NewControllerRef(job, eraserv1.GroupVersion.WithKind("ImageJob")),
 			},
 		},
 		Template: jobTemplate,

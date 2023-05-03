@@ -24,7 +24,6 @@ import (
 	unsafe "unsafe"
 
 	unversioned "github.com/Azure/eraser/api/unversioned"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	conversion "k8s.io/apimachinery/pkg/conversion"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 )
@@ -66,26 +65,6 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*Image)(nil), (*unversioned.Image)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1alpha2_Image_To_unversioned_Image(a.(*Image), b.(*unversioned.Image), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*unversioned.Image)(nil), (*Image)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_unversioned_Image_To_v1alpha2_Image(a.(*unversioned.Image), b.(*Image), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*ImageJob)(nil), (*unversioned.ImageJob)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1alpha2_ImageJob_To_unversioned_ImageJob(a.(*ImageJob), b.(*unversioned.ImageJob), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*unversioned.ImageJob)(nil), (*ImageJob)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_unversioned_ImageJob_To_v1alpha2_ImageJob(a.(*unversioned.ImageJob), b.(*ImageJob), scope)
-	}); err != nil {
-		return err
-	}
 	if err := s.AddGeneratedConversionFunc((*ImageJobCleanupConfig)(nil), (*unversioned.ImageJobCleanupConfig)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1alpha2_ImageJobCleanupConfig_To_unversioned_ImageJobCleanupConfig(a.(*ImageJobCleanupConfig), b.(*unversioned.ImageJobCleanupConfig), scope)
 	}); err != nil {
@@ -103,66 +82,6 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}
 	if err := s.AddGeneratedConversionFunc((*unversioned.ImageJobConfig)(nil), (*ImageJobConfig)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_unversioned_ImageJobConfig_To_v1alpha2_ImageJobConfig(a.(*unversioned.ImageJobConfig), b.(*ImageJobConfig), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*ImageJobList)(nil), (*unversioned.ImageJobList)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1alpha2_ImageJobList_To_unversioned_ImageJobList(a.(*ImageJobList), b.(*unversioned.ImageJobList), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*unversioned.ImageJobList)(nil), (*ImageJobList)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_unversioned_ImageJobList_To_v1alpha2_ImageJobList(a.(*unversioned.ImageJobList), b.(*ImageJobList), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*ImageJobStatus)(nil), (*unversioned.ImageJobStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1alpha2_ImageJobStatus_To_unversioned_ImageJobStatus(a.(*ImageJobStatus), b.(*unversioned.ImageJobStatus), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*unversioned.ImageJobStatus)(nil), (*ImageJobStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_unversioned_ImageJobStatus_To_v1alpha2_ImageJobStatus(a.(*unversioned.ImageJobStatus), b.(*ImageJobStatus), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*ImageList)(nil), (*unversioned.ImageList)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1alpha2_ImageList_To_unversioned_ImageList(a.(*ImageList), b.(*unversioned.ImageList), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*unversioned.ImageList)(nil), (*ImageList)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_unversioned_ImageList_To_v1alpha2_ImageList(a.(*unversioned.ImageList), b.(*ImageList), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*ImageListList)(nil), (*unversioned.ImageListList)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1alpha2_ImageListList_To_unversioned_ImageListList(a.(*ImageListList), b.(*unversioned.ImageListList), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*unversioned.ImageListList)(nil), (*ImageListList)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_unversioned_ImageListList_To_v1alpha2_ImageListList(a.(*unversioned.ImageListList), b.(*ImageListList), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*ImageListSpec)(nil), (*unversioned.ImageListSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1alpha2_ImageListSpec_To_unversioned_ImageListSpec(a.(*ImageListSpec), b.(*unversioned.ImageListSpec), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*unversioned.ImageListSpec)(nil), (*ImageListSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_unversioned_ImageListSpec_To_v1alpha2_ImageListSpec(a.(*unversioned.ImageListSpec), b.(*ImageListSpec), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*ImageListStatus)(nil), (*unversioned.ImageListStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1alpha2_ImageListStatus_To_unversioned_ImageListStatus(a.(*ImageListStatus), b.(*unversioned.ImageListStatus), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*unversioned.ImageListStatus)(nil), (*ImageListStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_unversioned_ImageListStatus_To_v1alpha2_ImageListStatus(a.(*unversioned.ImageListStatus), b.(*ImageListStatus), scope)
 	}); err != nil {
 		return err
 	}
@@ -343,56 +262,6 @@ func Convert_unversioned_EraserConfig_To_v1alpha2_EraserConfig(in *unversioned.E
 	return autoConvert_unversioned_EraserConfig_To_v1alpha2_EraserConfig(in, out, s)
 }
 
-func autoConvert_v1alpha2_Image_To_unversioned_Image(in *Image, out *unversioned.Image, s conversion.Scope) error {
-	out.ImageID = in.ImageID
-	out.Names = *(*[]string)(unsafe.Pointer(&in.Names))
-	out.Digests = *(*[]string)(unsafe.Pointer(&in.Digests))
-	return nil
-}
-
-// Convert_v1alpha2_Image_To_unversioned_Image is an autogenerated conversion function.
-func Convert_v1alpha2_Image_To_unversioned_Image(in *Image, out *unversioned.Image, s conversion.Scope) error {
-	return autoConvert_v1alpha2_Image_To_unversioned_Image(in, out, s)
-}
-
-func autoConvert_unversioned_Image_To_v1alpha2_Image(in *unversioned.Image, out *Image, s conversion.Scope) error {
-	out.ImageID = in.ImageID
-	out.Names = *(*[]string)(unsafe.Pointer(&in.Names))
-	out.Digests = *(*[]string)(unsafe.Pointer(&in.Digests))
-	return nil
-}
-
-// Convert_unversioned_Image_To_v1alpha2_Image is an autogenerated conversion function.
-func Convert_unversioned_Image_To_v1alpha2_Image(in *unversioned.Image, out *Image, s conversion.Scope) error {
-	return autoConvert_unversioned_Image_To_v1alpha2_Image(in, out, s)
-}
-
-func autoConvert_v1alpha2_ImageJob_To_unversioned_ImageJob(in *ImageJob, out *unversioned.ImageJob, s conversion.Scope) error {
-	out.ObjectMeta = in.ObjectMeta
-	if err := Convert_v1alpha2_ImageJobStatus_To_unversioned_ImageJobStatus(&in.Status, &out.Status, s); err != nil {
-		return err
-	}
-	return nil
-}
-
-// Convert_v1alpha2_ImageJob_To_unversioned_ImageJob is an autogenerated conversion function.
-func Convert_v1alpha2_ImageJob_To_unversioned_ImageJob(in *ImageJob, out *unversioned.ImageJob, s conversion.Scope) error {
-	return autoConvert_v1alpha2_ImageJob_To_unversioned_ImageJob(in, out, s)
-}
-
-func autoConvert_unversioned_ImageJob_To_v1alpha2_ImageJob(in *unversioned.ImageJob, out *ImageJob, s conversion.Scope) error {
-	out.ObjectMeta = in.ObjectMeta
-	if err := Convert_unversioned_ImageJobStatus_To_v1alpha2_ImageJobStatus(&in.Status, &out.Status, s); err != nil {
-		return err
-	}
-	return nil
-}
-
-// Convert_unversioned_ImageJob_To_v1alpha2_ImageJob is an autogenerated conversion function.
-func Convert_unversioned_ImageJob_To_v1alpha2_ImageJob(in *unversioned.ImageJob, out *ImageJob, s conversion.Scope) error {
-	return autoConvert_unversioned_ImageJob_To_v1alpha2_ImageJob(in, out, s)
-}
-
 func autoConvert_v1alpha2_ImageJobCleanupConfig_To_unversioned_ImageJobCleanupConfig(in *ImageJobCleanupConfig, out *unversioned.ImageJobCleanupConfig, s conversion.Scope) error {
 	out.DelayOnSuccess = unversioned.Duration(in.DelayOnSuccess)
 	out.DelayOnFailure = unversioned.Duration(in.DelayOnFailure)
@@ -439,158 +308,6 @@ func autoConvert_unversioned_ImageJobConfig_To_v1alpha2_ImageJobConfig(in *unver
 // Convert_unversioned_ImageJobConfig_To_v1alpha2_ImageJobConfig is an autogenerated conversion function.
 func Convert_unversioned_ImageJobConfig_To_v1alpha2_ImageJobConfig(in *unversioned.ImageJobConfig, out *ImageJobConfig, s conversion.Scope) error {
 	return autoConvert_unversioned_ImageJobConfig_To_v1alpha2_ImageJobConfig(in, out, s)
-}
-
-func autoConvert_v1alpha2_ImageJobList_To_unversioned_ImageJobList(in *ImageJobList, out *unversioned.ImageJobList, s conversion.Scope) error {
-	out.ListMeta = in.ListMeta
-	out.Items = *(*[]unversioned.ImageJob)(unsafe.Pointer(&in.Items))
-	return nil
-}
-
-// Convert_v1alpha2_ImageJobList_To_unversioned_ImageJobList is an autogenerated conversion function.
-func Convert_v1alpha2_ImageJobList_To_unversioned_ImageJobList(in *ImageJobList, out *unversioned.ImageJobList, s conversion.Scope) error {
-	return autoConvert_v1alpha2_ImageJobList_To_unversioned_ImageJobList(in, out, s)
-}
-
-func autoConvert_unversioned_ImageJobList_To_v1alpha2_ImageJobList(in *unversioned.ImageJobList, out *ImageJobList, s conversion.Scope) error {
-	out.ListMeta = in.ListMeta
-	out.Items = *(*[]ImageJob)(unsafe.Pointer(&in.Items))
-	return nil
-}
-
-// Convert_unversioned_ImageJobList_To_v1alpha2_ImageJobList is an autogenerated conversion function.
-func Convert_unversioned_ImageJobList_To_v1alpha2_ImageJobList(in *unversioned.ImageJobList, out *ImageJobList, s conversion.Scope) error {
-	return autoConvert_unversioned_ImageJobList_To_v1alpha2_ImageJobList(in, out, s)
-}
-
-func autoConvert_v1alpha2_ImageJobStatus_To_unversioned_ImageJobStatus(in *ImageJobStatus, out *unversioned.ImageJobStatus, s conversion.Scope) error {
-	out.Failed = in.Failed
-	out.Succeeded = in.Succeeded
-	out.Desired = in.Desired
-	out.Skipped = in.Skipped
-	out.Phase = unversioned.JobPhase(in.Phase)
-	out.DeleteAfter = (*v1.Time)(unsafe.Pointer(in.DeleteAfter))
-	return nil
-}
-
-// Convert_v1alpha2_ImageJobStatus_To_unversioned_ImageJobStatus is an autogenerated conversion function.
-func Convert_v1alpha2_ImageJobStatus_To_unversioned_ImageJobStatus(in *ImageJobStatus, out *unversioned.ImageJobStatus, s conversion.Scope) error {
-	return autoConvert_v1alpha2_ImageJobStatus_To_unversioned_ImageJobStatus(in, out, s)
-}
-
-func autoConvert_unversioned_ImageJobStatus_To_v1alpha2_ImageJobStatus(in *unversioned.ImageJobStatus, out *ImageJobStatus, s conversion.Scope) error {
-	out.Failed = in.Failed
-	out.Succeeded = in.Succeeded
-	out.Desired = in.Desired
-	out.Skipped = in.Skipped
-	out.Phase = JobPhase(in.Phase)
-	out.DeleteAfter = (*v1.Time)(unsafe.Pointer(in.DeleteAfter))
-	return nil
-}
-
-// Convert_unversioned_ImageJobStatus_To_v1alpha2_ImageJobStatus is an autogenerated conversion function.
-func Convert_unversioned_ImageJobStatus_To_v1alpha2_ImageJobStatus(in *unversioned.ImageJobStatus, out *ImageJobStatus, s conversion.Scope) error {
-	return autoConvert_unversioned_ImageJobStatus_To_v1alpha2_ImageJobStatus(in, out, s)
-}
-
-func autoConvert_v1alpha2_ImageList_To_unversioned_ImageList(in *ImageList, out *unversioned.ImageList, s conversion.Scope) error {
-	out.ObjectMeta = in.ObjectMeta
-	if err := Convert_v1alpha2_ImageListSpec_To_unversioned_ImageListSpec(&in.Spec, &out.Spec, s); err != nil {
-		return err
-	}
-	if err := Convert_v1alpha2_ImageListStatus_To_unversioned_ImageListStatus(&in.Status, &out.Status, s); err != nil {
-		return err
-	}
-	return nil
-}
-
-// Convert_v1alpha2_ImageList_To_unversioned_ImageList is an autogenerated conversion function.
-func Convert_v1alpha2_ImageList_To_unversioned_ImageList(in *ImageList, out *unversioned.ImageList, s conversion.Scope) error {
-	return autoConvert_v1alpha2_ImageList_To_unversioned_ImageList(in, out, s)
-}
-
-func autoConvert_unversioned_ImageList_To_v1alpha2_ImageList(in *unversioned.ImageList, out *ImageList, s conversion.Scope) error {
-	out.ObjectMeta = in.ObjectMeta
-	if err := Convert_unversioned_ImageListSpec_To_v1alpha2_ImageListSpec(&in.Spec, &out.Spec, s); err != nil {
-		return err
-	}
-	if err := Convert_unversioned_ImageListStatus_To_v1alpha2_ImageListStatus(&in.Status, &out.Status, s); err != nil {
-		return err
-	}
-	return nil
-}
-
-// Convert_unversioned_ImageList_To_v1alpha2_ImageList is an autogenerated conversion function.
-func Convert_unversioned_ImageList_To_v1alpha2_ImageList(in *unversioned.ImageList, out *ImageList, s conversion.Scope) error {
-	return autoConvert_unversioned_ImageList_To_v1alpha2_ImageList(in, out, s)
-}
-
-func autoConvert_v1alpha2_ImageListList_To_unversioned_ImageListList(in *ImageListList, out *unversioned.ImageListList, s conversion.Scope) error {
-	out.ListMeta = in.ListMeta
-	out.Items = *(*[]unversioned.ImageList)(unsafe.Pointer(&in.Items))
-	return nil
-}
-
-// Convert_v1alpha2_ImageListList_To_unversioned_ImageListList is an autogenerated conversion function.
-func Convert_v1alpha2_ImageListList_To_unversioned_ImageListList(in *ImageListList, out *unversioned.ImageListList, s conversion.Scope) error {
-	return autoConvert_v1alpha2_ImageListList_To_unversioned_ImageListList(in, out, s)
-}
-
-func autoConvert_unversioned_ImageListList_To_v1alpha2_ImageListList(in *unversioned.ImageListList, out *ImageListList, s conversion.Scope) error {
-	out.ListMeta = in.ListMeta
-	out.Items = *(*[]ImageList)(unsafe.Pointer(&in.Items))
-	return nil
-}
-
-// Convert_unversioned_ImageListList_To_v1alpha2_ImageListList is an autogenerated conversion function.
-func Convert_unversioned_ImageListList_To_v1alpha2_ImageListList(in *unversioned.ImageListList, out *ImageListList, s conversion.Scope) error {
-	return autoConvert_unversioned_ImageListList_To_v1alpha2_ImageListList(in, out, s)
-}
-
-func autoConvert_v1alpha2_ImageListSpec_To_unversioned_ImageListSpec(in *ImageListSpec, out *unversioned.ImageListSpec, s conversion.Scope) error {
-	out.Images = *(*[]string)(unsafe.Pointer(&in.Images))
-	return nil
-}
-
-// Convert_v1alpha2_ImageListSpec_To_unversioned_ImageListSpec is an autogenerated conversion function.
-func Convert_v1alpha2_ImageListSpec_To_unversioned_ImageListSpec(in *ImageListSpec, out *unversioned.ImageListSpec, s conversion.Scope) error {
-	return autoConvert_v1alpha2_ImageListSpec_To_unversioned_ImageListSpec(in, out, s)
-}
-
-func autoConvert_unversioned_ImageListSpec_To_v1alpha2_ImageListSpec(in *unversioned.ImageListSpec, out *ImageListSpec, s conversion.Scope) error {
-	out.Images = *(*[]string)(unsafe.Pointer(&in.Images))
-	return nil
-}
-
-// Convert_unversioned_ImageListSpec_To_v1alpha2_ImageListSpec is an autogenerated conversion function.
-func Convert_unversioned_ImageListSpec_To_v1alpha2_ImageListSpec(in *unversioned.ImageListSpec, out *ImageListSpec, s conversion.Scope) error {
-	return autoConvert_unversioned_ImageListSpec_To_v1alpha2_ImageListSpec(in, out, s)
-}
-
-func autoConvert_v1alpha2_ImageListStatus_To_unversioned_ImageListStatus(in *ImageListStatus, out *unversioned.ImageListStatus, s conversion.Scope) error {
-	out.Timestamp = (*v1.Time)(unsafe.Pointer(in.Timestamp))
-	out.Success = in.Success
-	out.Failed = in.Failed
-	out.Skipped = in.Skipped
-	return nil
-}
-
-// Convert_v1alpha2_ImageListStatus_To_unversioned_ImageListStatus is an autogenerated conversion function.
-func Convert_v1alpha2_ImageListStatus_To_unversioned_ImageListStatus(in *ImageListStatus, out *unversioned.ImageListStatus, s conversion.Scope) error {
-	return autoConvert_v1alpha2_ImageListStatus_To_unversioned_ImageListStatus(in, out, s)
-}
-
-func autoConvert_unversioned_ImageListStatus_To_v1alpha2_ImageListStatus(in *unversioned.ImageListStatus, out *ImageListStatus, s conversion.Scope) error {
-	out.Timestamp = (*v1.Time)(unsafe.Pointer(in.Timestamp))
-	out.Success = in.Success
-	out.Failed = in.Failed
-	out.Skipped = in.Skipped
-	return nil
-}
-
-// Convert_unversioned_ImageListStatus_To_v1alpha2_ImageListStatus is an autogenerated conversion function.
-func Convert_unversioned_ImageListStatus_To_v1alpha2_ImageListStatus(in *unversioned.ImageListStatus, out *ImageListStatus, s conversion.Scope) error {
-	return autoConvert_unversioned_ImageListStatus_To_v1alpha2_ImageListStatus(in, out, s)
 }
 
 func autoConvert_v1alpha2_ManagerConfig_To_unversioned_ManagerConfig(in *ManagerConfig, out *unversioned.ManagerConfig, s conversion.Scope) error {

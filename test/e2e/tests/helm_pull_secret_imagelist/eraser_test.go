@@ -10,7 +10,7 @@ import (
 
 	"github.com/Azure/eraser/test/e2e/util"
 
-	eraserv1alpha2 "github.com/Azure/eraser/api/v1alpha2"
+	eraserv1 "github.com/Azure/eraser/api/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -33,9 +33,9 @@ func TestHelmPullSecretImagelist(t *testing.T) {
 				t.Fatal("Failed to create new client", err)
 			}
 
-			imgList := &eraserv1alpha2.ImageList{
+			imgList := &eraserv1.ImageList{
 				ObjectMeta: metav1.ObjectMeta{Name: util.Prune},
-				Spec: eraserv1alpha2.ImageListSpec{
+				Spec: eraserv1.ImageListSpec{
 					Images: []string{"*"},
 				},
 			}

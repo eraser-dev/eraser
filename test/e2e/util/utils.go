@@ -26,7 +26,7 @@ import (
 	"sigs.k8s.io/e2e-framework/pkg/envfuncs"
 	"sigs.k8s.io/kind/pkg/cluster"
 
-	eraserv1alpha2 "github.com/Azure/eraser/api/v1alpha2"
+	eraserv1 "github.com/Azure/eraser/api/v1"
 
 	pkgUtil "github.com/Azure/eraser/pkg/utils"
 )
@@ -403,20 +403,20 @@ func ImagejobNotInCluster(kubeconfigPath string) func() (bool, error) {
 	}
 }
 
-func GetImageJob(ctx context.Context, cfg *envconf.Config) (eraserv1alpha2.ImageJob, error) {
+func GetImageJob(ctx context.Context, cfg *envconf.Config) (eraserv1.ImageJob, error) {
 	c, err := cfg.NewClient()
 	if err != nil {
-		return eraserv1alpha2.ImageJob{}, err
+		return eraserv1.ImageJob{}, err
 	}
 
-	var ls eraserv1alpha2.ImageJobList
+	var ls eraserv1.ImageJobList
 	err = c.Resources().List(ctx, &ls)
 	if err != nil {
-		return eraserv1alpha2.ImageJob{}, err
+		return eraserv1.ImageJob{}, err
 	}
 
 	if len(ls.Items) != 1 {
-		return eraserv1alpha2.ImageJob{}, errors.New("only one imagejob should be present")
+		return eraserv1.ImageJob{}, errors.New("only one imagejob should be present")
 	}
 
 	return ls.Items[0], nil

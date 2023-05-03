@@ -44,7 +44,6 @@ import (
 
 	"github.com/Azure/eraser/api/unversioned/config"
 	eraserv1 "github.com/Azure/eraser/api/v1"
-	eraserv1alpha2 "github.com/Azure/eraser/api/v1alpha2"
 	controllerUtils "github.com/Azure/eraser/controllers/util"
 	eraserUtils "github.com/Azure/eraser/pkg/utils"
 )
@@ -117,7 +116,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 			Type: &corev1.Pod{},
 		},
 		&handler.EnqueueRequestForOwner{
-			OwnerType:    &eraserv1alpha2.ImageJob{},
+			OwnerType:    &eraserv1.ImageJob{},
 			IsController: true,
 		},
 	)
@@ -130,7 +129,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 			Type: &corev1.PodTemplate{},
 		},
 		&handler.EnqueueRequestForOwner{
-			OwnerType:    &eraserv1alpha2.ImageJob{},
+			OwnerType:    &eraserv1.ImageJob{},
 			IsController: true,
 		},
 	)
