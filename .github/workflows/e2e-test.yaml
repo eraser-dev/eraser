@@ -61,7 +61,6 @@ jobs:
         uses: actions/setup-go@4d34df0c2316fe8122ab82dc22947d607c0c91f9 # v4.0.0
         with:
           go-version: "1.20"
-      - uses: crazy-max/ghaction-github-runtime@747e98cd97bb9cfed8fe0165c821a83139bfdd67 # v2.1.0
       - name: Set env
         run: |
           ARCHIVE_DIR=${{ github.workspace }}/images
