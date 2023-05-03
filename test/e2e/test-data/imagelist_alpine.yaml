@@ -1,4 +1,4 @@
-apiVersion: eraser.sh/v1alpha2
+apiVersion: eraser.sh/v1
 kind: ImageList
 metadata:
   name: imagelist
