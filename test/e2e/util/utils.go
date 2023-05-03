@@ -88,7 +88,6 @@ const (
 var (
 	Testenv            env.Environment
 	RemoverImage       = os.Getenv("REMOVER_IMAGE")
-	EraserImage        = os.Getenv("ERASER_IMAGE")
 	ManagerImage       = os.Getenv("MANAGER_IMAGE")
 	CollectorImage     = os.Getenv("COLLECTOR_IMAGE")
 	ScannerImage       = os.Getenv("SCANNER_IMAGE")
@@ -101,7 +100,6 @@ var (
 	ManagerTarballPath   = os.Getenv("MANAGER_TARBALL_PATH")
 	CollectorTarballPath = os.Getenv("COLLECTOR_TARBALL_PATH")
 	ScannerTarballPath   = os.Getenv("SCANNER_TARBALL_PATH")
-	EraserTarballPath    = os.Getenv("ERASER_TARBALL_PATH")
 
 	NodeVersion     = os.Getenv("NODE_VERSION")
 	TestNamespace   = envconf.RandomName("test-ns", 16)
@@ -131,7 +129,6 @@ type (
 		RemoverImage   RepoTag
 		ManagerImage   RepoTag
 		ScannerImage   RepoTag
-		EraserImage    RepoTag
 	}
 
 	HelmPath string
@@ -157,7 +154,7 @@ func (hs *HelmSet) String() string {
 
 func init() {
 	var err error
-	ParsedImages, err = parsedImages(EraserImage, RemoverImage, ManagerImage, CollectorImage, ScannerImage)
+	ParsedImages, err = parsedImages(RemoverImage, ManagerImage, CollectorImage, ScannerImage)
 	if err != nil {
 		klog.Error(err)
 		panic(err)
@@ -176,12 +173,7 @@ func toRepoTag(ref registry.Reference) RepoTag {
 	return repoTag
 }
 
-func parsedImages(eraserImage, removerImage, managerImage, collectorImage, scannerImage string) (*Images, error) {
-	eraserRepoTag, err := parseRepoTag(eraserImage)
-	if err != nil {
-		return nil, err
-	}
-
+func parsedImages(removerImage, managerImage, collectorImage, scannerImage string) (*Images, error) {
 	removerRepoTag, err := parseRepoTag(removerImage)
 	if err != nil {
 		return nil, err
@@ -205,7 +197,6 @@ func parsedImages(eraserImage, removerImage, managerImage, collectorImage, scann
 	return &Images{
 		CollectorImage: collectorRepoTag,
 		RemoverImage:   removerRepoTag,
-		EraserImage:    eraserRepoTag,
 		ManagerImage:   managerRepoTag,
 		ScannerImage:   scannerRepoTag,
 	}, nil

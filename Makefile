@@ -4,7 +4,6 @@ MANAGER_TAG ?= ${VERSION}
 TRIVY_SCANNER_TAG ?= ${VERSION}
 COLLECTOR_TAG ?= ${VERSION}
 REMOVER_TAG ?= ${VERSION}
-ERASER_TAG ?= ${VERSION}
 
 # Image URL to use all building/pushing image targets
 TRIVY_SCANNER_REPO ?= ghcr.io/azure/eraser-trivy-scanner
@@ -13,8 +12,6 @@ MANAGER_REPO ?= ghcr.io/azure/eraser-manager
 MANAGER_IMG ?= ${MANAGER_REPO}:${MANAGER_TAG}
 REMOVER_REPO ?= ghcr.io/azure/remover
 REMOVER_IMG ?= ${REMOVER_REPO}:${REMOVER_TAG}
-ERASER_REPO ?= ghcr.io/azure/eraser
-ERASER_IMG ?= ${ERASER_REPO}:${ERASER_TAG}
 COLLECTOR_REPO ?= ghcr.io/azure/collector
 COLLECTOR_IMG ?= ${COLLECTOR_REPO}:${COLLECTOR_TAG}
 VULNERABLE_IMG ?= docker.io/library/alpine:3.7.3
@@ -33,7 +30,6 @@ REMOVER_TARBALL_PATH ?=
 MANAGER_TARBALL_PATH ?=
 COLLECTOR_TARBALL_PATH ?=
 SCANNER_TARBALL_PATH ?=
-ERASER_TARBALL_PATH ?=
 
 KUSTOMIZE_VERSION ?= 3.8.9
 KUBERNETES_VERSION ?= 1.25.3
@@ -179,13 +175,11 @@ e2e-test: vulnerable-img eol-img non-vulnerable-img busybox-img
 	for test in $(E2E_TESTS); do \
 		CGO_ENABLED=0 \
             REMOVER_TARBALL_PATH=${REMOVER_TARBALL_PATH} \
-			ERASER_TARBALL_PATH=${ERASER_TARBALL_PATH} \
             MANAGER_TARBALL_PATH=${MANAGER_TARBALL_PATH} \
             COLLECTOR_TARBALL_PATH=${COLLECTOR_TARBALL_PATH} \
             SCANNER_TARBALL_PATH=${SCANNER_TARBALL_PATH} \
 			HELM_UPGRADE_TEST=${HELM_UPGRADE_TEST} \
 			REMOVER_IMAGE=${REMOVER_IMG} \
-			ERASER_IMAGE=${ERASER_IMG} \
 			MANAGER_IMAGE=${MANAGER_IMG} \
 			COLLECTOR_IMAGE=${COLLECTOR_IMG} \
 			SCANNER_IMAGE=${TRIVY_SCANNER_IMG} \
@@ -315,13 +309,11 @@ __kustomize-manifest-image:
 		--build-arg TRIVY_SCANNER_REPO=${TRIVY_SCANNER_REPO} \
 		--build-arg MANAGER_REPO=${MANAGER_REPO} \
 		--build-arg REMOVER_REPO=${REMOVER_REPO} \
-		--build-arg ERASER_REPO=${ERASER_REPO} \
 		--build-arg COLLECTOR_REPO=${COLLECTOR_REPO} \
 		--build-arg MANAGER_TAG=${MANAGER_TAG} \
 		--build-arg TRIVY_SCANNER_TAG=${TRIVY_SCANNER_TAG} \
 		--build-arg COLLECTOR_TAG=${COLLECTOR_TAG} \
 		--build-arg REMOVER_TAG=${REMOVER_TAG} \
-		--build-arg ERASER_TAG=${ERASER_TAG} \
 		-f build/tooling/Dockerfile.manifest
 
 # Tags a new version for docs
