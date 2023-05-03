@@ -815,63 +815,20 @@ func GetManagerLogs(ctx context.Context, cfg *envconf.Config, t *testing.T) erro
 }
 
 func GetPodLogs(ctx context.Context, cfg *envconf.Config, t *testing.T, imagelistTest bool) error {
-	c, err := cfg.NewClient()
-	if err != nil {
-		return err
-	}
-
-	namespace := cfg.Namespace()
-
-	labelSelectorSet := map[string]string{"name": "collector"}
-	if imagelistTest {
-		labelSelectorSet = map[string]string{"name": "remover"}
-	}
-
-	var ls corev1.PodList
-	err = wait.For(func() (bool, error) {
-		err = c.Resources().List(ctx, &ls, func(o *metav1.ListOptions) {
-			o.LabelSelector = labels.SelectorFromSet(labelSelectorSet).String()
-		})
-
-		if err != nil {
-			return false, err
-		}
-
-		return len(ls.Items) > 0, nil
-	}, wait.WithTimeout(Timeout))
-
-	if err != nil {
-		t.Errorf("could not list pods: %v", err)
-	}
-
-	for idx := range ls.Items {
-		var output string
-		pod := ls.Items[idx]
-
+	for _, nodeName := range []string{"eraser-e2e-test-control-plane", "eraser-e2e-test-worker", "eraser-e2e-test-worker2"} {
 		testName := strings.Split(t.Name(), "/")[0]
-
-		// get log output file path
-		path := filepath.Join(TestLogDir, testName)
-		podLogFilename := filepath.Join(path, pod.Name+".txt")
-
-		// wait for current pod to complete
-		err = wait.For(conditions.New(c.Resources()).PodPhaseMatch(&pod, corev1.PodSucceeded), wait.WithTimeout(Timeout))
-		if err != nil {
-			t.Errorf("error waiting for pod completion %s %v", pod.Name, err)
-		}
-
-		output, err := KubectlLogs(cfg.KubeconfigFile(), pod.Name, "", namespace, "--all-containers=true")
-		if err != nil {
-			t.Errorf("error getting pod logs %s %v", pod.Name, err)
-		}
-
+		path := filepath.Join(TestLogDir, testName, nodeName)
 		if err := os.MkdirAll(path, 0o755); err != nil {
-			return err
+			t.Logf("error: %s", err)
+			continue
 		}
 
-		err = os.WriteFile(podLogFilename, []byte(output), 0o600)
+		t.Logf(`docker cp %s:/var/log/containers %s`, nodeName, path)
+		cmd := exec.Command("docker", "cp", nodeName+":/var/log/containers", path)
+		output, err := cmd.CombinedOutput()
 		if err != nil {
-			t.Errorf("error writing pod log file %s %s %v", pod.Name, podLogFilename, err)
+			t.Logf("error: %s\n%s", err, string(output))
+			continue
 		}
 	}
 
