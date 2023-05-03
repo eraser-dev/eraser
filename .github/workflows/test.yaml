@@ -167,9 +167,6 @@ jobs:
       - name: Build remover
         run: |
           make docker-build-remover REMOVER_REPO=${{ env.REGISTRY }}/remover REMOVER_TAG=test
-      - name: Build eraser
-        run: |
-          make docker-build-remover ERASER_REPO=${{ env.REGISTRY }}/eraser ERASER_TAG=test
       - name: Build collector
         run: |
           make docker-build-collector COLLECTOR_REPO=${{ env.REGISTRY }}/collector COLLECTOR_TAG=test
