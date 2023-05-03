@@ -103,7 +103,7 @@ var (
 	TestLogDir      = os.Getenv("TEST_LOGDIR")
 
 	ParsedImages        *Images
-	Timeout             = time.Minute * 10
+	Timeout             = time.Minute * 5
 	ImagePullSecretJSON = fmt.Sprintf(`["%s"]`, ImagePullSecret)
 
 	ScannerConfigNoDeleteFailedJSON = `"{ \"cacheDir\": \"/var/lib/trivy\", \"dbRepo\": \"ghcr.io/aquasecurity/trivy-db\", \"deleteFailedImages\": false, \"deleteEOLImages\": true, \"vulnerabilities\": null, \"ignoreUnfixed\": true, \"types\": [ \"os\", \"library\" ], \"securityChecks\": [ \"vuln\" ], \"severities\": [ \"CRITICAL\", \"HIGH\", \"MEDIUM\", \"LOW\" ] }"`
