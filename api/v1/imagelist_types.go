@@ -38,6 +38,7 @@ type ImageListStatus struct {
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:scope="Cluster"
+// +kubebuilder:storageversion
 // ImageList is the Schema for the imagelists API.
 type ImageList struct {
 	metav1.TypeMeta   `json:",inline"`
@@ -48,6 +49,7 @@ type ImageList struct {
 }
 
 // +kubebuilder:object:root=true
+// +kubebuilder:storageversion
 // ImageListList contains a list of ImageList.
 type ImageListList struct {
 	metav1.TypeMeta `json:",inline"`
