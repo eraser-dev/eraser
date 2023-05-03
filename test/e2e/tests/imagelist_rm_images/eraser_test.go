@@ -28,7 +28,7 @@ const (
 	restartTimeout = time.Minute
 )
 
-func TestImageListTriggersEraserImageJob(t *testing.T) {
+func TestImageListTriggersRemoverImageJob(t *testing.T) {
 	rmImageFeat := features.New("An ImageList should trigger a remover ImageJob").
 		Setup(func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
 			podSelectorLabels := map[string]string{"app": util.Nginx}
