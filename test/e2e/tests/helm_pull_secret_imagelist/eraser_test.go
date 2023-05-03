@@ -25,7 +25,7 @@ const (
 	expectedPods = 4
 )
 
-func TestHelmPullSecret(t *testing.T) {
+func TestHelmPullSecretImagelist(t *testing.T) {
 	pullSecretsPropagated := features.New("Image Pull Secrets").
 		Assess("All pods should have the correct pull secret", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
 			c, err := cfg.NewClient()
@@ -90,7 +90,6 @@ func TestHelmPullSecret(t *testing.T) {
 			if err := util.GetPodLogs(t); err != nil {
 				t.Error("error getting eraser pod logs", err)
 			}
-
 
 			return ctx
 		}).
