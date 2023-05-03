@@ -768,7 +768,7 @@ func DeployOtelCollector(namespace string) env.Func {
 	}
 }
 
-func GetPodLogs(_ context.Context, _ *envconf.Config, t *testing.T, _ bool) error {
+func GetPodLogs(t *testing.T) error {
 	for _, nodeName := range []string{"eraser-e2e-test-control-plane", "eraser-e2e-test-worker", "eraser-e2e-test-worker2"} {
 		testName := strings.Split(t.Name(), "/")[0]
 		path := filepath.Join(TestLogDir, testName, nodeName)

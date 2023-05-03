@@ -120,7 +120,7 @@ func TestIncludeNodes(t *testing.T) {
 			}
 
 			// get pod logs before imagejob is deleted
-			if err := util.GetPodLogs(ctx, cfg, t, true); err != nil {
+			if err := util.GetPodLogs(t); err != nil {
 				t.Error("error getting collector pod logs", err)
 			}
 
