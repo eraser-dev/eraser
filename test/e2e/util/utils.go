@@ -14,7 +14,6 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/klog/v2"
 	"oras.land/oras-go/pkg/registry"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -769,52 +768,7 @@ func DeployOtelCollector(namespace string) env.Func {
 	}
 }
 
-func GetManagerLogs(ctx context.Context, cfg *envconf.Config, t *testing.T) error {
-	c, err := cfg.NewClient()
-	if err != nil {
-		return err
-	}
-
-	var pods corev1.PodList
-	err = c.Resources().List(ctx, &pods, func(o *metav1.ListOptions) {
-		o.LabelSelector = labels.SelectorFromSet(map[string]string{"control-plane": "controller-manager"}).String()
-	})
-	if err != nil {
-		return err
-	}
-
-	if len(pods.Items) > 1 {
-		return errors.New("only one manager pod should be present")
-	} else if len(pods.Items) == 0 {
-		return errors.New("no manager pod present")
-	}
-
-	manager := pods.Items[0]
-
-	output, err := KubectlLogs(cfg.KubeconfigFile(), manager.Name, "", cfg.Namespace())
-	if err != nil {
-		return err
-	}
-
-	testName := strings.Split(t.Name(), "/")[0]
-
-	// get log output file path
-	path := filepath.Join(TestLogDir, testName)
-	logFileName := filepath.Join(path, manager.Name+".txt")
-
-	if err := os.MkdirAll(path, 0o755); err != nil {
-		return err
-	}
-
-	err = os.WriteFile(logFileName, []byte(output), 0o600)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func GetPodLogs(ctx context.Context, cfg *envconf.Config, t *testing.T, imagelistTest bool) error {
+func GetPodLogs(_ context.Context, _ *envconf.Config, t *testing.T, _ bool) error {
 	for _, nodeName := range []string{"eraser-e2e-test-control-plane", "eraser-e2e-test-worker", "eraser-e2e-test-worker2"} {
 		testName := strings.Split(t.Name(), "/")[0]
 		path := filepath.Join(TestLogDir, testName, nodeName)
@@ -824,8 +778,16 @@ func GetPodLogs(ctx context.Context, cfg *envconf.Config, t *testing.T, imagelis
 		}
 
 		t.Logf(`docker cp %s:/var/log/containers %s`, nodeName, path)
-		cmd := exec.Command("docker", "cp", nodeName+":/var/log/containers", path)
+		cmd := exec.Command("docker", "cp", nodeName+":/var/log/containers", path) //nolint:gosec
 		output, err := cmd.CombinedOutput()
+		if err != nil {
+			t.Logf("error: %s\n%s", err, string(output))
+			continue
+		}
+
+		t.Logf(`docker cp %s:/var/log/pods %s`, nodeName, path)
+		cmd2 := exec.Command("docker", "cp", nodeName+":/var/log/pods", path) //nolint:gosec
+		output, err = cmd2.CombinedOutput()
 		if err != nil {
 			t.Logf("error: %s\n%s", err, string(output))
 			continue
