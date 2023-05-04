@@ -109,6 +109,7 @@ jobs:
             E2E_TESTS=${{ matrix.E2E_TEST }}
       - name: Upload artifacts
         uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce # v3.1.2
+        if: always()
         with:
           name: test_logs
           path: ${{ github.workspace }}/test_logs/*
