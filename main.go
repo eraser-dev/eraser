@@ -285,6 +285,7 @@ func startConfigWatch(cancel context.CancelFunc, watcher *inotify.Watcher, erase
 
 			if needsRestart(oldConfig, newConfig) {
 				setupLog.Info("configurations differ in an irreconcileable way, restarting", "old", oldConfig.Components, "new", newConfig.Components)
+				// restarts the manager
 				cancel()
 			}
 
