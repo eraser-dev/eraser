@@ -7,6 +7,7 @@ import (
 	"os"
 	"testing"
 
+	eraserv1 "github.com/Azure/eraser/api/v1"
 	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
 	"github.com/Azure/eraser/test/e2e/util"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -18,8 +19,9 @@ import (
 
 func TestMain(m *testing.M) {
 	utilruntime.Must(eraserv1alpha1.AddToScheme(scheme.Scheme))
+	utilruntime.Must(eraserv1.AddToScheme(scheme.Scheme))
 
-	eraserImage := util.ParsedImages.EraserImage
+	removerImage := util.ParsedImages.RemoverImage
 	managerImage := util.ParsedImages.ManagerImage
 
 	util.Testenv = env.NewWithConfig(envconf.New())
@@ -28,16 +30,21 @@ func TestMain(m *testing.M) {
 		envfuncs.CreateKindClusterWithConfig(util.KindClusterName, util.NodeVersion, "../../kind-config.yaml"),
 		envfuncs.CreateNamespace(util.TestNamespace),
 		util.LoadImageToCluster(util.KindClusterName, util.ManagerImage, util.ManagerTarballPath),
-		util.LoadImageToCluster(util.KindClusterName, util.EraserImage, util.EraserTarballPath),
+		util.LoadImageToCluster(util.KindClusterName, util.RemoverImage, util.RemoverTarballPath),
+		util.LoadImageToCluster(util.KindClusterName, util.RemoverImage, util.RemoverTarballPath),
 		util.HelmDeployLatestEraserRelease(util.TestNamespace,
 			"--set", util.ScannerEnable.Set("false"),
 			"--set", util.CollectorEnable.Set("false"),
+			"--set", util.RemoverImageRepo.Set(removerImage.Repo),
+			"--set", util.RemoverImageTag.Set(removerImage.Tag),
+			"--set", util.ManagerImageRepo.Set(managerImage.Repo),
+			"--set", util.ManagerImageTag.Set(managerImage.Tag),
 		),
 		util.UpgradeEraserHelm(util.TestNamespace,
 			"--set", util.CollectorEnable.Set("false"),
 			"--set", util.ScannerEnable.Set("false"),
-			"--set", util.EraserImageRepo.Set(eraserImage.Repo),
-			"--set", util.EraserImageTag.Set(eraserImage.Tag),
+			"--set", util.RemoverImageRepo.Set(removerImage.Repo),
+			"--set", util.RemoverImageTag.Set(removerImage.Tag),
 			"--set", util.ManagerImageRepo.Set(managerImage.Repo),
 			"--set", util.ManagerImageTag.Set(managerImage.Tag),
 			"--set", util.CleanupOnSuccessDelay.Set("1m"),

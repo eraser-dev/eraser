@@ -76,7 +76,7 @@ func (r *Runtime) UnmarshalJSON(b []byte) error {
 }
 
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
-// NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
+// NOTE: json tags are required. Any new fields you add must have json tags for the fields to be serialized.
 
 type OptionalContainerConfig struct {
 	Enabled         bool `json:"enabled,omitempty"`

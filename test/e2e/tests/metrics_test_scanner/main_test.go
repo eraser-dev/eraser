@@ -19,7 +19,7 @@ import (
 func TestMain(m *testing.M) {
 	utilruntime.Must(eraserv1alpha1.AddToScheme(scheme.Scheme))
 
-	eraserImage := util.ParsedImages.EraserImage
+	removerImage := util.ParsedImages.RemoverImage
 	managerImage := util.ParsedImages.ManagerImage
 	collectorImage := util.ParsedImages.CollectorImage
 	scannerImage := util.ParsedImages.ScannerImage
@@ -31,13 +31,18 @@ func TestMain(m *testing.M) {
 		envfuncs.CreateNamespace(util.TestNamespace),
 		util.DeployOtelCollector(util.TestNamespace),
 		util.LoadImageToCluster(util.KindClusterName, util.ManagerImage, util.ManagerTarballPath),
-		util.LoadImageToCluster(util.KindClusterName, util.EraserImage, util.EraserTarballPath),
+		util.LoadImageToCluster(util.KindClusterName, util.RemoverImage, util.RemoverTarballPath),
 		util.LoadImageToCluster(util.KindClusterName, util.CollectorImage, util.CollectorTarballPath),
 		util.LoadImageToCluster(util.KindClusterName, util.ScannerImage, util.ScannerTarballPath),
 		util.LoadImageToCluster(util.KindClusterName, util.VulnerableImage, ""),
+		util.LoadImageToCluster(util.KindClusterName, util.RemoverImage, util.RemoverTarballPath),
 		util.HelmDeployLatestEraserRelease(util.TestNamespace,
 			"--set", util.ScannerEnable.Set("false"),
 			"--set", util.CollectorEnable.Set("false"),
+			"--set", util.RemoverImageRepo.Set(removerImage.Repo),
+			"--set", util.RemoverImageTag.Set(removerImage.Tag),
+			"--set", util.ManagerImageRepo.Set(managerImage.Repo),
+			"--set", util.ManagerImageTag.Set(managerImage.Tag),
 		),
 		util.UpgradeEraserHelm(util.TestNamespace,
 			"--set", util.OTLPEndpoint.Set("otel-collector:4318"),
@@ -47,8 +52,8 @@ func TestMain(m *testing.M) {
 			"--set", util.CollectorImageTag.Set(collectorImage.Tag),
 			"--set", util.ScannerImageRepo.Set(scannerImage.Repo),
 			"--set", util.ScannerImageTag.Set(scannerImage.Tag),
-			"--set", util.EraserImageRepo.Set(eraserImage.Repo),
-			"--set", util.EraserImageTag.Set(eraserImage.Tag),
+			"--set", util.RemoverImageRepo.Set(removerImage.Repo),
+			"--set", util.RemoverImageTag.Set(removerImage.Tag),
 			"--set", util.ManagerImageRepo.Set(managerImage.Repo),
 			"--set", util.ManagerImageTag.Set(managerImage.Tag),
 			"--set", util.CleanupOnSuccessDelay.Set("1m"),

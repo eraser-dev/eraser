@@ -44,7 +44,6 @@ import (
 
 	"github.com/Azure/eraser/api/unversioned/config"
 	eraserv1 "github.com/Azure/eraser/api/v1"
-	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
 	controllerUtils "github.com/Azure/eraser/controllers/util"
 	eraserUtils "github.com/Azure/eraser/pkg/utils"
 )
@@ -117,7 +116,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 			Type: &corev1.Pod{},
 		},
 		&handler.EnqueueRequestForOwner{
-			OwnerType:    &eraserv1alpha1.ImageJob{},
+			OwnerType:    &eraserv1.ImageJob{},
 			IsController: true,
 		},
 	)
@@ -130,7 +129,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 			Type: &corev1.PodTemplate{},
 		},
 		&handler.EnqueueRequestForOwner{
-			OwnerType:    &eraserv1alpha1.ImageJob{},
+			OwnerType:    &eraserv1.ImageJob{},
 			IsController: true,
 		},
 	)
@@ -357,7 +356,7 @@ func (r *Reconciler) handleNewJob(ctx context.Context, imageJob *eraserv1.ImageJ
 			Spec:     *podSpec,
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace:    eraserUtils.GetNamespace(),
-				GenerateName: containerName + "-" + nodeName + "-",
+				GenerateName: "eraser-" + nodeName + "-",
 				Labels:       map[string]string{"name": containerName},
 				OwnerReferences: []metav1.OwnerReference{
 					*metav1.NewControllerRef(imageJob, imageJob.GroupVersionKind()),
