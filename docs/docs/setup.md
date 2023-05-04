@@ -34,7 +34,7 @@ make generate
 
 # build applicable images
 make docker-build-manager MANAGER_IMG=eraser-manager:dev
-make docker-build-eraser ERASER_IMG=eraser:dev
+make docker-build-remover REMOVER_IMG=remover:dev
 make docker-build-collector COLLECTOR_IMG=collector:dev
 make docker-build-trivy-scanner TRIVY_SCANNER_IMG=eraser-trivy-scanner:dev
 
@@ -42,7 +42,7 @@ make docker-build-trivy-scanner TRIVY_SCANNER_IMG=eraser-trivy-scanner:dev
 kind load docker-image \
         eraser-manager:dev \
         eraser-trivy-scanner:dev \
-        eraser:dev \
+        remover:dev \
         collector:dev
 
 make manifests
@@ -100,7 +100,7 @@ You can override the default configuration using environment variables. Below yo
 | -------------------- | --------------------------------------------------------------------------------------------- |
 | VERSION              | Specifies the version (i.e., the image tag) of eraser to be used.                             |
 | MANAGER_IMG          | Defines the image url for the Eraser manager. Used for tagging, pulling and pushing the image |
-| ERASER_IMG           | Defines the image url for the Eraser. Used for tagging, pulling and pushing the image         |
+| REMOVER_IMG           | Defines the image url for the Eraser. Used for tagging, pulling and pushing the image         |
 | COLLECTOR_IMG        | Defines the image url for the Collector. Used for tagging, pulling and pushing the image      |
 
 ### Linting
@@ -127,7 +127,7 @@ Configuration Options:
 
 | Environment Variable | Description                                        |
 | -------------------- | -------------------------------------------------- |
-| ERASER_IMG           | Defines the image url for the Eraser.              |
+| REMOVER_IMG           | Defines the image url for the Eraser.              |
 | MANAGER_IMG          | Defines the image url for the Eraser manager.      |
 | KUSTOMIZE_VERSION    | Define Kustomize version for generating manifests. |
 
@@ -150,7 +150,7 @@ Configuration Options:
 
 | Environment Variable | Description                                                                                                   |
 | -------------------- | ------------------------------------------------------------------------------------------------------------- |
-| ERASER_IMG           | Eraser image to be used for e2e test.                                                                         |
+| REMOVER_IMG           | Eraser image to be used for e2e test.                                                                         |
 | MANAGER_IMG          | Eraser manager image to be used for e2e test.                                                                 |
 | KUBERNETES_VERSION   | Kubernetes version for e2e test.                                                                              |
 | TEST_COUNT           | Sets repetition for test. Please refer to [go docs](https://pkg.go.dev/cmd/go#hdr-Testing_flags) for details. |
@@ -191,9 +191,9 @@ Configuration Options:
 | -------------------- | ----------------------------------------------------------------------- |
 | MANAGER_IMG          | Specifies the target repository, image name and tag for building image. |
 
-- `make docker-build-eraser`
+- `make docker-build-remover`
 
-Builds the docker image for the eraser manager.
+Builds the docker image for eraser remover.
 
 Configuration Options:
 
@@ -203,17 +203,17 @@ Configuration Options:
 | CACHE_TO             | Sets the target of the buildx --cache-to flag [see buildx reference](https://docs.docker.com/engine/reference/commandline/buildx_build/#cache-to).     |
 | PLATFORM             | Sets the target platform for buildx [see buildx reference](https://docs.docker.com/engine/reference/commandline/buildx_build/#platform).               |
 | OUTPUT_TYPE          | Sets the output for buildx [see buildx reference](https://docs.docker.com/engine/reference/commandline/buildx_build/#output).                          |
-| ERASER_IMG           | Specifies the target repository, image name and tag for building image.                                                                                |
+| REMOVER_IMG           | Specifies the target repository, image name and tag for building image.                                                                                |
 
-- `make docker-push-eraser`
+- `make docker-push-remover`
 
-Builds the docker image for the eraser manager.
+Builds the docker image for the eraser remover.
 
 Configuration Options:
 
 | Environment Variable | Description                                                             |
 | -------------------- | ----------------------------------------------------------------------- |
-| ERASER_IMG           | Specifies the target repository, image name and tag for building image. |
+| REMOVER_IMG           | Specifies the target repository, image name and tag for building image. |
 
 - `make docker-build-collector`
 

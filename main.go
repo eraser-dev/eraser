@@ -17,6 +17,7 @@ limitations under the License.
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"net/http"
@@ -74,6 +75,13 @@ type apiVersion struct {
 type convertFunc[T any] func(*T, *unversioned.EraserConfig, conversion.Scope) error
 
 func main() {
+	ctx, cancel := context.WithCancel(context.Background())
+
+	go func() {
+		<-ctx.Done()
+		os.Exit(1)
+	}()
+
 	var configFile string
 	flag.StringVar(&configFile, "config", "",
 		"The controller will load its initial configuration from this file. "+
@@ -122,7 +130,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	go startConfigWatch(watcher, eraserOpts, configFile)
+	go startConfigWatch(cancel, watcher, eraserOpts, configFile)
 
 	if managerOpts.Profile.Enabled {
 		go func() {
@@ -228,7 +236,7 @@ func setupWatcher(configFile string) (*inotify.Watcher, error) {
 	return watcher, nil
 }
 
-func startConfigWatch(watcher *inotify.Watcher, eraserOpts *config.Manager, filename string) {
+func startConfigWatch(cancel context.CancelFunc, watcher *inotify.Watcher, eraserOpts *config.Manager, filename string) {
 	for {
 		select {
 		case ev := <-watcher.Event:
@@ -248,26 +256,52 @@ func startConfigWatch(watcher *inotify.Watcher, eraserOpts *config.Manager, file
 				continue
 			}
 
-			cfg, err := getConfig(filename)
+			var err error
+			oldConfig := new(unversioned.EraserConfig)
+
+			*oldConfig, err = eraserOpts.Read()
+			if err != nil {
+				setupLog.Error(err, "configuration could not be read", "event", ev, "filename", filename)
+			}
+
+			newConfig, err := getConfig(filename)
 			if err != nil {
 				setupLog.Error(err, "configuration is missing or invalid", "event", ev, "filename", filename)
 				continue
 			}
 
-			if err = eraserOpts.Update(cfg); err != nil {
+			if err = eraserOpts.Update(newConfig); err != nil {
 				setupLog.Error(err, "configuration update failed")
 				continue
 			}
 
-			newC, err := eraserOpts.Read()
+			// read back the new configuration
+			*newConfig, err = eraserOpts.Read()
 			if err != nil {
 				setupLog.Error(err, "unable to read back new configuration")
 				continue
 			}
 
-			setupLog.V(1).Info("new configuration", "manager", newC.Manager, "components", newC.Components)
+			if needsRestart(oldConfig, newConfig) {
+				setupLog.Info("configurations differ in an irreconcileable way, restarting", "old", oldConfig.Components, "new", newConfig.Components)
+				// restarts the manager
+				cancel()
+			}
+
+			setupLog.V(1).Info("new configuration", "manager", newConfig.Manager, "components", newConfig.Components)
 		case err := <-watcher.Error:
 			setupLog.Error(err, "file watcher error")
 		}
 	}
+}
+
+func needsRestart(oldConfig, newConfig *unversioned.EraserConfig) bool {
+	type check struct {
+		collector bool
+		scanner   bool
+	}
+
+	oldComponents := check{collector: oldConfig.Components.Collector.Enabled, scanner: oldConfig.Components.Scanner.Enabled}
+	newComponents := check{collector: newConfig.Components.Collector.Enabled, scanner: newConfig.Components.Scanner.Enabled}
+	return oldComponents != newComponents
 }
