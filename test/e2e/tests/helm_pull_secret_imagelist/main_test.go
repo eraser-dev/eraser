@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	eraserv1 "github.com/Azure/eraser/api/v1"
-	eraserv1alpha2 "github.com/Azure/eraser/api/v1alpha2"
+	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
 	"github.com/Azure/eraser/test/e2e/util"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/kubernetes/scheme"
@@ -18,7 +18,7 @@ import (
 )
 
 func TestMain(m *testing.M) {
-	utilruntime.Must(eraserv1alpha2.AddToScheme(scheme.Scheme))
+	utilruntime.Must(eraserv1alpha1.AddToScheme(scheme.Scheme))
 	utilruntime.Must(eraserv1.AddToScheme(scheme.Scheme))
 
 	removerImage := util.ParsedImages.RemoverImage
