@@ -7,6 +7,7 @@ import (
 	"os"
 	"testing"
 
+	eraserv1 "github.com/Azure/eraser/api/v1"
 	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
 	"github.com/Azure/eraser/test/e2e/util"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -18,6 +19,7 @@ import (
 
 func TestMain(m *testing.M) {
 	utilruntime.Must(eraserv1alpha1.AddToScheme(scheme.Scheme))
+	utilruntime.Must(eraserv1.AddToScheme(scheme.Scheme))
 
 	util.Testenv = env.NewWithConfig(envconf.New())
 	// Create KinD Cluster
