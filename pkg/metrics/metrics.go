@@ -62,7 +62,7 @@ func ExportMetrics(log logr.Logger, exporter sdkmetric.Exporter, reader sdkmetri
 	}
 }
 
-func RecordMetricsEraser(ctx context.Context, p metric.MeterProvider, totalRemoved int64) error {
+func RecordMetricsRemover(ctx context.Context, p metric.MeterProvider, totalRemoved int64) error {
 	counter, err := p.Meter("eraser").SyncInt64().Counter(ImagesRemovedCounter, instrument.WithDescription(ImagesRemovedDescription), instrument.WithUnit("1"))
 	if err != nil {
 		return err

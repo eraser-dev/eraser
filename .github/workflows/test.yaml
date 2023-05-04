@@ -58,11 +58,11 @@ jobs:
         with:
           version: latest
           args: --timeout=10m
-      - name: lint eraser
+      - name: lint remover
         uses: golangci/golangci-lint-action@08e2f20817b15149a52b5b3ebe7de50aff2ba8c5 # v3.4.0
         with:
           version: latest
-          working-directory: pkg/eraser
+          working-directory: pkg/remover
           skip-pkg-cache: true
           args: --timeout=10m
       - name: lint collector
@@ -164,17 +164,17 @@ jobs:
       - name: Build eraser-manager
         run: |
           make docker-build-manager MANAGER_REPO=${{ env.REGISTRY }}/${REPO}-manager MANAGER_TAG=test
-      - name: Build eraser
+      - name: Build remover
         run: |
-          make docker-build-eraser ERASER_REPO=${{ env.REGISTRY }}/${REPO} ERASER_TAG=test
+          make docker-build-remover REMOVER_REPO=${{ env.REGISTRY }}/remover REMOVER_TAG=test
       - name: Build collector
         run: |
           make docker-build-collector COLLECTOR_REPO=${{ env.REGISTRY }}/collector COLLECTOR_TAG=test
       - name: Build trivy scanner
         run: |
           make docker-build-trivy-scanner TRIVY_SCANNER_REPO=${{ env.REGISTRY }}/${REPO}-trivy-scanner TRIVY_SCANNER_TAG=test
-      - name: Run trivy for eraser
-        run: trivy image --ignore-unfixed --exit-code=1 --vuln-type=os,library ${{ env.REGISTRY }}/${REPO}:test
+      - name: Run trivy for remover
+        run: trivy image --ignore-unfixed --exit-code=1 --vuln-type=os,library ${{ env.REGISTRY }}/remover:test
 
       - name: Run trivy for eraser-manager
         run: trivy image --ignore-unfixed --exit-code=1 --vuln-type=os,library ${{ env.REGISTRY }}/${REPO}-manager:test

@@ -10,7 +10,7 @@ import (
 
 	"github.com/Azure/eraser/test/e2e/util"
 
-	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
+	eraserv1 "github.com/Azure/eraser/api/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -20,12 +20,12 @@ import (
 )
 
 const (
-	collectorLabel = "name=eraser"
+	collectorLabel = "name=remover"
 
 	expectedPods = 4
 )
 
-func TestHelmPullSecret(t *testing.T) {
+func TestHelmPullSecretImagelist(t *testing.T) {
 	pullSecretsPropagated := features.New("Image Pull Secrets").
 		Assess("All pods should have the correct pull secret", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
 			c, err := cfg.NewClient()
@@ -33,9 +33,9 @@ func TestHelmPullSecret(t *testing.T) {
 				t.Fatal("Failed to create new client", err)
 			}
 
-			imgList := &eraserv1alpha1.ImageList{
+			imgList := &eraserv1.ImageList{
 				ObjectMeta: metav1.ObjectMeta{Name: util.Prune},
-				Spec: eraserv1alpha1.ImageListSpec{
+				Spec: eraserv1.ImageListSpec{
 					Images: []string{"*"},
 				},
 			}
@@ -54,7 +54,7 @@ func TestHelmPullSecret(t *testing.T) {
 
 			var ls corev1.PodList
 			err = c.Resources().List(ctx, &ls, func(o *metav1.ListOptions) {
-				o.LabelSelector = labels.SelectorFromSet(map[string]string{"name": "eraser"}).String()
+				o.LabelSelector = labels.SelectorFromSet(map[string]string{"name": "remover"}).String()
 			})
 			if err != nil {
 				t.Errorf("could not list pods: %v", err)
@@ -87,12 +87,8 @@ func TestHelmPullSecret(t *testing.T) {
 			return ctx
 		}).
 		Assess("Get logs", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
-			if err := util.GetPodLogs(ctx, cfg, t, true); err != nil {
-				t.Error("error getting collector pod logs", err)
-			}
-
-			if err := util.GetManagerLogs(ctx, cfg, t); err != nil {
-				t.Error("error getting manager logs", err)
+			if err := util.GetPodLogs(t); err != nil {
+				t.Error("error getting eraser pod logs", err)
 			}
 
 			return ctx

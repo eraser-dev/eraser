@@ -14,7 +14,6 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/klog/v2"
 	"oras.land/oras-go/pkg/registry"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -27,7 +26,7 @@ import (
 	"sigs.k8s.io/e2e-framework/pkg/envfuncs"
 	"sigs.k8s.io/kind/pkg/cluster"
 
-	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
+	eraserv1 "github.com/Azure/eraser/api/v1"
 
 	pkgUtil "github.com/Azure/eraser/pkg/utils"
 )
@@ -67,8 +66,8 @@ const (
 	ScannerImageRepo = HelmPath("runtimeConfig.components.scanner.image.repo")
 	ScannerImageTag  = HelmPath("runtimeConfig.components.scanner.image.tag")
 
-	EraserImageRepo = HelmPath("runtimeConfig.components.eraser.image.repo")
-	EraserImageTag  = HelmPath("runtimeConfig.components.eraser.image.tag")
+	RemoverImageRepo = HelmPath("runtimeConfig.components.remover.image.repo")
+	RemoverImageTag  = HelmPath("runtimeConfig.components.remover.image.tag")
 
 	ManagerImageRepo = HelmPath("deploy.image.repo")
 	ManagerImageTag  = HelmPath("deploy.image.tag")
@@ -83,7 +82,7 @@ const (
 
 var (
 	Testenv            env.Environment
-	EraserImage        = os.Getenv("ERASER_IMAGE")
+	RemoverImage       = os.Getenv("REMOVER_IMAGE")
 	ManagerImage       = os.Getenv("MANAGER_IMAGE")
 	CollectorImage     = os.Getenv("COLLECTOR_IMAGE")
 	ScannerImage       = os.Getenv("SCANNER_IMAGE")
@@ -92,7 +91,7 @@ var (
 	EOLImage           = os.Getenv("EOL_IMAGE")
 	BusyboxImage       = os.Getenv("BUSYBOX_IMAGE")
 
-	EraserTarballPath    = os.Getenv("ERASER_TARBALL_PATH")
+	RemoverTarballPath   = os.Getenv("REMOVER_TARBALL_PATH")
 	ManagerTarballPath   = os.Getenv("MANAGER_TARBALL_PATH")
 	CollectorTarballPath = os.Getenv("COLLECTOR_TARBALL_PATH")
 	ScannerTarballPath   = os.Getenv("SCANNER_TARBALL_PATH")
@@ -122,7 +121,7 @@ type (
 
 	Images struct {
 		CollectorImage RepoTag
-		EraserImage    RepoTag
+		RemoverImage   RepoTag
 		ManagerImage   RepoTag
 		ScannerImage   RepoTag
 	}
@@ -150,7 +149,7 @@ func (hs *HelmSet) String() string {
 
 func init() {
 	var err error
-	ParsedImages, err = parsedImages(EraserImage, ManagerImage, CollectorImage, ScannerImage)
+	ParsedImages, err = parsedImages(RemoverImage, ManagerImage, CollectorImage, ScannerImage)
 	if err != nil {
 		klog.Error(err)
 		panic(err)
@@ -169,8 +168,8 @@ func toRepoTag(ref registry.Reference) RepoTag {
 	return repoTag
 }
 
-func parsedImages(eraserImage, managerImage, collectorImage, scannerImage string) (*Images, error) {
-	eraserRepoTag, err := parseRepoTag(eraserImage)
+func parsedImages(removerImage, managerImage, collectorImage, scannerImage string) (*Images, error) {
+	removerRepoTag, err := parseRepoTag(removerImage)
 	if err != nil {
 		return nil, err
 	}
@@ -192,7 +191,7 @@ func parsedImages(eraserImage, managerImage, collectorImage, scannerImage string
 
 	return &Images{
 		CollectorImage: collectorRepoTag,
-		EraserImage:    eraserRepoTag,
+		RemoverImage:   removerRepoTag,
 		ManagerImage:   managerRepoTag,
 		ScannerImage:   scannerRepoTag,
 	}, nil
@@ -235,6 +234,11 @@ func LoadImageToCluster(clusterName, imageRef, tarballPath string) env.Func {
 
 func HelmDeployLatestEraserRelease(namespace string, extraArgs ...string) env.Func {
 	return func(ctx context.Context, cfg *envconf.Config) (context.Context, error) {
+		wd, err := os.Getwd()
+		if err != nil {
+			return ctx, err
+		}
+
 		if os.Getenv("HELM_UPGRADE_TEST") == "" {
 			return ctx, nil
 		}
@@ -251,10 +255,16 @@ func HelmDeployLatestEraserRelease(namespace string, extraArgs ...string) env.Fu
 			return ctx, err
 		}
 
-		args := []string{"eraser/eraser"}
-		args = append(args, extraArgs...)
+		emptyValuesPath, err := filepath.Abs(filepath.Join(wd, "../../test-data/helm-empty-values.yaml"))
+		if err != nil {
+			return ctx, err
+		}
 
-		if err := HelmInstall(cfg.KubeconfigFile(), namespace, args); err != nil {
+		allArgs := []string{"-f", emptyValuesPath}
+		allArgs = append(allArgs, "eraser/eraser")
+		allArgs = append(allArgs, extraArgs...)
+
+		if err := HelmInstall(cfg.KubeconfigFile(), namespace, allArgs); err != nil {
 			return ctx, err
 		}
 
@@ -393,20 +403,20 @@ func ImagejobNotInCluster(kubeconfigPath string) func() (bool, error) {
 	}
 }
 
-func GetImageJob(ctx context.Context, cfg *envconf.Config) (eraserv1alpha1.ImageJob, error) {
+func GetImageJob(ctx context.Context, cfg *envconf.Config) (eraserv1.ImageJob, error) {
 	c, err := cfg.NewClient()
 	if err != nil {
-		return eraserv1alpha1.ImageJob{}, err
+		return eraserv1.ImageJob{}, err
 	}
 
-	var ls eraserv1alpha1.ImageJobList
+	var ls eraserv1.ImageJobList
 	err = c.Resources().List(ctx, &ls)
 	if err != nil {
-		return eraserv1alpha1.ImageJob{}, err
+		return eraserv1.ImageJob{}, err
 	}
 
 	if len(ls.Items) != 1 {
-		return eraserv1alpha1.ImageJob{}, errors.New("only one imagejob should be present")
+		return eraserv1.ImageJob{}, errors.New("only one imagejob should be present")
 	}
 
 	return ls.Items[0], nil
@@ -501,13 +511,13 @@ func CheckDeploymentCleanedUp(ctx context.Context, t *testing.T, client klient.C
 			return
 		default:
 			var pods corev1.PodList
-			err := client.Resources().List(ctx, &pods, resources.WithLabelSelector("name=eraser"))
+			err := client.Resources().List(ctx, &pods, resources.WithLabelSelector("name=remover"))
 			if err != nil {
 				t.Fatalf("error listing images: %s", err)
 			}
 
 			if len(pods.Items) > 0 {
-				t.Errorf("imagejob got restarted when it shouldn't: %d eraser pods still present", len(pods.Items))
+				t.Errorf("imagejob got restarted when it shouldn't: %d remover pods still present", len(pods.Items))
 				t.FailNow()
 			}
 		}
@@ -758,109 +768,29 @@ func DeployOtelCollector(namespace string) env.Func {
 	}
 }
 
-func GetManagerLogs(ctx context.Context, cfg *envconf.Config, t *testing.T) error {
-	c, err := cfg.NewClient()
-	if err != nil {
-		return err
-	}
-
-	var pods corev1.PodList
-	err = c.Resources().List(ctx, &pods, func(o *metav1.ListOptions) {
-		o.LabelSelector = labels.SelectorFromSet(map[string]string{"control-plane": "controller-manager"}).String()
-	})
-	if err != nil {
-		return err
-	}
-
-	if len(pods.Items) > 1 {
-		return errors.New("only one manager pod should be present")
-	} else if len(pods.Items) == 0 {
-		return errors.New("no manager pod present")
-	}
-
-	manager := pods.Items[0]
-
-	output, err := KubectlLogs(cfg.KubeconfigFile(), manager.Name, "", cfg.Namespace())
-	if err != nil {
-		return err
-	}
-
-	testName := strings.Split(t.Name(), "/")[0]
-
-	// get log output file path
-	path := filepath.Join(TestLogDir, testName)
-	logFileName := filepath.Join(path, manager.Name+".txt")
-
-	if err := os.MkdirAll(path, 0o755); err != nil {
-		return err
-	}
-
-	err = os.WriteFile(logFileName, []byte(output), 0o600)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func GetPodLogs(ctx context.Context, cfg *envconf.Config, t *testing.T, imagelistTest bool) error {
-	c, err := cfg.NewClient()
-	if err != nil {
-		return err
-	}
-
-	namespace := cfg.Namespace()
-
-	labelSelectorSet := map[string]string{"name": "collector"}
-	if imagelistTest {
-		labelSelectorSet = map[string]string{"name": "eraser"}
-	}
-
-	var ls corev1.PodList
-	err = wait.For(func() (bool, error) {
-		err = c.Resources().List(ctx, &ls, func(o *metav1.ListOptions) {
-			o.LabelSelector = labels.SelectorFromSet(labelSelectorSet).String()
-		})
-
-		if err != nil {
-			return false, err
-		}
-
-		return len(ls.Items) > 0, nil
-	}, wait.WithTimeout(Timeout))
-
-	if err != nil {
-		t.Errorf("could not list pods: %v", err)
-	}
-
-	for idx := range ls.Items {
-		var output string
-		pod := ls.Items[idx]
-
+func GetPodLogs(t *testing.T) error {
+	for _, nodeName := range []string{"eraser-e2e-test-control-plane", "eraser-e2e-test-worker", "eraser-e2e-test-worker2"} {
 		testName := strings.Split(t.Name(), "/")[0]
-
-		// get log output file path
-		path := filepath.Join(TestLogDir, testName)
-		podLogFilename := filepath.Join(path, pod.Name+".txt")
-
-		// wait for current pod to complete
-		err = wait.For(conditions.New(c.Resources()).PodPhaseMatch(&pod, corev1.PodSucceeded), wait.WithTimeout(Timeout))
-		if err != nil {
-			t.Errorf("error waiting for pod completion %s %v", pod.Name, err)
-		}
-
-		output, err := KubectlLogs(cfg.KubeconfigFile(), pod.Name, "", namespace, "--all-containers=true")
-		if err != nil {
-			t.Errorf("error getting pod logs %s %v", pod.Name, err)
-		}
-
+		path := filepath.Join(TestLogDir, testName, nodeName)
 		if err := os.MkdirAll(path, 0o755); err != nil {
-			return err
+			t.Logf("error: %s", err)
+			continue
 		}
 
-		err = os.WriteFile(podLogFilename, []byte(output), 0o600)
+		t.Logf(`docker cp %s:/var/log/containers %s`, nodeName, path)
+		cmd := exec.Command("docker", "cp", nodeName+":/var/log/containers", path) //nolint:gosec
+		output, err := cmd.CombinedOutput()
 		if err != nil {
-			t.Errorf("error writing pod log file %s %s %v", pod.Name, podLogFilename, err)
+			t.Logf("error: %s\n%s", err, string(output))
+			continue
+		}
+
+		t.Logf(`docker cp %s:/var/log/pods %s`, nodeName, path)
+		cmd2 := exec.Command("docker", "cp", nodeName+":/var/log/pods", path) //nolint:gosec
+		output, err = cmd2.CombinedOutput()
+		if err != nil {
+			t.Logf("error: %s\n%s", err, string(output))
+			continue
 		}
 	}
 

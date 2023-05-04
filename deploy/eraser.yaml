@@ -430,7 +430,7 @@ subjects:
 apiVersion: v1
 data:
   controller_manager_config.yaml: |
-    apiVersion: eraser.sh/v1alpha1
+    apiVersion: eraser.sh/v1alpha2
     kind: EraserConfig
     manager:
       runtime: containerd

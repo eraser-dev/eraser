@@ -1,4 +1,4 @@
-apiVersion: eraser.sh/v1alpha1
+apiVersion: eraser.sh/v1alpha2
 kind: EraserConfig
 manager:
   runtime: containerd
@@ -72,10 +72,10 @@ components:
       timeout:
         total: 23h
         perImage: 1h
-  eraser:
+  remover:
     image:
-      repo: ERASER_REPO
-      tag: ERASER_TAG
+      repo: REMOVER_REPO
+      tag: REMOVER_TAG
     request:
       mem: 25Mi
       # https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/#how-pods-with-resource-limits-are-run

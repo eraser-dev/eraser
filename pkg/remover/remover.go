@@ -33,7 +33,7 @@ var (
 
 	// Timeout  of connecting to server (default: 5m).
 	timeout  = 5 * time.Minute
-	log      = logf.Log.WithName("eraser")
+	log      = logf.Log.WithName("remover")
 	excluded map[string]struct{}
 )
 
@@ -66,7 +66,7 @@ func main() {
 		os.Exit(generalErr)
 	}
 
-	client, err := cri.NewEraserClient(socketPath)
+	client, err := cri.NewRemoverClient(socketPath)
 	if err != nil {
 		log.Error(err, "failed to get image client")
 		os.Exit(generalErr)
@@ -143,7 +143,7 @@ func main() {
 		exporter, reader, provider := metrics.ConfigureMetrics(ctx, log, os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT"))
 		global.SetMeterProvider(provider)
 
-		if err := metrics.RecordMetricsEraser(ctx, global.MeterProvider(), int64(removed)); err != nil {
+		if err := metrics.RecordMetricsRemover(ctx, global.MeterProvider(), int64(removed)); err != nil {
 			log.Error(err, "error recording metrics")
 		}
 		metrics.ExportMetrics(log, exporter, reader)

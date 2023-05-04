@@ -8,8 +8,8 @@ on:
         type: string
 
 jobs:
-  build-eraser:
-    name: "Build eraser image for e2e tests"
+  build-remover:
+    name: "Build remover image for e2e tests"
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -39,15 +39,15 @@ jobs:
       - run: 'echo ${{ inputs.bucket-id }}'
       - name: Set env
         run: |
-          echo ERASER_REPO=eraser >> $GITHUB_ENV
-          echo ERASER_TAG=test >> $GITHUB_ENV
-      - name: Build eraser
-        run: 'make docker-build-eraser OUTPUT_TYPE=type=oci,dest=./${ERASER_REPO}_${ERASER_TAG}.tar,name=${ERASER_REPO}:${ERASER_TAG}'
+          echo REMOVER_REPO=remover >> $GITHUB_ENV
+          echo REMOVER_TAG=test >> $GITHUB_ENV
+      - name: Build remover
+        run: 'make docker-build-remover OUTPUT_TYPE=type=oci,dest=./${REMOVER_REPO}_${REMOVER_TAG}.tar,name=${REMOVER_REPO}:${REMOVER_TAG}'
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce # v3.1.2
         with:
           name: ${{ inputs.bucket-id }}
-          path: eraser_test.tar
+          path: remover_test.tar
 
   build-trivy-scanner:
     name: "Build trivy-scanner image for e2e tests"

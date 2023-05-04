@@ -72,12 +72,12 @@ take place when:
 
 ### Swapping out components
 
-The collector, scanner, and eraser components can all be swapped out. This
+The collector, scanner, and remover components can all be swapped out. This
 enables you to build and host the images yourself. In addition, the scanner's
 behavior can be completely tailored to your needs by swapping out the default
 image with one of your own. To specify the images, use the
 `components.<component>.image.repo` and `components.<component>.image.tag`,
-where `<component>` is one of `collector`, `scanner`, or `eraser`.
+where `<component>` is one of `collector`, `scanner`, or `remover`.
 
 ## Universal Options
 
@@ -98,17 +98,17 @@ manager:
     cleanup:
       delayOnSuccess: 0s
       delayOnFailure: 24h
-  pullSecrets: [] # image pull secrets for collector/scanner/eraser
-  priorityClassName: "" # priority class name for collector/scanner/eraser
+  pullSecrets: [] # image pull secrets for collector/scanner/remover
+  priorityClassName: "" # priority class name for collector/scanner/remover
   nodeFilter:
     type: exclude # must be either exclude|include
     selectors:
       - eraser.sh/cleanup.filter
       - kubernetes.io/os=windows
 components:
-  eraser:
+  remover:
     image:
-      repo: ghcr.io/azure/eraser
+      repo: ghcr.io/azure/remover
       tag: v1.0.0
     request:
       mem: 25Mi
@@ -147,9 +147,9 @@ components:
     config: |
       # this is the schema for the provided 'trivy-scanner'. custom scanners
       # will define their own configuration. see the below
-  eraser:
+  remover:
     image:
-      repo: ghcr.io/azure/eraser
+      repo: ghcr.io/azure/remover
       tag: v1.0.0
     request:
       mem: 25Mi
@@ -201,8 +201,8 @@ timeout:
 | manager.imageJob.successRatio | The ratio of successful image jobs required before a cleanup is performed. | 1.0 |
 | manager.imageJob.cleanup.delayOnSuccess | The amount of time to wait after a successful image job before performing cleanup. | 0s |
 | manager.imageJob.cleanup.delayOnFailure | The amount of time to wait after a failed image job before performing cleanup. | 24h |
-| manager.pullSecrets | The image pull secrets to use for collector, scanner, and eraser containers. | [] |
-| manager.priorityClassName | The priority class to use for collector, scanner, and eraser containers. | "" |
+| manager.pullSecrets | The image pull secrets to use for collector, scanner, and remover containers. | [] |
+| manager.priorityClassName | The priority class to use for collector, scanner, and remover containers. | "" |
 | manager.nodeFilter.type | The type of node filter to use. Must be either "exclude" or "include". | exclude |
 | manager.nodeFilter.selectors | A list of selectors used to filter nodes. | [] |
 | components.collector.enabled | Whether to enable the collector component. | true |
@@ -220,7 +220,7 @@ timeout:
 | components.scanner.limit.mem | The maximum amount of memory the scanner container is allowed to use. | 2Gi |
 | components.scanner.limit.cpu | The maximum amount of CPU the scanner container is allowed to use. | 0 |
 | components.scanner.config | The configuration to pass to the scanner container, as a YAML string. | See YAML below |
-| components.eraser.image.repo | The repository containing the eraser image. | ghcr.io/azure/eraser |
-| components.eraser.image.tag | The tag of the eraser image. | v1.0.0 |
-| components.eraser.request.mem | The amount of memory to request for the eraser container. | 25Mi |
-| components.eraser.request.cpu | The amount of CPU to request for the eraser container. | 0 |
+| components.remover.image.repo | The repository containing the remover image. | ghcr.io/azure/remover |
+| components.remover.image.tag | The tag of the remover image. | v1.0.0 |
+| components.remover.request.mem | The amount of memory to request for the remover container. | 25Mi |
+| components.remover.request.cpu | The amount of CPU to request for the remover container. | 0 |
