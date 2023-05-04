@@ -7,8 +7,8 @@ import (
 	"os"
 	"testing"
 
+	eraserv1 "github.com/Azure/eraser/api/v1"
 	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
-	eraserv1 "github.com/Azure/eraser/api/v1
 	"github.com/Azure/eraser/test/e2e/util"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/kubernetes/scheme"
