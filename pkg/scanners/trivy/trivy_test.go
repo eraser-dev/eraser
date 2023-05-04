@@ -4,6 +4,9 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/aquasecurity/trivy/pkg/types"
+	trivyTypes "github.com/aquasecurity/trivy/pkg/types"
 )
 
 func TestParseCommaSeparatedOptions(t *testing.T) {
@@ -104,6 +107,11 @@ func TestSetupScanner(t *testing.T) {
 	vulnTypes := []string{"os"}
 	securityChecks := []string{"vuln", "secret", "config"}
 
+	var scanners trivyTypes.Scanners
+	for _, securityCheck := range securityChecks {
+		scanners = append(scanners, types.Scanner(securityCheck))
+	}
+
 	scanOpts, err := setupScanner(tmp, vulnTypes, securityChecks)
 	if err != nil {
 		t.Fatal(err)
@@ -124,12 +132,12 @@ func TestSetupScanner(t *testing.T) {
 		}
 	}
 
-	if len(scanOpts.scanOptions.SecurityChecks) != len(securityChecks) {
+	if len(scanOpts.scanOptions.Scanners) != len(scanners) {
 		t.Fatalf("setupScanner() failed to propagate desired vulnerability types")
 	}
 
-	for i, vt := range scanOpts.scanOptions.SecurityChecks {
-		if vt != securityChecks[i] {
+	for i, vt := range scanOpts.scanOptions.Scanners {
+		if vt != scanners[i] {
 			t.Fatalf("setupScanner() failed to propagate desired vulnerability types")
 		}
 	}

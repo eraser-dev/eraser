@@ -10,6 +10,7 @@ import (
 	metric "go.opentelemetry.io/otel/metric"
 	"go.opentelemetry.io/otel/metric/global"
 	sdkmetric "go.opentelemetry.io/otel/sdk/metric"
+	"go.opentelemetry.io/otel/sdk/metric/metricdata"
 )
 
 func TestConfigureMetrics(t *testing.T) {
@@ -49,7 +50,7 @@ func TestMeterCreatesInstrument(t *testing.T) {
 		{
 			name: "AsyncInt64Count",
 			fn: func(t *testing.T, m metric.Meter) {
-				ctr, err := m.SyncInt64().Counter(ImagesRemovedCounter)
+				ctr, err := m.Int64Counter(ImagesRemovedCounter)
 				assert.NoError(t, err)
 				ctr.Add(context.Background(), 1)
 				assert.NoError(t, err)
@@ -64,11 +65,12 @@ func TestMeterCreatesInstrument(t *testing.T) {
 
 			tt.fn(t, m)
 
-			rm, err := rdr.Collect(context.Background())
+			metrics := metricdata.ResourceMetrics{}
+			err := rdr.Collect(context.Background(), &metrics)
 			assert.NoError(t, err)
 
-			require.Len(t, rm.ScopeMetrics, 1)
-			sm := rm.ScopeMetrics[0]
+			require.Len(t, metrics.ScopeMetrics, 1)
+			sm := metrics.ScopeMetrics[0]
 			require.Len(t, sm.Metrics, 1)
 			got := sm.Metrics[0]
 

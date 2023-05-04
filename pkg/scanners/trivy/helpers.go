@@ -85,7 +85,7 @@ func downloadDB(cfg *Config) error {
 		return fmt.Errorf("valid configuration required")
 	}
 
-	client := dlDb.NewClient(cfg.CacheDir, true, true, dlDb.WithDBRepository(cfg.DBRepo))
+	client := dlDb.NewClient(cfg.CacheDir, true, dlDb.WithDBRepository(cfg.DBRepo))
 	ctx := context.Background()
 	needsUpdate, err := client.NeedsUpdate(trivyVersion, false)
 	if err != nil {
@@ -93,7 +93,7 @@ func downloadDB(cfg *Config) error {
 	}
 
 	if needsUpdate {
-		if err = client.Download(ctx, cfg.CacheDir); err != nil {
+		if err = client.Download(ctx, cfg.CacheDir, fanalTypes.RegistryOptions{}); err != nil {
 			return err
 		}
 	}
@@ -109,13 +109,18 @@ func setupScanner(cacheDir string, vulnTypes, securityChecks []string) (scannerS
 
 	app := applier.NewApplier(filesystemCache)
 	det := ospkg.Detector{}
-	dopts := fanalTypes.DockerOption{}
+	dopts := fanalTypes.DockerOptions{}
 	vc := vulnerability.NewClient(db.Config{})
 	scan := local.NewScanner(app, det, vc)
 
+	var scanners trivyTypes.Scanners
+	for _, securityCheck := range securityChecks {
+		scanners = append(scanners, trivyTypes.Scanner(securityCheck))
+	}
+
 	sopts := trivyTypes.ScanOptions{
 		VulnType:            vulnTypes,
-		SecurityChecks:      securityChecks,
+		Scanners:            scanners,
 		ScanRemovedPackages: false,
 		ListAllPackages:     false,
 	}
