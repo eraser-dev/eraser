@@ -115,7 +115,7 @@ func TestUpdateImageList(t *testing.T) {
 		}).
 		Assess("Deploy imagelist to remove nginx", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
 			// deploy imageJob config
-			if err := util.DeployEraserConfig(cfg.KubeconfigFile(), cfg.Namespace(), "../../test-data", "eraser_v1_imagelist.yaml"); err != nil {
+			if err := util.DeployEraserConfig(cfg.KubeconfigFile(), cfg.Namespace(), "../../test-data", "eraser_v1alpha1_imagelist.yaml"); err != nil {
 				t.Error("Failed to deploy image list config", err)
 			}
 
