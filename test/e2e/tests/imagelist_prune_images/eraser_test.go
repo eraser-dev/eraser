@@ -7,7 +7,7 @@ import (
 	"context"
 	"testing"
 
-	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
+	eraserv1 "github.com/Azure/eraser/api/v1"
 	"github.com/Azure/eraser/test/e2e/util"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -130,9 +130,9 @@ func TestPrune(t *testing.T) {
 			return ctx
 		}).
 		Assess("All non-running images are removed from the cluster", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
-			imgList := &eraserv1alpha1.ImageList{
+			imgList := &eraserv1.ImageList{
 				ObjectMeta: metav1.ObjectMeta{Name: util.Prune},
-				Spec: eraserv1alpha1.ImageListSpec{
+				Spec: eraserv1.ImageListSpec{
 					Images: []string{"*"},
 				},
 			}
@@ -158,12 +158,8 @@ func TestPrune(t *testing.T) {
 			return ctx
 		}).
 		Assess("Get logs", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
-			if err := util.GetPodLogs(ctx, cfg, t, true); err != nil {
-				t.Error("error getting collector pod logs", err)
-			}
-
-			if err := util.GetManagerLogs(ctx, cfg, t); err != nil {
-				t.Error("error getting manager logs", err)
+			if err := util.GetPodLogs(t); err != nil {
+				t.Error("error getting eraser pod logs", err)
 			}
 
 			return ctx

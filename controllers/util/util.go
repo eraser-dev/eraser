@@ -14,7 +14,7 @@ import (
 )
 
 var (
-	EraserImage         = flag.String("eraser-image", "", "eraser image")
+	RemoverImage        = flag.String("remover-image", "", "remover image")
 	EraserConfigmapName = "eraser-manager-config"
 )
 

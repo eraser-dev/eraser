@@ -78,26 +78,26 @@ docker.io/library/alpine@sha256:8421d9a84432575381bfabd248f1eb56f3aa21d9d7cd2511
 
 After deploying Eraser, it will automatically clean images in a regular interval. This interval can be set using the `manager.scheduling.repeatInterval` setting in the [configmap](https://azure.github.io/eraser/docs/customization#detailed-options). The default interval is 24 hours (`24h`). Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h".
 
-Eraser will schedule collector pods to each node in the cluster, and each pod will contain 3 containers: collector, scanner, and eraser that will run to completion.
+Eraser will schedule eraser pods to each node in the cluster, and each pod will contain 3 containers: collector, scanner, and remover that will run to completion.
 
 ```shell
 $ kubectl get pods -n eraser-system
 NAMESPACE            NAME                                         READY   STATUS      RESTARTS         AGE
-eraser-system        collector-kind-control-plane-sb789           0/3     Completed   0                26m
-eraser-system        collector-kind-worker-j84hm                  0/3     Completed   0                26m
-eraser-system        collector-kind-worker2-4lbdr                 0/3     Completed   0                26m
+eraser-system        eraser-kind-control-plane-sb789           0/3     Completed   0                26m
+eraser-system        eraser-kind-worker-j84hm                  0/3     Completed   0                26m
+eraser-system        eraser-kind-worker2-4lbdr                 0/3     Completed   0                26m
 eraser-system        eraser-controller-manager-86cdb4cbf9-x8d7q   1/1     Running     0                26m
 ```
 
-The collector container sends the list of all images to the scanner container, which scans and reports non-compliant images to the eraser container for removal of images that are non-running. Once all pods are completed, they will be automatically cleaned up. 
+The collector container sends the list of all images to the scanner container, which scans and reports non-compliant images to the remover container for removal of images that are non-running. Once all pods are completed, they will be automatically cleaned up. 
 
-> If you want to remove all the images periodically, you can skip the scanner container by setting the `components.scanner.enabled` value to `false` using the [configmap](https://azure.github.io/eraser/docs/customization#detailed-options). In this case, each collector pod will hold 2 containers: collector and eraser.
+> If you want to remove all the images periodically, you can skip the scanner container by setting the `components.scanner.enabled` value to `false` using the [configmap](https://azure.github.io/eraser/docs/customization#detailed-options). In this case, each collector pod will hold 2 containers: collector and remover.
 
 ```shell
 $ kubectl get pods -n eraser-system
 NAMESPACE            NAME                                         READY   STATUS      RESTARTS         AGE
-eraser-system        collector-kind-control-plane-ksk2b           0/2     Completed   0                50s
-eraser-system        collector-kind-worker-cpgqc                  0/2     Completed   0                50s
-eraser-system        collector-kind-worker2-k25df                 0/2     Completed   0                50s
+eraser-system        eraser-kind-control-plane-ksk2b           0/2     Completed   0                50s
+eraser-system        eraser-kind-worker-cpgqc                  0/2     Completed   0                50s
+eraser-system        eraser-kind-worker2-k25df                 0/2     Completed   0                50s
 eraser-system        eraser-controller-manager-86cdb4cbf9-x8d7q   1/1     Running     0                55s
 ```

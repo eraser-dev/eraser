@@ -43,7 +43,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        KUBERNETES_VERSION: ["1.24.7", "1.25.3", "1.26.0"]
+        KUBERNETES_VERSION: ["1.24.12", "1.25.8", "1.26.3", "1.27.1"]
         E2E_TEST: ${{ fromJson(needs.build-e2e-test-list.outputs.e2e-tests) }}
     steps:
       - name: Harden Runner
@@ -61,40 +61,31 @@ jobs:
         uses: actions/setup-go@4d34df0c2316fe8122ab82dc22947d607c0c91f9 # v4.0.0
         with:
           go-version: "1.20"
-      - uses: actions/cache@88522ab9f39a2ea568f7027eddc7d8d8bc9d59c8 # v3.3.1
-        with:
-          key: ${{ runner.OS }}-go-${{ hashFiles('**/go.sum') }}
-          restore-keys: |
-            ${{ runner.os }}-go-
-          path: |
-            ~/go/pkg/mod
-            ~/.cache/go-build
-      - uses: crazy-max/ghaction-github-runtime@747e98cd97bb9cfed8fe0165c821a83139bfdd67 # v2.1.0
       - name: Set env
         run: |
           ARCHIVE_DIR=${{ github.workspace }}/images
-          ERASER_REPO=eraser
+          REMOVER_REPO=remover
           MANAGER_REPO=manager
           COLLECTOR_REPO=collector
           TRIVY_SCANNER_REPO=scanner
 
-          ERASER_TAG=test
+          REMOVER_TAG=test
           MANAGER_TAG=test
           COLLECTOR_TAG=test
           TRIVY_SCANNER_TAG=test
 
-          echo ERASER_REPO=$ERASER_REPO >> $GITHUB_ENV
+          echo REMOVER_REPO=$REMOVER_REPO >> $GITHUB_ENV
           echo MANAGER_REPO=$MANAGER_REPO >> $GITHUB_ENV
           echo COLLECTOR_REPO=$COLLECTOR_REPO >> $GITHUB_ENV
           echo TRIVY_SCANNER_REPO=$TRIVY_SCANNER_REPO >> $GITHUB_ENV
 
-          echo ERASER_TAG=$ERASER_TAG >> $GITHUB_ENV
+          echo REMOVER_TAG=$REMOVER_TAG >> $GITHUB_ENV
           echo MANAGER_TAG=$MANAGER_TAG >> $GITHUB_ENV
           echo COLLECTOR_TAG=$COLLECTOR_TAG >> $GITHUB_ENV
           echo TRIVY_SCANNER_TAG=$TRIVY_SCANNER_TAG >> $GITHUB_ENV
           echo ARCHIVE_DIR=$ARCHIVE_DIR >> $GITHUB_ENV
 
-          echo ERASER_TARBALL_PATH=$ARCHIVE_DIR/${ERASER_REPO}_${ERASER_TAG}.tar >> $GITHUB_ENV
+          echo REMOVER_TARBALL_PATH=$ARCHIVE_DIR/${REMOVER_REPO}_${REMOVER_TAG}.tar >> $GITHUB_ENV
           echo MANAGER_TARBALL_PATH=$ARCHIVE_DIR/${MANAGER_REPO}_${MANAGER_TAG}.tar >> $GITHUB_ENV
           echo COLLECTOR_TARBALL_PATH=$ARCHIVE_DIR/${COLLECTOR_REPO}_${COLLECTOR_TAG}.tar >> $GITHUB_ENV
           echo SCANNER_TARBALL_PATH=$ARCHIVE_DIR/${TRIVY_SCANNER_REPO}_${TRIVY_SCANNER_TAG}.tar >> $GITHUB_ENV
@@ -109,6 +100,7 @@ jobs:
             E2E_TESTS=${{ matrix.E2E_TEST }}
       - name: Upload artifacts
         uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce # v3.1.2
+        if: always()
         with:
           name: test_logs
           path: ${{ github.workspace }}/test_logs/*

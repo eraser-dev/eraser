@@ -19,7 +19,7 @@ import (
 func TestMain(m *testing.M) {
 	utilruntime.Must(eraserv1alpha1.AddToScheme(scheme.Scheme))
 
-	eraser := util.ParsedImages.EraserImage
+	remover := util.ParsedImages.RemoverImage
 	collector := util.ParsedImages.CollectorImage
 	scanner := util.ParsedImages.ScannerImage
 	manager := util.ParsedImages.ManagerImage
@@ -30,17 +30,17 @@ func TestMain(m *testing.M) {
 		envfuncs.CreateKindClusterWithConfig(util.KindClusterName, util.NodeVersion, "../../kind-config.yaml"),
 		envfuncs.CreateNamespace(util.EraserNamespace),
 		util.LoadImageToCluster(util.KindClusterName, util.ManagerImage, util.ManagerTarballPath),
-		util.LoadImageToCluster(util.KindClusterName, util.EraserImage, util.EraserTarballPath),
+		util.LoadImageToCluster(util.KindClusterName, util.RemoverImage, util.RemoverTarballPath),
 		util.LoadImageToCluster(util.KindClusterName, util.ScannerImage, util.ScannerTarballPath),
 		util.LoadImageToCluster(util.KindClusterName, util.CollectorImage, util.CollectorTarballPath),
 		util.LoadImageToCluster(util.KindClusterName, util.VulnerableImage, ""),
 		util.LoadImageToCluster(util.KindClusterName, util.EOLImage, ""),
 		util.MakeDeploy(map[string]string{
-			"ERASER_REPO":        eraser.Repo,
+			"REMOVER_REPO":       remover.Repo,
 			"MANAGER_REPO":       manager.Repo,
 			"TRIVY_SCANNER_REPO": scanner.Repo,
 			"COLLECTOR_REPO":     collector.Repo,
-			"ERASER_TAG":         eraser.Tag,
+			"REMOVER_TAG":        remover.Tag,
 			"MANAGER_TAG":        manager.Tag,
 			"TRIVY_SCANNER_TAG":  scanner.Tag,
 			"COLLECTOR_TAG":      collector.Tag,

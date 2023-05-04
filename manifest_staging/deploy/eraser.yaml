@@ -258,44 +258,6 @@ metadata:
   namespace: eraser-system
 ---
 apiVersion: rbac.authorization.k8s.io/v1
-kind: Role
-metadata:
-  name: eraser-leader-election-role
-  namespace: eraser-system
-rules:
-- apiGroups:
-  - ""
-  resources:
-  - configmaps
-  verbs:
-  - get
-  - list
-  - watch
-  - create
-  - update
-  - patch
-  - delete
-- apiGroups:
-  - coordination.k8s.io
-  resources:
-  - leases
-  verbs:
-  - get
-  - list
-  - watch
-  - create
-  - update
-  - patch
-  - delete
-- apiGroups:
-  - ""
-  resources:
-  - events
-  verbs:
-  - create
-  - patch
----
-apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
   creationTimestamp: null
@@ -312,8 +274,12 @@ rules:
   resources:
   - configmaps
   verbs:
+  - create
+  - delete
   - get
   - list
+  - patch
+  - update
   - watch
 - apiGroups:
   - ""
@@ -388,20 +354,6 @@ rules:
   - update
 ---
 apiVersion: rbac.authorization.k8s.io/v1
-kind: RoleBinding
-metadata:
-  name: eraser-leader-election-rolebinding
-  namespace: eraser-system
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: Role
-  name: eraser-leader-election-role
-subjects:
-- kind: ServiceAccount
-  name: eraser-controller-manager
-  namespace: eraser-system
----
-apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
   name: eraser-imagejob-pods-cluster-rolebinding
@@ -430,7 +382,7 @@ subjects:
 apiVersion: v1
 data:
   controller_manager_config.yaml: |
-    apiVersion: eraser.sh/v1alpha1
+    apiVersion: eraser.sh/v1alpha2
     kind: EraserConfig
     manager:
       runtime: containerd
@@ -504,9 +456,9 @@ data:
           timeout:
             total: 23h
             perImage: 1h
-      eraser:
+      remover:
         image:
-          repo: ghcr.io/azure/eraser
+          repo: ghcr.io/azure/remover
           tag: v1.1.0-beta.0
         request:
           mem: 25Mi

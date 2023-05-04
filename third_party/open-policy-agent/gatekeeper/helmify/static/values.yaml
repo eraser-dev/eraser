@@ -1,5 +1,5 @@
 runtimeConfig:
-  apiVersion: eraser.sh/v1alpha1
+  apiVersion: eraser.sh/v1alpha2
   kind: EraserConfig
   health: {}
     # healthProbeBindAddress: :8081
@@ -75,7 +75,7 @@ runtimeConfig:
         # timeout:
         #   total: 23h
         #   perImage: 1h
-    eraser:
+    remover:
       image:
         # repo: ""
         tag: "v1.1.0-beta.0"

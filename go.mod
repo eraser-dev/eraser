@@ -11,9 +11,9 @@ require (
 	github.com/stretchr/testify v1.8.2
 	go.opentelemetry.io/otel v1.15.1
 	go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetrichttp v0.37.0
-	go.opentelemetry.io/otel/metric v0.38.1
+	go.opentelemetry.io/otel/metric v0.37.0
 	go.opentelemetry.io/otel/sdk v1.15.1
-	go.opentelemetry.io/otel/sdk/metric v0.38.1
+	go.opentelemetry.io/otel/sdk/metric v0.37.0
 	go.uber.org/zap v1.24.0
 	golang.org/x/exp v0.0.0-20230124195608-d38c7dcee874
 	golang.org/x/sys v0.7.0
@@ -299,7 +299,7 @@ require (
 	go.mongodb.org/mongo-driver v1.11.3 // indirect
 	go.opencensus.io v0.24.0 // indirect
 	go.opentelemetry.io/otel/exporters/otlp/internal/retry v1.15.1 // indirect
-	go.opentelemetry.io/otel/exporters/otlp/otlpmetric v0.38.1 // indirect
+	go.opentelemetry.io/otel/exporters/otlp/otlpmetric v0.37.0 // indirect
 	go.opentelemetry.io/otel/trace v1.15.1 // indirect
 	go.opentelemetry.io/proto/otlp v0.19.0 // indirect
 	go.starlark.net v0.0.0-20200306205701-8dd3e2ee1dd5 // indirect
