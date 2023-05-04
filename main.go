@@ -65,7 +65,6 @@ func init() {
 
 	utilruntime.Must(eraserv1alpha1.AddToScheme(scheme))
 	utilruntime.Must(eraserv1.AddToScheme(scheme))
-	utilruntime.Must(eraserv1alpha2.AddToScheme(scheme))
 	//+kubebuilder:scaffold:scheme
 }
 
