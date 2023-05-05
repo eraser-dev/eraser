@@ -35,24 +35,6 @@ func TestEnsureAliasedImageRemoved(t *testing.T) {
 				t.Error("failed to pull nginx image", err)
 			}
 
-			// Create the alias nginx:one
-			_, err = util.DockerTagImage(util.NginxLatest, util.NginxAliasOne)
-			if err != nil {
-				t.Error("failed to tag nginx image", err)
-			}
-
-			// Create the alias nginx:two
-			_, err = util.DockerTagImage(util.NginxLatest, util.NginxAliasTwo)
-			if err != nil {
-				t.Error("failed to tag nginx image", err)
-			}
-
-			// Load the images into the cluster
-			_, err = util.KindLoadImage(util.KindClusterName, util.NginxAliasOne, util.NginxAliasTwo)
-			if err != nil {
-				t.Error("failed to load kind image", err)
-			}
-
 			// Schedule two pods on a single node. Both pods will create containers from the same image,
 			// but each pod refers to that same image by a different tag.
 			nodeName := util.GetClusterNodes(t)[0]

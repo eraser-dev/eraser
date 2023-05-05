@@ -41,9 +41,9 @@ const (
 
 	Alpine        = "alpine"
 	Nginx         = "nginx"
-	NginxLatest   = "docker.io/library/nginx:latest"
-	NginxAliasOne = "docker.io/library/nginx:one"
-	NginxAliasTwo = "docker.io/library/nginx:two"
+	NginxLatest   = "ghcr.io/pmengelbert/eraser/e2e-test/nginx:latest"
+	NginxAliasOne = "ghcr.io/pmengelbert/eraser/e2e-test/nginx:one"
+	NginxAliasTwo = "ghcr.io/pmengelbert/eraser/e2e-test/nginx:two"
 	Redis         = "redis"
 	Caddy         = "caddy"
 
