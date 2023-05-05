@@ -1,3 +1,6 @@
+//go:build e2e
+// +build e2e
+
 package e2e
 
 import (
@@ -15,10 +18,12 @@ import (
 	"sigs.k8s.io/e2e-framework/pkg/features"
 )
 
+type nodeString string
+
 const (
-	nginxOneName = "nginxone"
-	nginxTwoName = "nginxtwo"
-	nodeNameKey  = "nodeName"
+	nginxOneName            = "nginxone"
+	nginxTwoName            = "nginxtwo"
+	nodeNameKey  nodeString = "nodeName"
 )
 
 func TestEnsureAliasedImageRemoved(t *testing.T) {
@@ -81,10 +86,19 @@ func TestEnsureAliasedImageRemoved(t *testing.T) {
 				t.Error("pod not deployed", err)
 			}
 
+			return ctx
+		}).
+		Assess("Pods successfully deleted", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
 			var (
 				nginxOnePod corev1.Pod
 				nginxTwoPod corev1.Pod
 			)
+
+			client, err := cfg.NewClient()
+			if err != nil {
+				t.Error("Failed to create new client", err)
+			}
+
 			if err := client.Resources().Get(ctx, nginxOneName, util.TestNamespace, &nginxOnePod); err != nil {
 				t.Error("Failed to get the pod", err)
 			}
@@ -95,11 +109,11 @@ func TestEnsureAliasedImageRemoved(t *testing.T) {
 
 			// Delete the pods, so they will be cleaned up
 			if err := client.Resources().Delete(ctx, &nginxOnePod); err != nil {
-				t.Error("Failed to delete the dep", err)
+				t.Error("Failed to delete the pod", err)
 			}
 
 			if err := client.Resources().Delete(ctx, &nginxTwoPod); err != nil {
-				t.Error("Failed to delete the dep", err)
+				t.Error("Failed to delete the pod", err)
 			}
 
 			toDelete := corev1.PodList{
@@ -110,12 +124,22 @@ func TestEnsureAliasedImageRemoved(t *testing.T) {
 				t.Error("failed to delete pods", err)
 			}
 
-			// err = wait.For(util.ContainerNotPresentOnNode(nodeName, nginxTwoName), wait.WithTimeout(util.Timeout))
-			// if err != nil {
-			// 	// Let's not mark this as an error
-			// 	// We only have this to prevent race conditions with the eraser spinning up
-			// 	t.Logf("error while waiting for deployment deletion: %v", err)
-			// }
+			nodeName, ok := ctx.Value(nodeNameKey).(string)
+			if !ok {
+				t.Error("something is terribly wrong with the nodeName value")
+			}
+
+			if err := wait.For(util.ContainerNotPresentOnNode(nodeName, nginxOneName), wait.WithTimeout(util.Timeout)); err != nil {
+				// Let's not mark this as an error
+				// We only have this to prevent race conditions with the eraser spinning up
+				t.Logf("error while waiting for deployment deletion: %v", err)
+			}
+
+			if err := wait.For(util.ContainerNotPresentOnNode(nodeName, nginxTwoName), wait.WithTimeout(util.Timeout)); err != nil {
+				// Let's not mark this as an error
+				// We only have this to prevent race conditions with the eraser spinning up
+				t.Logf("error while waiting for deployment deletion: %v", err)
+			}
 
 			return ctx
 		}).
@@ -130,7 +154,11 @@ func TestEnsureAliasedImageRemoved(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			nodeName := ctx.Value(nodeNameKey).(string)
+			nodeName, ok := ctx.Value(nodeNameKey).(string)
+			if !ok {
+				t.Error("something is terribly wrong with the nodeName value")
+			}
+
 			ctxT, cancel := context.WithTimeout(ctx, util.Timeout)
 			defer cancel()
 			util.CheckImageRemoved(ctxT, t, []string{nodeName}, util.Nginx)
