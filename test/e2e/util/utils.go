@@ -521,25 +521,12 @@ func CheckDeploymentCleanedUp(ctx context.Context, t *testing.T, client klient.C
 
 func CheckImageRemoved(ctx context.Context, t *testing.T, nodes []string, images ...string) {
 	t.Helper()
-	log := new(strings.Builder)
-	log.WriteString("nodes: [")
-	for _, n := range nodes {
-		log.WriteString(n)
-		log.WriteByte(',')
-	}
-	log.WriteString("]\n")
-	log.WriteString("images: [")
-	for _, i := range images {
-		log.WriteString(i)
-		log.WriteByte(',')
-	}
-	log.WriteString("]\n")
 
 	cleaned := make(map[string]bool)
 	for len(cleaned) < len(nodes) {
 		select {
 		case <-ctx.Done():
-			t.Errorf("timeout waiting for images to be cleaned\n%s", log.String())
+			t.Error("timeout waiting for images to be cleaned")
 			return
 		default:
 		}
@@ -553,14 +540,6 @@ func CheckImageRemoved(ctx context.Context, t *testing.T, nodes []string, images
 			if err != nil {
 				t.Error("Cannot list images", err)
 			}
-			s := fmt.Sprintf(`
-----
-node: %s
-nodeImages: %s
-cleaned: %#v
-----
-            `, node, nodeImages, cleaned)
-			log.WriteString(s)
 
 			var found int
 			for _, img := range images {
