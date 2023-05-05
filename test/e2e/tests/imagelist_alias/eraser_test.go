@@ -18,6 +18,12 @@ import (
 	"sigs.k8s.io/e2e-framework/pkg/features"
 )
 
+const (
+	nginxOneName = "nginxone"
+	nginxTwoName = "nginxtwo"
+	nodeNameKey  = "nodeName"
+)
+
 func TestEnsureAliasedImageRemoved(t *testing.T) {
 	aliasFix := features.New("Specifying an image alias in the image list will delete the underlying image").
 		// Deploy 3 deployments with different images
@@ -50,15 +56,15 @@ func TestEnsureAliasedImageRemoved(t *testing.T) {
 			// Schedule two pods on a single node. Both pods will create containers from the same image,
 			// but each pod refers to that same image by a different tag.
 			nodeName := util.GetClusterNodes(t)[0]
-			nginxOnePod := util.NewPod(cfg.Namespace(), util.NginxAliasOne, "nginxone", nodeName)
-			ctx = context.WithValue(ctx, "nodeName", nodeName)
+			nginxOnePod := util.NewPod(cfg.Namespace(), util.NginxAliasOne, nginxOneName, nodeName)
+			ctx = context.WithValue(ctx, nodeNameKey, nodeName)
 
 			if err := cfg.Client().Resources().Create(ctx, nginxOnePod); err != nil {
 				t.Error("Failed to create the nginx pod", err)
 			}
 			ctx = context.WithValue(ctx, util.NginxAliasOne, nginxOnePod)
 
-			nginxTwoPod := util.NewPod(cfg.Namespace(), util.NginxAliasTwo, "nginxtwo", nodeName)
+			nginxTwoPod := util.NewPod(cfg.Namespace(), util.NginxAliasTwo, nginxTwoName, nodeName)
 			if err := cfg.Client().Resources().Create(ctx, nginxTwoPod); err != nil {
 				t.Error("Failed to create the nginx pod", err)
 			}
@@ -73,7 +79,7 @@ func TestEnsureAliasedImageRemoved(t *testing.T) {
 			}
 
 			resultPod := corev1.Pod{
-				ObjectMeta: metav1.ObjectMeta{Name: "nginxone", Namespace: cfg.Namespace()},
+				ObjectMeta: metav1.ObjectMeta{Name: nginxOneName, Namespace: cfg.Namespace()},
 			}
 
 			err = wait.For(conditions.New(client.Resources()).PodConditionMatch(&resultPod, corev1.PodReady, corev1.ConditionTrue), wait.WithTimeout(util.Timeout))
@@ -82,7 +88,7 @@ func TestEnsureAliasedImageRemoved(t *testing.T) {
 			}
 
 			resultPod = corev1.Pod{
-				ObjectMeta: metav1.ObjectMeta{Name: "nginxtwo", Namespace: cfg.Namespace()},
+				ObjectMeta: metav1.ObjectMeta{Name: nginxTwoName, Namespace: cfg.Namespace()},
 			}
 
 			err = wait.For(conditions.New(client.Resources()).PodConditionMatch(&resultPod, corev1.PodReady, corev1.ConditionTrue), wait.WithTimeout(util.Timeout))
@@ -91,24 +97,32 @@ func TestEnsureAliasedImageRemoved(t *testing.T) {
 			}
 
 			// Delete the pods, so they will be cleaned up
-			nginxOnePod := ctx.Value(util.NginxAliasOne).(*corev1.Pod)
-			if err := client.Resources().Delete(ctx, nginxOnePod); err != nil {
+			var nginxOnePod corev1.Pod
+			if err := client.Resources().Get(ctx, nginxOneName, util.TestNamespace, &nginxOnePod); err != nil {
+				t.Error("Failed to get the pod", err)
+			}
+
+			if err := client.Resources().Delete(ctx, &nginxOnePod); err != nil {
 				t.Error("Failed to delete the dep", err)
 			}
 
-			nodeName := ctx.Value("nodeName").(string)
-			err = wait.For(util.ContainerNotPresentOnNode(nodeName, "nginxone"), wait.WithTimeout(util.Timeout))
+			nodeName := ctx.Value(nodeNameKey).(string)
+			err = wait.For(util.ContainerNotPresentOnNode(nodeName, nginxOneName), wait.WithTimeout(util.Timeout))
 			if err != nil {
 				// Let's not mark this as an error
 				// We only have this to prevent race conditions with the eraser spinning up
 				t.Logf("error while waiting for deployment deletion: %v", err)
 			}
 
-			nginxTwoPod := ctx.Value(util.NginxAliasTwo).(*corev1.Pod)
-			if err := client.Resources().Delete(ctx, nginxTwoPod); err != nil {
+			var nginxTwoPod corev1.Pod
+			if err := client.Resources().Get(ctx, nginxTwoName, util.TestNamespace, &nginxTwoPod); err != nil {
+				t.Error("Failed to get the pod", err)
+			}
+
+			if err := client.Resources().Delete(ctx, &nginxTwoPod); err != nil {
 				t.Error("Failed to delete the dep", err)
 			}
-			err = wait.For(util.ContainerNotPresentOnNode(nodeName, "nginxtwo"), wait.WithTimeout(util.Timeout))
+			err = wait.For(util.ContainerNotPresentOnNode(nodeName, nginxTwoName), wait.WithTimeout(util.Timeout))
 			if err != nil {
 				// Let's not mark this as an error
 				// We only have this to prevent race conditions with the eraser spinning up
@@ -128,7 +142,7 @@ func TestEnsureAliasedImageRemoved(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			nodeName := ctx.Value("nodeName").(string)
+			nodeName := ctx.Value(nodeNameKey).(string)
 			ctxT, cancel := context.WithTimeout(ctx, util.Timeout)
 			defer cancel()
 			util.CheckImageRemoved(ctxT, t, []string{nodeName}, util.Nginx)
