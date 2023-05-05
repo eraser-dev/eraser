@@ -38,6 +38,14 @@ func TestEnsureAliasedImageRemoved(t *testing.T) {
 			// Schedule two pods on a single node. Both pods will create containers from the same image,
 			// but each pod refers to that same image by a different tag.
 			nodeName := util.GetClusterNodes(t)[0]
+
+			// At ghcr.io/azure/eraser/e2e-test/nginx there is a repository
+			// containing three tags. The three tags are `latest`, `one` and
+			// `two`. They are all aliases for the same image; only the name
+			// differs. These images are maintained there in order to avoid
+			// sideloading images into the kind cluster, which has a known bug
+			// associated with it. See https://github.com/containerd/containerd/issues/7698
+			// for more information.
 			nginxOnePod := util.NewPod(cfg.Namespace(), util.NginxAliasOne, nginxOneName, nodeName)
 			ctx = context.WithValue(ctx, nodeNameKey, nodeName)
 
