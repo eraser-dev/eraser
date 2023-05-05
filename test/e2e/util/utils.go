@@ -41,9 +41,9 @@ const (
 
 	Alpine        = "alpine"
 	Nginx         = "nginx"
-	NginxLatest   = "ghcr.io/pmengelbert/eraser/e2e-test/nginx:latest"
-	NginxAliasOne = "ghcr.io/pmengelbert/eraser/e2e-test/nginx:one"
-	NginxAliasTwo = "ghcr.io/pmengelbert/eraser/e2e-test/nginx:two"
+	NginxLatest   = "ghcr.io/azure/eraser/e2e-test/nginx:latest"
+	NginxAliasOne = "ghcr.io/azure/eraser/e2e-test/nginx:one"
+	NginxAliasTwo = "ghcr.io/azure/eraser/e2e-test/nginx:two"
 	Redis         = "redis"
 	Caddy         = "caddy"
 
