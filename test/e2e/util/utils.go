@@ -525,13 +525,13 @@ func CheckImageRemoved(ctx context.Context, t *testing.T, nodes []string, images
 	log.WriteString("nodes: [")
 	for _, n := range nodes {
 		log.WriteString(n)
-		log.WriteRune(',')
+		log.WriteByte(',')
 	}
 	log.WriteString("]\n")
 	log.WriteString("images: [")
 	for _, i := range images {
 		log.WriteString(i)
-		log.WriteRune(',')
+		log.WriteByte(',')
 	}
 	log.WriteString("]\n")
 
