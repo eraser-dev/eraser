@@ -103,5 +103,5 @@ jobs:
         if: always()
         with:
           name: test_logs
-          path: ${{ github.workspace }}/test_logs/*
+          path: ${{ github.workspace }}/test_logs/
           retention-days: 1
