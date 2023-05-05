@@ -120,7 +120,7 @@ func TestSkipNodes(t *testing.T) {
 			}
 
 			// deploy imageJob config
-			if err := util.DeployEraserConfig(cfg.KubeconfigFile(), cfg.Namespace(), util.Eraserv1Alpha1ImagelistPath); err != nil {
+			if err := util.DeployEraserConfig(cfg.KubeconfigFile(), cfg.Namespace(), util.EraserV1Alpha1ImagelistPath); err != nil {
 				t.Error("Failed to deploy image list config", err)
 			}
 
