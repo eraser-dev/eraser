@@ -1,6 +1,3 @@
-//go:build e2e
-// +build e2e
-
 package e2e
 
 import (
@@ -84,38 +81,41 @@ func TestEnsureAliasedImageRemoved(t *testing.T) {
 				t.Error("pod not deployed", err)
 			}
 
-			// Delete the pods, so they will be cleaned up
-			var nginxOnePod corev1.Pod
+			var (
+				nginxOnePod corev1.Pod
+				nginxTwoPod corev1.Pod
+			)
 			if err := client.Resources().Get(ctx, nginxOneName, util.TestNamespace, &nginxOnePod); err != nil {
 				t.Error("Failed to get the pod", err)
 			}
 
-			if err := client.Resources().Delete(ctx, &nginxOnePod); err != nil {
-				t.Error("Failed to delete the dep", err)
-			}
-
-			nodeName := ctx.Value(nodeNameKey).(string)
-			err = wait.For(util.ContainerNotPresentOnNode(nodeName, nginxOneName), wait.WithTimeout(util.Timeout))
-			if err != nil {
-				// Let's not mark this as an error
-				// We only have this to prevent race conditions with the eraser spinning up
-				t.Logf("error while waiting for deployment deletion: %v", err)
-			}
-
-			var nginxTwoPod corev1.Pod
 			if err := client.Resources().Get(ctx, nginxTwoName, util.TestNamespace, &nginxTwoPod); err != nil {
 				t.Error("Failed to get the pod", err)
+			}
+
+			// Delete the pods, so they will be cleaned up
+			if err := client.Resources().Delete(ctx, &nginxOnePod); err != nil {
+				t.Error("Failed to delete the dep", err)
 			}
 
 			if err := client.Resources().Delete(ctx, &nginxTwoPod); err != nil {
 				t.Error("Failed to delete the dep", err)
 			}
-			err = wait.For(util.ContainerNotPresentOnNode(nodeName, nginxTwoName), wait.WithTimeout(util.Timeout))
-			if err != nil {
-				// Let's not mark this as an error
-				// We only have this to prevent race conditions with the eraser spinning up
-				t.Logf("error while waiting for deployment deletion: %v", err)
+
+			toDelete := corev1.PodList{
+				Items: []corev1.Pod{nginxOnePod, nginxTwoPod},
 			}
+			err = wait.For(conditions.New(client.Resources()).ResourcesDeleted(&toDelete))
+			if err != nil {
+				t.Error("failed to delete pods", err)
+			}
+
+			// err = wait.For(util.ContainerNotPresentOnNode(nodeName, nginxTwoName), wait.WithTimeout(util.Timeout))
+			// if err != nil {
+			// 	// Let's not mark this as an error
+			// 	// We only have this to prevent race conditions with the eraser spinning up
+			// 	t.Logf("error while waiting for deployment deletion: %v", err)
+			// }
 
 			return ctx
 		}).
