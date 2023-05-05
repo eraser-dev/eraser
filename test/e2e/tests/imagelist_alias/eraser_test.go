@@ -62,13 +62,11 @@ func TestEnsureAliasedImageRemoved(t *testing.T) {
 			if err := cfg.Client().Resources().Create(ctx, nginxOnePod); err != nil {
 				t.Error("Failed to create the nginx pod", err)
 			}
-			ctx = context.WithValue(ctx, util.NginxAliasOne, nginxOnePod)
 
 			nginxTwoPod := util.NewPod(cfg.Namespace(), util.NginxAliasTwo, nginxTwoName, nodeName)
 			if err := cfg.Client().Resources().Create(ctx, nginxTwoPod); err != nil {
 				t.Error("Failed to create the nginx pod", err)
 			}
-			ctx = context.WithValue(ctx, util.NginxAliasTwo, nginxTwoPod)
 
 			return ctx
 		}).
