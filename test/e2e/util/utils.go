@@ -96,6 +96,19 @@ var (
 	CollectorTarballPath = os.Getenv("COLLECTOR_TARBALL_PATH")
 	ScannerTarballPath   = os.Getenv("SCANNER_TARBALL_PATH")
 
+	ProjectAbsDir                      = os.Getenv("PROJECT_ABSOLUTE_PATH")
+	E2EPath                            = filepath.Join(ProjectAbsDir, "test", "e2e")
+	TestDataPath                       = filepath.Join(E2EPath, "test-data")
+	KindConfigPath                     = filepath.Join(E2EPath, "kind-config.yaml")
+	HelmEmptyValuesPath                = filepath.Join(TestDataPath, "helm-empty-values.yaml")
+	ChartPath                          = filepath.Join(ProjectAbsDir, providerResourceChartDir)
+	DeployPath                         = filepath.Join(ProjectAbsDir, providerResourceDeployDir)
+	OTELCollectorConfigPath            = filepath.Join(TestDataPath, "otelcollector.yaml")
+	EraserV1Alpha1ImagelistUpdatedPath = filepath.Join(TestDataPath, "eraser_v1alpha1_imagelist_updated.yaml")
+	EraserV1Alpha1ImagelistPath        = filepath.Join(TestDataPath, "eraser_v1alpha1_imagelist.yaml")
+	EraserV1ImagelistPath              = filepath.Join(TestDataPath, "eraser_v1_imagelist.yaml")
+	ImagelistAlpinePath                = filepath.Join(TestDataPath, "imagelist_alpine.yaml")
+
 	NodeVersion     = os.Getenv("NODE_VERSION")
 	TestNamespace   = envconf.RandomName("test-ns", 16)
 	EraserNamespace = pkgUtil.GetNamespace()
@@ -234,11 +247,6 @@ func LoadImageToCluster(clusterName, imageRef, tarballPath string) env.Func {
 
 func HelmDeployLatestEraserRelease(namespace string, extraArgs ...string) env.Func {
 	return func(ctx context.Context, cfg *envconf.Config) (context.Context, error) {
-		wd, err := os.Getwd()
-		if err != nil {
-			return ctx, err
-		}
-
 		if os.Getenv("HELM_UPGRADE_TEST") == "" {
 			return ctx, nil
 		}
@@ -255,12 +263,7 @@ func HelmDeployLatestEraserRelease(namespace string, extraArgs ...string) env.Fu
 			return ctx, err
 		}
 
-		emptyValuesPath, err := filepath.Abs(filepath.Join(wd, "../../test-data/helm-empty-values.yaml"))
-		if err != nil {
-			return ctx, err
-		}
-
-		allArgs := []string{"-f", emptyValuesPath}
+		allArgs := []string{"-f", HelmEmptyValuesPath}
 		allArgs = append(allArgs, "eraser/eraser")
 		allArgs = append(allArgs, extraArgs...)
 
@@ -351,17 +354,8 @@ func NewPod(namespace, image, name, nodeName string) *corev1.Pod {
 }
 
 // deploy eraser config.
-func DeployEraserConfig(kubeConfig, namespace, resourcePath, fileName string) error {
-	wd, err := os.Getwd()
-	if err != nil {
-		return err
-	}
-
-	exampleResourceAbsolutePath, err := filepath.Abs(filepath.Join(wd, resourcePath))
-	if err != nil {
-		return err
-	}
-	errApply := KubectlApply(kubeConfig, namespace, []string{"-f", filepath.Join(exampleResourceAbsolutePath, fileName)})
+func DeployEraserConfig(kubeConfig, namespace, fileName string) error {
+	errApply := KubectlApply(kubeConfig, namespace, []string{"-f", fileName})
 	if errApply != nil {
 		return errApply
 	}
@@ -638,18 +632,13 @@ func DeployEraserHelm(namespace string, args ...string) env.Func {
 			return ctx, err
 		}
 
-		providerResourceAbsolutePath, err := filepath.Abs(filepath.Join(wd, "../../../../", providerResourceChartDir, "eraser"))
-		if err != nil {
-			return ctx, err
-		}
-
-		emptyValuesPath, err := filepath.Abs(filepath.Join(wd, "../../test-data/helm-empty-values.yaml"))
+		providerResourceAbsolutePath := filepath.Join(ChartPath, "eraser")
 		if err != nil {
 			return ctx, err
 		}
 
 		// start deployment
-		allArgs := []string{providerResourceAbsolutePath, "-f", emptyValuesPath}
+		allArgs := []string{providerResourceAbsolutePath, "-f", HelmEmptyValuesPath}
 		allArgs = append(allArgs, args...)
 		if err := HelmInstall(cfg.KubeconfigFile(), namespace, allArgs); err != nil {
 			return ctx, err
@@ -679,23 +668,10 @@ func DeployEraserHelm(namespace string, args ...string) env.Func {
 
 func UpgradeEraserHelm(namespace string, args ...string) env.Func {
 	return func(ctx context.Context, cfg *envconf.Config) (context.Context, error) {
-		wd, err := os.Getwd()
-		if err != nil {
-			return ctx, err
-		}
-
-		providerResourceAbsolutePath, err := filepath.Abs(filepath.Join(wd, "../../../../", providerResourceChartDir, "eraser"))
-		if err != nil {
-			return ctx, err
-		}
-
-		emptyValuesPath, err := filepath.Abs(filepath.Join(wd, "../../test-data/helm-empty-values.yaml"))
-		if err != nil {
-			return ctx, err
-		}
+		providerResourceAbsolutePath := filepath.Join(ChartPath, "eraser")
 
 		// start deployment
-		allArgs := []string{providerResourceAbsolutePath, "-f", emptyValuesPath}
+		allArgs := []string{providerResourceAbsolutePath, "-f", HelmEmptyValuesPath}
 		allArgs = append(allArgs, args...)
 		if os.Getenv("HELM_UPGRADE_TEST") == "" {
 			allArgs = append(allArgs, "--install")
@@ -729,19 +705,8 @@ func UpgradeEraserHelm(namespace string, args ...string) env.Func {
 
 func DeployOtelCollector(namespace string) env.Func {
 	return func(ctx context.Context, cfg *envconf.Config) (context.Context, error) {
-		// set up otel collector
-		wd, err := os.Getwd()
-		if err != nil {
-			return ctx, err
-		}
-
-		otelCollectorAbsolutePath, err := filepath.Abs(filepath.Join(wd, "../../", "test-data/otelcollector.yaml"))
-		if err != nil {
-			return ctx, err
-		}
-
 		// start otelcollector deployment
-		otelargs := []string{"-f", otelCollectorAbsolutePath}
+		otelargs := []string{"-f", OTELCollectorConfigPath}
 		if err := KubectlApply(cfg.KubeconfigFile(), namespace, otelargs); err != nil {
 			return ctx, err
 		}
@@ -805,7 +770,7 @@ func MakeDeploy(env map[string]string) env.Func {
 		}
 
 		cmd := exec.Command("make", args...)
-		cmd.Dir = "../../../.."
+		cmd.Dir = ProjectAbsDir
 
 		out, err := cmd.CombinedOutput()
 		if err != nil {
@@ -821,9 +786,7 @@ func MakeDeploy(env map[string]string) env.Func {
 
 func DeployEraserManifest(namespace, fileName string) env.Func {
 	return func(ctx context.Context, cfg *envconf.Config) (context.Context, error) {
-		providerResourceAbsolutePath := "../../../../" + providerResourceDeployDir
-
-		if err := DeployEraserConfig(cfg.KubeconfigFile(), namespace, providerResourceAbsolutePath, fileName); err != nil {
+		if err := DeployEraserConfig(cfg.KubeconfigFile(), namespace, DeployPath, fileName); err != nil {
 			return ctx, err
 		}
 
