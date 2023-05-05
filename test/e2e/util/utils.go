@@ -627,15 +627,7 @@ func DeleteStringFromSlice(strings []string, s string) []string {
 
 func DeployEraserHelm(namespace string, args ...string) env.Func {
 	return func(ctx context.Context, cfg *envconf.Config) (context.Context, error) {
-		wd, err := os.Getwd()
-		if err != nil {
-			return ctx, err
-		}
-
 		providerResourceAbsolutePath := filepath.Join(ChartPath, "eraser")
-		if err != nil {
-			return ctx, err
-		}
 
 		// start deployment
 		allArgs := []string{providerResourceAbsolutePath, "-f", HelmEmptyValuesPath}
@@ -786,7 +778,7 @@ func MakeDeploy(env map[string]string) env.Func {
 
 func DeployEraserManifest(namespace, fileName string) env.Func {
 	return func(ctx context.Context, cfg *envconf.Config) (context.Context, error) {
-		if err := DeployEraserConfig(cfg.KubeconfigFile(), namespace, DeployPath, fileName); err != nil {
+		if err := DeployEraserConfig(cfg.KubeconfigFile(), namespace, filepath.Join(DeployPath, fileName)); err != nil {
 			return ctx, err
 		}
 
