@@ -67,7 +67,7 @@ components:
 		}).
 		Assess("Deploy Imagelist", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
 			// deploy imagelist config
-			if err := util.DeployEraserConfig(cfg.KubeconfigFile(), cfg.Namespace(), "../../test-data", "imagelist_alpine.yaml"); err != nil {
+			if err := util.DeployEraserConfig(cfg.KubeconfigFile(), cfg.Namespace(), util.ImagelistAlpinePath); err != nil {
 				t.Error("Failed to deploy image list config", err)
 			}
 

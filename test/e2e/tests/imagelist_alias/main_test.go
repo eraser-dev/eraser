@@ -28,10 +28,9 @@ func TestMain(m *testing.M) {
 	managerImage := util.ParsedImages.ManagerImage
 
 	util.Testenv.Setup(
-		envfuncs.CreateKindClusterWithConfig(util.KindClusterName, util.NodeVersion, "../../kind-config.yaml"),
+		envfuncs.CreateKindClusterWithConfig(util.KindClusterName, util.NodeVersion, util.KindConfigPath),
 		envfuncs.CreateNamespace(util.TestNamespace),
 		util.LoadImageToCluster(util.KindClusterName, util.ManagerImage, util.ManagerTarballPath),
-		util.LoadImageToCluster(util.KindClusterName, util.RemoverImage, util.RemoverTarballPath),
 		util.LoadImageToCluster(util.KindClusterName, util.RemoverImage, util.RemoverTarballPath),
 		util.HelmDeployLatestEraserRelease(util.TestNamespace,
 			"--set", util.ScannerEnable.Set("false"),

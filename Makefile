@@ -21,8 +21,6 @@ NON_VULNERABLE_IMG ?= ghcr.io/azure/non-vulnerable:latest
 E2E_TESTS ?= $(shell find ./test/e2e/tests/ -mindepth 1 -type d)
 API_VERSIONS ?= ./api/v1alpha1,./api/v1,./api/v1alpha2
 
-
-
 HELM_UPGRADE_TEST ?=
 TEST_LOGDIR ?= $(PWD)/test_logs
 
@@ -174,6 +172,7 @@ non-vulnerable-img:
 e2e-test: vulnerable-img eol-img non-vulnerable-img busybox-img
 	for test in $(E2E_TESTS); do \
 		CGO_ENABLED=0 \
+            PROJECT_ABSOLUTE_PATH=$(CURDIR) \
             REMOVER_TARBALL_PATH=${REMOVER_TARBALL_PATH} \
             MANAGER_TARBALL_PATH=${MANAGER_TARBALL_PATH} \
             COLLECTOR_TARBALL_PATH=${COLLECTOR_TARBALL_PATH} \

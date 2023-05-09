@@ -23,7 +23,7 @@ func TestMetricsEraserOnly(t *testing.T) {
 	metrics := features.New("Images_removed_run_total metric should report 1").
 		Assess("Alpine image is removed", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
 			// deploy imagelist config
-			if err := util.DeployEraserConfig(cfg.KubeconfigFile(), cfg.Namespace(), "../../test-data", "imagelist_alpine.yaml"); err != nil {
+			if err := util.DeployEraserConfig(cfg.KubeconfigFile(), cfg.Namespace(), util.ImagelistAlpinePath); err != nil {
 				t.Error("Failed to deploy image list config", err)
 			}
 
@@ -37,7 +37,6 @@ func TestMetricsEraserOnly(t *testing.T) {
 			if err := util.GetPodLogs(t); err != nil {
 				t.Error("error getting eraser pod logs", err)
 			}
-
 
 			return ctx
 		}).
