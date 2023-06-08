@@ -357,11 +357,17 @@ func (r *Reconciler) handleNewJob(ctx context.Context, imageJob *eraserv1.ImageJ
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace:    eraserUtils.GetNamespace(),
 				GenerateName: "eraser-" + nodeName + "-",
-				Labels:       map[string]string{"name": containerName},
+				//Labels:       map[string]string{"name": containerName},
 				OwnerReferences: []metav1.OwnerReference{
 					*metav1.NewControllerRef(imageJob, imageJob.GroupVersionKind()),
 				},
 			},
+		}
+
+		if containerName == "remover" {
+			pod.Labels = map[string]string{"type": "manual"}
+		} else {
+			pod.Labels = map[string]string{"type": "collector"}
 		}
 
 		fitness := checkNodeFitness(pod, &nodeList[i])
