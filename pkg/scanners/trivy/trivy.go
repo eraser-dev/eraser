@@ -300,6 +300,6 @@ func scan(s Scanner, allImages []unversioned.Image) ([]unversioned.Image, []unve
 		}
 	}
 
-	log.Info("total number of vulnerabilities found", "vuln count", len(vulnerableImages))
+	log.Info("Total number of vulnerabilities found", "Vuln Count", len(vulnerableImages))
 	return vulnerableImages, failedImages, nil
 }
