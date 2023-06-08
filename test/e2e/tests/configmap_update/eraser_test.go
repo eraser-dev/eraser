@@ -22,7 +22,7 @@ import (
 
 const (
 	numPods        = 3
-	collectorLabel = "name=eraser"
+	collectorLabel = "name=remover"
 	configKey      = "controller_manager_config.yaml"
 	configmapName  = "eraser-manager-config"
 )
@@ -30,8 +30,8 @@ const (
 var ()
 
 func TestConfigmapUpdate(t *testing.T) {
-	metrics := features.New("Updating the eraser image in the configmap should cause the manager to deploy using the new image").
-		Assess("Update configmap, change eraser image to busybox", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
+	metrics := features.New("Updating the remover image in the configmap should cause the manager to deploy using the new image").
+		Assess("Update configmap, change remover image to busybox", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
 			client, err := cfg.NewClient()
 			if err != nil {
 				t.Error("Failed to create new client", err)
@@ -48,10 +48,10 @@ func TestConfigmapUpdate(t *testing.T) {
 			bbTag := bbSplit[1]
 
 			cmString := fmt.Sprintf(`---
-apiVersion: eraser.sh/v1alpha1
+apiVersion: eraser.sh/v1alpha2
 kind: EraserConfig
 components:
-  eraser:
+  remover:
     image:
       repo: %s
       tag: %s
@@ -67,7 +67,7 @@ components:
 		}).
 		Assess("Deploy Imagelist", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
 			// deploy imagelist config
-			if err := util.DeployEraserConfig(cfg.KubeconfigFile(), cfg.Namespace(), "../../test-data", "imagelist_alpine.yaml"); err != nil {
+			if err := util.DeployEraserConfig(cfg.KubeconfigFile(), cfg.Namespace(), util.ImagelistAlpinePath); err != nil {
 				t.Error("Failed to deploy image list config", err)
 			}
 
@@ -90,14 +90,14 @@ components:
 
 			var ls corev1.PodList
 			err = c.Resources().List(ctx, &ls, func(o *metav1.ListOptions) {
-				o.LabelSelector = labels.SelectorFromSet(map[string]string{"name": "eraser"}).String()
+				o.LabelSelector = labels.SelectorFromSet(map[string]string{"name": "remover"}).String()
 			})
 			if err != nil {
 				t.Errorf("could not list pods: %v", err)
 			}
 
 			for i := range ls.Items {
-				// there will only be the eraser container in an imagelist deployment
+				// there will only be the remover container in an imagelist deployment
 				container := ls.Items[i].Spec.Containers[0]
 				image := container.Image
 				if image != util.BusyboxImage {

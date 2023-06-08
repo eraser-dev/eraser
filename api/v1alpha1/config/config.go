@@ -14,6 +14,7 @@ var defaultScannerConfig = `
 cacheDir: /var/lib/trivy
 dbRepo: ghcr.io/aquasecurity/trivy-db
 deleteFailedImages: true
+deleteEOLImages: true
 vulnerabilities:
   ignoreUnfixed: true
   types:
@@ -23,6 +24,9 @@ securityChecks: # need to be documented; determined by trivy, not us
   - vuln
 severities:
   - CRITICAL
+  - HIGH
+  - MEDIUM
+  - LOW
 `
 
 type Manager struct {

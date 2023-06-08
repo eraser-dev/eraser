@@ -16,19 +16,28 @@ env:
 permissions: read-all
 
 jobs:
-  build-e2e-test-list:
-    name: "Build E2E Test List"
-    runs-on: ubuntu-latest
-    steps:
-      - name: Check out code into the Go module directory
-        uses: actions/checkout@v3
-      - id: set-test-matrix
-        run: |
-          readarray -d '' test_dirs < <(find ./test/e2e/tests -mindepth 1 -type d -print0)
-          json_array="$(printf "%s\n" "${test_dirs[@]}" | jq -R . | jq -cs)"
-          echo "e2e-tests=${json_array}" > $GITHUB_OUTPUT
-    outputs:
-      e2e-tests: ${{ steps.set-test-matrix.outputs.e2e-tests }}
+  generate-bucket-id:
+    name: "Generate build id for storage"
+    uses: ./.github/workflows/build-id.yaml
+
+  build-images:
+    name: "Build images for e2e tests"
+    uses: ./.github/workflows/e2e-build.yaml
+    needs:
+      - generate-bucket-id
+    with:
+      bucket-id: ${{ needs.generate-bucket-id.outputs.bucket-id }}
+
+  e2e-test:
+    name: "Run e2e tests"
+    uses: ./.github/workflows/e2e-test.yaml
+    permissions:
+      contents: write
+    needs:
+      - build-images
+      - generate-bucket-id
+    with:
+      bucket-id: ${{ needs.generate-bucket-id.outputs.bucket-id }}
 
   lint:
     name: "Lint"
@@ -36,35 +45,35 @@ jobs:
     timeout-minutes: 40
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@1f99358870fe1c846a3ccba386cc2b2246836776
+        uses: step-security/harden-runner@128a63446a954579617e875aaab7d2978154e969
         with:
           egress-policy: audit
-      - uses: actions/checkout@v3
-      - name: Set up Go 1.19
-        uses: actions/setup-go@v3
+      - uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
+      - name: Set up Go 1.20
+        uses: actions/setup-go@fac708d6674e30b6ba41289acaab6d4b75aa0753 # v4.0.1
         with:
-          go-version: 1.19
+          go-version: "1.20"
       - name: lint manager
-        uses: golangci/golangci-lint-action@v3
+        uses: golangci/golangci-lint-action@5f1fec7010f6ae3b84ea4f7b2129beb8639b564f # v3.5.0
         with:
           version: latest
           args: --timeout=10m
-      - name: lint eraser
-        uses: golangci/golangci-lint-action@v3
+      - name: lint remover
+        uses: golangci/golangci-lint-action@5f1fec7010f6ae3b84ea4f7b2129beb8639b564f # v3.5.0
         with:
           version: latest
-          working-directory: pkg/eraser
+          working-directory: pkg/remover
           skip-pkg-cache: true
           args: --timeout=10m
       - name: lint collector
-        uses: golangci/golangci-lint-action@v3
+        uses: golangci/golangci-lint-action@5f1fec7010f6ae3b84ea4f7b2129beb8639b564f # v3.5.0
         with:
           version: latest
           working-directory: pkg/collector
           skip-pkg-cache: true
           args: --timeout=10m
       - name: lint trivvy scanner
-        uses: golangci/golangci-lint-action@v3
+        uses: golangci/golangci-lint-action@5f1fec7010f6ae3b84ea4f7b2129beb8639b564f # v3.5.0
         with:
           version: latest
           working-directory: pkg/scanners/trivy
@@ -77,14 +86,14 @@ jobs:
     timeout-minutes: 40
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@1f99358870fe1c846a3ccba386cc2b2246836776
+        uses: step-security/harden-runner@128a63446a954579617e875aaab7d2978154e969
         with:
           egress-policy: audit
-      - name: Set up Go 1.19
-        uses: actions/setup-go@v3
+      - name: Set up Go 1.20
+        uses: actions/setup-go@fac708d6674e30b6ba41289acaab6d4b75aa0753 # v4.0.1
         with:
-          go-version: 1.19
-      - uses: actions/cache@v3.3.1
+          go-version: "1.20"
+      - uses: actions/cache@88522ab9f39a2ea568f7027eddc7d8d8bc9d59c8 # v3.3.1
         with:
           key: ${{ runner.OS }}-go-${{ hashFiles('**/go.sum') }}
           restore-keys: |
@@ -93,11 +102,11 @@ jobs:
             ~/go/pkg/mod
             ~/.cache/go-build
       - name: Check out code into the Go module directory
-        uses: actions/checkout@v3
+        uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
       - name: Unit test
         run: make test
       - name: Codecov upload
-        uses: codecov/codecov-action@d9f34f8cd5cb3b3eb79b3e4b5dae3a16df499a70
+        uses: codecov/codecov-action@eaaf4bedf32dbdc6b720b63067d99c4d77d6047d
         with:
           flags: unittests
           file: ./cover.out
@@ -109,89 +118,21 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@1f99358870fe1c846a3ccba386cc2b2246836776
+        uses: step-security/harden-runner@128a63446a954579617e875aaab7d2978154e969
         with:
           egress-policy: audit
       - name: Check out code into the Go module directory
-        uses: actions/checkout@v3
-      - name: Set up Go 1.19
-        uses: actions/setup-go@v3
+        uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
+      - name: Set up Go 1.20
+        uses: actions/setup-go@fac708d6674e30b6ba41289acaab6d4b75aa0753 # v4.0.1
         with:
-          go-version: 1.19
+          go-version: "1.20"
       - name: Check go.mod and manifests
         run: |
           go mod tidy
           git diff --exit-code
           make generate manifests
           git diff --exit-code
-
-  e2e-test:
-      name: "E2E Tests"
-      runs-on: ubuntu-latest
-      timeout-minutes: 30
-      permissions:
-        contents: write
-      needs:
-        - build-e2e-test-list
-      strategy:
-        fail-fast: false
-        matrix:
-          KUBERNETES_VERSION: ["1.24.7", "1.25.3", "1.26.0"]
-          E2E_TEST: ${{ fromJson(needs.build-e2e-test-list.outputs.e2e-tests) }}
-      steps:
-        - name: Harden Runner
-          uses: step-security/harden-runner@1f99358870fe1c846a3ccba386cc2b2246836776
-          with:
-            egress-policy: audit
-        - name: Check out code into the Go module directory
-          uses: actions/checkout@v3
-        - name: Set up Go 1.19
-          uses: actions/setup-go@v3
-          with:
-            go-version: 1.19
-        - name: Setup buildx instance
-          uses: docker/setup-buildx-action@v2
-          with:
-            use: true
-        - uses: actions/cache@v3.3.1
-          with:
-            key: ${{ runner.OS }}-go-${{ hashFiles('**/go.sum') }}
-            restore-keys: |
-              ${{ runner.os }}-go-
-            path: |
-              ~/go/pkg/mod
-              ~/.cache/go-build
-        - uses: crazy-max/ghaction-github-runtime@v2
-        - name: Set env
-          run: |
-            echo ERASER_REPO=eraser >> $GITHUB_ENV
-            echo MANAGER_REPO=manager >> $GITHUB_ENV
-            echo COLLECTOR_REPO=collector >> $GITHUB_ENV
-            echo TRIVY_SCANNER_REPO=scanner >> $GITHUB_ENV
-
-            echo ERASER_TAG=test >> $GITHUB_ENV
-            echo MANAGER_TAG=test >> $GITHUB_ENV
-            echo COLLECTOR_TAG=test >> $GITHUB_ENV
-            echo TRIVY_SCANNER_TAG=test >> $GITHUB_ENV
-        - name: Build eraser-manager
-          run: make docker-build-manager
-        - name: Build eraser
-          run: make docker-build-eraser
-        - name: Build collector
-          run: make docker-build-collector
-        - name: Build trivy-scanner
-          run: make docker-build-trivy-scanner
-        - name: Run e2e test
-          run: |
-            make e2e-test \
-              KUBERNETES_VERSION=${{ matrix.KUBERNETES_VERSION }} \
-              E2E_TESTS=${{ matrix.E2E_TEST }}
-        - name: Upload artifacts
-          uses: actions/upload-artifact@v3
-          with:
-            name: test_logs
-            path: ${{ github.workspace }}/test_logs/*
-            retention-days: 1
 
   scan_vulnerabilities:
     name: "[Trivy] Scan for vulnerabilities"
@@ -201,12 +142,12 @@ jobs:
       contents: read
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@1f99358870fe1c846a3ccba386cc2b2246836776
+        uses: step-security/harden-runner@128a63446a954579617e875aaab7d2978154e969
         with:
           egress-policy: audit
 
       - name: Check out code into the Go module directory
-        uses: actions/checkout@v3
+        uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
 
       - name: Get repo
         run: |
@@ -223,17 +164,17 @@ jobs:
       - name: Build eraser-manager
         run: |
           make docker-build-manager MANAGER_REPO=${{ env.REGISTRY }}/${REPO}-manager MANAGER_TAG=test
-      - name: Build eraser
+      - name: Build remover
         run: |
-          make docker-build-eraser ERASER_REPO=${{ env.REGISTRY }}/${REPO} ERASER_TAG=test
+          make docker-build-remover REMOVER_REPO=${{ env.REGISTRY }}/remover REMOVER_TAG=test
       - name: Build collector
         run: |
           make docker-build-collector COLLECTOR_REPO=${{ env.REGISTRY }}/collector COLLECTOR_TAG=test
       - name: Build trivy scanner
         run: |
           make docker-build-trivy-scanner TRIVY_SCANNER_REPO=${{ env.REGISTRY }}/${REPO}-trivy-scanner TRIVY_SCANNER_TAG=test
-      - name: Run trivy for eraser
-        run: trivy image --ignore-unfixed --exit-code=1 --vuln-type=os,library ${{ env.REGISTRY }}/${REPO}:test
+      - name: Run trivy for remover
+        run: trivy image --ignore-unfixed --exit-code=1 --vuln-type=os,library ${{ env.REGISTRY }}/remover:test
 
       - name: Run trivy for eraser-manager
         run: trivy image --ignore-unfixed --exit-code=1 --vuln-type=os,library ${{ env.REGISTRY }}/${REPO}-manager:test

@@ -91,7 +91,7 @@ func TestExclusionList(t *testing.T) {
 			}
 
 			// create imagelist to trigger deletion
-			if err := util.DeployEraserConfig(cfg.KubeconfigFile(), cfg.Namespace(), "../../test-data", "eraser_v1_imagelist.yaml"); err != nil {
+			if err := util.DeployEraserConfig(cfg.KubeconfigFile(), cfg.Namespace(), util.EraserV1ImagelistPath); err != nil {
 				t.Error("Failed to deploy image list config", err)
 			}
 
@@ -103,12 +103,8 @@ func TestExclusionList(t *testing.T) {
 			return ctx
 		}).
 		Assess("Get logs", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
-			if err := util.GetPodLogs(ctx, cfg, t, true); err != nil {
-				t.Error("error getting collector pod logs", err)
-			}
-
-			if err := util.GetManagerLogs(ctx, cfg, t); err != nil {
-				t.Error("error getting manager logs", err)
+			if err := util.GetPodLogs(t); err != nil {
+				t.Error("error getting eraser pod logs", err)
 			}
 
 			return ctx

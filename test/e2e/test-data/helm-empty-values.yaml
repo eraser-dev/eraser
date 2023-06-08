@@ -13,6 +13,7 @@
 # used, the test will fail.
 
 runtimeConfig:
+  apiVersion: eraser.sh/v1alpha2
   components:
     collector:
       image:
@@ -22,7 +23,7 @@ runtimeConfig:
       image:
         repo: "aezoqcrjrsmxryrn"
         tag: "mwojcakgxrqcudmn"
-    eraser:
+    remover:
       image:
         repo: "eultpoofmlmfdthr"
         tag: "otosqrwfwrgdrvzo"

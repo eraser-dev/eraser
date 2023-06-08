@@ -7,8 +7,6 @@ resources:
 - service_account.yaml
 - role.yaml
 - role_binding.yaml
-- leader_election_role.yaml
-- leader_election_role_binding.yaml
 - imagejob_pods_cluster_role.yaml
 - imagejob_pods_service.yaml
 - imagejob_pods_cluster_role_binding.yaml
@@ -19,3 +17,6 @@ resources:
 # - auth_proxy_role.yaml
 # - auth_proxy_role_binding.yaml
 # - auth_proxy_client_clusterrole.yaml
+# uncomment the following if you want to enable leader election
+# - leader_election_role.yaml
+# - leader_election_role_binding.yaml

@@ -17,6 +17,7 @@ limitations under the License.
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"net/http"
@@ -29,16 +30,22 @@ import (
 
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 	"k8s.io/utils/inotify"
+	"sigs.k8s.io/yaml"
 
+	"k8s.io/apimachinery/pkg/conversion"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 
+	"github.com/Azure/eraser/api/unversioned"
+	"github.com/Azure/eraser/api/unversioned/config"
 	eraserv1 "github.com/Azure/eraser/api/v1"
 	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
-	"github.com/Azure/eraser/api/v1alpha1/config"
+	v1alpha1Config "github.com/Azure/eraser/api/v1alpha1/config"
+	eraserv1alpha2 "github.com/Azure/eraser/api/v1alpha2"
+	v1alpha2Config "github.com/Azure/eraser/api/v1alpha2/config"
 	"github.com/Azure/eraser/controllers"
 	"github.com/Azure/eraser/pkg/logger"
 	"github.com/Azure/eraser/version"
@@ -48,6 +55,9 @@ import (
 var (
 	scheme   = runtime.NewScheme()
 	setupLog = ctrl.Log.WithName("setup")
+
+	fromV1alpha1 = eraserv1alpha1.Convert_v1alpha1_EraserConfig_To_unversioned_EraserConfig
+	fromV1alpha2 = eraserv1alpha2.Convert_v1alpha2_EraserConfig_To_unversioned_EraserConfig
 )
 
 func init() {
@@ -58,7 +68,20 @@ func init() {
 	//+kubebuilder:scaffold:scheme
 }
 
+type apiVersion struct {
+	APIVersion string `json:"apiVersion"`
+}
+
+type convertFunc[T any] func(*T, *unversioned.EraserConfig, conversion.Scope) error
+
 func main() {
+	ctx, cancel := context.WithCancel(context.Background())
+
+	go func() {
+		<-ctx.Done()
+		os.Exit(1)
+	}()
+
 	var configFile string
 	flag.StringVar(&configFile, "config", "",
 		"The controller will load its initial configuration from this file. "+
@@ -85,21 +108,17 @@ func main() {
 		os.Exit(1)
 	}
 
-	cfg := config.Default()
-	if configFile != "" {
-		o, err := options.AndFrom(ctrl.ConfigFile().AtPath(configFile).OfKind(cfg))
-		if err != nil {
-			setupLog.Error(err, "configuration is either missing or invalid")
-			os.Exit(1)
-		}
-
-		options = o
+	cfg, err := getConfig(configFile)
+	if err != nil {
+		setupLog.Error(err, "error getting configuration")
+		os.Exit(1)
 	}
 
 	setupLog.V(1).Info("eraser config",
 		"manager", cfg.Manager,
-		"component", cfg.Components,
+		"components", cfg.Components,
 		"options", fmt.Sprintf("%#v\n", options),
+		"typeMeta", fmt.Sprintf("%#v\n", cfg.TypeMeta),
 	)
 
 	eraserOpts := config.NewManager(cfg)
@@ -111,7 +130,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	go startConfigWatch(watcher, eraserOpts, configFile)
+	go startConfigWatch(cancel, watcher, eraserOpts, configFile)
 
 	if managerOpts.Profile.Enabled {
 		go func() {
@@ -159,6 +178,46 @@ func main() {
 	}
 }
 
+func getConfig(configFile string) (*unversioned.EraserConfig, error) {
+	fileBytes, err := os.ReadFile(configFile)
+	if err != nil {
+		setupLog.Error(err, "configuration is either missing or invalid")
+		os.Exit(1)
+	}
+
+	var av apiVersion
+	if err := yaml.Unmarshal(fileBytes, &av); err != nil {
+		setupLog.Error(err, "cannot unmarshal yaml", "bytes", string(fileBytes), "apiVersion", av)
+		os.Exit(1)
+	}
+
+	switch av.APIVersion {
+	case "eraser.sh/v1alpha1":
+		return getUnversioned(fileBytes, v1alpha1Config.Default(), fromV1alpha1)
+	case "eraser.sh/v1alpha2":
+		return getUnversioned(fileBytes, v1alpha2Config.Default(), fromV1alpha2)
+	default:
+		setupLog.Error(fmt.Errorf("unknown api version"), "error", "apiVersion", av.APIVersion)
+		return nil, err
+	}
+}
+
+func getUnversioned[T any](b []byte, defaults *T, convert convertFunc[T]) (*unversioned.EraserConfig, error) {
+	cfg := defaults
+
+	if err := yaml.Unmarshal(b, cfg); err != nil {
+		setupLog.Error(err, "configuration is either missing or invalid")
+		return nil, err
+	}
+
+	var unv unversioned.EraserConfig
+	if err := convert(cfg, &unv, nil); err != nil {
+		return nil, err
+	}
+
+	return &unv, nil
+}
+
 // Kubernetes manages configmap volume updates by creating a new file,
 // changing the symlink, then deleting the old file. Hence, we want to
 // watch for IN_DELETE_SELF events. In case the watch is dropped, we need
@@ -177,7 +236,7 @@ func setupWatcher(configFile string) (*inotify.Watcher, error) {
 	return watcher, nil
 }
 
-func startConfigWatch(watcher *inotify.Watcher, eraserOpts *config.Manager, filename string) {
+func startConfigWatch(cancel context.CancelFunc, watcher *inotify.Watcher, eraserOpts *config.Manager, filename string) {
 	for {
 		select {
 		case ev := <-watcher.Event:
@@ -197,27 +256,52 @@ func startConfigWatch(watcher *inotify.Watcher, eraserOpts *config.Manager, file
 				continue
 			}
 
-			cfg := config.Default()
-			_, err := ctrl.Options{Scheme: runtime.NewScheme()}.AndFrom(ctrl.ConfigFile().AtPath(filename).OfKind(cfg))
+			var err error
+			oldConfig := new(unversioned.EraserConfig)
+
+			*oldConfig, err = eraserOpts.Read()
+			if err != nil {
+				setupLog.Error(err, "configuration could not be read", "event", ev, "filename", filename)
+			}
+
+			newConfig, err := getConfig(filename)
 			if err != nil {
 				setupLog.Error(err, "configuration is missing or invalid", "event", ev, "filename", filename)
 				continue
 			}
 
-			if err = eraserOpts.Update(cfg); err != nil {
+			if err = eraserOpts.Update(newConfig); err != nil {
 				setupLog.Error(err, "configuration update failed")
 				continue
 			}
 
-			newC, err := eraserOpts.Read()
+			// read back the new configuration
+			*newConfig, err = eraserOpts.Read()
 			if err != nil {
 				setupLog.Error(err, "unable to read back new configuration")
 				continue
 			}
 
-			setupLog.V(1).Info("new configuration", "manager", newC.Manager, "components", newC.Components)
+			if needsRestart(oldConfig, newConfig) {
+				setupLog.Info("configurations differ in an irreconcileable way, restarting", "old", oldConfig.Components, "new", newConfig.Components)
+				// restarts the manager
+				cancel()
+			}
+
+			setupLog.V(1).Info("new configuration", "manager", newConfig.Manager, "components", newConfig.Components)
 		case err := <-watcher.Error:
 			setupLog.Error(err, "file watcher error")
 		}
 	}
+}
+
+func needsRestart(oldConfig, newConfig *unversioned.EraserConfig) bool {
+	type check struct {
+		collector bool
+		scanner   bool
+	}
+
+	oldComponents := check{collector: oldConfig.Components.Collector.Enabled, scanner: oldConfig.Components.Scanner.Enabled}
+	newComponents := check{collector: newConfig.Components.Collector.Enabled, scanner: newConfig.Components.Scanner.Enabled}
+	return oldComponents != newComponents
 }

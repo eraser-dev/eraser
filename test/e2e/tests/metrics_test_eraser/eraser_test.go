@@ -23,7 +23,7 @@ func TestMetricsEraserOnly(t *testing.T) {
 	metrics := features.New("Images_removed_run_total metric should report 1").
 		Assess("Alpine image is removed", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
 			// deploy imagelist config
-			if err := util.DeployEraserConfig(cfg.KubeconfigFile(), cfg.Namespace(), "../../test-data", "imagelist_alpine.yaml"); err != nil {
+			if err := util.DeployEraserConfig(cfg.KubeconfigFile(), cfg.Namespace(), util.ImagelistAlpinePath); err != nil {
 				t.Error("Failed to deploy image list config", err)
 			}
 
@@ -34,12 +34,8 @@ func TestMetricsEraserOnly(t *testing.T) {
 			return ctx
 		}).
 		Assess("Get logs", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
-			if err := util.GetPodLogs(ctx, cfg, t, true); err != nil {
-				t.Error("error getting collector pod logs", err)
-			}
-
-			if err := util.GetManagerLogs(ctx, cfg, t); err != nil {
-				t.Error("error getting manager logs", err)
+			if err := util.GetPodLogs(t); err != nil {
+				t.Error("error getting eraser pod logs", err)
 			}
 
 			return ctx
@@ -58,7 +54,7 @@ func TestMetricsEraserOnly(t *testing.T) {
 				t.Error(err, "error with otlp curl request")
 			}
 
-			r := regexp.MustCompile(`images_removed_run_total{job="eraser",node_name=".+"} (\d+)`)
+			r := regexp.MustCompile(`images_removed_run_total{job="remover",node_name=".+"} (\d+)`)
 			results := r.FindAllStringSubmatch(output, -1)
 
 			totalRemoved := 0

@@ -42,9 +42,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 	"sigs.k8s.io/kind/pkg/errors"
 
+	"github.com/Azure/eraser/api/unversioned/config"
 	eraserv1 "github.com/Azure/eraser/api/v1"
-	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
-	"github.com/Azure/eraser/api/v1alpha1/config"
 	controllerUtils "github.com/Azure/eraser/controllers/util"
 	eraserUtils "github.com/Azure/eraser/pkg/utils"
 )
@@ -117,7 +116,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 			Type: &corev1.Pod{},
 		},
 		&handler.EnqueueRequestForOwner{
-			OwnerType:    &eraserv1alpha1.ImageJob{},
+			OwnerType:    &eraserv1.ImageJob{},
 			IsController: true,
 		},
 	)
@@ -130,7 +129,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 			Type: &corev1.PodTemplate{},
 		},
 		&handler.EnqueueRequestForOwner{
-			OwnerType:    &eraserv1alpha1.ImageJob{},
+			OwnerType:    &eraserv1.ImageJob{},
 			IsController: true,
 		},
 	)
@@ -158,7 +157,7 @@ func checkNodeFitness(pod *corev1.Pod, node *corev1.Node) bool {
 //+kubebuilder:rbac:groups=eraser.sh,resources=imagejobs,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups="",resources=podtemplates,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=eraser.sh,resources=imagejobs/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups="",resources=configmaps,verbs=get;list;watch
+//+kubebuilder:rbac:groups="",resources=configmaps,verbs=get;list;watch;create;update;patch;delete
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
@@ -357,7 +356,7 @@ func (r *Reconciler) handleNewJob(ctx context.Context, imageJob *eraserv1.ImageJ
 			Spec:     *podSpec,
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace:    eraserUtils.GetNamespace(),
-				GenerateName: containerName + "-" + nodeName + "-",
+				GenerateName: "eraser-" + nodeName + "-",
 				Labels:       map[string]string{"name": containerName},
 				OwnerReferences: []metav1.OwnerReference{
 					*metav1.NewControllerRef(imageJob, imageJob.GroupVersionKind()),

@@ -144,6 +144,7 @@ func main() {
 		template.WithLogger(log),
 		template.WithMetrics(recordMetrics),
 		template.WithDeleteScanFailedImages(userConfig.DeleteFailedImages),
+		template.WithDeleteEOLImages(userConfig.DeleteEOLImages),
 	)
 
 	allImages, err := provider.ReceiveImages()
@@ -173,13 +174,13 @@ func main() {
 		log.Error(err, "unable to write images")
 	}
 
-	log.Info("scanning complete, waiting for eraser to finish...")
+	log.Info("scanning complete, waiting for remover to finish...")
 	err = provider.Finish()
 	if err != nil {
 		log.Error(err, "unable to complete scanning process")
 	}
 
-	log.Info("eraser job completed, shutting down...")
+	log.Info("remover job completed, shutting down...")
 }
 
 // Initializes logger and parses CLI options into hashmap configs.

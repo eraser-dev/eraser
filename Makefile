@@ -1,25 +1,33 @@
-VERSION := v1.1.0-beta.0
+VERSION := v1.1.0
 
 MANAGER_TAG ?= ${VERSION}
 TRIVY_SCANNER_TAG ?= ${VERSION}
 COLLECTOR_TAG ?= ${VERSION}
-ERASER_TAG ?= ${VERSION}
+REMOVER_TAG ?= ${VERSION}
 
 # Image URL to use all building/pushing image targets
 TRIVY_SCANNER_REPO ?= ghcr.io/azure/eraser-trivy-scanner
 TRIVY_SCANNER_IMG ?= ${TRIVY_SCANNER_REPO}:${TRIVY_SCANNER_TAG}
 MANAGER_REPO ?= ghcr.io/azure/eraser-manager
 MANAGER_IMG ?= ${MANAGER_REPO}:${MANAGER_TAG}
-ERASER_REPO ?= ghcr.io/azure/eraser
-ERASER_IMG ?= ${ERASER_REPO}:${ERASER_TAG}
+REMOVER_REPO ?= ghcr.io/azure/remover
+REMOVER_IMG ?= ${REMOVER_REPO}:${REMOVER_TAG}
 COLLECTOR_REPO ?= ghcr.io/azure/collector
 COLLECTOR_IMG ?= ${COLLECTOR_REPO}:${COLLECTOR_TAG}
 VULNERABLE_IMG ?= docker.io/library/alpine:3.7.3
+EOL_IMG ?= docker.io/library/alpine:3.1
 BUSYBOX_BASE_IMG ?= busybox:1.36.0
 NON_VULNERABLE_IMG ?= ghcr.io/azure/non-vulnerable:latest
 E2E_TESTS ?= $(shell find ./test/e2e/tests/ -mindepth 1 -type d)
+API_VERSIONS ?= ./api/v1alpha1,./api/v1,./api/v1alpha2
+
 HELM_UPGRADE_TEST ?=
 TEST_LOGDIR ?= $(PWD)/test_logs
+
+REMOVER_TARBALL_PATH ?=
+MANAGER_TARBALL_PATH ?=
+COLLECTOR_TARBALL_PATH ?=
+SCANNER_TARBALL_PATH ?=
 
 KUSTOMIZE_VERSION ?= 3.8.9
 KUBERNETES_VERSION ?= 1.25.3
@@ -124,10 +132,10 @@ manifests: __manifest_kustomize __helm_kustomize __controller-gen ## Generates k
 # Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method
 # implementations. Also generate conversions between structs of different API versions.
 generate: __conversion-gen __controller-gen
-	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./..."
+	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./api/..."
 	$(CONVERSION_GEN) \
 		--output-base=/eraser \
-		--input-dirs=./api/... \
+		--input-dirs=$(API_VERSIONS) \
 		--go-header-file=./hack/boilerplate.go.txt \
 		--output-file-base=zz_generated.conversion
 
@@ -149,6 +157,9 @@ BUSYBOX_IMG=busybox-e2e-test:latest
 vulnerable-img:
 	docker pull $(VULNERABLE_IMG)
 
+eol-img:
+	docker pull $(EOL_IMG)
+
 non-vulnerable-img:
 	docker buildx build \
 		$(_CACHE_FROM) $(_CACHE_TO) \
@@ -158,17 +169,23 @@ non-vulnerable-img:
 		-t ${NON_VULNERABLE_IMG} \
 		--target non-vulnerable .
 
-e2e-test: vulnerable-img non-vulnerable-img busybox-img
+e2e-test: vulnerable-img eol-img non-vulnerable-img busybox-img
 	for test in $(E2E_TESTS); do \
 		CGO_ENABLED=0 \
+            PROJECT_ABSOLUTE_PATH=$(CURDIR) \
+            REMOVER_TARBALL_PATH=${REMOVER_TARBALL_PATH} \
+            MANAGER_TARBALL_PATH=${MANAGER_TARBALL_PATH} \
+            COLLECTOR_TARBALL_PATH=${COLLECTOR_TARBALL_PATH} \
+            SCANNER_TARBALL_PATH=${SCANNER_TARBALL_PATH} \
 			HELM_UPGRADE_TEST=${HELM_UPGRADE_TEST} \
-			IMAGE=${ERASER_IMG} \
+			REMOVER_IMAGE=${REMOVER_IMG} \
 			MANAGER_IMAGE=${MANAGER_IMG} \
 			COLLECTOR_IMAGE=${COLLECTOR_IMG} \
 			SCANNER_IMAGE=${TRIVY_SCANNER_IMG} \
 			BUSYBOX_IMAGE=${BUSYBOX_IMG} \
 			VULNERABLE_IMAGE=${VULNERABLE_IMG} \
 			NON_VULNERABLE_IMAGE=${NON_VULNERABLE_IMG} \
+			EOL_IMAGE=${EOL_IMG} \
 			NODE_VERSION=kindest/node:v${KUBERNETES_VERSION} \
 			TEST_LOGDIR=${TEST_LOGDIR} \
 			go test -count=$(TEST_COUNT) -timeout=$(TIMEOUT) $(TESTFLAGS) -tags=e2e -v $$test ; \
@@ -201,15 +218,15 @@ docker-build-trivy-scanner: ## Build docker image for trivy-scanner image.
 		-t ${TRIVY_SCANNER_IMG} \
 		--target trivy-scanner .
 
-docker-build-eraser: ## Build docker image for eraser image.
+docker-build-remover: ## Build docker image for remover image.
 	docker buildx build \
 		$(_CACHE_FROM) $(_CACHE_TO) \
 		$(_ATTESTATIONS) \
 		--build-arg LDFLAGS="$(ERASER_LDFLAGS)" \
 		--platform="$(PLATFORM)" \
 		--output=$(OUTPUT_TYPE) \
-		-t ${ERASER_IMG} \
-		--target eraser .
+		-t ${REMOVER_IMG} \
+		--target remover .
 
 docker-build-collector:
 	docker buildx build \
@@ -290,12 +307,12 @@ __kustomize-manifest-image:
 		--build-arg KUSTOMIZE_VERSION=${KUSTOMIZE_VERSION} \
 		--build-arg TRIVY_SCANNER_REPO=${TRIVY_SCANNER_REPO} \
 		--build-arg MANAGER_REPO=${MANAGER_REPO} \
-		--build-arg ERASER_REPO=${ERASER_REPO} \
+		--build-arg REMOVER_REPO=${REMOVER_REPO} \
 		--build-arg COLLECTOR_REPO=${COLLECTOR_REPO} \
 		--build-arg MANAGER_TAG=${MANAGER_TAG} \
 		--build-arg TRIVY_SCANNER_TAG=${TRIVY_SCANNER_TAG} \
 		--build-arg COLLECTOR_TAG=${COLLECTOR_TAG} \
-		--build-arg ERASER_TAG=${ERASER_TAG} \
+		--build-arg REMOVER_TAG=${REMOVER_TAG} \
 		-f build/tooling/Dockerfile.manifest
 
 # Tags a new version for docs

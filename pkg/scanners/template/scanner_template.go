@@ -22,7 +22,7 @@ type ImageProvider interface {
 	// receive list of all non-running, non-excluded images from collector container to process.
 	ReceiveImages() ([]unversioned.Image, error)
 
-	// sends non-compliant images found to eraser container for removal.
+	// sends non-compliant images found to remover container for removal.
 	SendImages(nonCompliantImages, failedImages []unversioned.Image) error
 
 	// completes scanner communication process - required after custom scanning finishes.
@@ -33,6 +33,7 @@ type config struct {
 	ctx                    context.Context
 	log                    logr.Logger
 	deleteScanFailedImages bool
+	deleteEOLImages        bool
 	reportMetrics          bool
 }
 
@@ -140,6 +141,13 @@ func WithContext(ctx context.Context) ConfigFunc {
 func WithDeleteScanFailedImages(deleteScanFailedImages bool) ConfigFunc {
 	return func(cfg *config) {
 		cfg.deleteScanFailedImages = deleteScanFailedImages
+	}
+}
+
+// sets deleteEOLimages flag.
+func WithDeleteEOLImages(deleteEOLImages bool) ConfigFunc {
+	return func(cfg *config) {
+		cfg.deleteEOLImages = deleteEOLImages
 	}
 }
 

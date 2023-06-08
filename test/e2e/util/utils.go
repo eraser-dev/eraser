@@ -14,7 +14,6 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/klog/v2"
 	"oras.land/oras-go/pkg/registry"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -24,9 +23,10 @@ import (
 	"sigs.k8s.io/e2e-framework/klient/wait/conditions"
 	"sigs.k8s.io/e2e-framework/pkg/env"
 	"sigs.k8s.io/e2e-framework/pkg/envconf"
+	"sigs.k8s.io/e2e-framework/pkg/envfuncs"
 	"sigs.k8s.io/kind/pkg/cluster"
 
-	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
+	eraserv1 "github.com/Azure/eraser/api/v1"
 
 	pkgUtil "github.com/Azure/eraser/pkg/utils"
 )
@@ -41,9 +41,9 @@ const (
 
 	Alpine        = "alpine"
 	Nginx         = "nginx"
-	NginxLatest   = "docker.io/library/nginx:latest"
-	NginxAliasOne = "docker.io/library/nginx:one"
-	NginxAliasTwo = "docker.io/library/nginx:two"
+	NginxLatest   = "ghcr.io/azure/eraser/e2e-test/nginx:latest"
+	NginxAliasOne = "ghcr.io/azure/eraser/e2e-test/nginx:one"
+	NginxAliasTwo = "ghcr.io/azure/eraser/e2e-test/nginx:two"
 	Redis         = "redis"
 	Caddy         = "caddy"
 
@@ -61,12 +61,13 @@ const (
 	CollectorImageRepo = HelmPath("runtimeConfig.components.collector.image.repo")
 	CollectorImageTag  = HelmPath("runtimeConfig.components.collector.image.tag")
 
+	ScannerConfig    = HelmPath("runtimeConfig.components.scanner.config")
 	ScannerEnable    = HelmPath("runtimeConfig.components.scanner.enabled")
 	ScannerImageRepo = HelmPath("runtimeConfig.components.scanner.image.repo")
 	ScannerImageTag  = HelmPath("runtimeConfig.components.scanner.image.tag")
 
-	EraserImageRepo = HelmPath("runtimeConfig.components.eraser.image.repo")
-	EraserImageTag  = HelmPath("runtimeConfig.components.eraser.image.tag")
+	RemoverImageRepo = HelmPath("runtimeConfig.components.remover.image.repo")
+	RemoverImageTag  = HelmPath("runtimeConfig.components.remover.image.tag")
 
 	ManagerImageRepo = HelmPath("deploy.image.repo")
 	ManagerImageTag  = HelmPath("deploy.image.tag")
@@ -81,21 +82,43 @@ const (
 
 var (
 	Testenv            env.Environment
-	Image              = os.Getenv("IMAGE")
+	RemoverImage       = os.Getenv("REMOVER_IMAGE")
 	ManagerImage       = os.Getenv("MANAGER_IMAGE")
 	CollectorImage     = os.Getenv("COLLECTOR_IMAGE")
 	ScannerImage       = os.Getenv("SCANNER_IMAGE")
 	VulnerableImage    = os.Getenv("VULNERABLE_IMAGE")
 	NonVulnerableImage = os.Getenv("NON_VULNERABLE_IMAGE")
+	EOLImage           = os.Getenv("EOL_IMAGE")
 	BusyboxImage       = os.Getenv("BUSYBOX_IMAGE")
-	NodeVersion        = os.Getenv("NODE_VERSION")
-	TestNamespace      = envconf.RandomName("test-ns", 16)
-	EraserNamespace    = pkgUtil.GetNamespace()
-	TestLogDir         = os.Getenv("TEST_LOGDIR")
+
+	RemoverTarballPath   = os.Getenv("REMOVER_TARBALL_PATH")
+	ManagerTarballPath   = os.Getenv("MANAGER_TARBALL_PATH")
+	CollectorTarballPath = os.Getenv("COLLECTOR_TARBALL_PATH")
+	ScannerTarballPath   = os.Getenv("SCANNER_TARBALL_PATH")
+
+	ProjectAbsDir                      = os.Getenv("PROJECT_ABSOLUTE_PATH")
+	E2EPath                            = filepath.Join(ProjectAbsDir, "test", "e2e")
+	TestDataPath                       = filepath.Join(E2EPath, "test-data")
+	KindConfigPath                     = filepath.Join(E2EPath, "kind-config.yaml")
+	HelmEmptyValuesPath                = filepath.Join(TestDataPath, "helm-empty-values.yaml")
+	ChartPath                          = filepath.Join(ProjectAbsDir, providerResourceChartDir)
+	DeployPath                         = filepath.Join(ProjectAbsDir, providerResourceDeployDir)
+	OTELCollectorConfigPath            = filepath.Join(TestDataPath, "otelcollector.yaml")
+	EraserV1Alpha1ImagelistUpdatedPath = filepath.Join(TestDataPath, "eraser_v1alpha1_imagelist_updated.yaml")
+	EraserV1Alpha1ImagelistPath        = filepath.Join(TestDataPath, "eraser_v1alpha1_imagelist.yaml")
+	EraserV1ImagelistPath              = filepath.Join(TestDataPath, "eraser_v1_imagelist.yaml")
+	ImagelistAlpinePath                = filepath.Join(TestDataPath, "imagelist_alpine.yaml")
+
+	NodeVersion     = os.Getenv("NODE_VERSION")
+	TestNamespace   = envconf.RandomName("test-ns", 16)
+	EraserNamespace = pkgUtil.GetNamespace()
+	TestLogDir      = os.Getenv("TEST_LOGDIR")
 
 	ParsedImages        *Images
 	Timeout             = time.Minute * 5
 	ImagePullSecretJSON = fmt.Sprintf(`["%s"]`, ImagePullSecret)
+
+	ScannerConfigNoDeleteFailedJSON = `"{ \"cacheDir\": \"/var/lib/trivy\", \"dbRepo\": \"ghcr.io/aquasecurity/trivy-db\", \"deleteFailedImages\": false, \"deleteEOLImages\": true, \"vulnerabilities\": null, \"ignoreUnfixed\": true, \"types\": [ \"os\", \"library\" ], \"securityChecks\": [ \"vuln\" ], \"severities\": [ \"CRITICAL\", \"HIGH\", \"MEDIUM\", \"LOW\" ] }"`
 
 	ManagerAdditionalArgs = HelmSet{
 		key:  "controllerManager.additionalArgs",
@@ -111,7 +134,7 @@ type (
 
 	Images struct {
 		CollectorImage RepoTag
-		EraserImage    RepoTag
+		RemoverImage   RepoTag
 		ManagerImage   RepoTag
 		ScannerImage   RepoTag
 	}
@@ -139,7 +162,7 @@ func (hs *HelmSet) String() string {
 
 func init() {
 	var err error
-	ParsedImages, err = parsedImages(Image, ManagerImage, CollectorImage, ScannerImage)
+	ParsedImages, err = parsedImages(RemoverImage, ManagerImage, CollectorImage, ScannerImage)
 	if err != nil {
 		klog.Error(err)
 		panic(err)
@@ -158,8 +181,8 @@ func toRepoTag(ref registry.Reference) RepoTag {
 	return repoTag
 }
 
-func parsedImages(eraserImage, managerImage, collectorImage, scannerImage string) (*Images, error) {
-	eraserRepoTag, err := parseRepoTag(eraserImage)
+func parsedImages(removerImage, managerImage, collectorImage, scannerImage string) (*Images, error) {
+	removerRepoTag, err := parseRepoTag(removerImage)
 	if err != nil {
 		return nil, err
 	}
@@ -181,7 +204,7 @@ func parsedImages(eraserImage, managerImage, collectorImage, scannerImage string
 
 	return &Images{
 		CollectorImage: collectorRepoTag,
-		EraserImage:    eraserRepoTag,
+		RemoverImage:   removerRepoTag,
 		ManagerImage:   managerRepoTag,
 		ScannerImage:   scannerRepoTag,
 	}, nil
@@ -214,6 +237,14 @@ func parseRepoTag(img string) (RepoTag, error) {
 	return RepoTag{}, err
 }
 
+func LoadImageToCluster(clusterName, imageRef, tarballPath string) env.Func {
+	if strings.HasSuffix(tarballPath, ".tar") {
+		return envfuncs.LoadImageArchiveToCluster(clusterName, tarballPath)
+	}
+
+	return envfuncs.LoadDockerImageToCluster(clusterName, imageRef)
+}
+
 func HelmDeployLatestEraserRelease(namespace string, extraArgs ...string) env.Func {
 	return func(ctx context.Context, cfg *envconf.Config) (context.Context, error) {
 		if os.Getenv("HELM_UPGRADE_TEST") == "" {
@@ -232,10 +263,11 @@ func HelmDeployLatestEraserRelease(namespace string, extraArgs ...string) env.Fu
 			return ctx, err
 		}
 
-		args := []string{"eraser/eraser"}
-		args = append(args, extraArgs...)
+		allArgs := []string{"-f", HelmEmptyValuesPath}
+		allArgs = append(allArgs, "eraser/eraser")
+		allArgs = append(allArgs, extraArgs...)
 
-		if err := HelmInstall(cfg.KubeconfigFile(), namespace, args); err != nil {
+		if err := HelmInstall(cfg.KubeconfigFile(), namespace, allArgs); err != nil {
 			return ctx, err
 		}
 
@@ -322,17 +354,8 @@ func NewPod(namespace, image, name, nodeName string) *corev1.Pod {
 }
 
 // deploy eraser config.
-func DeployEraserConfig(kubeConfig, namespace, resourcePath, fileName string) error {
-	wd, err := os.Getwd()
-	if err != nil {
-		return err
-	}
-
-	exampleResourceAbsolutePath, err := filepath.Abs(filepath.Join(wd, resourcePath))
-	if err != nil {
-		return err
-	}
-	errApply := KubectlApply(kubeConfig, namespace, []string{"-f", filepath.Join(exampleResourceAbsolutePath, fileName)})
+func DeployEraserConfig(kubeConfig, namespace, fileName string) error {
+	errApply := KubectlApply(kubeConfig, namespace, []string{"-f", fileName})
 	if errApply != nil {
 		return errApply
 	}
@@ -374,20 +397,20 @@ func ImagejobNotInCluster(kubeconfigPath string) func() (bool, error) {
 	}
 }
 
-func GetImageJob(ctx context.Context, cfg *envconf.Config) (eraserv1alpha1.ImageJob, error) {
+func GetImageJob(ctx context.Context, cfg *envconf.Config) (eraserv1.ImageJob, error) {
 	c, err := cfg.NewClient()
 	if err != nil {
-		return eraserv1alpha1.ImageJob{}, err
+		return eraserv1.ImageJob{}, err
 	}
 
-	var ls eraserv1alpha1.ImageJobList
+	var ls eraserv1.ImageJobList
 	err = c.Resources().List(ctx, &ls)
 	if err != nil {
-		return eraserv1alpha1.ImageJob{}, err
+		return eraserv1.ImageJob{}, err
 	}
 
 	if len(ls.Items) != 1 {
-		return eraserv1alpha1.ImageJob{}, errors.New("only one imagejob should be present")
+		return eraserv1.ImageJob{}, errors.New("only one imagejob should be present")
 	}
 
 	return ls.Items[0], nil
@@ -482,13 +505,13 @@ func CheckDeploymentCleanedUp(ctx context.Context, t *testing.T, client klient.C
 			return
 		default:
 			var pods corev1.PodList
-			err := client.Resources().List(ctx, &pods, resources.WithLabelSelector("name=eraser"))
+			err := client.Resources().List(ctx, &pods, resources.WithLabelSelector("name=remover"))
 			if err != nil {
 				t.Fatalf("error listing images: %s", err)
 			}
 
 			if len(pods.Items) > 0 {
-				t.Errorf("imagejob got restarted when it shouldn't: %d eraser pods still present", len(pods.Items))
+				t.Errorf("imagejob got restarted when it shouldn't: %d remover pods still present", len(pods.Items))
 				t.FailNow()
 			}
 		}
@@ -604,23 +627,10 @@ func DeleteStringFromSlice(strings []string, s string) []string {
 
 func DeployEraserHelm(namespace string, args ...string) env.Func {
 	return func(ctx context.Context, cfg *envconf.Config) (context.Context, error) {
-		wd, err := os.Getwd()
-		if err != nil {
-			return ctx, err
-		}
-
-		providerResourceAbsolutePath, err := filepath.Abs(filepath.Join(wd, "../../../../", providerResourceChartDir, "eraser"))
-		if err != nil {
-			return ctx, err
-		}
-
-		emptyValuesPath, err := filepath.Abs(filepath.Join(wd, "../../test-data/helm-empty-values.yaml"))
-		if err != nil {
-			return ctx, err
-		}
+		providerResourceAbsolutePath := filepath.Join(ChartPath, "eraser")
 
 		// start deployment
-		allArgs := []string{providerResourceAbsolutePath, "-f", emptyValuesPath}
+		allArgs := []string{providerResourceAbsolutePath, "-f", HelmEmptyValuesPath}
 		allArgs = append(allArgs, args...)
 		if err := HelmInstall(cfg.KubeconfigFile(), namespace, allArgs); err != nil {
 			return ctx, err
@@ -650,23 +660,10 @@ func DeployEraserHelm(namespace string, args ...string) env.Func {
 
 func UpgradeEraserHelm(namespace string, args ...string) env.Func {
 	return func(ctx context.Context, cfg *envconf.Config) (context.Context, error) {
-		wd, err := os.Getwd()
-		if err != nil {
-			return ctx, err
-		}
-
-		providerResourceAbsolutePath, err := filepath.Abs(filepath.Join(wd, "../../../../", providerResourceChartDir, "eraser"))
-		if err != nil {
-			return ctx, err
-		}
-
-		emptyValuesPath, err := filepath.Abs(filepath.Join(wd, "../../test-data/helm-empty-values.yaml"))
-		if err != nil {
-			return ctx, err
-		}
+		providerResourceAbsolutePath := filepath.Join(ChartPath, "eraser")
 
 		// start deployment
-		allArgs := []string{providerResourceAbsolutePath, "-f", emptyValuesPath}
+		allArgs := []string{providerResourceAbsolutePath, "-f", HelmEmptyValuesPath}
 		allArgs = append(allArgs, args...)
 		if os.Getenv("HELM_UPGRADE_TEST") == "" {
 			allArgs = append(allArgs, "--install")
@@ -700,19 +697,8 @@ func UpgradeEraserHelm(namespace string, args ...string) env.Func {
 
 func DeployOtelCollector(namespace string) env.Func {
 	return func(ctx context.Context, cfg *envconf.Config) (context.Context, error) {
-		// set up otel collector
-		wd, err := os.Getwd()
-		if err != nil {
-			return ctx, err
-		}
-
-		otelCollectorAbsolutePath, err := filepath.Abs(filepath.Join(wd, "../../", "test-data/otelcollector.yaml"))
-		if err != nil {
-			return ctx, err
-		}
-
 		// start otelcollector deployment
-		otelargs := []string{"-f", otelCollectorAbsolutePath}
+		otelargs := []string{"-f", OTELCollectorConfigPath}
 		if err := KubectlApply(cfg.KubeconfigFile(), namespace, otelargs); err != nil {
 			return ctx, err
 		}
@@ -739,109 +725,29 @@ func DeployOtelCollector(namespace string) env.Func {
 	}
 }
 
-func GetManagerLogs(ctx context.Context, cfg *envconf.Config, t *testing.T) error {
-	c, err := cfg.NewClient()
-	if err != nil {
-		return err
-	}
-
-	var pods corev1.PodList
-	err = c.Resources().List(ctx, &pods, func(o *metav1.ListOptions) {
-		o.LabelSelector = labels.SelectorFromSet(map[string]string{"control-plane": "controller-manager"}).String()
-	})
-	if err != nil {
-		return err
-	}
-
-	if len(pods.Items) > 1 {
-		return errors.New("only one manager pod should be present")
-	} else if len(pods.Items) == 0 {
-		return errors.New("no manager pod present")
-	}
-
-	manager := pods.Items[0]
-
-	output, err := KubectlLogs(cfg.KubeconfigFile(), manager.Name, "", cfg.Namespace())
-	if err != nil {
-		return err
-	}
-
-	testName := strings.Split(t.Name(), "/")[0]
-
-	// get log output file path
-	path := filepath.Join(TestLogDir, testName)
-	logFileName := filepath.Join(path, manager.Name+".txt")
-
-	if err := os.MkdirAll(path, 0o755); err != nil {
-		return err
-	}
-
-	err = os.WriteFile(logFileName, []byte(output), 0o600)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func GetPodLogs(ctx context.Context, cfg *envconf.Config, t *testing.T, imagelistTest bool) error {
-	c, err := cfg.NewClient()
-	if err != nil {
-		return err
-	}
-
-	namespace := cfg.Namespace()
-
-	labelSelectorSet := map[string]string{"name": "collector"}
-	if imagelistTest {
-		labelSelectorSet = map[string]string{"name": "eraser"}
-	}
-
-	var ls corev1.PodList
-	err = wait.For(func() (bool, error) {
-		err = c.Resources().List(ctx, &ls, func(o *metav1.ListOptions) {
-			o.LabelSelector = labels.SelectorFromSet(labelSelectorSet).String()
-		})
-
-		if err != nil {
-			return false, err
-		}
-
-		return len(ls.Items) > 0, nil
-	}, wait.WithTimeout(Timeout))
-
-	if err != nil {
-		t.Errorf("could not list pods: %v", err)
-	}
-
-	for idx := range ls.Items {
-		var output string
-		pod := ls.Items[idx]
-
+func GetPodLogs(t *testing.T) error {
+	for _, nodeName := range []string{"eraser-e2e-test-control-plane", "eraser-e2e-test-worker", "eraser-e2e-test-worker2"} {
 		testName := strings.Split(t.Name(), "/")[0]
-
-		// get log output file path
-		path := filepath.Join(TestLogDir, testName)
-		podLogFilename := filepath.Join(path, pod.Name+".txt")
-
-		// wait for current pod to complete
-		err = wait.For(conditions.New(c.Resources()).PodPhaseMatch(&pod, corev1.PodSucceeded), wait.WithTimeout(Timeout))
-		if err != nil {
-			t.Errorf("error waiting for pod completion %s %v", pod.Name, err)
-		}
-
-		output, err := KubectlLogs(cfg.KubeconfigFile(), pod.Name, "", namespace, "--all-containers=true")
-		if err != nil {
-			t.Errorf("error getting pod logs %s %v", pod.Name, err)
-		}
-
+		path := filepath.Join(TestLogDir, testName, nodeName)
 		if err := os.MkdirAll(path, 0o755); err != nil {
-			return err
+			t.Logf("error: %s", err)
+			continue
 		}
 
-		err = os.WriteFile(podLogFilename, []byte(output), 0o600)
+		t.Logf(`docker cp %s:/var/log/containers %s`, nodeName, path)
+		cmd := exec.Command("docker", "cp", nodeName+":/var/log/containers", path) //nolint:gosec
+		output, err := cmd.CombinedOutput()
 		if err != nil {
-			t.Errorf("error writing pod log file %s %s %v", pod.Name, podLogFilename, err)
+			t.Logf("error: %s\n%s", err, string(output))
+			continue
+		}
+
+		t.Logf(`docker cp %s:/var/log/pods %s`, nodeName, path)
+		cmd2 := exec.Command("docker", "cp", nodeName+":/var/log/pods", path) //nolint:gosec
+		output, err = cmd2.CombinedOutput()
+		if err != nil {
+			t.Logf("error: %s\n%s", err, string(output))
+			continue
 		}
 	}
 
@@ -856,7 +762,7 @@ func MakeDeploy(env map[string]string) env.Func {
 		}
 
 		cmd := exec.Command("make", args...)
-		cmd.Dir = "../../../.."
+		cmd.Dir = ProjectAbsDir
 
 		out, err := cmd.CombinedOutput()
 		if err != nil {
@@ -872,9 +778,7 @@ func MakeDeploy(env map[string]string) env.Func {
 
 func DeployEraserManifest(namespace, fileName string) env.Func {
 	return func(ctx context.Context, cfg *envconf.Config) (context.Context, error) {
-		providerResourceAbsolutePath := "../../../../" + providerResourceDeployDir
-
-		if err := DeployEraserConfig(cfg.KubeconfigFile(), namespace, providerResourceAbsolutePath, fileName); err != nil {
+		if err := DeployEraserConfig(cfg.KubeconfigFile(), namespace, filepath.Join(DeployPath, fileName)); err != nil {
 			return ctx, err
 		}
 

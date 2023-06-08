@@ -1,4 +1,6 @@
 runtimeConfig:
+  apiVersion: eraser.sh/v1alpha2
+  kind: EraserConfig
   health: {}
     # healthProbeBindAddress: :8081
   metrics: {}
@@ -35,7 +37,7 @@ runtimeConfig:
       enabled: true
       image:
         # repo: ""
-        tag: "v1.1.0-beta.0"
+        tag: "v1.1.0"
       request: {}
         # mem: ""
         # cpu: ""
@@ -46,7 +48,7 @@ runtimeConfig:
       enabled: true
       image:
         # repo: ""
-        tag: "v1.1.0-beta.0"
+        tag: "v1.1.0"
       request: {}
         # mem: ""
         # cpu: ""
@@ -57,6 +59,7 @@ runtimeConfig:
         # cacheDir: /var/lib/trivy
         # dbRepo: ghcr.io/aquasecurity/trivy-db
         # deleteFailedImages: true
+        # deleteEOLImages: true
         # vulnerabilities:
         #   ignoreUnfixed: true
         #   types:
@@ -66,13 +69,16 @@ runtimeConfig:
         #     - vuln
         #   severities:
         #     - CRITICAL
+        #     - HIGH
+        #     - MEDIUM
+        #     - LOW
         # timeout:
         #   total: 23h
         #   perImage: 1h
-    eraser:
+    remover:
       image:
         # repo: ""
-        tag: "v1.1.0-beta.0"
+        tag: "v1.1.0"
       request: {}
         # mem: ""
         # cpu: ""
@@ -85,7 +91,7 @@ deploy:
     repo: ghcr.io/azure/eraser-manager
     pullPolicy: IfNotPresent
     # Overrides the image tag whose default is the chart appVersion.
-    tag: "v1.1.0-beta.0"
+    tag: "v1.1.0"
   additionalArgs: []
   priorityClassName: ""
 

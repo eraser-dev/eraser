@@ -1,0 +1,33 @@
+name: Image build definitions for e2e tests
+
+on:
+  workflow_call:
+    outputs:
+      build-id:
+        description: "random build id to keep things together"
+        value: ${{ jobs.generate-build-id.outputs.image-build-id }}
+      bucket-id:
+        description: "docker-images-<build-id>"
+        value: ${{ jobs.generate-build-id.outputs.bucket-id }}
+
+permissions:
+  contents: read
+
+jobs:
+  generate-build-id:
+    name: "Generate Build ID"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@128a63446a954579617e875aaab7d2978154e969 # v2.4.0
+        with:
+          egress-policy: audit
+
+      - id: build-id
+        run: |
+          build_id="$(date +%s)"
+          echo build-id=$build_id | tee -a $GITHUB_OUTPUT
+          echo bucket-id=docker-images-$build_id | tee -a $GITHUB_OUTPUT
+    outputs:
+      image-build-id: ${{ steps.build-id.outputs.build-id }}
+      bucket-id: ${{ steps.build-id.outputs.bucket-id }}

@@ -36,9 +36,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
+	"github.com/Azure/eraser/api/unversioned/config"
 	eraserv1 "github.com/Azure/eraser/api/v1"
 	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
-	"github.com/Azure/eraser/api/v1alpha1/config"
 	"github.com/Azure/eraser/controllers/util"
 	"github.com/Azure/eraser/pkg/utils"
 
@@ -268,18 +268,18 @@ func (r *Reconciler) createImageJob(ctx context.Context) (ctrl.Result, error) {
 
 	scanCfg := compCfg.Scanner
 	collectorCfg := compCfg.Collector
-	eraserCfg := compCfg.Eraser
+	eraserCfg := compCfg.Remover
 
 	scanDisabled := !scanCfg.Enabled
 	startTime = time.Now()
 
-	eraserImg := *util.EraserImage
-	if eraserImg == "" {
+	removerImg := *util.RemoverImage
+	if removerImg == "" {
 		iCfg := eraserCfg.Image
-		eraserImg = fmt.Sprintf("%s:%s", iCfg.Repo, iCfg.Tag)
+		removerImg = fmt.Sprintf("%s:%s", iCfg.Repo, iCfg.Tag)
 	}
 
-	log.V(1).Info("eraserImg", "eraserImg", eraserImg)
+	log.V(1).Info("removerImg", "removerImg", removerImg)
 
 	iCfg := collectorCfg.Image
 	collectorImg := fmt.Sprintf("%s:%s", iCfg.Repo, iCfg.Tag)
@@ -293,8 +293,8 @@ func (r *Reconciler) createImageJob(ctx context.Context) (ctrl.Result, error) {
 	collArgs := []string{"--scan-disabled=" + strconv.FormatBool(scanDisabled)}
 	collArgs = append(collArgs, profileArgs...)
 
-	eraserArgs := []string{"--log-level=" + logger.GetLevel()}
-	eraserArgs = append(eraserArgs, profileArgs...)
+	removerArgs := []string{"--log-level=" + logger.GetLevel()}
+	removerArgs = append(removerArgs, profileArgs...)
 
 	pullSecrets := []corev1.LocalObjectReference{}
 	for _, secret := range eraserConfig.Manager.PullSecrets {
@@ -342,10 +342,10 @@ func (r *Reconciler) createImageJob(ctx context.Context) (ctrl.Result, error) {
 					},
 				},
 				{
-					Name:            "eraser",
-					Image:           eraserImg,
+					Name:            "remover",
+					Image:           removerImg,
 					ImagePullPolicy: corev1.PullIfNotPresent,
-					Args:            eraserArgs,
+					Args:            removerArgs,
 					VolumeMounts: []corev1.VolumeMount{
 						{MountPath: "/run/eraser.sh/shared-data", Name: "shared-data"},
 					},
@@ -366,7 +366,7 @@ func (r *Reconciler) createImageJob(ctx context.Context) (ctrl.Result, error) {
 						},
 						{
 							Name:  "OTEL_SERVICE_NAME",
-							Value: "eraser",
+							Value: "remover",
 						},
 					},
 				},
@@ -455,7 +455,7 @@ func (r *Reconciler) createImageJob(ctx context.Context) (ctrl.Result, error) {
 			Name:      job.GetName(),
 			Namespace: namespace,
 			OwnerReferences: []metav1.OwnerReference{
-				*metav1.NewControllerRef(job, eraserv1alpha1.GroupVersion.WithKind("ImageJob")),
+				*metav1.NewControllerRef(job, eraserv1.GroupVersion.WithKind("ImageJob")),
 			},
 		},
 		Template: jobTemplate,

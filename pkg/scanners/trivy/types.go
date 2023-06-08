@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/Azure/eraser/api/unversioned"
-	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
 	"github.com/aquasecurity/trivy/pkg/fanal/analyzer"
 	"github.com/aquasecurity/trivy/pkg/fanal/artifact"
 	artifactImage "github.com/aquasecurity/trivy/pkg/fanal/artifact/image"
@@ -28,6 +27,7 @@ type (
 		CacheDir           string        `json:"cacheDir,omitempty"`
 		DBRepo             string        `json:"dbRepo,omitempty"`
 		DeleteFailedImages bool          `json:"deleteFailedImages,omitempty"`
+		DeleteEOLImages    bool          `json:"deleteEOLImages,omitempty"`
 		Vulnerabilities    VulnConfig    `json:"vulnerabilities,omitempty"`
 		Timeout            TimeoutConfig `json:"timeout,omitempty"`
 	}
@@ -40,8 +40,8 @@ type (
 	}
 
 	TimeoutConfig struct {
-		Total    eraserv1alpha1.Duration `json:"total,omitempty"`
-		PerImage eraserv1alpha1.Duration `json:"perImage,omitempty"`
+		Total    unversioned.Duration `json:"total,omitempty"`
+		PerImage unversioned.Duration `json:"perImage,omitempty"`
 	}
 
 	scannerSetup struct {
@@ -69,6 +69,7 @@ func DefaultConfig() *Config {
 		CacheDir:           "/var/lib/trivy",
 		DBRepo:             "ghcr.io/aquasecurity/trivy-db",
 		DeleteFailedImages: true,
+		DeleteEOLImages:    true,
 		Vulnerabilities: VulnConfig{
 			IgnoreUnfixed: true,
 			Types: []string{
@@ -76,11 +77,11 @@ func DefaultConfig() *Config {
 				vulnTypeLibrary,
 			},
 			SecurityChecks: []string{securityCheckVuln},
-			Severities:     []string{severityCritical},
+			Severities:     []string{severityCritical, severityHigh, severityMedium, severityLow},
 		},
 		Timeout: TimeoutConfig{
-			Total:    eraserv1alpha1.Duration(time.Hour * 23),
-			PerImage: eraserv1alpha1.Duration(time.Hour),
+			Total:    unversioned.Duration(time.Hour * 23),
+			PerImage: unversioned.Duration(time.Hour),
 		},
 	}
 }
@@ -142,6 +143,13 @@ func (s *ImageScanner) Scan(img unversioned.Image) (ScanStatus, error) {
 			log.Error(err, "error scanning image", "imageID", img.ImageID, "reference", ref)
 			cleanup()
 			continue
+		}
+
+		if s.userConfig.DeleteEOLImages {
+			if report.Metadata.OS != nil && report.Metadata.OS.Eosl {
+				log.Info("image is end of life", "imageID", img.ImageID, "reference", ref)
+				return StatusNonCompliant, nil
+			}
 		}
 
 		for i := range report.Results {

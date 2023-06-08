@@ -23,13 +23,13 @@ import (
 
 const (
 	collectorLabel = "name=collector"
-	eraserLabel    = "name=eraser"
+	eraserLabel    = "name=remover"
 
 	restartTimeout = time.Minute
 )
 
-func TestImageListTriggersEraserImageJob(t *testing.T) {
-	rmImageFeat := features.New("An ImageList should trigger an eraser ImageJob").
+func TestImageListTriggersRemoverImageJob(t *testing.T) {
+	rmImageFeat := features.New("An ImageList should trigger a remover ImageJob").
 		Setup(func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
 			podSelectorLabels := map[string]string{"app": util.Nginx}
 			nginxDep := util.NewDeployment(cfg.Namespace(), util.Nginx, 2, podSelectorLabels, corev1.Container{Image: util.Nginx, Name: util.Nginx})
@@ -86,7 +86,7 @@ func TestImageListTriggersEraserImageJob(t *testing.T) {
 			}
 
 			// deploy imageJob config
-			if err := util.DeployEraserConfig(cfg.KubeconfigFile(), cfg.Namespace(), "../../test-data", "eraser_v1alpha1_imagelist.yaml"); err != nil {
+			if err := util.DeployEraserConfig(cfg.KubeconfigFile(), cfg.Namespace(), util.EraserV1Alpha1ImagelistPath); err != nil {
 				t.Error("Failed to deploy image list config", err)
 			}
 
@@ -94,7 +94,7 @@ func TestImageListTriggersEraserImageJob(t *testing.T) {
 			// get eraser pod name
 			err = wait.For(func() (bool, error) {
 				l := corev1.PodList{}
-				err = client.Resources().List(ctx, &l, resources.WithLabelSelector("name=eraser"))
+				err = client.Resources().List(ctx, &l, resources.WithLabelSelector("name=remover"))
 				if err != nil {
 					return false, err
 				}
@@ -117,7 +117,7 @@ func TestImageListTriggersEraserImageJob(t *testing.T) {
 			// actually a new deployment.
 			err = wait.For(func() (bool, error) {
 				var l corev1.PodList
-				err = client.Resources().List(ctx, &l, resources.WithLabelSelector("name=eraser"))
+				err = client.Resources().List(ctx, &l, resources.WithLabelSelector("name=remover"))
 				if err != nil {
 					return false, err
 				}
@@ -149,7 +149,7 @@ func TestImageListTriggersEraserImageJob(t *testing.T) {
 		}).
 		Assess("Eraser job was not restarted", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
 			// until a timeout is reached, make sure there are no pods matching
-			// the selector name=eraser
+			// the selector name=remover
 			client := cfg.Client()
 			ctxT2, cancel := context.WithTimeout(ctx, restartTimeout)
 			defer cancel()
@@ -158,9 +158,6 @@ func TestImageListTriggersEraserImageJob(t *testing.T) {
 			return ctx
 		}).
 		Assess("Get logs", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
-			if err := util.GetManagerLogs(ctx, cfg, t); err != nil {
-				t.Error("error getting manager logs", err)
-			}
 
 			return ctx
 		}).

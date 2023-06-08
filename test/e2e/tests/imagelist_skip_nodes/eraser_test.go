@@ -120,7 +120,7 @@ func TestSkipNodes(t *testing.T) {
 			}
 
 			// deploy imageJob config
-			if err := util.DeployEraserConfig(cfg.KubeconfigFile(), cfg.Namespace(), "../../test-data", "eraser_v1alpha1_imagelist.yaml"); err != nil {
+			if err := util.DeployEraserConfig(cfg.KubeconfigFile(), cfg.Namespace(), util.EraserV1Alpha1ImagelistPath); err != nil {
 				t.Error("Failed to deploy image list config", err)
 			}
 
@@ -131,7 +131,7 @@ func TestSkipNodes(t *testing.T) {
 			util.CheckImageRemoved(ctxT, t, clusterNodes, util.Nginx)
 
 			// get pod logs before imagejob is deleted
-			if err := util.GetPodLogs(ctx, cfg, t, true); err != nil {
+			if err := util.GetPodLogs(t); err != nil {
 				t.Error("error getting collector pod logs", err)
 			}
 
@@ -147,9 +147,6 @@ func TestSkipNodes(t *testing.T) {
 			return ctx
 		}).
 		Assess("Get logs", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
-			if err := util.GetManagerLogs(ctx, cfg, t); err != nil {
-				t.Error("error getting manager logs", err)
-			}
 
 			return ctx
 		}).
