@@ -35,7 +35,7 @@ func TestCollectScanErasePipeline(t *testing.T) {
 
 			var ls corev1.PodList
 			err = c.Resources().List(ctx, &ls, func(o *metav1.ListOptions) {
-				o.LabelSelector = labels.SelectorFromSet(map[string]string{"name": "collector"}).String()
+				o.LabelSelector = labels.SelectorFromSet(map[string]string{"type": "collector"}).String()
 			})
 			if err != nil {
 				t.Errorf("could not list pods: %v", err)
