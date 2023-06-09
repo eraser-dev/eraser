@@ -197,9 +197,17 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 }
 
 func podListOptions(jobTemplate *corev1.PodTemplate) client.ListOptions {
+	var set map[string]string
+
+	if jobTemplate.Template.Spec.Containers[0].Name == "remover" {
+		set = map[string]string{"type": "manual"}
+	} else {
+		set = map[string]string{"type": "collector"}
+	}
+
 	return client.ListOptions{
 		Namespace:     eraserUtils.GetNamespace(),
-		LabelSelector: labels.SelectorFromSet(map[string]string{"name": jobTemplate.Template.Spec.Containers[0].Name}),
+		LabelSelector: labels.SelectorFromSet(set),
 	}
 }
 
