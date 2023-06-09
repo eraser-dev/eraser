@@ -122,10 +122,12 @@ func (s *ImageScanner) Scan(img unversioned.Image) (ScanStatus, error) {
 		}
 		log.Info("found image with id under reference", "imageID", img.ImageID, "ref", ref)
 
+		disabledAnalyzers := appendDisabledAnalyzers(analyzer.TypeConfigFiles, analyzer.TypeLockfiles, analyzer.TypeIndividualPkgs, analyzer.TypeLanguages)
+
 		artifactToScan, err := artifactImage.NewArtifact(dockerImage, s.trivyScanConfig.fscache, artifact.Option{
 			Offline:           true,
-			DisabledAnalyzers: analyzer.TypeLockfiles,
-			DisabledHandlers:  []fanalTypes.HandlerType{fanalTypes.UnpackagedPostHandler},
+			DisabledAnalyzers: disabledAnalyzers,
+			DisabledHandlers:  []fanalTypes.HandlerType{fanalTypes.UnpackagedPostHandler, fanalTypes.MisconfPostHandler},
 			SBOMSources:       []string{},
 		})
 		if err != nil {
@@ -180,4 +182,12 @@ func (s *ImageScanner) Scan(img unversioned.Image) (ScanStatus, error) {
 	}
 
 	return status, nil
+}
+
+func appendDisabledAnalyzers(analyzerType ...[]analyzer.Type) []analyzer.Type {
+	var disableAnalyzers []analyzer.Type
+	for _, v := range analyzerType {
+		disableAnalyzers = append(disableAnalyzers, v...)
+	}
+	return disableAnalyzers
 }
