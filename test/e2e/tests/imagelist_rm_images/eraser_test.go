@@ -22,8 +22,8 @@ import (
 )
 
 const (
-	collectorLabel = "name=collector"
-	eraserLabel    = "name=remover"
+	collectorLabel = "type=collector"
+	eraserLabel    = "type=manual"
 
 	restartTimeout = time.Minute
 )

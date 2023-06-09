@@ -20,7 +20,7 @@ import (
 )
 
 const (
-	collectorLabel = "name=remover"
+	collectorLabel = "type=manual"
 
 	expectedPods = 4
 )

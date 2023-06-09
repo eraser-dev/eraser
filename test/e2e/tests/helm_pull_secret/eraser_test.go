@@ -19,7 +19,7 @@ import (
 )
 
 const (
-	collectorLabel = "name=collector"
+	collectorLabel = "type=collector"
 
 	expectedPods = 4
 )

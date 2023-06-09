@@ -22,7 +22,7 @@ import (
 
 const (
 	numPods        = 3
-	collectorLabel = "name=remover"
+	collectorLabel = "type=manual"
 	configKey      = "controller_manager_config.yaml"
 	configmapName  = "eraser-manager-config"
 )

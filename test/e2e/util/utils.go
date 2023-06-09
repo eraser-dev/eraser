@@ -505,13 +505,13 @@ func CheckDeploymentCleanedUp(ctx context.Context, t *testing.T, client klient.C
 			return
 		default:
 			var pods corev1.PodList
-			err := client.Resources().List(ctx, &pods, resources.WithLabelSelector("name=remover"))
+			err := client.Resources().List(ctx, &pods, resources.WithLabelSelector("type=manual"))
 			if err != nil {
 				t.Fatalf("error listing images: %s", err)
 			}
 
 			if len(pods.Items) > 0 {
-				t.Errorf("imagejob got restarted when it shouldn't: %d remover pods still present", len(pods.Items))
+				t.Errorf("imagejob got restarted when it shouldn't: %d manual pods still present", len(pods.Items))
 				t.FailNow()
 			}
 		}
