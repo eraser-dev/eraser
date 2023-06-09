@@ -117,7 +117,7 @@ func TestImageListTriggersRemoverImageJob(t *testing.T) {
 			// actually a new deployment.
 			err = wait.For(func() (bool, error) {
 				var l corev1.PodList
-				err = client.Resources().List(ctx, &l, resources.WithLabelSelector("name=remover"))
+				err = client.Resources().List(ctx, &l, resources.WithLabelSelector("type=manual"))
 				if err != nil {
 					return false, err
 				}
