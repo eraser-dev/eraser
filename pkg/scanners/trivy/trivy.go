@@ -163,8 +163,7 @@ func main() {
 		log.Error(err, "total image scan timed out")
 	}
 
-	log.Info("Total number of vulnerabilities found", "Vuln Count", len(vulnerableImages))
-	log.Info("Vulnerable", "Images", vulnerableImages)
+	log.Info("Vulnerable", "Images", vulnerableImages, "Total count", len(vulnerableImages))
 
 	if len(failedImages) > 0 {
 		log.Info("Failed", "Images", failedImages)
