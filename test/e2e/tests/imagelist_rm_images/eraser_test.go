@@ -94,7 +94,7 @@ func TestImageListTriggersRemoverImageJob(t *testing.T) {
 			// get eraser pod name
 			err = wait.For(func() (bool, error) {
 				l := corev1.PodList{}
-				err = client.Resources().List(ctx, &l, resources.WithLabelSelector("name=remover"))
+				err = client.Resources().List(ctx, &l, resources.WithLabelSelector(eraserLabel))
 				if err != nil {
 					return false, err
 				}
@@ -117,7 +117,7 @@ func TestImageListTriggersRemoverImageJob(t *testing.T) {
 			// actually a new deployment.
 			err = wait.For(func() (bool, error) {
 				var l corev1.PodList
-				err = client.Resources().List(ctx, &l, resources.WithLabelSelector("type=manual"))
+				err = client.Resources().List(ctx, &l, resources.WithLabelSelector(eraserLabel))
 				if err != nil {
 					return false, err
 				}
@@ -149,7 +149,7 @@ func TestImageListTriggersRemoverImageJob(t *testing.T) {
 		}).
 		Assess("Eraser job was not restarted", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
 			// until a timeout is reached, make sure there are no pods matching
-			// the selector name=remover
+			// the selector type=manual
 			client := cfg.Client()
 			ctxT2, cancel := context.WithTimeout(ctx, restartTimeout)
 			defer cancel()
