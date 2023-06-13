@@ -22,8 +22,8 @@ import (
 )
 
 const (
-	collectorLabel = "type=collector"
-	eraserLabel    = "type=manual"
+	collectorLabel = "eraser.sh/type=collector"
+	eraserLabel    = "eraser.sh/type=manual"
 
 	restartTimeout = time.Minute
 )
@@ -149,7 +149,7 @@ func TestImageListTriggersRemoverImageJob(t *testing.T) {
 		}).
 		Assess("Eraser job was not restarted", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
 			// until a timeout is reached, make sure there are no pods matching
-			// the selector type=manual
+			// the selector eraser.sh/type=manual
 			client := cfg.Client()
 			ctxT2, cancel := context.WithTimeout(ctx, restartTimeout)
 			defer cancel()

@@ -51,7 +51,7 @@ func TestMain(m *testing.M) {
 			"--set", util.ScheduleImmediate.Set("false"),
 		),
 	).Finish(
-		envfuncs.DestroyKindCluster(util.KindClusterName),
+	//envfuncs.DestroyKindCluster(util.KindClusterName),
 	)
 	os.Exit(util.Testenv.Run(m))
 }

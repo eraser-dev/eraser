@@ -49,8 +49,11 @@ import (
 )
 
 const (
-	defaultFilterLabel = "eraser.sh/cleanup.filter"
-	windowsFilterLabel = "kubernetes.io/os=windows"
+	defaultFilterLabel   = "eraser.sh/cleanup.filter"
+	windowsFilterLabel   = "kubernetes.io/os=windows"
+	imageJobTypeLabelKey = "eraser.sh/type"
+	collectorJobType     = "collector"
+	manualJobType        = "manual"
 )
 
 var log = logf.Log.WithName("controller").WithValues("process", "imagejob-controller")
@@ -200,9 +203,9 @@ func podListOptions(jobTemplate *corev1.PodTemplate) client.ListOptions {
 	var set map[string]string
 
 	if jobTemplate.Template.Spec.Containers[0].Name == "remover" {
-		set = map[string]string{"type": "manual"}
+		set = map[string]string{imageJobTypeLabelKey: manualJobType}
 	} else {
-		set = map[string]string{"type": "collector"}
+		set = map[string]string{imageJobTypeLabelKey: collectorJobType}
 	}
 
 	return client.ListOptions{
@@ -372,9 +375,9 @@ func (r *Reconciler) handleNewJob(ctx context.Context, imageJob *eraserv1.ImageJ
 		}
 
 		if containerName == "remover" {
-			pod.Labels = map[string]string{"type": "manual"}
+			pod.Labels = map[string]string{imageJobTypeLabelKey: manualJobType}
 		} else {
-			pod.Labels = map[string]string{"type": "collector"}
+			pod.Labels = map[string]string{imageJobTypeLabelKey: collectorJobType}
 		}
 
 		fitness := checkNodeFitness(pod, &nodeList[i])

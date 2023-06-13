@@ -22,7 +22,7 @@ import (
 
 const (
 	numPods        = 3
-	collectorLabel = "type=manual"
+	collectorLabel = "eraser.sh/type=manual"
 	configKey      = "controller_manager_config.yaml"
 	configmapName  = "eraser-manager-config"
 )
@@ -90,7 +90,7 @@ components:
 
 			var ls corev1.PodList
 			err = c.Resources().List(ctx, &ls, func(o *metav1.ListOptions) {
-				o.LabelSelector = labels.SelectorFromSet(map[string]string{"type": "manual"}).String()
+				o.LabelSelector = labels.SelectorFromSet(map[string]string{"eraser.sh/type": "manual"}).String()
 			})
 			if err != nil {
 				t.Errorf("could not list pods: %v", err)

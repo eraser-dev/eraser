@@ -19,7 +19,7 @@ import (
 )
 
 const (
-	collectorLabel = "type=collector"
+	collectorLabel = "eraser.sh/type=collector"
 
 	expectedPods = 4
 )
@@ -43,7 +43,7 @@ func TestHelmPullSecret(t *testing.T) {
 
 			var ls corev1.PodList
 			err = c.Resources().List(ctx, &ls, func(o *metav1.ListOptions) {
-				o.LabelSelector = labels.SelectorFromSet(map[string]string{"type": "collector"}).String()
+				o.LabelSelector = labels.SelectorFromSet(map[string]string{"eraser.sh/type": "collector"}).String()
 			})
 			if err != nil {
 				t.Errorf("could not list pods: %v", err)
