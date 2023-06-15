@@ -78,6 +78,10 @@ const (
 	CleanupOnSuccessDelay = HelmPath("runtimeConfig.manager.imageJob.cleanup.delayOnSuccess")
 	FilterNodesType       = HelmPath("runtimeConfig.manager.nodeFilter.type")
 	ScheduleImmediate     = HelmPath("runtimeConfig.manager.scheduling.beginImmediately")
+
+	CollectorLabel       = "collector"
+	ManualLabel          = "manual"
+	ImageJobTypeLabelKey = "eraser.sh/type"
 )
 
 var (

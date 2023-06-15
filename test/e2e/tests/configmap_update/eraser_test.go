@@ -21,10 +21,9 @@ import (
 )
 
 const (
-	numPods        = 3
-	collectorLabel = "eraser.sh/type=manual"
-	configKey      = "controller_manager_config.yaml"
-	configmapName  = "eraser-manager-config"
+	numPods       = 3
+	configKey     = "controller_manager_config.yaml"
+	configmapName = "eraser-manager-config"
 )
 
 var ()
@@ -80,7 +79,7 @@ components:
 			}
 
 			err = wait.For(
-				util.NumPodsPresentForLabel(ctx, c, numPods, collectorLabel),
+				util.NumPodsPresentForLabel(ctx, c, numPods, utils.ImageJobTypeLabelKey+"="+utils.ManualLabel),
 				wait.WithTimeout(time.Minute*2),
 				wait.WithInterval(time.Millisecond*500),
 			)
@@ -90,7 +89,7 @@ components:
 
 			var ls corev1.PodList
 			err = c.Resources().List(ctx, &ls, func(o *metav1.ListOptions) {
-				o.LabelSelector = labels.SelectorFromSet(map[string]string{"eraser.sh/type": "manual"}).String()
+				o.LabelSelector = labels.SelectorFromSet(map[string]string{utils.ImageJobTypeLabelKey: utils.ManualLabel}).String()
 			})
 			if err != nil {
 				t.Errorf("could not list pods: %v", err)
