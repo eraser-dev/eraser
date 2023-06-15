@@ -509,7 +509,7 @@ func CheckDeploymentCleanedUp(ctx context.Context, t *testing.T, client klient.C
 			return
 		default:
 			var pods corev1.PodList
-			err := client.Resources().List(ctx, &pods, resources.WithLabelSelector("eraser.sh/type=manual"))
+			err := client.Resources().List(ctx, &pods, resources.WithLabelSelector(ImageJobTypeLabelKey+"="+ManualLabel))
 			if err != nil {
 				t.Fatalf("error listing images: %s", err)
 			}

@@ -54,6 +54,7 @@ const (
 	imageJobTypeLabelKey = "eraser.sh/type"
 	collectorJobType     = "collector"
 	manualJobType        = "manual"
+	removerContainer     = "remover"
 )
 
 var log = logf.Log.WithName("controller").WithValues("process", "imagejob-controller")
@@ -202,7 +203,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 func podListOptions(jobTemplate *corev1.PodTemplate) client.ListOptions {
 	var set map[string]string
 
-	if jobTemplate.Template.Spec.Containers[0].Name == "remover" {
+	if jobTemplate.Template.Spec.Containers[0].Name == removerContainer {
 		set = map[string]string{imageJobTypeLabelKey: manualJobType}
 	} else {
 		set = map[string]string{imageJobTypeLabelKey: collectorJobType}
@@ -374,7 +375,7 @@ func (r *Reconciler) handleNewJob(ctx context.Context, imageJob *eraserv1.ImageJ
 			},
 		}
 
-		if containerName == "remover" {
+		if containerName == removerContainer {
 			pod.Labels = map[string]string{imageJobTypeLabelKey: manualJobType}
 		} else {
 			pod.Labels = map[string]string{imageJobTypeLabelKey: collectorJobType}
