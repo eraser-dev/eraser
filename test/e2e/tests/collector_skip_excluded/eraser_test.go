@@ -29,7 +29,7 @@ func TestCollectorExcluded(t *testing.T) {
 
 			var ls corev1.PodList
 			err = c.Resources().List(ctx, &ls, func(o *metav1.ListOptions) {
-				o.LabelSelector = labels.SelectorFromSet(map[string]string{utils.ImageJobTypeLabelKey: utils.CollectorLabel}).String()
+				o.LabelSelector = labels.SelectorFromSet(map[string]string{util.ImageJobTypeLabelKey: util.CollectorLabel}).String()
 			})
 			if err != nil {
 				t.Errorf("could not list pods: %v", err)

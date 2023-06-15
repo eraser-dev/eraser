@@ -79,7 +79,7 @@ components:
 			}
 
 			err = wait.For(
-				util.NumPodsPresentForLabel(ctx, c, numPods, utils.ImageJobTypeLabelKey+"="+utils.ManualLabel),
+				util.NumPodsPresentForLabel(ctx, c, numPods, util.ImageJobTypeLabelKey+"="+util.ManualLabel),
 				wait.WithTimeout(time.Minute*2),
 				wait.WithInterval(time.Millisecond*500),
 			)
@@ -89,7 +89,7 @@ components:
 
 			var ls corev1.PodList
 			err = c.Resources().List(ctx, &ls, func(o *metav1.ListOptions) {
-				o.LabelSelector = labels.SelectorFromSet(map[string]string{utils.ImageJobTypeLabelKey: utils.ManualLabel}).String()
+				o.LabelSelector = labels.SelectorFromSet(map[string]string{util.ImageJobTypeLabelKey: util.ManualLabel}).String()
 			})
 			if err != nil {
 				t.Errorf("could not list pods: %v", err)

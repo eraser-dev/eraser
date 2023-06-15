@@ -42,7 +42,7 @@ func TestHelmPullSecretImagelist(t *testing.T) {
 			}
 
 			err = wait.For(
-				util.NumPodsPresentForLabel(ctx, c, 3, utils.ImageJobTypeLabelKey+"="+utils.ManualLabel),
+				util.NumPodsPresentForLabel(ctx, c, 3, util.ImageJobTypeLabelKey+"="+util.ManualLabel),
 				wait.WithTimeout(time.Minute*2),
 				wait.WithInterval(time.Millisecond*500),
 			)
@@ -52,7 +52,7 @@ func TestHelmPullSecretImagelist(t *testing.T) {
 
 			var ls corev1.PodList
 			err = c.Resources().List(ctx, &ls, func(o *metav1.ListOptions) {
-				o.LabelSelector = labels.SelectorFromSet(map[string]string{utils.ImageJobTypeLabelKey: utils.ManualLabel}).String()
+				o.LabelSelector = labels.SelectorFromSet(map[string]string{util.ImageJobTypeLabelKey: util.ManualLabel}).String()
 			})
 			if err != nil {
 				t.Errorf("could not list pods: %v", err)
