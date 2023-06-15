@@ -49,8 +49,12 @@ import (
 )
 
 const (
-	defaultFilterLabel = "eraser.sh/cleanup.filter"
-	windowsFilterLabel = "kubernetes.io/os=windows"
+	defaultFilterLabel   = "eraser.sh/cleanup.filter"
+	windowsFilterLabel   = "kubernetes.io/os=windows"
+	imageJobTypeLabelKey = "eraser.sh/type"
+	collectorJobType     = "collector"
+	manualJobType        = "manual"
+	removerContainer     = "remover"
 )
 
 var log = logf.Log.WithName("controller").WithValues("process", "imagejob-controller")
@@ -197,9 +201,17 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 }
 
 func podListOptions(jobTemplate *corev1.PodTemplate) client.ListOptions {
+	var set map[string]string
+
+	if jobTemplate.Template.Spec.Containers[0].Name == removerContainer {
+		set = map[string]string{imageJobTypeLabelKey: manualJobType}
+	} else {
+		set = map[string]string{imageJobTypeLabelKey: collectorJobType}
+	}
+
 	return client.ListOptions{
 		Namespace:     eraserUtils.GetNamespace(),
-		LabelSelector: labels.SelectorFromSet(map[string]string{"name": jobTemplate.Template.Spec.Containers[0].Name}),
+		LabelSelector: labels.SelectorFromSet(set),
 	}
 }
 
@@ -357,11 +369,16 @@ func (r *Reconciler) handleNewJob(ctx context.Context, imageJob *eraserv1.ImageJ
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace:    eraserUtils.GetNamespace(),
 				GenerateName: "eraser-" + nodeName + "-",
-				Labels:       map[string]string{"name": containerName},
 				OwnerReferences: []metav1.OwnerReference{
 					*metav1.NewControllerRef(imageJob, imageJob.GroupVersionKind()),
 				},
 			},
+		}
+
+		if containerName == removerContainer {
+			pod.Labels = map[string]string{imageJobTypeLabelKey: manualJobType}
+		} else {
+			pod.Labels = map[string]string{imageJobTypeLabelKey: collectorJobType}
 		}
 
 		fitness := checkNodeFitness(pod, &nodeList[i])

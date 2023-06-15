@@ -78,6 +78,10 @@ const (
 	CleanupOnSuccessDelay = HelmPath("runtimeConfig.manager.imageJob.cleanup.delayOnSuccess")
 	FilterNodesType       = HelmPath("runtimeConfig.manager.nodeFilter.type")
 	ScheduleImmediate     = HelmPath("runtimeConfig.manager.scheduling.beginImmediately")
+
+	CollectorLabel       = "collector"
+	ManualLabel          = "manual"
+	ImageJobTypeLabelKey = "eraser.sh/type"
 )
 
 var (
@@ -505,13 +509,13 @@ func CheckDeploymentCleanedUp(ctx context.Context, t *testing.T, client klient.C
 			return
 		default:
 			var pods corev1.PodList
-			err := client.Resources().List(ctx, &pods, resources.WithLabelSelector("name=remover"))
+			err := client.Resources().List(ctx, &pods, resources.WithLabelSelector(ImageJobTypeLabelKey+"="+ManualLabel))
 			if err != nil {
 				t.Fatalf("error listing images: %s", err)
 			}
 
 			if len(pods.Items) > 0 {
-				t.Errorf("imagejob got restarted when it shouldn't: %d remover pods still present", len(pods.Items))
+				t.Errorf("imagejob got restarted when it shouldn't: %d manual pods still present", len(pods.Items))
 				t.FailNow()
 			}
 		}
