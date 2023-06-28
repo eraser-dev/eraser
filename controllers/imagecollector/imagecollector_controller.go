@@ -449,17 +449,29 @@ func (r *Reconciler) createImageJob(ctx context.Context) (ctrl.Result, error) {
 		return reconcile.Result{}, err
 	}
 
+	// get manager pod with label control-plane=controller-manager
+	podList := corev1.PodList{}
+	err = r.List(ctx, &podList, client.InNamespace(utils.GetNamespace()), client.MatchingLabels{"control-plane": "controller-manager"})
+	if err != nil {
+		log.Info("Unable to list controller-manager pod")
+	}
+	if len(podList.Items) != 1 {
+		log.Info("Incorrect number of controller-manager pods", "number of pods", len(podList.Items))
+	}
+	managerPod := &podList.Items[0]
+
 	namespace := utils.GetNamespace()
 	template := corev1.PodTemplate{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      job.GetName(),
 			Namespace: namespace,
 			OwnerReferences: []metav1.OwnerReference{
-				*metav1.NewControllerRef(job, eraserv1.GroupVersion.WithKind("ImageJob")),
+				*metav1.NewControllerRef(managerPod, managerPod.GroupVersionKind()),
 			},
 		},
 		Template: jobTemplate,
 	}
+
 	err = r.Create(ctx, &template)
 	if err != nil {
 		log.Error(err, "Could not create collector PodTemplate")
