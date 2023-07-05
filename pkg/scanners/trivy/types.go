@@ -153,8 +153,7 @@ func (s *ImageScanner) Scan(img unversioned.Image) (ScanStatus, error) {
 		cmd.Stdout = stdout
 		cmd.Stderr = stderr
 
-		// TODO: make this debug-only output
-		log.Info("scanning image ref", "ref", refs[i], "cli_invocation", fmt.Sprintf("%s %s", trivyCommandName, strings.Join(cliArgs, " ")))
+		log.V(1).Info("scanning image ref", "ref", refs[i], "cli_invocation", fmt.Sprintf("%s %s", trivyCommandName, strings.Join(cliArgs, " ")))
 		if err := cmd.Run(); err != nil {
 			log.Error(err, "error scanning image", "imageID", img.ImageID, "reference", refs[i], "stderr", stderr.String())
 			continue
