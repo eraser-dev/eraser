@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/Azure/eraser/api/unversioned"
-	"github.com/aquasecurity/trivy/pkg/fanal/analyzer"
 	trivyTypes "github.com/aquasecurity/trivy/pkg/types"
 )
 
@@ -198,11 +197,3 @@ func (s *ImageScanner) Timer() *time.Timer {
 }
 
 var _ Scanner = &ImageScanner{}
-
-func appendDisabledAnalyzers(analyzerType ...[]analyzer.Type) []analyzer.Type {
-	var disableAnalyzers []analyzer.Type
-	for _, v := range analyzerType {
-		disableAnalyzers = append(disableAnalyzers, v...)
-	}
-	return disableAnalyzers
-}
