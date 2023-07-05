@@ -23,11 +23,11 @@ const (
 	trivyCommandName        = "/trivy"
 	trivyJSONFormatFlag     = "--format=json"
 	trivyImageArg           = "image"
-	trivyCachDirFlag        = "--cache-dir"
+	trivyCacheDirFlag       = "--cache-dir"
 	trivyTimeoutFlag        = "--timeout"
 	trivyDBRepoFlag         = "--db-repository"
 	trivyIgnoreUnfixedFlag  = "--ignore-unfixed"
-	trivyVulTypesFlag       = "--vuln-type"
+	trivyVulnTypesFlag      = "--vuln-type"
 	trivySecurityChecksFlag = "--scanners"
 	trivySeveritiesFlag     = "--severity"
 	trivyRuntimeFlag        = "--image-src"
@@ -93,7 +93,7 @@ func (c *Config) cliArgs(ref string) []string {
 	args = append(args, trivyJSONFormatFlag)
 
 	if c.CacheDir != "" {
-		args = append(args, trivyCachDirFlag, c.CacheDir)
+		args = append(args, trivyCacheDirFlag, c.CacheDir)
 	}
 
 	if c.Timeout.PerImage != 0 {
@@ -113,7 +113,7 @@ func (c *Config) cliArgs(ref string) []string {
 
 	if len(c.Vulnerabilities.Types) > 0 {
 		allVulnTypes := strings.Join(c.Vulnerabilities.Types, ",")
-		args = append(args, trivyVulTypesFlag, allVulnTypes)
+		args = append(args, trivyVulnTypesFlag, allVulnTypes)
 	}
 
 	if len(c.Vulnerabilities.SecurityChecks) > 0 {
