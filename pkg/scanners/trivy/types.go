@@ -1,7 +1,12 @@
 package main
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
+	"fmt"
+	"os/exec"
+	"strings"
 	"time"
 
 	"github.com/Azure/eraser/api/unversioned"
@@ -20,6 +25,18 @@ const (
 	StatusFailed ScanStatus = iota
 	StatusNonCompliant
 	StatusOK
+)
+
+const (
+	trivyJSONFormatFlag     = "--format=json"
+	trivyImageArg           = "image"
+	trivyCachDirFlag        = "--cache-dir"
+	trivyTimeoutFlag        = "--timeout"
+	trivyDBRepoFlag         = "--db-repository"
+	trivyIgnoreUnfixedFlag  = "--ignore-unfixed"
+	trivyVulTypesFlag       = "--vuln-type"
+	trivySecurityChecksFlag = "--scanners"
+	trivySeveritiesFlag     = "--severity"
 )
 
 type (
@@ -86,6 +103,49 @@ func DefaultConfig() *Config {
 	}
 }
 
+func (c *Config) invocation(ref string) (string, []string) {
+	args := []string{}
+
+	// Global options
+	args = append(args, trivyJSONFormatFlag)
+
+	if c.CacheDir != "" {
+		args = append(args, trivyCachDirFlag, c.CacheDir)
+	}
+
+	if c.Timeout.PerImage != 0 {
+		args = append(args, trivyTimeoutFlag, time.Duration(c.Timeout.PerImage).String())
+	}
+
+	args = append(args, trivyImageArg)
+
+	// `trivy image`-specific options
+	if c.DBRepo != "" {
+		args = append(args, trivyDBRepoFlag, c.DBRepo)
+	}
+
+	if c.Vulnerabilities.IgnoreUnfixed {
+		args = append(args, trivyIgnoreUnfixedFlag)
+	}
+
+	if len(c.Vulnerabilities.Types) > 0 {
+		allVulnTypes := strings.Join(c.Vulnerabilities.Types, ",")
+		args = append(args, trivyVulTypesFlag, allVulnTypes)
+	}
+
+	if len(c.Vulnerabilities.SecurityChecks) > 0 {
+		allSecurityChecks := strings.Join(c.Vulnerabilities.SecurityChecks, ",")
+		args = append(args, trivySecurityChecksFlag, allSecurityChecks)
+	}
+
+	if len(c.Vulnerabilities.Severities) > 0 {
+		allSeverities := strings.Join(c.Vulnerabilities.Severities, ",")
+		args = append(args, trivySeveritiesFlag, allSeverities)
+	}
+
+	return "/trivy", args
+}
+
 type ImageScanner struct {
 	trivyScanConfig    scannerSetup
 	imageSourceOptions []fanalImage.Option
@@ -112,9 +172,51 @@ func (s *ImageScanner2) Scan(img unversioned.Image) (ScanStatus, error) {
 	for i := 0; i < len(refs) && !scanSucceeded; i++ {
 		log.Info("scanning image with ref", "ref", refs[i])
 
+		stdout := new(bytes.Buffer)
+		stderr := new(bytes.Buffer)
+
+		cmdName, args := s.config.invocation(refs[i])
+		cmd := exec.Command(cmdName, args...)
+		cmd.Stdout = stdout
+		cmd.Stderr = stderr
+
+		// TODO: make this debug-only output
+		log.Info("scanning image ref", "ref", refs[i], "cli_invocation", fmt.Sprintf("%s %s", cmdName, strings.Join(args, " ")))
+		if err := cmd.Run(); err != nil {
+			log.Error(err, "error scanning image", "imageID", img.ImageID, "reference", refs[i], "stderr", stderr.String())
+			continue
+		}
+
+		var report trivyTypes.Report
+		if err := json.Unmarshal(stdout.Bytes(), &report); err != nil {
+			log.Error(err, "error unmarshaling report", "imageID", img.ImageID, "reference", refs[i], "report", stdout.String(), "stderr", stderr.String())
+			continue
+		}
+
+		if s.config.DeleteEOLImages {
+			if report.Metadata.OS != nil && report.Metadata.OS.Eosl {
+				log.Info("image is end of life", "imageID", img.ImageID, "reference", refs[i])
+				return StatusNonCompliant, nil
+			}
+		}
+
+		for j := range report.Results {
+			if len(report.Results[j].Vulnerabilities) > 0 {
+				// TODO: Surface vulnerability results
+				return StatusNonCompliant, nil
+			}
+		}
+
+		// causes a break from the loop
+		scanSucceeded = true
 	}
 
-	panic("not implemented") // TODO: Implement
+	status := StatusOK
+	if !scanSucceeded {
+		status = StatusFailed
+	}
+
+	return status, nil
 }
 
 func (s *ImageScanner2) Timer() *time.Timer {
@@ -123,7 +225,7 @@ func (s *ImageScanner2) Timer() *time.Timer {
 
 var _ Scanner = &ImageScanner{}
 
-// var _ Scanner = &ImageScanner2{}
+var _ Scanner = &ImageScanner2{}
 
 func (s *ImageScanner) Timer() *time.Timer {
 	return s.timer
