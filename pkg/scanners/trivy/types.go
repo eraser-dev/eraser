@@ -37,10 +37,12 @@ const (
 	trivyVulTypesFlag       = "--vuln-type"
 	trivySecurityChecksFlag = "--scanners"
 	trivySeveritiesFlag     = "--severity"
+	trivyRuntimeFlag        = "--image-src"
 )
 
 type (
 	Config struct {
+		Runtime            string        `json:"runtime,omitempty"`
 		CacheDir           string        `json:"cacheDir,omitempty"`
 		DBRepo             string        `json:"dbRepo,omitempty"`
 		DeleteFailedImages bool          `json:"deleteFailedImages,omitempty"`
@@ -118,6 +120,7 @@ func (c *Config) invocation(ref string) (string, []string) {
 	}
 
 	args = append(args, trivyImageArg)
+	args = append(args, trivyRuntimeFlag, c.Runtime)
 
 	// `trivy image`-specific options
 	if c.DBRepo != "" {
