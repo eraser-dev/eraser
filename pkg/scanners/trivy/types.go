@@ -93,7 +93,37 @@ type ImageScanner struct {
 	timer              *time.Timer
 }
 
+type ImageScanner2 struct {
+	config Config
+	timer  *time.Timer
+}
+
+func (s *ImageScanner2) Scan(img unversioned.Image) (ScanStatus, error) {
+	refs := make([]string, 0, len(img.Names)+len(img.Digests))
+	refs = append(refs, img.Digests...)
+	refs = append(refs, img.Names...)
+
+	perImageTimeout := time.Duration(s.config.Timeout.PerImage)
+	_ = perImageTimeout
+	scanSucceeded := false
+
+	log.Info("scanning image with id", "imageID", img.ImageID, "refs", refs)
+
+	for i := 0; i < len(refs) && !scanSucceeded; i++ {
+		log.Info("scanning image with ref", "ref", refs[i])
+
+	}
+
+	panic("not implemented") // TODO: Implement
+}
+
+func (s *ImageScanner2) Timer() *time.Timer {
+	return s.timer
+}
+
 var _ Scanner = &ImageScanner{}
+
+// var _ Scanner = &ImageScanner2{}
 
 func (s *ImageScanner) Timer() *time.Timer {
 	return s.timer
