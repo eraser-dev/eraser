@@ -231,12 +231,6 @@ func initScanner(userConfig *Config) (Scanner, error) {
 		return nil, fmt.Errorf("invalid trivy scanner config")
 	}
 
-	cacheDir := userConfig.CacheDir
-	err := downloadAndInitDB(userConfig)
-	if err != nil {
-		return nil, fmt.Errorf("unable to initialize trivy db. cacheDir: %s, error: %w", cacheDir, err)
-	}
-
 	logger, err := zap.NewProduction()
 	if err != nil {
 		return nil, fmt.Errorf("error setting up trivy logger: %w", err)
@@ -245,28 +239,18 @@ func initScanner(userConfig *Config) (Scanner, error) {
 	sugar := logger.Sugar()
 	trivylogger.Logger = sugar
 
-	vulnTypeList := trueMapKeys(vulnTypeMap)
-	securityCheckList := trueMapKeys(securityCheckMap)
-
-	scanConfig, err := setupScanner(cacheDir, vulnTypeList, securityCheckList)
-	if err != nil {
-		return nil, err
-	}
-
 	runtime := os.Getenv(utils.EnvEraserContainerRuntime)
-	imageSourceOptions, ok := runtimeFanalOptionsMap[runtime]
-	if !ok {
-		return nil, fmt.Errorf("unable to determine runtime from environment: %w", err)
+	if runtime == "" {
+		runtime = utils.RuntimeContainerd
 	}
 
+	userConfig.Runtime = runtime
 	totalTimeout := time.Duration(userConfig.Timeout.Total)
 	timer := time.NewTimer(totalTimeout)
 
-	var s Scanner = &ImageScanner{
-		trivyScanConfig:    scanConfig,
-		imageSourceOptions: imageSourceOptions,
-		userConfig:         *userConfig,
-		timer:              timer,
+	var s Scanner = &ImageScanner2{
+		config: *userConfig,
+		timer:  timer,
 	}
 	return s, nil
 }
