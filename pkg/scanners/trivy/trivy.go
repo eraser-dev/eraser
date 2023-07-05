@@ -58,6 +58,7 @@ func main() {
 		os.Exit(generalErr)
 	}
 
+	log.Info("trivy version", "trivy version", trivyVersion)
 	log.Info("config", "config", *config)
 
 	userConfig := *DefaultConfig()

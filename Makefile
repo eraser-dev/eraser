@@ -37,14 +37,13 @@ KUBERNETES_VERSION ?= 1.25.3
 NODE_VERSION ?= 16-bullseye-slim
 ENVTEST_K8S_VERSION ?= 1.25
 GOLANGCI_LINT_VERSION := 1.43.0
-TRIVY_VERSION ?= $(shell go list -f '{{ .Version }}' -m github.com/aquasecurity/trivy)
 
 PLATFORM ?= linux
 
 # build variables
 LDFLAGS ?= $(shell build/version.sh "${VERSION}")
 ERASER_LDFLAGS ?= -extldflags=-static $(LDFLAGS) -w
-TRIVY_SCANNER_LDFLAGS ?= $(ERASER_LDFLAGS) -X 'main.trivyVersion=$(TRIVY_VERSION)'
+TRIVY_SCANNER_LDFLAGS ?= $(ERASER_LDFLAGS) -X 'main.trivyVersion=v$(TRIVY_BINARY_TAG)'
 
 # Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
 ifeq (,$(shell go env GOBIN))
