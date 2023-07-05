@@ -146,6 +146,8 @@ func (c *Config) invocation(ref string) (string, []string) {
 		args = append(args, trivySeveritiesFlag, allSeverities)
 	}
 
+	args = append(args, ref)
+
 	return "/trivy", args
 }
 
