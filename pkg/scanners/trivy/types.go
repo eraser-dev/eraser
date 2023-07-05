@@ -119,8 +119,7 @@ func (c *Config) invocation(ref string) (string, []string) {
 		args = append(args, trivyTimeoutFlag, time.Duration(c.Timeout.PerImage).String())
 	}
 
-	args = append(args, trivyImageArg)
-	args = append(args, trivyRuntimeFlag, c.Runtime)
+	args = append(args, trivyImageArg, trivyRuntimeFlag, c.Runtime)
 
 	// `trivy image`-specific options
 	if c.DBRepo != "" {

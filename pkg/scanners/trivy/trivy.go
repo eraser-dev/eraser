@@ -17,7 +17,6 @@ import (
 	"github.com/Azure/eraser/pkg/logger"
 	"github.com/Azure/eraser/pkg/scanners/template"
 	"github.com/Azure/eraser/pkg/utils"
-	fanalImage "github.com/aquasecurity/trivy/pkg/fanal/image"
 	trivylogger "github.com/aquasecurity/trivy/pkg/log"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 )
@@ -70,24 +69,6 @@ var (
 	vulnTypeMap = map[string]bool{
 		vulnTypeOs:      false,
 		vulnTypeLibrary: false,
-	}
-
-	runtimeFanalOptionsMap = map[string][]fanalImage.Option{
-		utils.RuntimeDocker: {
-			fanalImage.DisableRemote(),
-			fanalImage.DisableContainerd(),
-			fanalImage.DisablePodman(),
-		},
-		utils.RuntimeContainerd: {
-			fanalImage.DisableRemote(),
-			fanalImage.DisableDockerd(),
-			fanalImage.DisablePodman(),
-		},
-		utils.RuntimeCrio: {
-			fanalImage.DisableRemote(),
-			fanalImage.DisableContainerd(),
-			fanalImage.DisableDockerd(),
-		},
 	}
 
 	log = logf.Log.WithName("scanner").WithValues("provider", "trivy")

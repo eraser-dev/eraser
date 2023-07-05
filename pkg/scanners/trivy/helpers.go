@@ -136,14 +136,3 @@ func mapKeys(m map[string]bool) []string {
 
 	return list
 }
-
-func trueMapKeys(m map[string]bool) []string {
-	list := []string{}
-	for k := range m {
-		if m[k] {
-			list = append(list, k)
-		}
-	}
-
-	return list
-}
