@@ -43,34 +43,6 @@ var (
 	enableProfile = flag.Bool("enable-pprof", false, "enable pprof profiling")
 	profilePort   = flag.Int("pprof-port", 6060, "port for pprof profiling. defaulted to 6060 if unspecified")
 
-	// Will be modified by parseCommaSeparatedOptions() to reflect the
-	// `severity` CLI flag These are the only recognized severities and the
-	// keys of this map should never be modified.
-	severityMap = map[string]bool{
-		severityCritical: false,
-		severityHigh:     false,
-		severityMedium:   false,
-		severityLow:      false,
-		severityUnknown:  false,
-	}
-
-	// Will be modified by parseCommaSeparatedOptions() to reflect the
-	// `security-checks` CLI flag These are the only recognized security checks
-	// and the keys of this map should never be modified.
-	securityCheckMap = map[string]bool{
-		securityCheckVuln:   false,
-		securityCheckSecret: false,
-		securityCheckConfig: false,
-	}
-
-	// Will be modified by parseCommaSeparatedOptions()  to reflect the
-	// `vuln-type` CLI flag These are the only recognized vulnerability types
-	// and the keys of this map should never be modified.
-	vulnTypeMap = map[string]bool{
-		vulnTypeOs:      false,
-		vulnTypeLibrary: false,
-	}
-
 	log = logf.Log.WithName("scanner").WithValues("provider", "trivy")
 
 	// This can be overwritten by the linker.
@@ -102,13 +74,6 @@ func main() {
 		"json", userConfig,
 		"struct", fmt.Sprintf("%#v\n", userConfig),
 	)
-
-	// Initializes logger and parses CLI options into hashmap configs
-	err = initGlobals(&userConfig.Vulnerabilities)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "error initializing options: %v", err)
-		os.Exit(generalErr)
-	}
 
 	if *enableProfile {
 		go runProfileServer()
@@ -164,40 +129,6 @@ func main() {
 	log.Info("remover job completed, shutting down...")
 }
 
-// Initializes logger and parses CLI options into hashmap configs.
-func initGlobals(cfg *VulnConfig) error {
-	if cfg == nil {
-		return fmt.Errorf("valid configuration required")
-	}
-
-	allSetsOfCommaSeparatedOptions := []optionSet{
-		{
-			input: cfg.Severities,
-			m:     severityMap,
-		},
-		{
-			input: cfg.Types,
-			m:     vulnTypeMap,
-		},
-		{
-			input: cfg.SecurityChecks,
-			m:     securityCheckMap,
-		},
-	}
-
-	for _, oSet := range allSetsOfCommaSeparatedOptions {
-		fillMap(oSet.input, oSet.m)
-	}
-
-	return nil
-}
-
-func fillMap(sl []string, m map[string]bool) {
-	for _, s := range sl {
-		m[s] = true
-	}
-}
-
 func runProfileServer() {
 	server := &http.Server{
 		Addr:              fmt.Sprintf("localhost:%d", *profilePort),
@@ -229,7 +160,7 @@ func initScanner(userConfig *Config) (Scanner, error) {
 	totalTimeout := time.Duration(userConfig.Timeout.Total)
 	timer := time.NewTimer(totalTimeout)
 
-	var s Scanner = &ImageScanner2{
+	var s Scanner = &ImageScanner{
 		config: *userConfig,
 		timer:  timer,
 	}

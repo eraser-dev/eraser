@@ -2,7 +2,6 @@ package main
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"fmt"
 	"os/exec"
@@ -11,13 +10,6 @@ import (
 
 	"github.com/Azure/eraser/api/unversioned"
 	"github.com/aquasecurity/trivy/pkg/fanal/analyzer"
-	"github.com/aquasecurity/trivy/pkg/fanal/artifact"
-	artifactImage "github.com/aquasecurity/trivy/pkg/fanal/artifact/image"
-	"github.com/aquasecurity/trivy/pkg/fanal/cache"
-	fanalImage "github.com/aquasecurity/trivy/pkg/fanal/image"
-	fanalTypes "github.com/aquasecurity/trivy/pkg/fanal/types"
-	"github.com/aquasecurity/trivy/pkg/scanner"
-	"github.com/aquasecurity/trivy/pkg/scanner/local"
 	trivyTypes "github.com/aquasecurity/trivy/pkg/types"
 )
 
@@ -28,6 +20,7 @@ const (
 )
 
 const (
+	trivyCommandName        = "/trivy"
 	trivyJSONFormatFlag     = "--format=json"
 	trivyImageArg           = "image"
 	trivyCachDirFlag        = "--cache-dir"
@@ -63,18 +56,6 @@ type (
 		PerImage unversioned.Duration `json:"perImage,omitempty"`
 	}
 
-	scannerSetup struct {
-		fscache       cache.FSCache
-		localScanner  local.Scanner
-		scanOptions   trivyTypes.ScanOptions
-		dockerOptions fanalTypes.DockerOption
-	}
-
-	optionSet struct {
-		input []string
-		m     map[string]bool
-	}
-
 	ScanStatus int
 
 	Scanner interface {
@@ -105,7 +86,7 @@ func DefaultConfig() *Config {
 	}
 }
 
-func (c *Config) invocation(ref string) (string, []string) {
+func (c *Config) cliArgs(ref string) []string {
 	args := []string{}
 
 	// Global options
@@ -147,45 +128,34 @@ func (c *Config) invocation(ref string) (string, []string) {
 
 	args = append(args, ref)
 
-	return "/trivy", args
+	return args
 }
 
 type ImageScanner struct {
-	trivyScanConfig    scannerSetup
-	imageSourceOptions []fanalImage.Option
-	userConfig         Config
-	timer              *time.Timer
-}
-
-type ImageScanner2 struct {
 	config Config
 	timer  *time.Timer
 }
 
-func (s *ImageScanner2) Scan(img unversioned.Image) (ScanStatus, error) {
+func (s *ImageScanner) Scan(img unversioned.Image) (ScanStatus, error) {
 	refs := make([]string, 0, len(img.Names)+len(img.Digests))
 	refs = append(refs, img.Digests...)
 	refs = append(refs, img.Names...)
-
-	perImageTimeout := time.Duration(s.config.Timeout.PerImage)
-	_ = perImageTimeout
 	scanSucceeded := false
 
 	log.Info("scanning image with id", "imageID", img.ImageID, "refs", refs)
-
 	for i := 0; i < len(refs) && !scanSucceeded; i++ {
 		log.Info("scanning image with ref", "ref", refs[i])
 
 		stdout := new(bytes.Buffer)
 		stderr := new(bytes.Buffer)
 
-		cmdName, args := s.config.invocation(refs[i])
-		cmd := exec.Command(cmdName, args...)
+		cliArgs := s.config.cliArgs(refs[i])
+		cmd := exec.Command(trivyCommandName, cliArgs...)
 		cmd.Stdout = stdout
 		cmd.Stderr = stderr
 
 		// TODO: make this debug-only output
-		log.Info("scanning image ref", "ref", refs[i], "cli_invocation", fmt.Sprintf("%s %s", cmdName, strings.Join(args, " ")))
+		log.Info("scanning image ref", "ref", refs[i], "cli_invocation", fmt.Sprintf("%s %s", trivyCommandName, strings.Join(cliArgs, " ")))
 		if err := cmd.Run(); err != nil {
 			log.Error(err, "error scanning image", "imageID", img.ImageID, "reference", refs[i], "stderr", stderr.String())
 			continue
@@ -223,102 +193,11 @@ func (s *ImageScanner2) Scan(img unversioned.Image) (ScanStatus, error) {
 	return status, nil
 }
 
-func (s *ImageScanner2) Timer() *time.Timer {
-	return s.timer
-}
-
-var _ Scanner = &ImageScanner{}
-
-var _ Scanner = &ImageScanner2{}
-
 func (s *ImageScanner) Timer() *time.Timer {
 	return s.timer
 }
 
-// Function never returns an error.
-func (s *ImageScanner) Scan(img unversioned.Image) (ScanStatus, error) {
-	refs := make([]string, 0, len(img.Names)+len(img.Digests))
-	refs = append(refs, img.Digests...)
-	refs = append(refs, img.Names...)
-
-	perImageTimeout := time.Duration(s.userConfig.Timeout.PerImage)
-
-	scanSucceeded := false
-	log.Info("scanning image with id", "imageID", img.ImageID, "refs", refs)
-
-	for i := 0; i < len(refs) && !scanSucceeded; i++ {
-		ref := refs[i]
-		log.Info("scanning image with ref", "ref", ref)
-
-		dockerImage, cleanup, err := fanalImage.NewContainerImage(context.Background(), ref, s.trivyScanConfig.dockerOptions, s.imageSourceOptions...)
-		if err != nil {
-			log.Error(err, "could not find image by reference", "imageID", img.ImageID, "reference", ref)
-			cleanup()
-			continue
-		}
-		log.Info("found image with id under reference", "imageID", img.ImageID, "ref", ref)
-
-		disabledAnalyzers := appendDisabledAnalyzers(analyzer.TypeConfigFiles, analyzer.TypeLockfiles, analyzer.TypeIndividualPkgs, analyzer.TypeLanguages)
-
-		artifactToScan, err := artifactImage.NewArtifact(dockerImage, s.trivyScanConfig.fscache, artifact.Option{
-			Offline:           true,
-			DisabledAnalyzers: disabledAnalyzers,
-			DisabledHandlers:  []fanalTypes.HandlerType{fanalTypes.UnpackagedPostHandler, fanalTypes.MisconfPostHandler},
-			SBOMSources:       []string{},
-		})
-		if err != nil {
-			log.Error(err, "error registering config for artifact", "imageID", img.ImageID, "reference", ref)
-			cleanup()
-			continue
-		}
-
-		imageScanContext, cancel := context.WithTimeout(context.Background(), perImageTimeout)
-		defer cancel()
-
-		scanner := scanner.NewScanner(s.trivyScanConfig.localScanner, artifactToScan)
-		report, err := scanner.ScanArtifact(imageScanContext, s.trivyScanConfig.scanOptions)
-		if err != nil {
-			log.Error(err, "error scanning image", "imageID", img.ImageID, "reference", ref)
-			cleanup()
-			continue
-		}
-
-		if s.userConfig.DeleteEOLImages {
-			if report.Metadata.OS != nil && report.Metadata.OS.Eosl {
-				log.Info("image is end of life", "imageID", img.ImageID, "reference", ref)
-				return StatusNonCompliant, nil
-			}
-		}
-
-		for i := range report.Results {
-			for j := range report.Results[i].Vulnerabilities {
-				if s.userConfig.Vulnerabilities.IgnoreUnfixed && report.Results[i].Vulnerabilities[j].FixedVersion == "" {
-					continue
-				}
-
-				if report.Results[i].Vulnerabilities[j].Severity == "" {
-					report.Results[i].Vulnerabilities[j].Severity = severityUnknown
-				}
-
-				if severityMap[report.Results[i].Vulnerabilities[j].Severity] {
-					return StatusNonCompliant, nil
-				}
-			}
-		}
-
-		cleanup()
-
-		// causes a break from the loop
-		scanSucceeded = true
-	}
-
-	status := StatusOK
-	if !scanSucceeded {
-		status = StatusFailed
-	}
-
-	return status, nil
-}
+var _ Scanner = &ImageScanner{}
 
 func appendDisabledAnalyzers(analyzerType ...[]analyzer.Type) []analyzer.Type {
 	var disableAnalyzers []analyzer.Type
