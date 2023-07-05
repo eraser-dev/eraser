@@ -8,6 +8,9 @@ REMOVER_TAG ?= ${VERSION}
 # Image URL to use all building/pushing image targets
 TRIVY_SCANNER_REPO ?= ghcr.io/azure/eraser-trivy-scanner
 TRIVY_SCANNER_IMG ?= ${TRIVY_SCANNER_REPO}:${TRIVY_SCANNER_TAG}
+TRIVY_BINARY_REPO ?= ghcr.io/aquasecurity/trivy
+TRIVY_BINARY_TAG ?= 0.43.0
+TRIVY_BINARY_IMG ?= ${TRIVY_BINARY_REPO}:${TRIVY_BINARY_TAG}
 MANAGER_REPO ?= ghcr.io/azure/eraser-manager
 MANAGER_IMG ?= ${MANAGER_REPO}:${MANAGER_TAG}
 REMOVER_REPO ?= ghcr.io/azure/remover
@@ -212,6 +215,7 @@ docker-build-trivy-scanner: ## Build docker image for trivy-scanner image.
 	docker buildx build \
 		$(_CACHE_FROM) $(_CACHE_TO) \
 		$(_ATTESTATIONS) \
+		--build-arg TRIVY_BINARY_IMG="$(TRIVY_BINARY_IMG)" \
 		--build-arg LDFLAGS="$(TRIVY_SCANNER_LDFLAGS)" \
 		--platform="$(PLATFORM)" \
 		--output=$(OUTPUT_TYPE) \
