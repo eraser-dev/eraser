@@ -1,9 +1,12 @@
 # syntax=mcr.microsoft.com/oss/moby/dockerfile:1.5.1
 
 ARG BUILDERIMAGE="golang:1.20-bullseye"
+ARG TRIVY_BINARY_IMG="ghcr.io/aquasecurity/trivy:0.43.0"
 ARG STATICBASEIMAGE="gcr.io/distroless/static:latest"
 ARG STATICNONROOTBASEIMAGE="gcr.io/distroless/static:nonroot"
 ARG BUILDKIT_SBOM_SCAN_STAGE=builder,manager-build,collector-build,remover-build,trivy-scanner-build
+
+FROM --platform=$TARGETPLATFORM $TRIVY_BINARY_IMG AS trivy-binary
 
 # Build the manager binary
 FROM --platform=$BUILDPLATFORM $BUILDERIMAGE AS builder
@@ -65,6 +68,7 @@ ENTRYPOINT ["/remover"]
 
 FROM --platform=$TARGETPLATFORM $STATICBASEIMAGE as trivy-scanner
 COPY --from=trivy-scanner-build /workspace/out/trivy-scanner /
+COPY --from=trivy-binary /usr/local/bin/trivy /
 WORKDIR /var/lib/trivy
 ENTRYPOINT ["/trivy-scanner"]
 
