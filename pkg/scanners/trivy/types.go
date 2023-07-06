@@ -99,9 +99,14 @@ func (c *Config) cliArgs(ref string) []string {
 		args = append(args, trivyTimeoutFlag, time.Duration(c.Timeout.PerImage).String())
 	}
 
-	args = append(args, trivyImageArg, trivyRuntimeFlag, c.Runtime)
-
+	runtime := "containerd"
 	// `trivy image`-specific options
+	if c.Runtime != "" {
+		runtime = c.Runtime
+	}
+
+	args = append(args, trivyImageArg, trivyRuntimeFlag, runtime)
+
 	if c.DBRepo != "" {
 		args = append(args, trivyDBRepoFlag, c.DBRepo)
 	}
