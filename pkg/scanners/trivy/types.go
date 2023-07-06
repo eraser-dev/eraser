@@ -20,8 +20,8 @@ const (
 
 const (
 	trivyCommandName        = "/trivy"
-	trivyJSONFormatFlag     = "--format=json"
 	trivyImageArg           = "image"
+	trivyJSONFormatFlag     = "--format=json"
 	trivyCacheDirFlag       = "--cache-dir"
 	trivyTimeoutFlag        = "--timeout"
 	trivyDBRepoFlag         = "--db-repository"
