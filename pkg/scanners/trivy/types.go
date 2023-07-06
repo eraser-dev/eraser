@@ -174,7 +174,6 @@ func (s *ImageScanner) Scan(img unversioned.Image) (ScanStatus, error) {
 
 		for j := range report.Results {
 			if len(report.Results[j].Vulnerabilities) > 0 {
-				// TODO: Surface vulnerability results
 				return StatusNonCompliant, nil
 			}
 		}
