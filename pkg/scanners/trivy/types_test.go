@@ -9,12 +9,9 @@ import (
 
 const ref = "image:tag"
 
-var (
-	testDuration = unversioned.Duration(100000000000)
-)
+var testDuration = unversioned.Duration(100000000000)
 
 func init() {
-
 }
 
 func TestCLIArgs(t *testing.T) {
@@ -104,8 +101,10 @@ func TestCLIArgs(t *testing.T) {
 					Severities:     []string{"LOW", "MEDIUM"},
 				},
 			},
-			expected: []string{"--format=json", "image", "--image-src", "crio", "--db-repository", "example.test/db/repo", "--ignore-unfixed",
-				"--vuln-type", "library,os", "--scanners", "license,vuln", "--severity", "LOW,MEDIUM", ref},
+			expected: []string{
+				"--format=json", "image", "--image-src", "crio", "--db-repository", "example.test/db/repo", "--ignore-unfixed",
+				"--vuln-type", "library,os", "--scanners", "license,vuln", "--severity", "LOW,MEDIUM", ref,
+			},
 		},
 		{
 			desc: "all options",
@@ -121,9 +120,11 @@ func TestCLIArgs(t *testing.T) {
 					Severities:     []string{"CRITICAL"},
 				},
 			},
-			expected: []string{"--format=json", "--cache-dir", "/var/lib/trivy", "--timeout", "1m40s", "image", "--image-src", "crio",
+			expected: []string{
+				"--format=json", "--cache-dir", "/var/lib/trivy", "--timeout", "1m40s", "image", "--image-src", "crio",
 				"--db-repository", "example.test/db/repo", "--ignore-unfixed", "--vuln-type", "os", "--scanners",
-				"license,vuln", "--severity", "CRITICAL", ref},
+				"license,vuln", "--severity", "CRITICAL", ref,
+			},
 		},
 	}
 
