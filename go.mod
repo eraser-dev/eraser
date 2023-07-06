@@ -24,7 +24,7 @@ require (
 	// keeping this on 0.25 as updating to 0.26 will remove CRI v1alpha2 version
 	k8s.io/cri-api v0.25.5
 	k8s.io/klog/v2 v2.100.1
-	k8s.io/kubernetes v1.26.5
+	k8s.io/kubernetes v1.26.6
 	k8s.io/utils v0.0.0-20230115233650-391b47cb4029
 	oras.land/oras-go v1.2.2
 	sigs.k8s.io/controller-runtime v0.14.1
@@ -96,7 +96,6 @@ require (
 	github.com/prometheus/client_model v0.4.0 // indirect
 	github.com/prometheus/common v0.42.0 // indirect
 	github.com/prometheus/procfs v0.9.0 // indirect
-	github.com/rogpeppe/go-internal v1.8.1 // indirect
 	github.com/sirupsen/logrus v1.9.0 // indirect
 	github.com/spdx/tools-golang v0.3.1-0.20230104082527-d6f58551be3f // indirect
 	github.com/spf13/cobra v1.7.0 // indirect
