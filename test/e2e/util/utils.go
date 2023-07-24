@@ -26,9 +26,9 @@ import (
 	"sigs.k8s.io/e2e-framework/pkg/envfuncs"
 	"sigs.k8s.io/kind/pkg/cluster"
 
-	eraserv1 "github.com/Azure/eraser/api/v1"
+	eraserv1 "github.com/eraser-dev/eraser/api/v1"
 
-	pkgUtil "github.com/Azure/eraser/pkg/utils"
+	pkgUtil "github.com/eraser-dev/eraser/pkg/utils"
 )
 
 const (
@@ -41,9 +41,9 @@ const (
 
 	Alpine        = "alpine"
 	Nginx         = "nginx"
-	NginxLatest   = "ghcr.io/azure/eraser/e2e-test/nginx:latest"
-	NginxAliasOne = "ghcr.io/azure/eraser/e2e-test/nginx:one"
-	NginxAliasTwo = "ghcr.io/azure/eraser/e2e-test/nginx:two"
+	NginxLatest   = "ghcr.io/eraser-dev/eraser/e2e-test/nginx:latest"
+	NginxAliasOne = "ghcr.io/eraser-dev/eraser/e2e-test/nginx:one"
+	NginxAliasTwo = "ghcr.io/eraser-dev/eraser/e2e-test/nginx:two"
 	Redis         = "redis"
 	Caddy         = "caddy"
 

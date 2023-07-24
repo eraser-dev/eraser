@@ -3,9 +3,9 @@ package main
 import (
 	"context"
 
-	"github.com/Azure/eraser/api/unversioned"
-	"github.com/Azure/eraser/pkg/cri"
-	util "github.com/Azure/eraser/pkg/utils"
+	"github.com/eraser-dev/eraser/api/unversioned"
+	"github.com/eraser-dev/eraser/pkg/cri"
+	util "github.com/eraser-dev/eraser/pkg/utils"
 )
 
 func removeImages(c cri.Remover, targetImages []string) (int, error) {

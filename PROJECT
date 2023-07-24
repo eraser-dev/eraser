@@ -2,7 +2,7 @@ domain: azure-eraser.io
 layout:
 - go.kubebuilder.io/v3
 projectName: eraser
-repo: github.com/Azure/eraser
+repo: github.com/eraser-dev/eraser
 resources:
 - api:
     crdVersion: v1alpha1
@@ -28,7 +28,7 @@ resources:
   domain: azure-eraser.io
   group: eraser.sh
   kind: EraserConfig
-  path: github.com/Azure/eraser/api/v1alpha1
+  path: github.com/eraser-dev/eraser/api/v1alpha1
   version: v1alpha1
 - domain: azure-eraser.io
   group: eraser.sh

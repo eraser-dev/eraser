@@ -17,7 +17,7 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 	v1 "k8s.io/cri-api/pkg/apis/runtime/v1"
 
-	"github.com/Azure/eraser/api/unversioned"
+	"github.com/eraser-dev/eraser/api/unversioned"
 )
 
 const (

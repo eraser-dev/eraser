@@ -9,7 +9,7 @@ To exclude any images or registries from the removal, create configmap(s) with t
 
 ```bash
 $ cat > sample.json <<EOF
-{"excluded": ["docker.io/library/*", "ghcr.io/azure/test:latest"]}
+{"excluded": ["docker.io/library/*", "ghcr.io/eraser-dev/test:latest"]}
 EOF
 
 $ kubectl create configmap excluded --from-file=sample.json --namespace=eraser-system
@@ -19,7 +19,7 @@ $ kubectl label configmap excluded eraser.sh/exclude.list=true -n eraser-system
 ## Exempting Nodes from the Eraser Pipeline
 Exempting nodes with `--filter-nodes` is added in v0.3.0. When deploying Eraser, you can specify whether there is a list of nodes you would like to `include` or `exclude` from the cleanup process using the `--filter-nodes` argument. 
 
-_See [Eraser Helm Chart](https://github.com/Azure/eraser/blob/main/charts/eraser/README.md) for more information on deployment._
+_See [Eraser Helm Chart](https://github.com/eraser-dev/eraser/blob/main/charts/eraser/README.md) for more information on deployment._
 
 Nodes with the selector `eraser.sh/cleanup.filter` will be filtered accordingly. 
 - If `include` is provided, eraser and collector pods will only be scheduled on nodes with the selector `eraser.sh/cleanup.filter`. 

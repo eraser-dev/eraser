@@ -3,11 +3,11 @@ package controllers
 import (
 	"errors"
 
-	"github.com/Azure/eraser/api/unversioned/config"
-	"github.com/Azure/eraser/controllers/configmap"
-	"github.com/Azure/eraser/controllers/imagecollector"
-	"github.com/Azure/eraser/controllers/imagejob"
-	"github.com/Azure/eraser/controllers/imagelist"
+	"github.com/eraser-dev/eraser/api/unversioned/config"
+	"github.com/eraser-dev/eraser/controllers/configmap"
+	"github.com/eraser-dev/eraser/controllers/imagecollector"
+	"github.com/eraser-dev/eraser/controllers/imagejob"
+	"github.com/eraser-dev/eraser/controllers/imagelist"
 	"k8s.io/apimachinery/pkg/api/meta"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/manager"

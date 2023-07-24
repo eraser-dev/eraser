@@ -21,7 +21,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/Azure/eraser/api/unversioned"
+	"github.com/eraser-dev/eraser/api/unversioned"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/conversion"

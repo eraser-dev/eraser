@@ -410,7 +410,7 @@ data:
       collector:
         enabled: true
         image:
-          repo: ghcr.io/azure/collector
+          repo: ghcr.io/eraser-dev/collector
           tag: v1.1.1
         request:
           mem: 25Mi
@@ -422,7 +422,7 @@ data:
       scanner:
         enabled: true
         image:
-          repo: ghcr.io/azure/eraser-trivy-scanner # supply custom image for custom scanner
+          repo: ghcr.io/eraser-dev/eraser-trivy-scanner # supply custom image for custom scanner
           tag: v1.1.1
         request:
           mem: 500Mi
@@ -458,7 +458,7 @@ data:
             perImage: 1h
       remover:
         image:
-          repo: ghcr.io/azure/remover
+          repo: ghcr.io/eraser-dev/remover
           tag: v1.1.1
         request:
           mem: 25Mi
@@ -502,7 +502,7 @@ spec:
               fieldPath: metadata.namespace
         - name: OTEL_SERVICE_NAME
           value: eraser-manager
-        image: ghcr.io/azure/eraser-manager:v1.1.1
+        image: ghcr.io/eraser-dev/eraser-manager:v1.1.1
         livenessProbe:
           httpGet:
             path: /healthz

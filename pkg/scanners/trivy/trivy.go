@@ -9,15 +9,15 @@ import (
 	"os"
 	"time"
 
-	"github.com/Azure/eraser/api/unversioned"
+	"github.com/eraser-dev/eraser/api/unversioned"
 	"go.uber.org/zap"
 
 	_ "net/http/pprof"
 
-	"github.com/Azure/eraser/pkg/logger"
-	"github.com/Azure/eraser/pkg/scanners/template"
-	"github.com/Azure/eraser/pkg/utils"
 	trivylogger "github.com/aquasecurity/trivy/pkg/log"
+	"github.com/eraser-dev/eraser/pkg/logger"
+	"github.com/eraser-dev/eraser/pkg/scanners/template"
+	"github.com/eraser-dev/eraser/pkg/utils"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 )
 

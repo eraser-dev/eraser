@@ -41,13 +41,14 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
-	"github.com/Azure/eraser/api/unversioned/config"
-	eraserv1 "github.com/Azure/eraser/api/v1"
-	"github.com/Azure/eraser/controllers/util"
-	"github.com/Azure/eraser/pkg/logger"
-	"github.com/Azure/eraser/pkg/metrics"
-	"github.com/Azure/eraser/pkg/utils"
-	eraserUtils "github.com/Azure/eraser/pkg/utils"
+	"github.com/eraser-dev/eraser/api/unversioned/config"
+	eraserv1 "github.com/eraser-dev/eraser/api/v1"
+	"github.com/eraser-dev/eraser/controllers/util"
+	"github.com/eraser-dev/eraser/pkg/logger"
+	"github.com/eraser-dev/eraser/pkg/metrics"
+	"github.com/eraser-dev/eraser/pkg/utils"
+	eraserUtils "github.com/eraser-dev/eraser/pkg/utils"
+
 	sdkmetric "go.opentelemetry.io/otel/sdk/metric"
 )
 

@@ -7,7 +7,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/Azure/eraser/test/e2e/util"
+	"github.com/eraser-dev/eraser/test/e2e/util"
 
 	"sigs.k8s.io/e2e-framework/pkg/envconf"
 	"sigs.k8s.io/e2e-framework/pkg/features"

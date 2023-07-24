@@ -20,8 +20,8 @@ title: Releasing
    git push origin <NEW VERSION>
    ```
 6. Pushing the release tag will trigger GitHub Actions to trigger `release` job.
-   This will build the `ghcr.io/azure/eraser`, `ghcr.io/azure/eraser-manager`, `ghcr.io/azure/collector`, and `ghcr.io/azure/eraser-trivy-scanner` images automatically, then publish the new release tag.
+   This will build the `ghcr.io/eraser-dev/eraser`, `ghcr.io/eraser-dev/eraser-manager`, `ghcr.io/eraser-dev/collector`, and `ghcr.io/eraser-dev/eraser-trivy-scanner` images automatically, then publish the new release tag.
 
 ## Publishing
 
-1. GitHub Action will create a new release, review and edit it at https://github.com/Azure/eraser/releases
+1. GitHub Action will create a new release, review and edit it at https://github.com/eraser-dev/eraser/releases

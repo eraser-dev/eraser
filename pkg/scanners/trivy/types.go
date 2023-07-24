@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Azure/eraser/api/unversioned"
 	trivyTypes "github.com/aquasecurity/trivy/pkg/types"
+	"github.com/eraser-dev/eraser/api/unversioned"
 )
 
 const (

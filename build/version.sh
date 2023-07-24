@@ -72,7 +72,7 @@ version::ldflags() {
         local key=${1}
         local val=${2}
         ldflags+=(
-            "-X 'github.com/Azure/eraser/version.${key}=${val}'"
+            "-X 'github.com/eraser-dev/eraser/version.${key}=${val}'"
         )
     }
 

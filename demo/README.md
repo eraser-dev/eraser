@@ -10,7 +10,7 @@ The following should be installed and pathed:
 
 Get Helm repo:
 ```
-$ helm repo add eraser https://azure.github.io/eraser/charts
+$ helm repo add eraser https://eraser-dev.github.io/eraser/charts
 ```
 
 Run `demo.sh` to start the demo!

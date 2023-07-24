@@ -2,7 +2,7 @@
 
 Eraser helps Kubernetes admins remove a list of non-running images from all Kubernetes nodes in a cluster.
 
-[![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/Azure/eraser/badge)](https://api.securityscorecards.dev/projects/github.com/Azure/eraser)
+[![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/eraser-dev/eraser/badge)](https://api.securityscorecards.dev/projects/github.com/eraser-dev/eraser)
 
 ## Getting started
 
@@ -29,6 +29,6 @@ This project has adopted the [CNCF Code of Conduct](https://github.com/cncf/foun
 
 ### How to file issues and get help
 
-This project uses GitHub Issues to track bugs and feature requests. Please search the [existing issues](https://github.com/Azure/eraser/issues) before filing new issues to avoid duplicates. For new issues, file your bug or feature request as a new Issue.
+This project uses GitHub Issues to track bugs and feature requests. Please search the [existing issues](https://github.com/eraser-dev/eraser/issues) before filing new issues to avoid duplicates. For new issues, file your bug or feature request as a new Issue.
 
 The Eraser maintainers will respond to the best of their abilities.
