@@ -2,10 +2,9 @@
 title: Code of Conduct
 ---
 
-This project has adopted the [Microsoft Open Source Code of Conduct](https://opensource.microsoft.com/codeofconduct/).
+This project has adopted the [CNCF Code of Conduct](https://github.com/cncf/foundation/blob/main/code-of-conduct.md).
 
 Resources:
 
-- [Microsoft Open Source Code of Conduct](https://opensource.microsoft.com/codeofconduct/)
-- [Microsoft Code of Conduct FAQ](https://opensource.microsoft.com/codeofconduct/faq/)
-- Contact [opencode@microsoft.com](mailto:opencode@microsoft.com) with questions or concerns
+- [CNCF Code of Conduct](https://github.com/cncf/foundation/blob/main/code-of-conduct.md)
+- [Code of Conduct Reporting](https://github.com/cncf/foundation/blob/main/code-of-conduct.md)
