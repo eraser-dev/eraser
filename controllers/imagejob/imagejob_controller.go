@@ -120,21 +120,47 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 			Type: &corev1.Pod{},
 		},
 		&handler.EnqueueRequestForOwner{
-			OwnerType:    &eraserv1.ImageJob{},
+			OwnerType:    &corev1.PodTemplate{},
 			IsController: true,
+		},
+		predicate.Funcs{
+			CreateFunc: func(e event.CreateEvent) bool {
+				return e.Object.GetNamespace() == "eraser-system"
+			},
+			UpdateFunc: func(e event.UpdateEvent) bool {
+				return e.ObjectNew.GetNamespace() == "eraser-system"
+			},
+			DeleteFunc: func(e event.DeleteEvent) bool {
+				return e.Object.GetNamespace() == "eraser-system"
+			},
 		},
 	)
 	if err != nil {
 		return err
 	}
 
+	// watch for changes to imagejob podTemplate (owned by controller manager pod)
 	err = c.Watch(
 		&source.Kind{
 			Type: &corev1.PodTemplate{},
 		},
 		&handler.EnqueueRequestForOwner{
-			OwnerType:    &eraserv1.ImageJob{},
+			OwnerType:    &corev1.Pod{},
 			IsController: true,
+		},
+		predicate.Funcs{
+			CreateFunc: func(e event.CreateEvent) bool {
+				ownerLabels, ok := e.Object.GetLabels()["control-plane"]
+				return ok && ownerLabels == "controller-manager"
+			},
+			UpdateFunc: func(e event.UpdateEvent) bool {
+				ownerLabels, ok := e.ObjectNew.GetLabels()["control-plane"]
+				return ok && ownerLabels == "controller-manager"
+			},
+			DeleteFunc: func(e event.DeleteEvent) bool {
+				ownerLabels, ok := e.Object.GetLabels()["control-plane"]
+				return ok && ownerLabels == "controller-manager"
+			},
 		},
 	)
 	if err != nil {
