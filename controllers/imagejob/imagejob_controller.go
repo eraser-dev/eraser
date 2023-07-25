@@ -55,6 +55,8 @@ const (
 	collectorJobType     = "collector"
 	manualJobType        = "manual"
 	removerContainer     = "remover"
+	managerLabelValue    = "controller-manager"
+	managerLabelKey      = "control-plane"
 )
 
 var log = logf.Log.WithName("controller").WithValues("process", "imagejob-controller")
@@ -125,13 +127,13 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		},
 		predicate.Funcs{
 			CreateFunc: func(e event.CreateEvent) bool {
-				return e.Object.GetNamespace() == "eraser-system"
+				return e.Object.GetNamespace() == eraserUtils.GetNamespace()
 			},
 			UpdateFunc: func(e event.UpdateEvent) bool {
-				return e.ObjectNew.GetNamespace() == "eraser-system"
+				return e.ObjectNew.GetNamespace() == eraserUtils.GetNamespace()
 			},
 			DeleteFunc: func(e event.DeleteEvent) bool {
-				return e.Object.GetNamespace() == "eraser-system"
+				return e.Object.GetNamespace() == eraserUtils.GetNamespace()
 			},
 		},
 	)
@@ -150,16 +152,16 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		},
 		predicate.Funcs{
 			CreateFunc: func(e event.CreateEvent) bool {
-				ownerLabels, ok := e.Object.GetLabels()["control-plane"]
-				return ok && ownerLabels == "controller-manager"
+				ownerLabels, ok := e.Object.GetLabels()[managerLabelKey]
+				return ok && ownerLabels == managerLabelValue
 			},
 			UpdateFunc: func(e event.UpdateEvent) bool {
-				ownerLabels, ok := e.ObjectNew.GetLabels()["control-plane"]
-				return ok && ownerLabels == "controller-manager"
+				ownerLabels, ok := e.ObjectNew.GetLabels()[managerLabelKey]
+				return ok && ownerLabels == managerLabelValue
 			},
 			DeleteFunc: func(e event.DeleteEvent) bool {
-				ownerLabels, ok := e.Object.GetLabels()["control-plane"]
-				return ok && ownerLabels == "controller-manager"
+				ownerLabels, ok := e.Object.GetLabels()[managerLabelKey]
+				return ok && ownerLabels == managerLabelValue
 			},
 		},
 	)

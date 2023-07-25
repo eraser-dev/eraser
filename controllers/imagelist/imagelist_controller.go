@@ -242,6 +242,10 @@ func (r *Reconciler) handleJobDeletion(ctx context.Context, job *eraserv1.ImageJ
 		},
 		&template,
 	)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
 	log.Info("Deleting pod template", "template", template.Name)
 	err = r.Delete(ctx, &template)
 	if err != nil {
