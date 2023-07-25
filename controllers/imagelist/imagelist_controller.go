@@ -47,6 +47,7 @@ import (
 	"github.com/Azure/eraser/pkg/logger"
 	"github.com/Azure/eraser/pkg/metrics"
 	"github.com/Azure/eraser/pkg/utils"
+	eraserUtils "github.com/Azure/eraser/pkg/utils"
 	sdkmetric "go.opentelemetry.io/otel/sdk/metric"
 )
 
@@ -229,6 +230,20 @@ func (r *Reconciler) handleJobDeletion(ctx context.Context, job *eraserv1.ImageJ
 
 	log.Info("Deleting imagejob", "job", job.Name)
 	err := r.Delete(ctx, job)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
+	template := corev1.PodTemplate{}
+	err = r.Get(ctx,
+		types.NamespacedName{
+			Namespace: eraserUtils.GetNamespace(),
+			Name:      job.GetName(),
+		},
+		&template,
+	)
+	log.Info("Deleting pod template", "template", template.Name)
+	err = r.Delete(ctx, &template)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
