@@ -48,10 +48,6 @@ func TestCollectScanErasePipeline(t *testing.T) {
 
 			return ctx
 		}).
-		Assess("Get logs", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
-
-			return ctx
-		}).
 		Feature()
 
 	util.Testenv.Test(t, collectScanErasePipelineFeat)

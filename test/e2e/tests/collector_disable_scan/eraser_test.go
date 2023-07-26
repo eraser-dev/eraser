@@ -28,7 +28,6 @@ func TestDisableScanner(t *testing.T) {
 				t.Error("error getting eraser pod logs", err)
 			}
 
-
 			return ctx
 		}).
 		Feature()

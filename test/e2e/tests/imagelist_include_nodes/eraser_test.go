@@ -121,7 +121,7 @@ func TestIncludeNodes(t *testing.T) {
 
 			// get pod logs before imagejob is deleted
 			if err := util.GetPodLogs(t); err != nil {
-				t.Error("error getting collector pod logs", err)
+				t.Error("error getting eraser pod logs", err)
 			}
 
 			ctxT, cancel := context.WithTimeout(ctx, util.Timeout)
@@ -141,10 +141,6 @@ func TestIncludeNodes(t *testing.T) {
 
 			// the imagejob has done its work, so now we can check the node to make sure it didn't remove the images from the remaining nodes
 			util.CheckImagesExist(t, clusterNodes, util.Nginx)
-
-			return ctx
-		}).
-		Assess("Get logs", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
 
 			return ctx
 		}).

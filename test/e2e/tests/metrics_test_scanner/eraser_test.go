@@ -33,7 +33,6 @@ func TestMetricsWithScanner(t *testing.T) {
 				t.Error("error getting eraser pod logs", err)
 			}
 
-
 			return ctx
 		}).
 		Assess("Check images_removed_run_total metric", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
@@ -82,6 +81,13 @@ func TestMetricsWithScanner(t *testing.T) {
 
 			if totalVulnerable < expectedVulnerableImages {
 				t.Error("vulnerable_images_run_total incorrect, expected ", expectedVulnerableImages, "got", totalVulnerable)
+			}
+
+			return ctx
+		}).
+		Assess("Get logs", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
+			if err := util.GetPodLogs(t); err != nil {
+				t.Error("error getting eraser pod logs", err)
 			}
 
 			return ctx
