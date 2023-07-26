@@ -466,7 +466,7 @@ data:
           cpu: 0
         limit:
           mem: 30Mi
-          cpu: 1000m
+          cpu: 0
 kind: ConfigMap
 metadata:
   name: eraser-manager-config
