@@ -257,19 +257,18 @@ func (r *Reconciler) handleJobDeletion(ctx context.Context, job *eraserv1.ImageJ
 	}
 
 	template := corev1.PodTemplate{}
-	err = r.Get(ctx,
+	if err := r.Get(ctx,
 		types.NamespacedName{
 			Namespace: eraserUtils.GetNamespace(),
 			Name:      job.GetName(),
 		},
 		&template,
-	)
-	if err != nil {
+	); err != nil {
 		return ctrl.Result{}, err
 	}
+
 	log.Info("Deleting pod template", "template", template.Name)
-	err = r.Delete(ctx, &template)
-	if err != nil {
+	if err := r.Delete(ctx, &template); err != nil {
 		return ctrl.Result{}, err
 	}
 
@@ -471,8 +470,7 @@ func (r *Reconciler) createImageJob(ctx context.Context) (ctrl.Result, error) {
 
 	// get manager pod with label control-plane=controller-manager
 	podList := corev1.PodList{}
-	err = r.List(ctx, &podList, client.InNamespace(utils.GetNamespace()), client.MatchingLabels{"control-plane": "controller-manager"})
-	if err != nil {
+	if err := r.List(ctx, &podList, client.InNamespace(utils.GetNamespace()), client.MatchingLabels{"control-plane": "controller-manager"}); err != nil {
 		log.Info("Unable to list controller-manager pod")
 	}
 	if len(podList.Items) != 1 {
