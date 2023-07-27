@@ -82,4 +82,4 @@ components:
       cpu: 0
     limit:
       mem: 30Mi
-      cpu: 1000m
+      cpu: 0
