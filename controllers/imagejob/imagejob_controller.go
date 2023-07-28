@@ -55,6 +55,8 @@ const (
 	collectorJobType     = "collector"
 	manualJobType        = "manual"
 	removerContainer     = "remover"
+	managerLabelValue    = "controller-manager"
+	managerLabelKey      = "control-plane"
 )
 
 var log = logf.Log.WithName("controller").WithValues("process", "imagejob-controller")
@@ -120,21 +122,47 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 			Type: &corev1.Pod{},
 		},
 		&handler.EnqueueRequestForOwner{
-			OwnerType:    &eraserv1.ImageJob{},
+			OwnerType:    &corev1.PodTemplate{},
 			IsController: true,
+		},
+		predicate.Funcs{
+			CreateFunc: func(e event.CreateEvent) bool {
+				return e.Object.GetNamespace() == eraserUtils.GetNamespace()
+			},
+			UpdateFunc: func(e event.UpdateEvent) bool {
+				return e.ObjectNew.GetNamespace() == eraserUtils.GetNamespace()
+			},
+			DeleteFunc: func(e event.DeleteEvent) bool {
+				return e.Object.GetNamespace() == eraserUtils.GetNamespace()
+			},
 		},
 	)
 	if err != nil {
 		return err
 	}
 
+	// watch for changes to imagejob podTemplate (owned by controller manager pod)
 	err = c.Watch(
 		&source.Kind{
 			Type: &corev1.PodTemplate{},
 		},
 		&handler.EnqueueRequestForOwner{
-			OwnerType:    &eraserv1.ImageJob{},
+			OwnerType:    &corev1.Pod{},
 			IsController: true,
+		},
+		predicate.Funcs{
+			CreateFunc: func(e event.CreateEvent) bool {
+				ownerLabels, ok := e.Object.GetLabels()[managerLabelKey]
+				return ok && ownerLabels == managerLabelValue
+			},
+			UpdateFunc: func(e event.UpdateEvent) bool {
+				ownerLabels, ok := e.ObjectNew.GetLabels()[managerLabelKey]
+				return ok && ownerLabels == managerLabelValue
+			},
+			DeleteFunc: func(e event.DeleteEvent) bool {
+				ownerLabels, ok := e.Object.GetLabels()[managerLabelKey]
+				return ok && ownerLabels == managerLabelValue
+			},
 		},
 	)
 	if err != nil {
@@ -370,7 +398,7 @@ func (r *Reconciler) handleNewJob(ctx context.Context, imageJob *eraserv1.ImageJ
 				Namespace:    eraserUtils.GetNamespace(),
 				GenerateName: "eraser-" + nodeName + "-",
 				OwnerReferences: []metav1.OwnerReference{
-					*metav1.NewControllerRef(imageJob, imageJob.GroupVersionKind()),
+					*metav1.NewControllerRef(&template, template.GroupVersionKind()),
 				},
 			},
 		}
