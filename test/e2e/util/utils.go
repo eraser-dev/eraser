@@ -34,7 +34,7 @@ import (
 const (
 	providerResourceChartDir  = "manifest_staging/charts"
 	providerResourceDeployDir = "manifest_staging/deploy"
-	publishedHelmRepo         = "https://azure.github.io/eraser/charts"
+	publishedHelmRepo         = "https://eraser-dev.github.io/eraser/charts"
 
 	KindClusterName  = "eraser-e2e-test"
 	ProviderResource = "eraser.yaml"

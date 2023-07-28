@@ -410,7 +410,7 @@ data:
       collector:
         enabled: true
         image:
-          repo: ghcr.io/azure/collector
+          repo: ghcr.io/eraser-dev/collector
           tag: v1.1.1
         request:
           mem: 25Mi
@@ -458,7 +458,7 @@ data:
             perImage: 1h
       remover:
         image:
-          repo: ghcr.io/azure/remover
+          repo: ghcr.io/eraser-dev/remover
           tag: v1.1.1
         request:
           mem: 25Mi
