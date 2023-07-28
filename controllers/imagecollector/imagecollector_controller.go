@@ -49,10 +49,12 @@ import (
 
 	"github.com/Azure/eraser/pkg/logger"
 	"github.com/Azure/eraser/pkg/metrics"
+	eraserUtils "github.com/Azure/eraser/pkg/utils"
 	sdkmetric "go.opentelemetry.io/otel/sdk/metric"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/types"
 )
 
 const (
@@ -253,6 +255,23 @@ func (r *Reconciler) handleJobDeletion(ctx context.Context, job *eraserv1.ImageJ
 	if err != nil {
 		return ctrl.Result{}, err
 	}
+
+	template := corev1.PodTemplate{}
+	if err := r.Get(ctx,
+		types.NamespacedName{
+			Namespace: eraserUtils.GetNamespace(),
+			Name:      job.GetName(),
+		},
+		&template,
+	); err != nil {
+		return ctrl.Result{}, err
+	}
+
+	log.Info("Deleting pod template", "template", template.Name)
+	if err := r.Delete(ctx, &template); err != nil {
+		return ctrl.Result{}, err
+	}
+
 	log.Info("end job deletion")
 	return ctrl.Result{}, nil
 }
@@ -449,17 +468,28 @@ func (r *Reconciler) createImageJob(ctx context.Context) (ctrl.Result, error) {
 		return reconcile.Result{}, err
 	}
 
+	// get manager pod with label control-plane=controller-manager
+	podList := corev1.PodList{}
+	if err := r.List(ctx, &podList, client.InNamespace(utils.GetNamespace()), client.MatchingLabels{"control-plane": "controller-manager"}); err != nil {
+		log.Info("Unable to list controller-manager pod")
+	}
+	if len(podList.Items) != 1 {
+		log.Info("Incorrect number of controller-manager pods", "number of pods", len(podList.Items))
+	}
+	managerPod := &podList.Items[0]
+
 	namespace := utils.GetNamespace()
 	template := corev1.PodTemplate{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      job.GetName(),
 			Namespace: namespace,
 			OwnerReferences: []metav1.OwnerReference{
-				*metav1.NewControllerRef(job, eraserv1.GroupVersion.WithKind("ImageJob")),
+				*metav1.NewControllerRef(managerPod, managerPod.GroupVersionKind()),
 			},
 		},
 		Template: jobTemplate,
 	}
+
 	err = r.Create(ctx, &template)
 	if err != nil {
 		log.Error(err, "Could not create collector PodTemplate")

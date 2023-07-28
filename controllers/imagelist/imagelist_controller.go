@@ -47,6 +47,7 @@ import (
 	"github.com/Azure/eraser/pkg/logger"
 	"github.com/Azure/eraser/pkg/metrics"
 	"github.com/Azure/eraser/pkg/utils"
+	eraserUtils "github.com/Azure/eraser/pkg/utils"
 	sdkmetric "go.opentelemetry.io/otel/sdk/metric"
 )
 
@@ -233,6 +234,22 @@ func (r *Reconciler) handleJobDeletion(ctx context.Context, job *eraserv1.ImageJ
 		return ctrl.Result{}, err
 	}
 
+	template := corev1.PodTemplate{}
+	if err := r.Get(ctx,
+		types.NamespacedName{
+			Namespace: eraserUtils.GetNamespace(),
+			Name:      job.GetName(),
+		},
+		&template,
+	); err != nil {
+		return ctrl.Result{}, err
+	}
+
+	log.Info("Deleting pod template", "template", template.Name)
+	if err := r.Delete(ctx, &template); err != nil {
+		return ctrl.Result{}, err
+	}
+
 	return ctrl.Result{}, nil
 }
 
@@ -364,12 +381,22 @@ func (r *Reconciler) handleImageListEvent(ctx context.Context, imageList *eraser
 		return reconcile.Result{}, err
 	}
 
+	// get manager pod with label control-plane=controller-manager
+	podList := corev1.PodList{}
+	if err = r.List(ctx, &podList, client.InNamespace(utils.GetNamespace()), client.MatchingLabels{"control-plane": "controller-manager"}); err != nil {
+		log.Info("Unable to list controller-manager pod")
+	}
+	if len(podList.Items) != 1 {
+		log.Info("Incorrect number of controller-manager pods", "number of pods", len(podList.Items))
+	}
+	managerPod := &podList.Items[0]
+
 	template := corev1.PodTemplate{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      job.GetName(),
 			Namespace: utils.GetNamespace(),
 			OwnerReferences: []metav1.OwnerReference{
-				*metav1.NewControllerRef(job, eraserv1.GroupVersion.WithKind("ImageJob")),
+				*metav1.NewControllerRef(managerPod, managerPod.GroupVersionKind()),
 			},
 		},
 		Template: jobTemplate,
