@@ -35,11 +35,12 @@ testbin/*
 # docs site
 node_modules/
 .docusaurus/
+/docs/build/
 
-!build/
-build/*
-!build/tooling/
-!build/version.sh
+!/build/
+/build/*
+!/build/tooling/
+!/build/version.sh
 
 # e2e test log outputs
 test/e2e/tests/eraser_logs/
