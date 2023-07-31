@@ -4,8 +4,8 @@
   <ShortName>Eraser Docs</ShortName>
   <Description>Search Eraser Docs</Description>
   <InputEncoding>UTF-8</InputEncoding>
-  <Image width="16" height="16" type="image/x-icon">https://azure.github.io/eraser/docs/img/favicon.ico</Image>
-  <Url type="text/html" method="get" template="https://azure.github.io/eraser/docs/search?q={searchTerms}"/>
-  <Url type="application/opensearchdescription+xml" rel="self" template="https://azure.github.io/eraser/docs/opensearch.xml" />
-  <moz:SearchForm>https://azure.github.io/eraser/docs/</moz:SearchForm>
+  <Image width="16" height="16" type="image/x-icon">https://eraser-dev.github.io/eraser/docs/img/favicon.ico</Image>
+  <Url type="text/html" method="get" template="https://eraser-dev.github.io/eraser/docs/search?q={searchTerms}"/>
+  <Url type="application/opensearchdescription+xml" rel="self" template="https://eraser-dev.github.io/eraser/docs/opensearch.xml" />
+  <moz:SearchForm>https://eraser-dev.github.io/eraser/docs/</moz:SearchForm>
 </OpenSearchDescription>
