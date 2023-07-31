@@ -7,7 +7,7 @@ const darkCodeTheme = require('prism-react-renderer/themes/dracula');
 /** @type {import('@docusaurus/types').Config} */
 const config = {
   title: 'Eraser Docs',
-  url: 'https://azure.github.io',
+  url: 'https://eraser-dev.github.io',
   baseUrl: '/eraser/docs/',
   onBrokenLinks: 'throw',
   onBrokenMarkdownLinks: 'warn',
@@ -16,7 +16,7 @@ const config = {
 
   // GitHub pages deployment config.
   // If you aren't using GitHub pages, you don't need these.
-  organizationName: 'Azure', // Usually your GitHub org/user name.
+  organizationName: 'eraser-dev', // Usually your GitHub org/user name.
   projectName: 'Eraser', // Usually your repo name.
   deploymentBranch: 'gh-pages',
 
@@ -64,7 +64,7 @@ const config = {
             position: 'right',
           },
           {
-            href: 'https://github.com/azure/eraser',
+            href: 'https://github.com/eraser-dev/eraser',
             position: 'right',
             className: 'header-github-link',
             'aria-label': 'GitHub repository',
@@ -73,7 +73,7 @@ const config = {
       },
       footer: {
         style: 'dark',
-        copyright: `Copyright © ${new Date().getFullYear()} Microsoft. Built with Docusaurus.`,
+        copyright: `Copyright © ${new Date().getFullYear()} Linux Foundation. Built with Docusaurus.`,
       },
       prism: {
         theme: lightCodeTheme,
