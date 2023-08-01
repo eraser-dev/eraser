@@ -8,6 +8,7 @@ import (
 )
 
 func loadConfig(filename string) (Config, error) {
+	var eraserConfig unversioned.EraserConfig
 	cfg := *DefaultConfig()
 
 	b, err := os.ReadFile(filename)
@@ -15,7 +16,6 @@ func loadConfig(filename string) (Config, error) {
 		return cfg, err
 	}
 
-	var eraserConfig unversioned.EraserConfig
 	err = yaml.Unmarshal(b, &eraserConfig)
 	if err != nil {
 		return cfg, err
@@ -31,6 +31,8 @@ func loadConfig(filename string) (Config, error) {
 	if err != nil {
 		return cfg, err
 	}
+
+	cfg.RuntimeAddress = string(eraserConfig.Manager.RuntimeSocketAddress)
 
 	return cfg, nil
 }

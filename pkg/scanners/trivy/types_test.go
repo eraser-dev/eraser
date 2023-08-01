@@ -40,7 +40,7 @@ func TestCLIArgs(t *testing.T) {
 		},
 		{
 			desc:     "alternative runtime",
-			config:   Config{Runtime: "crio"},
+			config:   Config{RuntimeAddress: "crio"},
 			expected: []string{"--format=json", "image", "--image-src", "crio", ref},
 		},
 		{
@@ -92,8 +92,8 @@ func TestCLIArgs(t *testing.T) {
 		{
 			desc: "all `image` options",
 			config: Config{
-				Runtime: "crio",
-				DBRepo:  "example.test/db/repo",
+				RuntimeAddress: "crio",
+				DBRepo:         "example.test/db/repo",
 				Vulnerabilities: VulnConfig{
 					IgnoreUnfixed:  true,
 					Types:          []string{"library", "os"},
@@ -109,10 +109,10 @@ func TestCLIArgs(t *testing.T) {
 		{
 			desc: "all options",
 			config: Config{
-				CacheDir: "/var/lib/trivy",
-				Timeout:  TimeoutConfig{PerImage: testDuration},
-				Runtime:  "crio",
-				DBRepo:   "example.test/db/repo",
+				CacheDir:       "/var/lib/trivy",
+				Timeout:        TimeoutConfig{PerImage: testDuration},
+				RuntimeAddress: "crio",
+				DBRepo:         "example.test/db/repo",
 				Vulnerabilities: VulnConfig{
 					IgnoreUnfixed:  true,
 					Types:          []string{"os"},

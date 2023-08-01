@@ -34,7 +34,7 @@ const (
 
 type (
 	Config struct {
-		Runtime            string        `json:"runtime,omitempty"`
+		RuntimeAddress     string        `json:"runtime,omitempty"`
 		CacheDir           string        `json:"cacheDir,omitempty"`
 		DBRepo             string        `json:"dbRepo,omitempty"`
 		DeleteFailedImages bool          `json:"deleteFailedImages,omitempty"`
@@ -67,6 +67,7 @@ func DefaultConfig() *Config {
 	return &Config{
 		CacheDir:           "/var/lib/trivy",
 		DBRepo:             "ghcr.io/aquasecurity/trivy-db",
+		RuntimeAddress:     "unix:///run/containerd/containerd.sock",
 		DeleteFailedImages: true,
 		DeleteEOLImages:    true,
 		Vulnerabilities: VulnConfig{
@@ -99,13 +100,13 @@ func (c *Config) cliArgs(ref string) []string {
 		args = append(args, trivyTimeoutFlag, time.Duration(c.Timeout.PerImage).String())
 	}
 
-	runtime := "containerd"
+	runtimeAddress := "unix:///run/containerd/containerd.sock"
 	// `trivy image`-specific options
-	if c.Runtime != "" {
-		runtime = c.Runtime
+	if c.RuntimeAddress != "" {
+		runtimeAddress = c.RuntimeAddress
 	}
 
-	args = append(args, trivyImageArg, trivyRuntimeFlag, runtime)
+	args = append(args, trivyImageArg, trivyRuntimeFlag, runtimeAddress)
 
 	if c.DBRepo != "" {
 		args = append(args, trivyDBRepoFlag, c.DBRepo)

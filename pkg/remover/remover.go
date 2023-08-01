@@ -42,6 +42,7 @@ const (
 )
 
 func main() {
+	util.GetConn(context.TODO(), "unix:///run/containerd/containerd.sock")
 	flag.Parse()
 
 	if *enableProfile {
@@ -60,10 +61,15 @@ func main() {
 		os.Exit(generalErr)
 	}
 
-	socketPath, found := util.RuntimeSocketPathMap[*runtimePtr]
-	if !found {
-		log.Error(fmt.Errorf("unsupported runtime"), "runtime", *runtimePtr)
-		os.Exit(generalErr)
+	socketPath, ok := os.LookupEnv("ERASER_RUNTIME_SOCKET_ADDRESS")
+	if !ok {
+		p, found := util.RuntimeSocketPathMap[*runtimePtr]
+		if !found {
+			log.Error(fmt.Errorf("unsupported runtime"), "runtime", *runtimePtr)
+			os.Exit(generalErr)
+		}
+
+		socketPath = p
 	}
 
 	client, err := cri.NewRemoverClient(socketPath)

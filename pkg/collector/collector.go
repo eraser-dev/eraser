@@ -49,10 +49,15 @@ func main() {
 		os.Exit(1)
 	}
 
-	socketPath, found := util.RuntimeSocketPathMap[*runtimePtr]
-	if !found {
-		log.Error(fmt.Errorf("unsupported runtime"), "runtime", *runtimePtr)
-		os.Exit(1)
+	socketPath, ok := os.LookupEnv("ERASER_RUNTIME_SOCKET_ADDRESS")
+	if !ok {
+		p, found := util.RuntimeSocketPathMap[*runtimePtr]
+		if !found {
+			log.Error(fmt.Errorf("unsupported runtime"), "runtime", *runtimePtr)
+			os.Exit(1)
+		}
+
+		socketPath = p
 	}
 
 	client, err := cri.NewCollectorClient(socketPath)

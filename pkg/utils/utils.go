@@ -44,6 +44,8 @@ type ExclusionList struct {
 	Excluded []string `json:"excluded"`
 }
 
+type dialerFunc func(ctx context.Context, addr string) (net.Conn, error)
+
 var (
 	ErrProtocolNotSupported  = errors.New("protocol not supported")
 	ErrEndpointDeprecated    = errors.New("endpoint is deprecated, please consider using full url format")
@@ -56,64 +58,37 @@ var (
 	}
 )
 
-func GetConn(ctx context.Context, socketPath string) (conn *grpc.ClientConn, err error) {
-	addr, dialer, err := getAddressAndDialer(socketPath)
+func GetConn(ctx context.Context, socketAddress string) (conn *grpc.ClientConn, err error) {
+	path, dialer, err := getAddressAndDialer(socketAddress)
 	if err != nil {
 		return nil, err
 	}
 
 	return grpc.DialContext(
 		ctx,
-		addr,
+		path,
 		grpc.WithBlock(),
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithContextDialer(dialer),
 	)
 }
 
-func getAddressAndDialer(endpoint string) (string, func(ctx context.Context, addr string) (net.Conn, error), error) {
-	protocol, addr, err := ParseEndpointWithFallbackProtocol(endpoint, unixProtocol)
+func getAddressAndDialer(endpoint string) (string, dialerFunc, error) {
+	u, err := url.Parse(endpoint)
 	if err != nil {
-		return "", nil, err
-	}
-	if protocol != unixProtocol {
-		return "", nil, ErrOnlySupportUnixSocket
+		return "", nil, fmt.Errorf("error while parsing: %w", err)
 	}
 
-	return addr, dial, nil
+	switch u.Scheme {
+	case "unix":
+		return u.Path, dial, nil
+	default:
+		return "", nil, fmt.Errorf("%q: %w", u.Scheme, ErrProtocolNotSupported)
+	}
 }
 
 func dial(ctx context.Context, addr string) (net.Conn, error) {
 	return (&net.Dialer{}).DialContext(ctx, unixProtocol, addr)
-}
-
-func ParseEndpointWithFallbackProtocol(endpoint string, fallbackProtocol string) (protocol string, addr string, err error) {
-	if protocol, addr, err = ParseEndpoint(endpoint); err != nil && protocol == "" {
-		fallbackEndpoint := fallbackProtocol + "://" + endpoint
-		protocol, addr, err = ParseEndpoint(fallbackEndpoint)
-		if err != nil {
-			return "", "", err
-		}
-	}
-	return protocol, addr, err
-}
-
-func ParseEndpoint(endpoint string) (string, string, error) {
-	u, err := url.Parse(endpoint)
-	if err != nil {
-		return "", "", fmt.Errorf("error while parsing: %w", err)
-	}
-
-	switch u.Scheme {
-	case "tcp":
-		return "tcp", u.Host, nil
-	case "unix":
-		return "unix", u.Path, nil
-	case "":
-		return "", "", fmt.Errorf("using %q as %w", endpoint, ErrEndpointDeprecated)
-	default:
-		return u.Scheme, "", fmt.Errorf("%q: %w", u.Scheme, ErrProtocolNotSupported)
-	}
 }
 
 func ListImages(ctx context.Context, images v1.ImageServiceClient) (list []*v1.Image, err error) {

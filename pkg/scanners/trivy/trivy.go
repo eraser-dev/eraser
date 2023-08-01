@@ -157,7 +157,7 @@ func initScanner(userConfig *Config) (Scanner, error) {
 		runtime = utils.RuntimeContainerd
 	}
 
-	userConfig.Runtime = runtime
+	userConfig.RuntimeAddress = runtime
 	totalTimeout := time.Duration(userConfig.Timeout.Total)
 	timer := time.NewTimer(totalTimeout)
 
