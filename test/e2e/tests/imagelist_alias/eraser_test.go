@@ -7,8 +7,8 @@ import (
 	"context"
 	"testing"
 
-	eraserv1 "github.com/Azure/eraser/api/v1"
-	"github.com/Azure/eraser/test/e2e/util"
+	eraserv1 "github.com/eraser-dev/eraser/api/v1"
+	"github.com/eraser-dev/eraser/test/e2e/util"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -41,7 +41,7 @@ func TestEnsureAliasedImageRemoved(t *testing.T) {
 			// but each pod refers to that same image by a different tag.
 			nodeName := util.GetClusterNodes(t)[0]
 
-			// At ghcr.io/azure/eraser/e2e-test/nginx there is a repository
+			// At ghcr.io/eraser-dev/eraser/e2e-test/nginx there is a repository
 			// containing three tags. The three tags are `latest`, `one` and
 			// `two`. They are all aliases for the same image; only the name
 			// differs. These images are maintained there in order to avoid

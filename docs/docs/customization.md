@@ -29,7 +29,7 @@ cluster's nodes, and to remove the images you don't want. There are two stages:
 
 ### Scheduling
 
-An _ImageJob_ can either be created on-demand (see [Manual Removal](https://azure.github.io/eraser/docs/manual-removal)),
+An _ImageJob_ can either be created on-demand (see [Manual Removal](https://eraser-dev.github.io/eraser/docs/manual-removal)),
 or they can be spawned on a timer like a cron job. On-demand jobs skip the
 assessment stage and get right down to the business of removing the images you
 specified. The behavior of an on-demand job is quite different from that of
@@ -108,7 +108,7 @@ manager:
 components:
   remover:
     image:
-      repo: ghcr.io/azure/remover
+      repo: ghcr.io/eraser-dev/remover
       tag: v1.0.0
     request:
       mem: 25Mi
@@ -125,7 +125,7 @@ components:
   collector:
     enabled: true
     image:
-      repo: ghcr.io/azure/collector
+      repo: ghcr.io/eraser-dev/collector
       tag: v1.0.0
     request:
       mem: 25Mi
@@ -136,7 +136,7 @@ components:
   scanner:
     enabled: true
     image:
-      repo: ghcr.io/azure/eraser-trivy-scanner
+      repo: ghcr.io/eraser-dev/eraser-trivy-scanner
       tag: v1.0.0
     request:
       mem: 500Mi
@@ -149,7 +149,7 @@ components:
       # will define their own configuration. see the below
   remover:
     image:
-      repo: ghcr.io/azure/remover
+      repo: ghcr.io/eraser-dev/remover
       tag: v1.0.0
     request:
       mem: 25Mi
@@ -206,21 +206,21 @@ timeout:
 | manager.nodeFilter.type | The type of node filter to use. Must be either "exclude" or "include". | exclude |
 | manager.nodeFilter.selectors | A list of selectors used to filter nodes. | [] |
 | components.collector.enabled | Whether to enable the collector component. | true |
-| components.collector.image.repo | The repository containing the collector image. | ghcr.io/azure/collector |
+| components.collector.image.repo | The repository containing the collector image. | ghcr.io/eraser-dev/collector |
 | components.collector.image.tag | The tag of the collector image. | v1.0.0 |
 | components.collector.request.mem | The amount of memory to request for the collector container. | 25Mi |
 | components.collector.request.cpu | The amount of CPU to request for the collector container. | 7m |
 | components.collector.limit.mem | The maximum amount of memory the collector container is allowed to use. | 500Mi |
 | components.collector.limit.cpu | The maximum amount of CPU the collector container is allowed to use. | 0 |
 | components.scanner.enabled | Whether to enable the scanner component. | true |
-| components.scanner.image.repo | The repository containing the scanner image. | ghcr.io/azure/eraser-trivy-scanner |
+| components.scanner.image.repo | The repository containing the scanner image. | ghcr.io/eraser-dev/eraser-trivy-scanner |
 | components.scanner.image.tag | The tag of the scanner image. | v1.0.0 |
 | components.scanner.request.mem | The amount of memory to request for the scanner container. | 500Mi |
 | components.scanner.request.cpu | The amount of CPU to request for the scanner container. | 1000m |
 | components.scanner.limit.mem | The maximum amount of memory the scanner container is allowed to use. | 2Gi |
 | components.scanner.limit.cpu | The maximum amount of CPU the scanner container is allowed to use. | 0 |
 | components.scanner.config | The configuration to pass to the scanner container, as a YAML string. | See YAML below |
-| components.remover.image.repo | The repository containing the remover image. | ghcr.io/azure/remover |
+| components.remover.image.repo | The repository containing the remover image. | ghcr.io/eraser-dev/remover |
 | components.remover.image.tag | The tag of the remover image. | v1.0.0 |
 | components.remover.request.mem | The amount of memory to request for the remover container. | 25Mi |
 | components.remover.request.cpu | The amount of CPU to request for the remover container. | 0 |

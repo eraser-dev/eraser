@@ -6,21 +6,21 @@ COLLECTOR_TAG ?= ${VERSION}
 REMOVER_TAG ?= ${VERSION}
 
 # Image URL to use all building/pushing image targets
-TRIVY_SCANNER_REPO ?= ghcr.io/azure/eraser-trivy-scanner
+TRIVY_SCANNER_REPO ?= ghcr.io/eraser-dev/eraser-trivy-scanner
 TRIVY_SCANNER_IMG ?= ${TRIVY_SCANNER_REPO}:${TRIVY_SCANNER_TAG}
 TRIVY_BINARY_REPO ?= ghcr.io/aquasecurity/trivy
 TRIVY_BINARY_TAG ?= 0.43.0
 TRIVY_BINARY_IMG ?= ${TRIVY_BINARY_REPO}:${TRIVY_BINARY_TAG}
-MANAGER_REPO ?= ghcr.io/azure/eraser-manager
+MANAGER_REPO ?= ghcr.io/eraser-dev/eraser-manager
 MANAGER_IMG ?= ${MANAGER_REPO}:${MANAGER_TAG}
-REMOVER_REPO ?= ghcr.io/azure/remover
+REMOVER_REPO ?= ghcr.io/eraser-dev/remover
 REMOVER_IMG ?= ${REMOVER_REPO}:${REMOVER_TAG}
-COLLECTOR_REPO ?= ghcr.io/azure/collector
+COLLECTOR_REPO ?= ghcr.io/eraser-dev/collector
 COLLECTOR_IMG ?= ${COLLECTOR_REPO}:${COLLECTOR_TAG}
 VULNERABLE_IMG ?= docker.io/library/alpine:3.7.3
 EOL_IMG ?= docker.io/library/alpine:3.1
 BUSYBOX_BASE_IMG ?= busybox:1.36.0
-NON_VULNERABLE_IMG ?= ghcr.io/azure/non-vulnerable:latest
+NON_VULNERABLE_IMG ?= ghcr.io/eraser-dev/non-vulnerable:latest
 E2E_TESTS ?= $(shell find ./test/e2e/tests/ -mindepth 1 -type d)
 API_VERSIONS ?= ./api/v1alpha1,./api/v1,./api/v1alpha2
 
@@ -264,7 +264,7 @@ release-manifest: ## Generates manifests for a release.
 	@sed -i "s/version: .*/version: $$(echo ${NEWVERSION} | cut -c2-)/" ./third_party/open-policy-agent/gatekeeper/helmify/static/Chart.yaml
 	@sed -Ei 's/(tag:\s*).*/\1"$(NEWVERSION)"/' ./third_party/open-policy-agent/gatekeeper/helmify/static/values.yaml
 	@sed -i 's/Current release version: `.*`/Current release version: `'"${NEWVERSION}"'`/' ./third_party/open-policy-agent/gatekeeper/helmify/static/README.md
-	@sed -i 's/https:\/\/raw\.githubusercontent\.com\/Azure\/eraser\/master\/deploy\/eraser\.yaml.*/https:\/\/raw\.githubusercontent\.com\/Azure\/eraser\/${NEWVERSION}\/deploy\/eraser\.yaml/' ./docs/docs/installation.md
+	@sed -i 's/https:\/\/raw\.githubusercontent\.com\/eraser-dev\/eraser\/master\/deploy\/eraser\.yaml.*/https:\/\/raw\.githubusercontent\.com\/eraser-dev\/eraser\/${NEWVERSION}\/deploy\/eraser\.yaml/' ./docs/docs/installation.md
 	export
 	$(MAKE) manifests
 

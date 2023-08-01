@@ -10,12 +10,12 @@ import (
 	"os"
 	"time"
 
-	"github.com/Azure/eraser/pkg/cri"
-	"github.com/Azure/eraser/pkg/logger"
+	"github.com/eraser-dev/eraser/pkg/cri"
+	"github.com/eraser-dev/eraser/pkg/logger"
 	"golang.org/x/sys/unix"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 
-	util "github.com/Azure/eraser/pkg/utils"
+	util "github.com/eraser-dev/eraser/pkg/utils"
 )
 
 var (

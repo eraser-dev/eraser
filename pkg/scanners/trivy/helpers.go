@@ -3,7 +3,7 @@ package main
 import (
 	"os"
 
-	unversioned "github.com/Azure/eraser/api/unversioned"
+	unversioned "github.com/eraser-dev/eraser/api/unversioned"
 	"k8s.io/apimachinery/pkg/util/yaml"
 )
 

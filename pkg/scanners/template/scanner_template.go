@@ -7,12 +7,12 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/Azure/eraser/api/unversioned"
+	"github.com/eraser-dev/eraser/api/unversioned"
 	"github.com/go-logr/logr"
 	"golang.org/x/sys/unix"
 
-	"github.com/Azure/eraser/pkg/metrics"
-	util "github.com/Azure/eraser/pkg/utils"
+	"github.com/eraser-dev/eraser/pkg/metrics"
+	util "github.com/eraser-dev/eraser/pkg/utils"
 	"go.opentelemetry.io/otel/metric/global"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 )

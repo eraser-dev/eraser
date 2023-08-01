@@ -42,10 +42,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 	"sigs.k8s.io/kind/pkg/errors"
 
-	"github.com/Azure/eraser/api/unversioned/config"
-	eraserv1 "github.com/Azure/eraser/api/v1"
-	controllerUtils "github.com/Azure/eraser/controllers/util"
-	eraserUtils "github.com/Azure/eraser/pkg/utils"
+	"github.com/eraser-dev/eraser/api/unversioned/config"
+	eraserv1 "github.com/eraser-dev/eraser/api/v1"
+	controllerUtils "github.com/eraser-dev/eraser/controllers/util"
+	eraserUtils "github.com/eraser-dev/eraser/pkg/utils"
 )
 
 const (

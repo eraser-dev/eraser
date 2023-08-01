@@ -76,7 +76,7 @@ docker.io/library/alpine@sha256:8421d9a84432575381bfabd248f1eb56f3aa21d9d7cd2511
 
 ## Automatically Cleaning Images
 
-After deploying Eraser, it will automatically clean images in a regular interval. This interval can be set using the `manager.scheduling.repeatInterval` setting in the [configmap](https://azure.github.io/eraser/docs/customization#detailed-options). The default interval is 24 hours (`24h`). Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h".
+After deploying Eraser, it will automatically clean images in a regular interval. This interval can be set using the `manager.scheduling.repeatInterval` setting in the [configmap](https://eraser-dev.github.io/eraser/docs/customization#detailed-options). The default interval is 24 hours (`24h`). Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h".
 
 Eraser will schedule collector pods to each node in the cluster, and each pod will contain 3 containers: collector, scanner, and eraser that will run to completion.
 
@@ -91,7 +91,7 @@ eraser-system        eraser-controller-manager-86cdb4cbf9-x8d7q   1/1     Runnin
 
 The collector container sends the list of all images to the scanner container, which scans and reports non-compliant images to the eraser container for removal of images that are non-running. Once all pods are completed, they will be automatically cleaned up. 
 
-> If you want to remove all the images periodically, you can skip the scanner container by setting the `components.scanner.enabled` value to `false` using the [configmap](https://azure.github.io/eraser/docs/customization#detailed-options). In this case, each collector pod will hold 2 containers: collector and eraser.
+> If you want to remove all the images periodically, you can skip the scanner container by setting the `components.scanner.enabled` value to `false` using the [configmap](https://eraser-dev.github.io/eraser/docs/customization#detailed-options). In this case, each collector pod will hold 2 containers: collector and eraser.
 
 ```shell
 $ kubectl get pods -n eraser-system

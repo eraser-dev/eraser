@@ -23,7 +23,7 @@ Publishing involves creating a release tag and creating a new _Release_ on GitHu
 1. Obtain a copy of the repository.
 
    ```
-   git clone git@github.com:Azure/eraser.git
+   git clone git@github.com:eraser-dev/eraser.git
    ```
 
 1. If this is a patch release for a release branch, check out applicable branch, such as `release-0.1`. If not, branch should be `main`
@@ -73,8 +73,8 @@ Publishing involves creating a release tag and creating a new _Release_ on GitHu
    ```
 
 3. Pushing the release tag will trigger GitHub Actions to trigger `release` job.
-   This will build the `ghcr.io/azure/eraser` and `ghcr.io/azure/eraser-manager` images automatically, then publish the new release tag.
+   This will build the `ghcr.io/eraser-dev/eraser` and `ghcr.io/eraser-dev/eraser-manager` images automatically, then publish the new release tag.
 
 ## Publishing
 
-1. GitHub Action will create a new release, review and edit it at https://github.com/Azure/eraser/releases
+1. GitHub Action will create a new release, review and edit it at https://github.com/eraser-dev/eraser/releases

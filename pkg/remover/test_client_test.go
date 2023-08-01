@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Azure/eraser/pkg/cri"
+	"github.com/eraser-dev/eraser/pkg/cri"
 	v1 "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
 

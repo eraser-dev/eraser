@@ -39,16 +39,16 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 
-	"github.com/Azure/eraser/api/unversioned"
-	"github.com/Azure/eraser/api/unversioned/config"
-	eraserv1 "github.com/Azure/eraser/api/v1"
-	eraserv1alpha1 "github.com/Azure/eraser/api/v1alpha1"
-	v1alpha1Config "github.com/Azure/eraser/api/v1alpha1/config"
-	eraserv1alpha2 "github.com/Azure/eraser/api/v1alpha2"
-	v1alpha2Config "github.com/Azure/eraser/api/v1alpha2/config"
-	"github.com/Azure/eraser/controllers"
-	"github.com/Azure/eraser/pkg/logger"
-	"github.com/Azure/eraser/version"
+	"github.com/eraser-dev/eraser/api/unversioned"
+	"github.com/eraser-dev/eraser/api/unversioned/config"
+	eraserv1 "github.com/eraser-dev/eraser/api/v1"
+	eraserv1alpha1 "github.com/eraser-dev/eraser/api/v1alpha1"
+	v1alpha1Config "github.com/eraser-dev/eraser/api/v1alpha1/config"
+	eraserv1alpha2 "github.com/eraser-dev/eraser/api/v1alpha2"
+	v1alpha2Config "github.com/eraser-dev/eraser/api/v1alpha2/config"
+	"github.com/eraser-dev/eraser/controllers"
+	"github.com/eraser-dev/eraser/pkg/logger"
+	"github.com/eraser-dev/eraser/version"
 	//+kubebuilder:scaffold:imports
 )
 

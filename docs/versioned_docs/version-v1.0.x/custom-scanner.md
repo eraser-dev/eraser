@@ -3,7 +3,7 @@ title: Custom Scanner
 ---
 
 ## Creating a Custom Scanner
-To create a custom scanner for non-compliant images, use the following [template](https://github.com/Azure/eraser-scanner-template/).
+To create a custom scanner for non-compliant images, use the following [template](https://github.com/eraser-dev/eraser-scanner-template/).
 
 In order to customize your scanner, start by creating a `NewImageProvider()`. The ImageProvider interface can be found can be found [here](../../pkg/scanners/template/scanner_template.go). 
 

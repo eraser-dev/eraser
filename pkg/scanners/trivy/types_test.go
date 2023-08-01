@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/Azure/eraser/api/unversioned"
+	"github.com/eraser-dev/eraser/api/unversioned"
 )
 
 const ref = "image:tag"

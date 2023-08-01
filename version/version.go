@@ -9,7 +9,7 @@ var (
 	// BuildVersion is version set on build.
 	BuildVersion string
 	// DefaultRepo is the default repo for images.
-	DefaultRepo = "ghcr.io/azure"
+	DefaultRepo = "ghcr.io/eraser-dev"
 	// buildTime is the date for the binary build.
 	buildTime string
 	// vcsCommit is the commit hash for the binary build.

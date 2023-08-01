@@ -17,12 +17,12 @@ import (
 	"go.opentelemetry.io/otel/metric/global"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 
-	"github.com/Azure/eraser/pkg/cri"
-	"github.com/Azure/eraser/pkg/logger"
-	"github.com/Azure/eraser/pkg/metrics"
+	"github.com/eraser-dev/eraser/pkg/cri"
+	"github.com/eraser-dev/eraser/pkg/logger"
+	"github.com/eraser-dev/eraser/pkg/metrics"
 
-	"github.com/Azure/eraser/api/unversioned"
-	util "github.com/Azure/eraser/pkg/utils"
+	"github.com/eraser-dev/eraser/api/unversioned"
+	util "github.com/eraser-dev/eraser/pkg/utils"
 )
 
 var (

@@ -7,8 +7,8 @@ import (
 	"context"
 	"testing"
 
-	eraserv1 "github.com/Azure/eraser/api/v1"
-	"github.com/Azure/eraser/test/e2e/util"
+	eraserv1 "github.com/eraser-dev/eraser/api/v1"
+	"github.com/eraser-dev/eraser/test/e2e/util"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

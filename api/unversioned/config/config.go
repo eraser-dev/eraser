@@ -5,8 +5,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Azure/eraser/api/unversioned"
-	"github.com/Azure/eraser/version"
+	"github.com/eraser-dev/eraser/api/unversioned"
+	"github.com/eraser-dev/eraser/version"
 	"k8s.io/apimachinery/pkg/api/resource"
 )
 

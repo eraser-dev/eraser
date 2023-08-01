@@ -1,36 +1,36 @@
-domain: azure-eraser.io
+domain: eraser-dev.io
 layout:
 - go.kubebuilder.io/v3
 projectName: eraser
-repo: github.com/Azure/eraser
+repo: github.com/eraser-dev/eraser
 resources:
 - api:
     crdVersion: v1alpha1
     namespaced: true
   controller: true
-  domain: azure-eraser.io
+  domain: eraser-dev.io
   group: eraser.sh
   kind: ImageList
-  path: azure-eraser.io/eraser/api/v1alpha1
+  path: eraser.io/eraser/api/v1alpha1
   version: v1alpha1
 - controller: true
-  domain: azure-eraser.io
+  domain: eraser-dev.io
   group: eraser.sh
   kind: ImageCollector
   version: v1alpha1
-- domain: azure-eraser.io
+- domain: eraser-dev.io
   group: eraser.sh
   kind: ImageList
   version: v1
 - api:
     crdVersion: v1
     namespaced: true
-  domain: azure-eraser.io
+  domain: eraser.io
   group: eraser.sh
   kind: EraserConfig
-  path: github.com/Azure/eraser/api/v1alpha1
+  path: github.com/eraser-dev/eraser/api/v1alpha1
   version: v1alpha1
-- domain: azure-eraser.io
+- domain: eraser.io
   group: eraser.sh
   kind: EraserConfig
   version: v1alpha2
