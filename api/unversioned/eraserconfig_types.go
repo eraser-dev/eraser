@@ -19,6 +19,7 @@ package unversioned
 import (
 	"encoding/json"
 	"fmt"
+	"net/url"
 	"time"
 
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -26,14 +27,19 @@ import (
 )
 
 type (
-	Duration time.Duration
-	Runtime  string
+	Duration       time.Duration
+	Runtime        string
+	RuntimeAddress string
 )
 
 const (
 	RuntimeContainerd Runtime = "containerd"
 	RuntimeDockerShim Runtime = "dockershim"
 	RuntimeCrio       Runtime = "crio"
+
+	DockerPath     = "/run/dockershim.sock"
+	ContainerdPath = "/run/containerd/containerd.sock"
+	CrioPath       = "/run/crio/crio.sock"
 )
 
 func (td *Duration) UnmarshalJSON(b []byte) error {
@@ -52,7 +58,34 @@ func (td *Duration) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
-func (r *Runtime) UnmarshalJSON(b []byte) error {
+func ConvertRuntimeToRuntimeAddress(r Runtime) (RuntimeAddress, error) {
+	var rr RuntimeAddress
+	switch rt := Runtime(r); rt {
+	case RuntimeContainerd:
+		rr = RuntimeAddress(fmt.Sprintf("unix://%s", ContainerdPath))
+	case RuntimeDockerShim:
+		rr = RuntimeAddress(fmt.Sprintf("unix://%s", DockerPath))
+	case RuntimeCrio:
+		rr = RuntimeAddress(fmt.Sprintf("unix://%s", CrioPath))
+	default:
+		u, err := url.Parse(string(r))
+		if err != nil {
+			return RuntimeAddress(""), err
+		}
+
+		switch u.Scheme {
+		case "tcp", "unix":
+		default:
+			return RuntimeAddress(""), fmt.Errorf("invalid scheme: valid schemes for runtime socket address are `tcp` and `unix`")
+		}
+
+		rr = RuntimeAddress(r)
+	}
+
+	return rr, nil
+}
+
+func (r *RuntimeAddress) UnmarshalJSON(b []byte) error {
 	var str string
 	err := json.Unmarshal(b, &str)
 	if err != nil {
@@ -60,10 +93,25 @@ func (r *Runtime) UnmarshalJSON(b []byte) error {
 	}
 
 	switch rt := Runtime(str); rt {
-	case RuntimeContainerd, RuntimeDockerShim, RuntimeCrio:
-		*r = rt
+	case RuntimeContainerd:
+		*r = RuntimeAddress(fmt.Sprintf("unix://%s", ContainerdPath))
+	case RuntimeDockerShim:
+		*r = RuntimeAddress(fmt.Sprintf("unix://%s", DockerPath))
+	case RuntimeCrio:
+		*r = RuntimeAddress(fmt.Sprintf("unix://%s", CrioPath))
 	default:
-		return fmt.Errorf("cannot determine runtime type: %s. valid values are containerd, dockershim, or crio", str)
+		u, err := url.Parse(str)
+		if err != nil {
+			return err
+		}
+
+		switch u.Scheme {
+		case "tcp", "unix":
+		default:
+			return fmt.Errorf("invalid scheme: valid schemes for runtime socket address are `tcp` and `unix`")
+		}
+
+		*r = RuntimeAddress(str)
 	}
 
 	return nil
@@ -89,15 +137,15 @@ type ContainerConfig struct {
 }
 
 type ManagerConfig struct {
-	Runtime           Runtime          `json:"runtime,omitempty"`
-	OTLPEndpoint      string           `json:"otlpEndpoint,omitempty"`
-	LogLevel          string           `json:"logLevel,omitempty"`
-	Scheduling        ScheduleConfig   `json:"scheduling,omitempty"`
-	Profile           ProfileConfig    `json:"profile,omitempty"`
-	ImageJob          ImageJobConfig   `json:"imageJob,omitempty"`
-	PullSecrets       []string         `json:"pullSecrets,omitempty"`
-	NodeFilter        NodeFilterConfig `json:"nodeFilter,omitempty"`
-	PriorityClassName string           `json:"priorityClassName,omitempty"`
+	RuntimeSocketAddress RuntimeAddress   `json:"runtimeSocketAddress,omitempty"`
+	OTLPEndpoint         string           `json:"otlpEndpoint,omitempty"`
+	LogLevel             string           `json:"logLevel,omitempty"`
+	Scheduling           ScheduleConfig   `json:"scheduling,omitempty"`
+	Profile              ProfileConfig    `json:"profile,omitempty"`
+	ImageJob             ImageJobConfig   `json:"imageJob,omitempty"`
+	PullSecrets          []string         `json:"pullSecrets,omitempty"`
+	NodeFilter           NodeFilterConfig `json:"nodeFilter,omitempty"`
+	PriorityClassName    string           `json:"priorityClassName,omitempty"`
 }
 
 type ScheduleConfig struct {

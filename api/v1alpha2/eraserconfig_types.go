@@ -19,10 +19,13 @@ package v1alpha2
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 
+	unversioned "github.com/Azure/eraser/api/unversioned"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	conversion "k8s.io/apimachinery/pkg/conversion"
 )
 
 type (
@@ -152,4 +155,61 @@ type EraserConfig struct {
 
 func init() {
 	SchemeBuilder.Register(&EraserConfig{})
+}
+
+func Convert_v1alpha2_ManagerConfig_To_unversioned_ManagerConfig(in *ManagerConfig, out *unversioned.ManagerConfig, s conversion.Scope) error { //nolint:revive
+	var err error
+	out.RuntimeSocketAddress, err = unversioned.ConvertRuntimeToRuntimeAddress(unversioned.Runtime(in.Runtime))
+	if err != nil {
+		return err
+	}
+
+	out.OTLPEndpoint = in.OTLPEndpoint
+	out.LogLevel = in.LogLevel
+	out.PullSecrets = in.PullSecrets
+	out.PriorityClassName = in.PriorityClassName
+
+	if err := Convert_v1alpha2_ScheduleConfig_To_unversioned_ScheduleConfig(&in.Scheduling, &out.Scheduling, s); err != nil {
+		return err
+	}
+
+	if err := Convert_v1alpha2_ProfileConfig_To_unversioned_ProfileConfig(&in.Profile, &out.Profile, s); err != nil {
+		return err
+	}
+
+	if err := Convert_v1alpha2_ImageJobConfig_To_unversioned_ImageJobConfig(&in.ImageJob, &out.ImageJob, s); err != nil {
+		return err
+	}
+
+	return Convert_v1alpha2_NodeFilterConfig_To_unversioned_NodeFilterConfig(&in.NodeFilter, &out.NodeFilter, s)
+}
+
+func Convert_unversioned_ManagerConfig_To_v1alpha2_ManagerConfig(in *unversioned.ManagerConfig, out *ManagerConfig, s conversion.Scope) error { //nolint:revive
+	out.Runtime = "containerd"
+	if strings.Contains(string(in.RuntimeSocketAddress), "docker") {
+		out.Runtime = "dockershim"
+	}
+
+	if strings.Contains(string(in.RuntimeSocketAddress), "crio") {
+		out.Runtime = "crio"
+	}
+
+	out.OTLPEndpoint = in.OTLPEndpoint
+	out.LogLevel = in.LogLevel
+	out.PullSecrets = in.PullSecrets
+	out.PriorityClassName = in.PriorityClassName
+
+	if err := Convert_unversioned_ScheduleConfig_To_v1alpha2_ScheduleConfig(&in.Scheduling, &out.Scheduling, s); err != nil {
+		return err
+	}
+
+	if err := Convert_unversioned_ProfileConfig_To_v1alpha2_ProfileConfig(&in.Profile, &out.Profile, s); err != nil {
+		return err
+	}
+
+	if err := Convert_unversioned_ImageJobConfig_To_v1alpha2_ImageJobConfig(&in.ImageJob, &out.ImageJob, s); err != nil {
+		return err
+	}
+
+	return Convert_unversioned_NodeFilterConfig_To_v1alpha2_NodeFilterConfig(&in.NodeFilter, &out.NodeFilter, s)
 }

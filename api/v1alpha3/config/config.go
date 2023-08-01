@@ -77,9 +77,9 @@ const (
 func Default() *v1alpha3.EraserConfig {
 	return &v1alpha3.EraserConfig{
 		Manager: v1alpha3.ManagerConfig{
-			Runtime:      "containerd",
-			OTLPEndpoint: "",
-			LogLevel:     "info",
+			RuntimeSocketAddress: "unix:///run/containerd/containerd.sock",
+			OTLPEndpoint:         "",
+			LogLevel:             "info",
 			Scheduling: v1alpha3.ScheduleConfig{
 				RepeatInterval:   v1alpha3.Duration(oneDay),
 				BeginImmediately: true,

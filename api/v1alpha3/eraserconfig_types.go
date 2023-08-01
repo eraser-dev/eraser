@@ -22,26 +22,24 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/Azure/eraser/pkg/utils"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 type (
 	Duration       time.Duration
-	RuntimeName    string
+	Runtime        string
 	RuntimeAddress string
-
-	Runtime struct {
-		Name    RuntimeName
-		Address string
-	}
 )
 
 const (
-	RuntimeContainerd RuntimeName = "containerd"
-	RuntimeDockerShim RuntimeName = "dockershim"
-	RuntimeCrio       RuntimeName = "crio"
+	RuntimeContainerd Runtime = "containerd"
+	RuntimeDockerShim Runtime = "dockershim"
+	RuntimeCrio       Runtime = "crio"
+
+	DockerPath     = "/run/dockershim.sock"
+	ContainerdPath = "/run/containerd/containerd.sock"
+	CrioPath       = "/run/crio/crio.sock"
 )
 
 func (td *Duration) UnmarshalJSON(b []byte) error {
@@ -60,6 +58,33 @@ func (td *Duration) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
+func ConvertRuntimeToRuntimeAddress(r Runtime) (RuntimeAddress, error) {
+	var rr RuntimeAddress
+	switch rt := Runtime(r); rt {
+	case RuntimeContainerd:
+		rr = RuntimeAddress(fmt.Sprintf("unix://%s", ContainerdPath))
+	case RuntimeDockerShim:
+		rr = RuntimeAddress(fmt.Sprintf("unix://%s", DockerPath))
+	case RuntimeCrio:
+		rr = RuntimeAddress(fmt.Sprintf("unix://%s", CrioPath))
+	default:
+		u, err := url.Parse(string(r))
+		if err != nil {
+			return RuntimeAddress(""), err
+		}
+
+		switch u.Scheme {
+		case "tcp", "unix":
+		default:
+			return RuntimeAddress(""), fmt.Errorf("invalid scheme: valid schemes for runtime socket address are `tcp` and `unix`")
+		}
+
+		rr = RuntimeAddress(r)
+	}
+
+	return rr, nil
+}
+
 func (r *RuntimeAddress) UnmarshalJSON(b []byte) error {
 	var str string
 	err := json.Unmarshal(b, &str)
@@ -67,13 +92,13 @@ func (r *RuntimeAddress) UnmarshalJSON(b []byte) error {
 		return err
 	}
 
-	switch rt := RuntimeName(str); rt {
+	switch rt := Runtime(str); rt {
 	case RuntimeContainerd:
-		*r = RuntimeAddress(utils.RuntimeSocketPathMap[utils.RuntimeContainerd])
+		*r = RuntimeAddress(fmt.Sprintf("unix://%s", ContainerdPath))
 	case RuntimeDockerShim:
-		*r = RuntimeAddress(utils.RuntimeSocketPathMap[utils.RuntimeDocker])
+		*r = RuntimeAddress(fmt.Sprintf("unix://%s", DockerPath))
 	case RuntimeCrio:
-		*r = RuntimeAddress(utils.RuntimeSocketPathMap[utils.RuntimeCrio])
+		*r = RuntimeAddress(fmt.Sprintf("unix://%s", CrioPath))
 	default:
 		u, err := url.Parse(str)
 		if err != nil {
