@@ -18,9 +18,6 @@ jobs:
     name: "release"
     runs-on: ubuntu-latest
     timeout-minutes: 60
-    permissions:
-      contents: write
-      packages: write
     steps:
       - name: Harden Runner
         uses: step-security/harden-runner@cba0d00b1fc9a034e1e642ea0f1103c282990604
@@ -45,11 +42,9 @@ jobs:
             ~/.cache/go-build
       - uses: crazy-max/ghaction-github-runtime@056b8ec6661ce03a987ab8643a0edc346ae63fe3 # v2.2.0
 
-      # need to convert repo name to lowercase for Docker
-      - name: Get tag and repo
+      - name: Get tag
         run: |
           echo "TAG=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
-          echo "REPO_OWNER=$(echo $GITHUB_REPOSITORY_OWNER | awk '{print tolower($0)}')" >> $GITHUB_ENV
 
       - name: Log in to the GHCR
         uses: docker/login-action@465a07811f14bebb1938fbed4728c6a1ff8901fc # v2.2.0
@@ -62,37 +57,37 @@ jobs:
         run: make docker-build-manager \
           CACHE_FROM=type=gha,scope=eraser-manager \
           CACHE_TO=type=gha,scope=eraser-manager,mode=max \
-          PLATFORM="linux/amd64,linux/arm64,linux/arm/v7" \
+          PLATFORM="linux/amd64,linux/arm64" \
           OUTPUT_TYPE=type=registry \
           GENERATE_ATTESTATIONS=true \
-          MANAGER_IMG=${{ env.REGISTRY }}/${REPO_OWNER}/eraser-manager:${TAG}
+          MANAGER_IMG=${{ env.REGISTRY }}/${GITHUB_REPOSITORY_OWNER}/eraser-manager:${TAG}
 
       - name: Build remover
         run: make docker-build-remover \
           CACHE_FROM=type=gha,scope=eraser-node \
           CACHE_TO=type=gha,scope=eraser-node,mode=max \
-          PLATFORM="linux/amd64,linux/arm64,linux/arm/v7" \
+          PLATFORM="linux/amd64,linux/arm64" \
           OUTPUT_TYPE=type=registry \
           GENERATE_ATTESTATIONS=true \
-          REMOVER_IMG=${{ env.REGISTRY }}/${REPO_OWNER}/remover:${TAG}
+          REMOVER_IMG=${{ env.REGISTRY }}/${GITHUB_REPOSITORY_OWNER}/remover:${TAG}
 
       - name: Build collector
         run: make docker-build-collector \
           CACHE_FROM=type=gha,scope=collector \
           CACHE_TO=type=gha,scope=collector,mode=max \
-          PLATFORM="linux/amd64,linux/arm64,linux/arm/v7" \
+          PLATFORM="linux/amd64,linux/arm64" \
           OUTPUT_TYPE=type=registry \
           GENERATE_ATTESTATIONS=true \
-          COLLECTOR_IMG=${{ env.REGISTRY }}/${REPO_OWNER}/collector:${TAG}
+          COLLECTOR_IMG=${{ env.REGISTRY }}/${GITHUB_REPOSITORY_OWNER}/collector:${TAG}
 
       - name: Build Trivy scanner
         run: make docker-build-trivy-scanner \
           CACHE_FROM=type=gha,scope=trivy-scanner \
           CACHE_TO=type=gha,scope=trivy-scanner,mode=max \
-          PLATFORM="linux/amd64,linux/arm64,linux/arm/v7" \
+          PLATFORM="linux/amd64,linux/arm64" \
           OUTPUT_TYPE=type=registry \
           GENERATE_ATTESTATIONS=true \
-          TRIVY_SCANNER_IMG=${{ env.REGISTRY }}/${REPO_OWNER}/eraser-trivy-scanner:${TAG}
+          TRIVY_SCANNER_IMG=${{ env.REGISTRY }}/${GITHUB_REPOSITORY_OWNER}/eraser-trivy-scanner:${TAG}
 
       - name: Create GitHub release
         uses: marvinpinto/action-automatic-releases@919008cf3f741b179569b7a6fb4d8860689ab7f0 # v1.2.1
