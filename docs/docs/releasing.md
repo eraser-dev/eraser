@@ -25,3 +25,8 @@ title: Releasing
 ## Publishing
 
 1. GitHub Action will create a new release, review and edit it at https://github.com/eraser-dev/eraser/releases
+
+## Notifying
+
+1. Send an email to the [Eraser mailing list](https://groups.google.com/g/eraser-dev) announcing the release, with links to GitHub.
+2. Post a message on the [Eraser Slack channel](https://kubernetes.slack.com/archives/C03Q8KV8YQ4) with the same information.
