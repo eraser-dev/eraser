@@ -24,18 +24,18 @@ No plan to move to 2.0.0 unless there is a major design change like an incompati
 
 **Minor Releases**
 
-- X.Y.0-alpha.W, W >= 0 (Branch : master)
+- X.Y.0-alpha.W, W >= 0 (Branch : main)
     - Released as needed before we cut a beta X.Y release
     - Alpha release, cut from master branch
-- X.Y.0-beta.W, W >= 0 (Branch : master)
+- X.Y.0-beta.W, W >= 0 (Branch : main)
     - Released as needed before we cut a stable X.Y release
     - More stable than the alpha release to signal users to test things out
     - Beta release, cut from master branch
-- X.Y.0-rc.W, W >= 0 (Branch : master)
+- X.Y.0-rc.W, W >= 0 (Branch : main)
     - Released as needed before we cut a stable X.Y release
     - soak for ~ 2 weeks before cutting a stable release
     - Release candidate release, cut from master branch
-- X.Y.0 (Branch: master)
+- X.Y.0 (Branch: main)
     - Released every ~ 3 months
     - Stable release, cut from master when X.Y milestone is complete
 
