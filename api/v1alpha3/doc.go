@@ -1,2 +1,2 @@
-// +k8s:conversion-gen=github.com/Azure/eraser/api/unversioned
+// +k8s:conversion-gen=github.com/eraser-dev/eraser/api/unversioned
 package v1alpha3

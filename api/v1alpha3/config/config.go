@@ -5,8 +5,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Azure/eraser/api/v1alpha3"
-	"github.com/Azure/eraser/version"
+	"github.com/eraser-dev/eraser/api/v1alpha3"
+	"github.com/eraser-dev/eraser/version"
 	"k8s.io/apimachinery/pkg/api/resource"
 )
 
@@ -77,9 +77,12 @@ const (
 func Default() *v1alpha3.EraserConfig {
 	return &v1alpha3.EraserConfig{
 		Manager: v1alpha3.ManagerConfig{
-			RuntimeSocketAddress: "unix:///run/containerd/containerd.sock",
-			OTLPEndpoint:         "",
-			LogLevel:             "info",
+			Runtime: v1alpha3.RuntimeSpec{
+				Name:    v1alpha3.RuntimeContainerd,
+				Address: "unix:///run/containerd/containerd.sock",
+			},
+			OTLPEndpoint: "",
+			LogLevel:     "info",
 			Scheduling: v1alpha3.ScheduleConfig{
 				RepeatInterval:   v1alpha3.Duration(oneDay),
 				BeginImmediately: true,

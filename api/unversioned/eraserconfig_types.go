@@ -20,6 +20,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/url"
+	"path/filepath"
 	"time"
 
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -30,6 +31,11 @@ type (
 	Duration       time.Duration
 	Runtime        string
 	RuntimeAddress string
+
+	RuntimeSpec struct {
+		Name    Runtime `json:"name"`
+		Address string  `json:"address"`
+	}
 )
 
 const (
@@ -41,6 +47,26 @@ const (
 	ContainerdPath = "/run/containerd/containerd.sock"
 	CrioPath       = "/run/crio/crio.sock"
 )
+
+// Does not set the env vars, but returns the key and value so that the caller
+// can set them.
+func (r *RuntimeSpec) GetSocketEnvVars() (string, string, error) {
+	switch r.Name {
+	case RuntimeContainerd:
+		return "CONTAINERD_ADDRESS", r.Address, nil
+	case RuntimeDockerShim:
+		return "DOCKER_HOST", r.Address, nil
+	case RuntimeCrio:
+		// For trivy, the socket MUST be at $XDG_RUNTIME_DIR/podman/podman.sock.
+		// Currently, there is no way for trivy to recognize the podman socket
+		// at another address, although $XDG_RUNTIME_DIR may be modified.
+		baseDir := filepath.Dir(r.Address)
+		runtimeDir := filepath.Dir(baseDir)
+		return "XDG_RUNTIME_DIR", runtimeDir, nil
+	}
+
+	return "", "", fmt.Errorf("invalid runtime: valid names are %s, %s, %s", RuntimeContainerd, RuntimeDockerShim, RuntimeCrio)
+}
 
 func (td *Duration) UnmarshalJSON(b []byte) error {
 	var str string
@@ -85,6 +111,23 @@ func ConvertRuntimeToRuntimeAddress(r Runtime) (RuntimeAddress, error) {
 	return rr, nil
 }
 
+func ConvertRuntimeToRuntimeSpec(r Runtime) (RuntimeSpec, error) {
+	var rr RuntimeSpec
+
+	switch rt := Runtime(r); rt {
+	case RuntimeContainerd:
+		rr = RuntimeSpec{Name: RuntimeContainerd, Address: fmt.Sprintf("unix://%s", ContainerdPath)}
+	case RuntimeDockerShim:
+		rr = RuntimeSpec{Name: RuntimeDockerShim, Address: fmt.Sprintf("unix://%s", DockerPath)}
+	case RuntimeCrio:
+		rr = RuntimeSpec{Name: RuntimeCrio, Address: fmt.Sprintf("unix://%s", CrioPath)}
+	default:
+		return rr, fmt.Errorf("invalid runtime: valid names are %s, %s, %s", RuntimeContainerd, RuntimeDockerShim, RuntimeCrio)
+	}
+
+	return rr, nil
+}
+
 func (r *RuntimeAddress) UnmarshalJSON(b []byte) error {
 	var str string
 	err := json.Unmarshal(b, &str)
@@ -117,6 +160,33 @@ func (r *RuntimeAddress) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
+func (r *RuntimeSpec) UnmarshalJSON(b []byte) error {
+	var rr RuntimeSpec
+	err := json.Unmarshal(b, &rr)
+	if err != nil {
+		return err
+	}
+
+	switch rt := rr.Name; rt {
+	case RuntimeContainerd, RuntimeDockerShim, RuntimeCrio:
+		if rr.Address != "" {
+			*r = rr
+			return nil
+		}
+
+		converted, err := ConvertRuntimeToRuntimeSpec(rt)
+		if err != nil {
+			return err
+		}
+
+		*r = converted
+	default:
+		return fmt.Errorf("invalid runtime: valid names are %s, %s, %s", RuntimeContainerd, RuntimeDockerShim, RuntimeCrio)
+	}
+
+	return nil
+}
+
 func (td *Duration) MarshalJSON() ([]byte, error) {
 	return []byte(fmt.Sprintf(`"%s"`, time.Duration(*td).String())), nil
 }
@@ -137,15 +207,15 @@ type ContainerConfig struct {
 }
 
 type ManagerConfig struct {
-	RuntimeSocketAddress RuntimeAddress   `json:"runtimeSocketAddress,omitempty"`
-	OTLPEndpoint         string           `json:"otlpEndpoint,omitempty"`
-	LogLevel             string           `json:"logLevel,omitempty"`
-	Scheduling           ScheduleConfig   `json:"scheduling,omitempty"`
-	Profile              ProfileConfig    `json:"profile,omitempty"`
-	ImageJob             ImageJobConfig   `json:"imageJob,omitempty"`
-	PullSecrets          []string         `json:"pullSecrets,omitempty"`
-	NodeFilter           NodeFilterConfig `json:"nodeFilter,omitempty"`
-	PriorityClassName    string           `json:"priorityClassName,omitempty"`
+	Runtime           RuntimeSpec      `json:"runtime,omitempty"`
+	OTLPEndpoint      string           `json:"otlpEndpoint,omitempty"`
+	LogLevel          string           `json:"logLevel,omitempty"`
+	Scheduling        ScheduleConfig   `json:"scheduling,omitempty"`
+	Profile           ProfileConfig    `json:"profile,omitempty"`
+	ImageJob          ImageJobConfig   `json:"imageJob,omitempty"`
+	PullSecrets       []string         `json:"pullSecrets,omitempty"`
+	NodeFilter        NodeFilterConfig `json:"nodeFilter,omitempty"`
+	PriorityClassName string           `json:"priorityClassName,omitempty"`
 }
 
 type ScheduleConfig struct {

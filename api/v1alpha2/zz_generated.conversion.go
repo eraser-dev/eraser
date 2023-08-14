@@ -311,7 +311,7 @@ func Convert_unversioned_ImageJobConfig_To_v1alpha2_ImageJobConfig(in *unversion
 }
 
 func autoConvert_v1alpha2_ManagerConfig_To_unversioned_ManagerConfig(in *ManagerConfig, out *unversioned.ManagerConfig, s conversion.Scope) error {
-	// WARNING: in.Runtime requires manual conversion: does not exist in peer-type
+	// WARNING: in.Runtime requires manual conversion: inconvertible types (./api/v1alpha2.Runtime vs github.com/eraser-dev/eraser/api/unversioned.RuntimeSpec)
 	out.OTLPEndpoint = in.OTLPEndpoint
 	out.LogLevel = in.LogLevel
 	if err := Convert_v1alpha2_ScheduleConfig_To_unversioned_ScheduleConfig(&in.Scheduling, &out.Scheduling, s); err != nil {
@@ -332,7 +332,7 @@ func autoConvert_v1alpha2_ManagerConfig_To_unversioned_ManagerConfig(in *Manager
 }
 
 func autoConvert_unversioned_ManagerConfig_To_v1alpha2_ManagerConfig(in *unversioned.ManagerConfig, out *ManagerConfig, s conversion.Scope) error {
-	// WARNING: in.RuntimeSocketAddress requires manual conversion: does not exist in peer-type
+	// WARNING: in.Runtime requires manual conversion: inconvertible types (github.com/eraser-dev/eraser/api/unversioned.RuntimeSpec vs ./api/v1alpha2.Runtime)
 	out.OTLPEndpoint = in.OTLPEndpoint
 	out.LogLevel = in.LogLevel
 	if err := Convert_unversioned_ScheduleConfig_To_v1alpha2_ScheduleConfig(&in.Scheduling, &out.Scheduling, s); err != nil {

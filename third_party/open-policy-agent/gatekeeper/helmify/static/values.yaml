@@ -11,7 +11,9 @@ runtimeConfig:
     # leaderElect: true
     # resourceName: e29e094a.k8s.io
   manager:
-    runtimeSocketAddress: "unix:///run/containerd/containerd.sock"
+    runtime: {}
+      # name: "containerd"
+      # address: "unix:///run/containerd/containerd.sock"
     otlpEndpoint: ""
     logLevel: info
     scheduling: {}

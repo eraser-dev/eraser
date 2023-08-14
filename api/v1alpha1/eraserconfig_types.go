@@ -175,7 +175,7 @@ func Convert_v1alpha1_Components_To_unversioned_Components(in *Components, out *
 
 func Convert_v1alpha1_ManagerConfig_To_unversioned_ManagerConfig(in *ManagerConfig, out *unversioned.ManagerConfig, s conversion.Scope) error { //nolint:revive
 	var err error
-	out.RuntimeSocketAddress, err = unversioned.ConvertRuntimeToRuntimeAddress(unversioned.Runtime(in.Runtime))
+	out.Runtime, err = unversioned.ConvertRuntimeToRuntimeSpec(unversioned.Runtime(in.Runtime))
 	if err != nil {
 		return err
 	}
@@ -212,11 +212,11 @@ func Convert_unversioned_Components_To_v1alpha1_Components(in *unversioned.Compo
 
 func Convert_unversioned_ManagerConfig_To_v1alpha1_ManagerConfig(in *unversioned.ManagerConfig, out *ManagerConfig, s conversion.Scope) error { //nolint:revive
 	out.Runtime = "containerd"
-	if strings.Contains(string(in.RuntimeSocketAddress), "docker") {
+	if strings.Contains(string(in.Runtime.Name), "docker") {
 		out.Runtime = "dockershim"
 	}
 
-	if strings.Contains(string(in.RuntimeSocketAddress), "crio") {
+	if strings.Contains(string(in.Runtime.Name), "crio") {
 		out.Runtime = "crio"
 	}
 

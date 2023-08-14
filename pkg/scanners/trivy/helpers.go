@@ -32,7 +32,7 @@ func loadConfig(filename string) (Config, error) {
 		return cfg, err
 	}
 
-	cfg.RuntimeAddress = string(eraserConfig.Manager.RuntimeSocketAddress)
+	cfg.RuntimeAddress = string(eraserConfig.Manager.Runtime)
 
 	return cfg, nil
 }

@@ -19,10 +19,9 @@ package v1alpha2
 import (
 	"encoding/json"
 	"fmt"
-	"strings"
 	"time"
 
-	unversioned "github.com/Azure/eraser/api/unversioned"
+	unversioned "github.com/eraser-dev/eraser/api/unversioned"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	conversion "k8s.io/apimachinery/pkg/conversion"
@@ -159,7 +158,7 @@ func init() {
 
 func Convert_v1alpha2_ManagerConfig_To_unversioned_ManagerConfig(in *ManagerConfig, out *unversioned.ManagerConfig, s conversion.Scope) error { //nolint:revive
 	var err error
-	out.RuntimeSocketAddress, err = unversioned.ConvertRuntimeToRuntimeAddress(unversioned.Runtime(in.Runtime))
+	out.Runtime, err = unversioned.ConvertRuntimeToRuntimeSpec(unversioned.Runtime(in.Runtime))
 	if err != nil {
 		return err
 	}
@@ -185,13 +184,13 @@ func Convert_v1alpha2_ManagerConfig_To_unversioned_ManagerConfig(in *ManagerConf
 }
 
 func Convert_unversioned_ManagerConfig_To_v1alpha2_ManagerConfig(in *unversioned.ManagerConfig, out *ManagerConfig, s conversion.Scope) error { //nolint:revive
-	out.Runtime = "containerd"
-	if strings.Contains(string(in.RuntimeSocketAddress), "docker") {
-		out.Runtime = "dockershim"
+	out.Runtime = RuntimeContainerd
+	if Runtime(in.Runtime.Name) == RuntimeDockerShim {
+		out.Runtime = RuntimeDockerShim
 	}
 
-	if strings.Contains(string(in.RuntimeSocketAddress), "crio") {
-		out.Runtime = "crio"
+	if Runtime(in.Runtime.Name) == RuntimeCrio {
+		out.Runtime = RuntimeCrio
 	}
 
 	out.OTLPEndpoint = in.OTLPEndpoint
