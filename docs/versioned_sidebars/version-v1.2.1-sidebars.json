@@ -1,0 +1,43 @@
+{
+  "sidebar": [
+    "introduction",
+    "installation",
+    "quick-start",
+    "architecture",
+    {
+      "type": "category",
+      "label": "Topics",
+      "collapsible": true,
+      "collapsed": false,
+      "items": [
+        "manual-removal",
+        "exclusion",
+        "customization",
+        "metrics"
+      ]
+    },
+    {
+      "type": "category",
+      "label": "Development",
+      "collapsible": true,
+      "collapsed": false,
+      "items": [
+        "setup",
+        "releasing"
+      ]
+    },
+    {
+      "type": "category",
+      "label": "Scanning",
+      "collapsible": true,
+      "collapsed": false,
+      "items": [
+        "custom-scanner",
+        "trivy"
+      ]
+    },
+    "faq",
+    "contributing",
+    "code-of-conduct"
+  ]
+}
