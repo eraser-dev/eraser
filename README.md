@@ -1,5 +1,7 @@
 # Eraser: Cleaning up Images from Kubernetes Nodes
 
+<img src="./images/eraser-logo-color-1c.png" alt="Eraser logo" width="100%" />
+
 Eraser helps Kubernetes admins remove a list of non-running images from all Kubernetes nodes in a cluster.
 
 [![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/eraser-dev/eraser/badge)](https://api.securityscorecards.dev/projects/github.com/eraser-dev/eraser)
