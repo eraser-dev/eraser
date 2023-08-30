@@ -27,6 +27,7 @@ severities:
   - HIGH
   - MEDIUM
   - LOW
+ignoredStatuses:
 `
 
 type Manager struct {
