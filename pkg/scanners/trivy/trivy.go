@@ -37,13 +37,13 @@ const (
 	securityCheckConfig = "config"
 	securityCheckSecret = "secret"
 
-	statusUnknown = "unknown"
-	statusAffected = "affected"
-	statusFixed = "fixed"
+	statusUnknown            = "unknown"
+	statusAffected           = "affected"
+	statusFixed              = "fixed"
 	statusUnderInvestigation = "under_investigation"
-	statusWillNotFix = "will_not_fix"
-	statusFixDeferred = "fix_deferred"
-	statusEndOfLife = "end_of_life"
+	statusWillNotFix         = "will_not_fix"
+	statusFixDeferred        = "fix_deferred"
+	statusEndOfLife          = "end_of_life"
 )
 
 var (
