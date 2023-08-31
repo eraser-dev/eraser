@@ -13,6 +13,7 @@ You can find a quick start guide in the Eraser [documentation](https://eraser-de
 ## Demo
 
 ![intro](demo/demo.gif)
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Feraser-dev%2Feraser.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2Feraser-dev%2Feraser?ref=badge_shield)
 
 ## Contributing
 
@@ -34,3 +35,6 @@ This project has adopted the [CNCF Code of Conduct](https://github.com/cncf/foun
 This project uses GitHub Issues to track bugs and feature requests. Please search the [existing issues](https://github.com/eraser-dev/eraser/issues) before filing new issues to avoid duplicates. For new issues, file your bug or feature request as a new Issue.
 
 The Eraser maintainers will respond to the best of their abilities.
+
+## License
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Feraser-dev%2Feraser.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2Feraser-dev%2Feraser?ref=badge_large)
