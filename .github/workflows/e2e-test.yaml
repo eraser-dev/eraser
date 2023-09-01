@@ -43,7 +43,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        KUBERNETES_VERSION: ["1.25.11", "1.26.6", "1.27.3"]
+        KUBERNETES_VERSION: ["1.25.11", "1.26.6", "1.27.3", "1.28.0"]
         E2E_TEST: ${{ fromJson(needs.build-e2e-test-list.outputs.e2e-tests) }}
     steps:
       - name: Harden Runner
