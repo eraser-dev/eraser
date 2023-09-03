@@ -30,6 +30,7 @@ func removeImages(c cri.Remover, targetImages []string) (int, error) {
 		newImg := unversioned.Image{
 			ImageID: img.Id,
 			Names:   repoTags,
+			Pinned:  img.Pinned,
 		}
 
 		digests, errs := util.ProcessRepoDigests(img.RepoDigests)

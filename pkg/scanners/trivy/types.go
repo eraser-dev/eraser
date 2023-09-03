@@ -39,6 +39,7 @@ type (
 		DBRepo             string        `json:"dbRepo,omitempty"`
 		DeleteFailedImages bool          `json:"deleteFailedImages,omitempty"`
 		DeleteEOLImages    bool          `json:"deleteEOLImages,omitempty"`
+		DeletePinnedImages bool          `json:"deletePinnedImages,omitempty"`
 		Vulnerabilities    VulnConfig    `json:"vulnerabilities,omitempty"`
 		Timeout            TimeoutConfig `json:"timeout,omitempty"`
 	}
@@ -69,6 +70,7 @@ func DefaultConfig() *Config {
 		DBRepo:             "ghcr.io/aquasecurity/trivy-db",
 		DeleteFailedImages: true,
 		DeleteEOLImages:    true,
+		DeletePinnedImages: false,
 		Vulnerabilities: VulnConfig{
 			IgnoreUnfixed: true,
 			Types: []string{

@@ -28,6 +28,7 @@ func getImages(c cri.Collector) ([]unversioned.Image, error) {
 		newImg := unversioned.Image{
 			ImageID: img.Id,
 			Names:   repoTags,
+			Pinned:  img.Pinned,
 		}
 
 		digests, errs := util.ProcessRepoDigests(img.RepoDigests)
@@ -71,6 +72,7 @@ func getImages(c cri.Collector) ([]unversioned.Image, error) {
 			ImageID: imageID,
 			Names:   img.Names,
 			Digests: img.Digests,
+			Pinned:  img.Pinned,
 		}
 
 		if !util.IsExcluded(excluded, currImage.ImageID, idToImageMap) {

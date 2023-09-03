@@ -34,6 +34,7 @@ type config struct {
 	log                    logr.Logger
 	deleteScanFailedImages bool
 	deleteEOLImages        bool
+	deletePinnedImages     bool
 	reportMetrics          bool
 }
 
@@ -45,6 +46,7 @@ func NewImageProvider(funcs ...ConfigFunc) ImageProvider {
 		ctx:                    context.Background(),
 		log:                    logf.Log.WithName("scanner"),
 		deleteScanFailedImages: true,
+		deletePinnedImages:     false,
 		reportMetrics:          false,
 	}
 
@@ -148,6 +150,13 @@ func WithDeleteScanFailedImages(deleteScanFailedImages bool) ConfigFunc {
 func WithDeleteEOLImages(deleteEOLImages bool) ConfigFunc {
 	return func(cfg *config) {
 		cfg.deleteEOLImages = deleteEOLImages
+	}
+}
+
+// sets deletePinnedImages flag.
+func WithDeletePinnedImages(deletePinnedImages bool) ConfigFunc {
+	return func(cfg *config) {
+		cfg.deletePinnedImages = deletePinnedImages
 	}
 }
 

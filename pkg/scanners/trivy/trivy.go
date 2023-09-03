@@ -92,6 +92,7 @@ func main() {
 		template.WithMetrics(recordMetrics),
 		template.WithDeleteScanFailedImages(userConfig.DeleteFailedImages),
 		template.WithDeleteEOLImages(userConfig.DeleteEOLImages),
+		template.WithDeletePinnedImages(userConfig.DeletePinnedImages),
 	)
 
 	allImages, err := provider.ReceiveImages()
@@ -105,6 +106,15 @@ func main() {
 		log.Error(err, "error initializing scanner")
 	}
 
+	// TODO: 4 options to decide on how we'd want to {filter out/handle} `pinned` images.
+	//   1. Filter inside the `ReceiveImages` function, part of the scanner template, so `allImages` is all non-pinned.
+	//   2. Filter `allImages` AFTER `ReceiveImages`, so we don't affect the scanner template function.
+	//   3. During the `scan` (or `Scan`) function, check if the image is pinned and continue.
+	//		- This would be the most performant, where we don't add extra filtering, just `continue` during image scans.
+	//		- We'd also decide here if we still want to scan the pinned image, even when we don't want to delete it.
+	//   4. Filter inside the `SendImages` function, part of the scanner template, so the images sent to the eraser are non-pinned.
+	//		- Not sure how our template works, and if we'd want to filter there so other implementations don't have to.
+	//   Adding filtering (aside from step 3 where we `continue`) would add O(n)+ time complexity to go through all images and filter.
 	vulnerableImages, failedImages, err := scan(s, allImages)
 	if err != nil {
 		log.Error(err, "total image scan timed out")
