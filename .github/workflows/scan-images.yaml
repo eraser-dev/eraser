@@ -1,20 +1,19 @@
 name: Scan Images for Vulnerabilities (Trivy)
 on:
   schedule:
-    - cron: "0 9 * * 1-5" # weekdays @ 09:00 UTC, run trivy scans against main
-    - cron: "0 6 * * 1"   # monday   @ 06:00 UTC, run trivy scans against latest release (v1.3.0-beta.0)
+    - cron: "0 9 * * *" # Every day @ 09:00 UTC, run Trivy scans against main
   workflow_dispatch:
     inputs:
-      run_main:
+      scan_main:
         description: "Run Trivy scans against images built on `main`."
         type: boolean
         required: true
         default: true
       version:
-        description: "Released Eraser version to run Trivy scans against."
+        description: "Released Eraser version to run Trivy scans against. Leave blank for no-op."
         type: string
         required: false
-        default: "1.3.0-beta.0"
+        default: ""
 
 permissions: read-all
 
@@ -33,11 +32,6 @@ jobs:
         uses: step-security/harden-runner@8ca2b8b2ece13480cda6dacd3511b49857a23c09
         with:
           egress-policy: audit
-      - name: Check out code into the Go module directory
-        uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3.6.0
-      - name: Get repo
-        run: |
-          echo "REPO=$(echo $GITHUB_REPOSITORY | awk '{print tolower($0)}')" >> $GITHUB_ENV
       - name: Download trivy
         run: |
           pushd $(mktemp -d)
@@ -48,10 +42,16 @@ jobs:
           TRIVY_VERSION: "0.28.0"
   scan_vulnerabilities_main:
     name: "Scan for vulnerabilities (main)"
-    if: github.event.schedule == '0 9 * * 1-5' || (github.event_name == 'workflow_dispatch' && github.event.inputs.run_main == true)
+    if: github.event.schedule == '0 9 * * *' || (github.event_name == 'workflow_dispatch' && github.event.inputs.scan_main == true)
     runs-on: ubuntu-latest
+    needs: setup_trivy
     timeout-minutes: 15
     steps:
+      - name: Check out code into the Go module directory
+        uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3.6.0
+      - name: Get repo
+        run: |
+          echo "REPO=$(echo $GITHUB_REPOSITORY | awk '{print tolower($0)}')" >> $GITHUB_ENV
       - name: Build eraser-manager
         run: make docker-build-manager MANAGER_REPO=${{ env.REGISTRY }}/${REPO}-manager MANAGER_TAG=test
       - name: Build remover
@@ -68,21 +68,20 @@ jobs:
         run: trivy image --ignore-unfixed --exit-code=1 --vuln-type=os,library ${{ env.REGISTRY }}/collector:test
       - name: Trivy scan trivy-scanner
         run: trivy image --ignore-unfixed --exit-code=1 --vuln-type=os,library ${{ env.REGISTRY }}/${REPO}-trivy-scanner:test
-  # TODO: Add job to _automatically_ scan `latest` releases? So users don't have to set/update the release version and default on every release?
   scan_vulnerabilities:
-    name: "Scan for vulnerabilities"
+    name: "Scan for vulnerabilities on released version"
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.version != ''
     runs-on: ubuntu-latest
-    if: github.event.schedule == '0 6 * * 1' || (github.event_name == 'workflow_dispatch' && github.event.inputs.version != '')
+    needs: setup_trivy
     env:
-      TAG: ${{ github.event.inputs.version }}
       PROJECT: eraser-dev
     timeout-minutes: 15
     steps:
       - name: Trivy scan remover
-        run: trivy image --ignore-unfixed --exit-code=1 --vuln-type=os,library ${{ env.REGISTRY }}/${{ env.PROJECT }}/remover:${{ env.TAG }}
+        run: trivy image --ignore-unfixed --exit-code=1 --vuln-type=os,library ${{ env.REGISTRY }}/${{ env.PROJECT }}/remover:${{ github.event.inputs.version }}
       - name: Trivy scan eraser-manager
-        run: trivy image --ignore-unfixed --exit-code=1 --vuln-type=os,library ${{ env.REGISTRY }}/${{ env.PROJECT }}/eraser-manager:${{ env.TAG }}
+        run: trivy image --ignore-unfixed --exit-code=1 --vuln-type=os,library ${{ env.REGISTRY }}/${{ env.PROJECT }}/eraser-manager:${{ github.event.inputs.version }}
       - name: Trivy scan collector
-        run: trivy image --ignore-unfixed --exit-code=1 --vuln-type=os,library ${{ env.REGISTRY }}/${{ env.PROJECT }}/collector:${{ env.TAG }}
+        run: trivy image --ignore-unfixed --exit-code=1 --vuln-type=os,library ${{ env.REGISTRY }}/${{ env.PROJECT }}/collector:${{ github.event.inputs.version }}
       - name: Trivy scan trivy-scanner
-        run: trivy image --ignore-unfixed --exit-code=1 --vuln-type=os,library ${{ env.REGISTRY }}/${{ env.PROJECT }}/eraser-trivy-scanner:${{ env.TAG }}
+        run: trivy image --ignore-unfixed --exit-code=1 --vuln-type=os,library ${{ env.REGISTRY }}/${{ env.PROJECT }}/eraser-trivy-scanner:${{ github.event.inputs.version }}
