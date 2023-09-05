@@ -56,7 +56,7 @@ const config = {
         title: 'Eraser',
         logo: {
           alt: 'Eraser Logo',
-          src: 'img/broom.png',
+          src: 'img/eraser.svg',
         },
         items: [
           {
