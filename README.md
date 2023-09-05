@@ -1,8 +1,13 @@
 # Eraser: Cleaning up Images from Kubernetes Nodes
 
-Eraser helps Kubernetes admins remove a list of non-running images from all Kubernetes nodes in a cluster.
-
+![GitHub](https://img.shields.io/github/license/eraser-dev/eraser)
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Feraser-dev%2Feraser.svg?type=shield&issueType=license)](https://app.fossa.com/projects/git%2Bgithub.com%2Feraser-dev%2Feraser?ref=badge_shield)
+[![OpenSSF Best Practices](https://www.bestpractices.dev/projects/7622/badge)](https://www.bestpractices.dev/projects/7622)
 [![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/eraser-dev/eraser/badge)](https://api.securityscorecards.dev/projects/github.com/eraser-dev/eraser)
+
+<img src="./images/eraser-logo-color-1c.png" alt="Eraser logo" width="100%" />
+
+Eraser helps Kubernetes admins remove a list of non-running images from all Kubernetes nodes in a cluster.
 
 ## Getting started
 
