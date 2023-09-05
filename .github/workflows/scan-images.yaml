@@ -42,7 +42,7 @@ jobs:
           TRIVY_VERSION: "0.28.0"
   scan_vulnerabilities_main:
     name: "Scan for vulnerabilities (main)"
-    if: github.event.schedule == '0 9 * * *' || (github.event_name == 'workflow_dispatch' && github.event.inputs.scan_main == true)
+    if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && github.event.inputs.scan_main == true)
     runs-on: ubuntu-latest
     needs: setup_trivy
     timeout-minutes: 15
