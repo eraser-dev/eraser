@@ -88,6 +88,6 @@ jobs:
           path: ${{ matrix.image }}-results.sarif
 
       - name: Upload results to GitHub Security
-        uses: github/codeql-action/upload-sarif@v2
+        uses: github/codeql-action/upload-sarif@798e74c57dbcad53929892efdf30dfafe12c8c37 # v2.14.4
         with:
           sarif_file: ${{ matrix.image }}-results.sarif
