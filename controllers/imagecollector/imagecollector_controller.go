@@ -40,7 +40,6 @@ import (
 	eraserv1 "github.com/eraser-dev/eraser/api/v1"
 	eraserv1alpha1 "github.com/eraser-dev/eraser/api/v1alpha1"
 	"github.com/eraser-dev/eraser/controllers/util"
-	"github.com/eraser-dev/eraser/pkg/utils"
 
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
@@ -377,7 +376,7 @@ func (r *Reconciler) createImageJob(ctx context.Context) (ctrl.Result, error) {
 							"memory": eraserCfg.Limit.Mem,
 						},
 					},
-					SecurityContext: utils.SharedSecurityContext,
+					SecurityContext: eraserUtils.SharedSecurityContext,
 					Env: []corev1.EnvVar{
 						{
 							Name:  "OTEL_EXPORTER_OTLP_ENDPOINT",
@@ -445,7 +444,7 @@ func (r *Reconciler) createImageJob(ctx context.Context) (ctrl.Result, error) {
 	}
 
 	configmapList := &corev1.ConfigMapList{}
-	if err := r.List(ctx, configmapList, client.InNamespace(utils.GetNamespace())); err != nil {
+	if err := r.List(ctx, configmapList, client.InNamespace(eraserUtils.GetNamespace())); err != nil {
 		log.Info("Could not get list of configmaps")
 		return reconcile.Result{}, err
 	}
@@ -470,7 +469,7 @@ func (r *Reconciler) createImageJob(ctx context.Context) (ctrl.Result, error) {
 
 	// get manager pod with label control-plane=controller-manager
 	podList := corev1.PodList{}
-	if err := r.List(ctx, &podList, client.InNamespace(utils.GetNamespace()), client.MatchingLabels{"control-plane": "controller-manager"}); err != nil {
+	if err := r.List(ctx, &podList, client.InNamespace(eraserUtils.GetNamespace()), client.MatchingLabels{"control-plane": "controller-manager"}); err != nil {
 		log.Info("Unable to list controller-manager pod")
 	}
 	if len(podList.Items) != 1 {
@@ -478,7 +477,7 @@ func (r *Reconciler) createImageJob(ctx context.Context) (ctrl.Result, error) {
 	}
 	managerPod := &podList.Items[0]
 
-	namespace := utils.GetNamespace()
+	namespace := eraserUtils.GetNamespace()
 	template := corev1.PodTemplate{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      job.GetName(),
