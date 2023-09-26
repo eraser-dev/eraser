@@ -250,12 +250,17 @@ func (r *Reconciler) handleRunningJob(ctx context.Context, imageJob *eraserv1.Im
 	template := corev1.PodTemplate{}
 	namespace := eraserUtils.GetNamespace()
 
+	// its failing here - pod template not found
 	err := r.Get(ctx, types.NamespacedName{
 		Name:      imageJob.GetName(),
 		Namespace: namespace,
 	}, &template)
 	if err != nil {
-		return err
+		imageJob.Status = eraserv1.ImageJobStatus{
+			Phase:       eraserv1.PhaseFailed,
+			DeleteAfter: controllerUtils.After(time.Now(), 1),
+		}
+		return r.updateJobStatus(ctx, imageJob)
 	}
 
 	listOpts := podListOptions(&template)
