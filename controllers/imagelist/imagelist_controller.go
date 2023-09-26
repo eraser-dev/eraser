@@ -46,7 +46,6 @@ import (
 	"github.com/eraser-dev/eraser/controllers/util"
 	"github.com/eraser-dev/eraser/pkg/logger"
 	"github.com/eraser-dev/eraser/pkg/metrics"
-	"github.com/eraser-dev/eraser/pkg/utils"
 	eraserUtils "github.com/eraser-dev/eraser/pkg/utils"
 
 	sdkmetric "go.opentelemetry.io/otel/sdk/metric"
@@ -263,9 +262,9 @@ func (r *Reconciler) handleImageListEvent(ctx context.Context, imageList *eraser
 	configMap := corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: "imagelist-",
-			Namespace:    utils.GetNamespace(),
+			Namespace:    eraserUtils.GetNamespace(),
 		},
-		Immutable: utils.BoolPtr(true),
+		Immutable: eraserUtils.BoolPtr(true),
 		Data:      map[string]string{"images": string(imgListJSON)},
 	}
 	if err := r.Create(ctx, &configMap); err != nil {
@@ -323,7 +322,7 @@ func (r *Reconciler) handleImageListEvent(ctx context.Context, imageList *eraser
 							"memory": eraserContainerCfg.Limit.Mem,
 						},
 					},
-					SecurityContext: utils.SharedSecurityContext,
+					SecurityContext: eraserUtils.SharedSecurityContext,
 					// env vars for exporting metrics
 					Env: []corev1.EnvVar{
 						{
@@ -384,7 +383,7 @@ func (r *Reconciler) handleImageListEvent(ctx context.Context, imageList *eraser
 
 	// get manager pod with label control-plane=controller-manager
 	podList := corev1.PodList{}
-	if err = r.List(ctx, &podList, client.InNamespace(utils.GetNamespace()), client.MatchingLabels{"control-plane": "controller-manager"}); err != nil {
+	if err = r.List(ctx, &podList, client.InNamespace(eraserUtils.GetNamespace()), client.MatchingLabels{"control-plane": "controller-manager"}); err != nil {
 		log.Info("Unable to list controller-manager pod")
 	}
 	if len(podList.Items) != 1 {
@@ -395,7 +394,7 @@ func (r *Reconciler) handleImageListEvent(ctx context.Context, imageList *eraser
 	template := corev1.PodTemplate{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      job.GetName(),
-			Namespace: utils.GetNamespace(),
+			Namespace: eraserUtils.GetNamespace(),
 			OwnerReferences: []metav1.OwnerReference{
 				*metav1.NewControllerRef(managerPod, managerPod.GroupVersionKind()),
 			},
