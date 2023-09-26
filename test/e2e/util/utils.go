@@ -82,6 +82,8 @@ const (
 	CollectorLabel       = "collector"
 	ManualLabel          = "manual"
 	ImageJobTypeLabelKey = "eraser.sh/type"
+	ManagerLabelKey      = "control-plane"
+	ManagerLabelValue    = "controller-manager"
 )
 
 var (
