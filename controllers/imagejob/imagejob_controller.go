@@ -250,7 +250,6 @@ func (r *Reconciler) handleRunningJob(ctx context.Context, imageJob *eraserv1.Im
 	template := corev1.PodTemplate{}
 	namespace := eraserUtils.GetNamespace()
 
-	// its failing here - pod template not found
 	err := r.Get(ctx, types.NamespacedName{
 		Name:      imageJob.GetName(),
 		Namespace: namespace,
