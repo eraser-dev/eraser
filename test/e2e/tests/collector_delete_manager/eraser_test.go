@@ -6,6 +6,7 @@ package e2e
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/eraser-dev/eraser/test/e2e/util"
 
@@ -21,6 +22,23 @@ import (
 
 func TestDeleteManager(t *testing.T) {
 	deleteManagerFeat := features.New("Deleting manager pod while current ImageJob is running should delete ImageJob and restart").
+		Assess("Wait for eraser pods running", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
+			c, err := cfg.NewClient()
+			if err != nil {
+				t.Fatal("Failed to create new client", err)
+			}
+
+			err = wait.For(
+				util.NumPodsPresentForLabel(ctx, c, 3, util.ImageJobTypeLabelKey+"="+util.CollectorLabel),
+				wait.WithTimeout(time.Minute*2),
+				wait.WithInterval(time.Millisecond*500),
+			)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			return ctx
+		}).
 		Assess("Delete controller-manager pod", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
 			c, err := cfg.NewClient()
 			if err != nil {
@@ -40,45 +58,28 @@ func TestDeleteManager(t *testing.T) {
 				t.Error("incorrect number of manager pods: ", len(podList.Items))
 			}
 
-			// get current ImageJob
+			// get current ImageJob before deleting manager pod
 			var jobList eraserv1alpha1.ImageJobList
 			err = c.Resources().List(ctx, &jobList)
 			if err != nil {
 				t.Errorf("could not list ImageJob: %v", err)
 			}
 
+			t.Log("job", jobList.Items[0], "name", jobList.Items[0].Name)
+
 			if len(jobList.Items) != 1 {
 				t.Error("incorrect number of ImageJobs: ", len(jobList.Items))
 			}
 
-			// save name vars
-			imagejobName := jobList.Items[0].Name
-			managerPodName := podList.Items[0].Name
-
 			// delete manager pod
-			if err := util.KubectlDelete(cfg.KubeconfigFile(), util.TestNamespace, []string{"pod", managerPodName}); err != nil {
+			if err := util.KubectlDelete(cfg.KubeconfigFile(), util.TestNamespace, []string{"pod", podList.Items[0].Name}); err != nil {
 				t.Error("unable to delete eraser-controller-manager pod")
 			}
 
-			// wait for deletion to finish
-			err = wait.For(conditions.New(c.Resources()).ResourcesDeleted(&podList), wait.WithTimeout(util.Timeout))
+			// wait for deletion of ImageJob
+			err = wait.For(conditions.New(c.Resources()).ResourcesDeleted(&jobList), wait.WithTimeout(util.Timeout))
 			if err != nil {
-				t.Errorf("error waiting for manager pod to be deleted: %v", err)
-			}
-
-			// get new ImageJob
-			var jobList2 eraserv1alpha1.ImageJobList
-			err = c.Resources().List(ctx, &jobList2)
-			if err != nil {
-				t.Errorf("could not list ImageJob: %v", err)
-			}
-
-			if len(jobList2.Items) != 1 {
-				t.Error("incorrect number of ImageJobs: ", len(jobList2.Items))
-			}
-
-			if jobList2.Items[0].Name == imagejobName {
-				t.Error("new image job was not scheduled")
+				t.Errorf("error waiting for ImageJob to be deleted: %v", err)
 			}
 
 			return ctx

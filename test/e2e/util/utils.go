@@ -87,15 +87,16 @@ const (
 )
 
 var (
-	Testenv            env.Environment
-	RemoverImage       = os.Getenv("REMOVER_IMAGE")
-	ManagerImage       = os.Getenv("MANAGER_IMAGE")
-	CollectorImage     = os.Getenv("COLLECTOR_IMAGE")
-	ScannerImage       = os.Getenv("SCANNER_IMAGE")
-	VulnerableImage    = os.Getenv("VULNERABLE_IMAGE")
-	NonVulnerableImage = os.Getenv("NON_VULNERABLE_IMAGE")
-	EOLImage           = os.Getenv("EOL_IMAGE")
-	BusyboxImage       = os.Getenv("BUSYBOX_IMAGE")
+	Testenv             env.Environment
+	RemoverImage        = os.Getenv("REMOVER_IMAGE")
+	ManagerImage        = os.Getenv("MANAGER_IMAGE")
+	CollectorImage      = os.Getenv("COLLECTOR_IMAGE")
+	ScannerImage        = os.Getenv("SCANNER_IMAGE")
+	VulnerableImage     = os.Getenv("VULNERABLE_IMAGE")
+	NonVulnerableImage  = os.Getenv("NON_VULNERABLE_IMAGE")
+	EOLImage            = os.Getenv("EOL_IMAGE")
+	BusyboxImage        = os.Getenv("BUSYBOX_IMAGE")
+	CollectorDummyImage = os.Getenv("COLLECTOR_IMAGE_DUMMY")
 
 	RemoverTarballPath   = os.Getenv("REMOVER_TARBALL_PATH")
 	ManagerTarballPath   = os.Getenv("MANAGER_TARBALL_PATH")
