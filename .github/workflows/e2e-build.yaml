@@ -25,7 +25,7 @@ jobs:
         uses: docker/setup-buildx-action@885d1462b80bc1c1c7f0b00334ad271f09369c55 # v2.10.0
         with:
           use: true
-      - uses: actions/cache@88522ab9f39a2ea568f7027eddc7d8d8bc9d59c8 # v3.3.1
+      - uses: actions/cache@704facf57e6136b1bc63b828d79edcd491f0ee84 # v3.3.2
         with:
           key: ${{ runner.OS }}-go-${{ hashFiles('**/go.sum') }}
           restore-keys: |
@@ -66,7 +66,7 @@ jobs:
         uses: docker/setup-buildx-action@885d1462b80bc1c1c7f0b00334ad271f09369c55 # v2.10.0
         with:
           use: true
-      - uses: actions/cache@88522ab9f39a2ea568f7027eddc7d8d8bc9d59c8 # v3.3.1
+      - uses: actions/cache@704facf57e6136b1bc63b828d79edcd491f0ee84 # v3.3.2
         with:
           key: ${{ runner.OS }}-go-${{ hashFiles('**/go.sum') }}
           restore-keys: |
@@ -106,7 +106,7 @@ jobs:
         uses: docker/setup-buildx-action@885d1462b80bc1c1c7f0b00334ad271f09369c55 # v2.10.0
         with:
           use: true
-      - uses: actions/cache@88522ab9f39a2ea568f7027eddc7d8d8bc9d59c8 # v3.3.1
+      - uses: actions/cache@704facf57e6136b1bc63b828d79edcd491f0ee84 # v3.3.2
         with:
           key: ${{ runner.OS }}-go-${{ hashFiles('**/go.sum') }}
           restore-keys: |
@@ -146,7 +146,7 @@ jobs:
         uses: docker/setup-buildx-action@885d1462b80bc1c1c7f0b00334ad271f09369c55 # v2.10.0
         with:
           use: true
-      - uses: actions/cache@88522ab9f39a2ea568f7027eddc7d8d8bc9d59c8 # v3.3.1
+      - uses: actions/cache@704facf57e6136b1bc63b828d79edcd491f0ee84 # v3.3.2
         with:
           key: ${{ runner.OS }}-go-${{ hashFiles('**/go.sum') }}
           restore-keys: |
