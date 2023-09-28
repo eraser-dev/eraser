@@ -255,7 +255,11 @@ func (r *Reconciler) handleRunningJob(ctx context.Context, imageJob *eraserv1.Im
 		Namespace: namespace,
 	}, &template)
 	if err != nil {
-		return err
+		imageJob.Status = eraserv1.ImageJobStatus{
+			Phase:       eraserv1.PhaseFailed,
+			DeleteAfter: controllerUtils.After(time.Now(), 1),
+		}
+		return r.updateJobStatus(ctx, imageJob)
 	}
 
 	listOpts := podListOptions(&template)
