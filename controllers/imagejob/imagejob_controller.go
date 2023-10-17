@@ -557,7 +557,7 @@ nodes:
 
 		currNode, err := r.getNodebyName(ctx, nodeName)
 		if err != nil {
-			log.Error(err, "Could not find node", "N ode name", nodeName)
+			log.Error(err, "Could not find node", "Node name", nodeName)
 			continue nodes
 		}
 
