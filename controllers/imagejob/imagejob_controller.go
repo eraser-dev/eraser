@@ -323,6 +323,13 @@ func (r *Reconciler) handleNewJob(ctx context.Context, imageJob *eraserv1.ImageJ
 		return err
 	}
 
+	var nodeNames []string
+	for _, node := range nodes.Items {
+		nodeNames = append(nodeNames, node.Name)
+	}
+	// free up space
+	nodes = nil
+
 	template := corev1.PodTemplate{}
 	err = r.Get(ctx,
 		types.NamespacedName{
@@ -336,7 +343,7 @@ func (r *Reconciler) handleNewJob(ctx context.Context, imageJob *eraserv1.ImageJ
 	}
 
 	imageJob.Status = eraserv1.ImageJobStatus{
-		Desired:   len(nodes.Items),
+		Desired:   len(nodeNames),
 		Succeeded: 0,
 		Skipped:   0, // placeholder, updated below
 		Failed:    0,
@@ -344,8 +351,6 @@ func (r *Reconciler) handleNewJob(ctx context.Context, imageJob *eraserv1.ImageJ
 	}
 
 	skipped := 0
-	var nodeList []corev1.Node
-
 	log := log.WithValues("job", imageJob.Name)
 
 	env := []corev1.EnvVar{
@@ -365,12 +370,12 @@ func (r *Reconciler) handleNewJob(ctx context.Context, imageJob *eraserv1.ImageJ
 
 	switch filterOpts.Type {
 	case "exclude":
-		nodeList, skipped, err = filterOutSkippedNodes(nodes, filterOpts.Selectors)
+		nodeNames, skipped, err = r.filterOutSkippedNodes(ctx, nodeNames, filterOpts.Selectors)
 		if err != nil {
 			return err
 		}
 	case "include":
-		nodeList, skipped, err = selectIncludedNodes(nodes, filterOpts.Selectors)
+		nodeNames, skipped, err = r.selectIncludedNodes(ctx, nodeNames, filterOpts.Selectors)
 		if err != nil {
 			return err
 		}
@@ -385,22 +390,27 @@ func (r *Reconciler) handleNewJob(ctx context.Context, imageJob *eraserv1.ImageJ
 
 	var namespacedNames []types.NamespacedName
 	podSpecTemplate := template.Template.Spec
-	for i := range nodeList {
-		log := log.WithValues("node", nodeList[i].Name)
-		podSpec, err := copyAndFillTemplateSpec(&podSpecTemplate, env, &nodeList[i])
+	for i := range nodeNames {
+		currNode, err := r.getNodebyName(ctx, nodeNames[i])
+		if err != nil {
+			log.Info("Node not found, skipping node", "Node name", nodeNames[i])
+			continue
+		}
+
+		log := log.WithValues("node", nodeNames[i])
+		podSpec, err := copyAndFillTemplateSpec(&podSpecTemplate, env, currNode)
 		if err != nil {
 			return err
 		}
 
 		containerName := podSpec.Containers[0].Name
-		nodeName := nodeList[i].Name
 
 		pod := &corev1.Pod{
 			TypeMeta: metav1.TypeMeta{},
 			Spec:     *podSpec,
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace:    eraserUtils.GetNamespace(),
-				GenerateName: "eraser-" + nodeName + "-",
+				GenerateName: "eraser-" + nodeNames[i] + "-",
 				OwnerReferences: []metav1.OwnerReference{
 					*metav1.NewControllerRef(&template, template.GroupVersionKind()),
 				},
@@ -413,7 +423,7 @@ func (r *Reconciler) handleNewJob(ctx context.Context, imageJob *eraserv1.ImageJ
 			pod.Labels = map[string]string{imageJobTypeLabelKey: collectorJobType}
 		}
 
-		fitness := checkNodeFitness(pod, &nodeList[i])
+		fitness := checkNodeFitness(pod, currNode)
 		if !fitness {
 			log.Info(containerName + " pod does not fit on node, skipping")
 			continue
@@ -424,7 +434,7 @@ func (r *Reconciler) handleNewJob(ctx context.Context, imageJob *eraserv1.ImageJ
 			return err
 		}
 
-		log.Info("Started "+containerName+" pod on node", "nodeName", nodeName)
+		log.Info("Started "+containerName+" pod on node", "nodeName", nodeNames[i])
 		namespacedNames = append(namespacedNames, types.NamespacedName{Name: pod.Name, Namespace: pod.Namespace})
 	}
 
@@ -435,6 +445,16 @@ func (r *Reconciler) handleNewJob(ctx context.Context, imageJob *eraserv1.ImageJ
 	}
 
 	return nil
+}
+
+func (r *Reconciler) getNodebyName(ctx context.Context, nodeName string) (*corev1.Node, error) {
+	node := &corev1.Node{}
+	err := r.Get(ctx, types.NamespacedName{Name: nodeName}, node)
+	if err != nil {
+		log.Error(err, "Unable to find node", "Node name", nodeName)
+		return nil, err
+	}
+	return node, nil
 }
 
 func (r *Reconciler) isPodReady(ctx context.Context, namespacedName types.NamespacedName) wait.ConditionFunc {
@@ -485,15 +505,22 @@ func (r *Reconciler) updateJobStatus(ctx context.Context, imageJob *eraserv1.Ima
 	return nil
 }
 
-func selectIncludedNodes(nodes *corev1.NodeList, includeNodesSelectors []string) ([]corev1.Node, int, error) {
+func (r *Reconciler) selectIncludedNodes(ctx context.Context, nodeNames []string, includeNodesSelectors []string) ([]string, int, error) {
 	skipped := 0
-	nodeList := make([]corev1.Node, 0, len(nodes.Items))
+	newNodeNames := make([]string, 0, len(nodeNames))
 
 nodes:
-	for i := range nodes.Items {
-		log := log.WithValues("node", nodes.Items[i].Name)
+	for i := range nodeNames {
+		nodeName := nodeNames[i]
+		log := log.WithValues("node", nodeName)
 		skipped++
-		nodeName := nodes.Items[i].Name
+
+		currNode, err := r.getNodebyName(ctx, nodeName)
+		if err != nil {
+			log.Error(err, "Could not find node", "Node name", nodeName)
+			continue nodes
+		}
+
 		for _, includeNodesSelectors := range includeNodesSelectors {
 			includedLabels, err := labels.Parse(includeNodesSelectors)
 			if err != nil {
@@ -501,33 +528,39 @@ nodes:
 			}
 
 			log.V(1).Info("includedLabels", "includedLabels", includedLabels)
-			log.V(1).Info("nodeLabels", "nodeLabels", nodes.Items[i].ObjectMeta.Labels)
-			if includedLabels.Matches(labels.Set(nodes.Items[i].ObjectMeta.Labels)) {
+			log.V(1).Info("nodeLabels", "nodeLabels", currNode.ObjectMeta.Labels)
+			if includedLabels.Matches(labels.Set(currNode.ObjectMeta.Labels)) {
 				log.Info("node is included because it matched the specified labels",
 					"nodeName", nodeName,
-					"labels", nodes.Items[i].ObjectMeta.Labels,
+					"labels", currNode.ObjectMeta.Labels,
 					"specifiedSelectors", includeNodesSelectors,
 				)
 
-				nodeList = append(nodeList, nodes.Items[i])
+				newNodeNames = append(newNodeNames, nodeName)
 				skipped--
 				continue nodes
 			}
 		}
 	}
 
-	return nodeList, skipped, nil
+	return newNodeNames, skipped, nil
 }
 
-func filterOutSkippedNodes(nodes *corev1.NodeList, skipNodesSelectors []string) ([]corev1.Node, int, error) {
+func (r *Reconciler) filterOutSkippedNodes(ctx context.Context, nodeNames []string, skipNodesSelectors []string) ([]string, int, error) {
 	skipped := 0
-	nodeList := make([]corev1.Node, 0, len(nodes.Items))
+	newNodeNames := make([]string, 0, len(nodeNames))
 
 nodes:
-	for i := range nodes.Items {
-		log := log.WithValues("node", nodes.Items[i].Name)
+	for i := range nodeNames {
+		nodeName := nodeNames[i]
+		log := log.WithValues("node", nodeNames[i])
 
-		nodeName := nodes.Items[i].Name
+		currNode, err := r.getNodebyName(ctx, nodeName)
+		if err != nil {
+			log.Error(err, "Could not find node", "N ode name", nodeName)
+			continue nodes
+		}
+
 		for _, skipNodesSelector := range skipNodesSelectors {
 			skipLabels, err := labels.Parse(skipNodesSelector)
 			if err != nil {
@@ -535,11 +568,11 @@ nodes:
 			}
 
 			log.V(1).Info("skipLabels", "skipLabels", skipLabels)
-			log.V(1).Info("nodeLabels", "nodeLabels", nodes.Items[i].ObjectMeta.Labels)
-			if skipLabels.Matches(labels.Set(nodes.Items[i].ObjectMeta.Labels)) {
+			log.V(1).Info("nodeLabels", "nodeLabels", currNode.ObjectMeta.Labels)
+			if skipLabels.Matches(labels.Set(currNode.ObjectMeta.Labels)) {
 				log.Info("node will be skipped because it matched the specified labels",
 					"nodeName", nodeName,
-					"labels", nodes.Items[i].ObjectMeta.Labels,
+					"labels", currNode.ObjectMeta.Labels,
 					"specifiedSelectors", skipNodesSelectors,
 				)
 
@@ -548,10 +581,10 @@ nodes:
 			}
 		}
 
-		nodeList = append(nodeList, nodes.Items[i])
+		newNodeNames = append(newNodeNames, nodeName)
 	}
 
-	return nodeList, skipped, nil
+	return newNodeNames, skipped, nil
 }
 
 func copyAndFillTemplateSpec(templateSpecTemplate *corev1.PodSpec, env []corev1.EnvVar, node *corev1.Node) (*corev1.PodSpec, error) {
