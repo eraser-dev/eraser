@@ -411,7 +411,7 @@ data:
         enabled: true
         image:
           repo: ghcr.io/eraser-dev/collector
-          tag: v1.2.1
+          tag: v1.2.3
         request:
           mem: 25Mi
           cpu: 7m
@@ -423,7 +423,7 @@ data:
         enabled: true
         image:
           repo: ghcr.io/eraser-dev/eraser-trivy-scanner # supply custom image for custom scanner
-          tag: v1.2.1
+          tag: v1.2.3
         request:
           mem: 500Mi
           cpu: 1000m
@@ -459,7 +459,7 @@ data:
       remover:
         image:
           repo: ghcr.io/eraser-dev/remover
-          tag: v1.2.1
+          tag: v1.2.3
         request:
           mem: 25Mi
           # https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/#how-pods-with-resource-limits-are-run
@@ -502,7 +502,7 @@ spec:
               fieldPath: metadata.namespace
         - name: OTEL_SERVICE_NAME
           value: eraser-manager
-        image: ghcr.io/eraser-dev/eraser-manager:v1.2.1
+        image: ghcr.io/eraser-dev/eraser-manager:v1.2.3
         livenessProbe:
           httpGet:
             path: /healthz
