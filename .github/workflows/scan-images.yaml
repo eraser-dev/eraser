@@ -51,7 +51,7 @@ jobs:
           make ${{ matrix.data.build_cmd }} VERSION=${{ env.TAG }} ${{ matrix.data.repo_environment_var }}=${{ env.REGISTRY }}/${{ matrix.data.image }}
 
       - name: Scan for vulnerabilities
-        uses: aquasecurity/trivy-action@fbd16365eb88e12433951383f5e99bd901fc618f # 0.12.0
+        uses: aquasecurity/trivy-action@2b6a709cf9c4025c5438138008beaddbb02086f0 # 0.14.0
         with:
           image-ref: ${{ env.REGISTRY }}/${{ matrix.data.image }}:${{ env.TAG }}
           vuln-type: 'os,library'
