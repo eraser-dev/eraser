@@ -24,7 +24,7 @@ require (
 	// keeping this on 0.25 as updating to 0.26 will remove CRI v1alpha2 version
 	k8s.io/cri-api v0.25.5
 	k8s.io/klog/v2 v2.100.1
-	k8s.io/kubernetes v1.26.6
+	k8s.io/kubernetes v1.26.8
 	k8s.io/utils v0.0.0-20230115233650-391b47cb4029
 	oras.land/oras-go v1.2.2
 	sigs.k8s.io/controller-runtime v0.14.1
