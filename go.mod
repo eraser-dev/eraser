@@ -18,9 +18,9 @@ require (
 	golang.org/x/exp v0.0.0-20230321023759-10a507213a29
 	golang.org/x/sys v0.13.0
 	google.golang.org/grpc v1.58.3
-	k8s.io/api v0.26.0
-	k8s.io/apimachinery v0.26.0
-	k8s.io/client-go v0.26.0
+	k8s.io/api v0.26.11
+	k8s.io/apimachinery v0.26.11
+	k8s.io/client-go v0.26.11
 	// keeping this on 0.25 as updating to 0.26 will remove CRI v1alpha2 version
 	k8s.io/cri-api v0.25.5
 	k8s.io/klog/v2 v2.100.1
@@ -125,8 +125,8 @@ require (
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	k8s.io/apiextensions-apiserver v0.26.0 // indirect
-	k8s.io/apiserver v0.26.0 // indirect
-	k8s.io/component-base v0.26.0 // indirect
+	k8s.io/apiserver v0.26.11 // indirect
+	k8s.io/component-base v0.26.11 // indirect
 	k8s.io/component-helpers v0.26.0 // indirect
 	k8s.io/kube-openapi v0.0.0-20221012153701-172d655c2280 // indirect
 	k8s.io/kube-scheduler v0.0.0 // indirect
@@ -138,33 +138,33 @@ replace (
 	// v0.3.1-0.20230104082527-d6f58551be3f is taken from github.com/moby/buildkit v0.11.0
 	// spdx logic write on v0.3.0 and incompatible with v0.3.1-0.20230104082527-d6f58551be3f
 	github.com/spdx/tools-golang => github.com/spdx/tools-golang v0.3.0
-	k8s.io/api => k8s.io/api v0.26.0
-	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.26.0
-	k8s.io/apimachinery => k8s.io/apimachinery v0.26.0
-	k8s.io/apiserver => k8s.io/apiserver v0.26.0
-	k8s.io/cli-runtime => k8s.io/cli-runtime v0.26.0
-	k8s.io/client-go => k8s.io/client-go v0.26.0
-	k8s.io/cloud-provider => k8s.io/cloud-provider v0.26.0
-	k8s.io/cluster-bootstrap => k8s.io/cluster-bootstrap v0.26.0
-	k8s.io/code-generator => k8s.io/code-generator v0.26.0
-	k8s.io/component-base => k8s.io/component-base v0.26.0
-	k8s.io/component-helpers => k8s.io/component-helpers v0.26.0
-	k8s.io/controller-manager => k8s.io/controller-manager v0.26.0
-	k8s.io/csi-translation-lib => k8s.io/csi-translation-lib v0.26.0
-	k8s.io/dynamic-resource-allocation => k8s.io/dynamic-resource-allocation v0.26.0
-	k8s.io/kube-aggregator => k8s.io/kube-aggregator v0.26.0
-	k8s.io/kube-controller-manager => k8s.io/kube-controller-manager v0.26.0
-	k8s.io/kube-proxy => k8s.io/kube-proxy v0.26.0
-	k8s.io/kube-scheduler => k8s.io/kube-scheduler v0.26.0
-	k8s.io/kubectl => k8s.io/kubectl v0.26.0
-	k8s.io/kubelet => k8s.io/kubelet v0.26.0
-	k8s.io/legacy-cloud-providers => k8s.io/legacy-cloud-providers v0.26.0
-	k8s.io/metrics => k8s.io/metrics v0.26.0
-	k8s.io/mount-utils => k8s.io/mount-utils v0.26.0
-	k8s.io/pod-security-admission => k8s.io/pod-security-admission v0.26.0
-	k8s.io/sample-apiserver => k8s.io/sample-apiserver v0.26.0
-	k8s.io/sample-cli-plugin => k8s.io/sample-cli-plugin v0.26.0
-	k8s.io/sample-controller => k8s.io/sample-controller v0.26.0
+	k8s.io/api => k8s.io/api v0.26.11
+	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.26.11
+	k8s.io/apimachinery => k8s.io/apimachinery v0.26.11
+	k8s.io/apiserver => k8s.io/apiserver v0.26.11
+	k8s.io/cli-runtime => k8s.io/cli-runtime v0.26.11
+	k8s.io/client-go => k8s.io/client-go v0.26.11
+	k8s.io/cloud-provider => k8s.io/cloud-provider v0.26.11
+	k8s.io/cluster-bootstrap => k8s.io/cluster-bootstrap v0.26.11
+	k8s.io/code-generator => k8s.io/code-generator v0.26.11
+	k8s.io/component-base => k8s.io/component-base v0.26.11
+	k8s.io/component-helpers => k8s.io/component-helpers v0.26.11
+	k8s.io/controller-manager => k8s.io/controller-manager v0.26.11
+	k8s.io/csi-translation-lib => k8s.io/csi-translation-lib v0.26.11
+	k8s.io/dynamic-resource-allocation => k8s.io/dynamic-resource-allocation v0.26.11
+	k8s.io/kube-aggregator => k8s.io/kube-aggregator v0.26.11
+	k8s.io/kube-controller-manager => k8s.io/kube-controller-manager v0.26.11
+	k8s.io/kube-proxy => k8s.io/kube-proxy v0.26.11
+	k8s.io/kube-scheduler => k8s.io/kube-scheduler v0.26.11
+	k8s.io/kubectl => k8s.io/kubectl v0.26.11
+	k8s.io/kubelet => k8s.io/kubelet v0.26.11
+	k8s.io/legacy-cloud-providers => k8s.io/legacy-cloud-providers v0.26.11
+	k8s.io/metrics => k8s.io/metrics v0.26.11
+	k8s.io/mount-utils => k8s.io/mount-utils v0.26.11
+	k8s.io/pod-security-admission => k8s.io/pod-security-admission v0.26.11
+	k8s.io/sample-apiserver => k8s.io/sample-apiserver v0.26.11
+	k8s.io/sample-cli-plugin => k8s.io/sample-cli-plugin v0.26.11
+	k8s.io/sample-controller => k8s.io/sample-controller v0.26.11
 	// v1.2.0 is taken from github.com/open-policy-agent/opa v0.42.0
 	// v1.2.0 incompatible with github.com/docker/docker v23.0.0-rc.1+incompatible
 	oras.land/oras-go => oras.land/oras-go v1.1.1
