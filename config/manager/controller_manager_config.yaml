@@ -8,7 +8,7 @@ manager:
     repeatInterval: 24h
     beginImmediately: true
   profile:
-    enabled: false
+    enabled: true
     port: 6060
   imageJob:
     successRatio: 1.0
