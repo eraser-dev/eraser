@@ -1,0 +1,93 @@
+name: Scan Images for Vulnerabilities (Trivy)
+run-name: Scan ${{ inputs.version == '' && github.ref_name || inputs.version }} images for vulnerabilities ${{ github.event_name == 'schedule' && '(scheduled)' || '' }}
+on:
+  schedule:
+    - cron: "0 7 * * 1" # Run every Monday at 7:00 AM UTC
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version of Eraser to run Trivy scans against. Leave empty to scan images built from the branch the action is running against."
+        type: string
+        required: false
+        default: ""
+      upload-results:
+        description: "Upload results to Github Security?"
+        type: boolean
+        required: true
+        default: false
+
+permissions: read-all
+
+env:
+  # Scanning released versions require the project `eraser-dev` as part of the registry name.
+  REGISTRY: ghcr.io/${{ github.event.inputs.version == '' && 'eraser-test' || 'eraser-dev' }}
+  TAG: ${{ github.event.inputs.version == '' && 'test' || github.event.inputs.version }}
+
+jobs:
+  scan_vulnerabilities:
+    name: Scan ${{ matrix.data.image }} for vulnerabilities
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      matrix:
+        data:
+          - {image: remover, build_cmd: docker-build-remover, repo_environment_var: REMOVER_REPO}
+          - {image: eraser-manager, build_cmd: docker-build-manager, repo_environment_var: MANAGER_REPO}
+          - {image: collector, build_cmd: docker-build-collector, repo_environment_var: COLLECTOR_REPO}
+          - {image: eraser-trivy-scanner, build_cmd: docker-build-trivy-scanner, repo_environment_var: TRIVY_SCANNER_REPO}
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@1b05615854632b887b69ae1be8cbefe72d3ae423 # v2.6.0
+        with:
+          egress-policy: audit
+
+      - name: Check out code
+        if: github.event_name == 'schedule' || github.event.inputs.version == ''
+        uses: actions/checkout@8ade135a41bc03ea155e62e844d188df1ea18608 # v4.1.0
+
+      - name: Build image
+        if: github.event_name == 'schedule' || github.event.inputs.version == ''
+        run: |
+          make ${{ matrix.data.build_cmd }} VERSION=${{ env.TAG }} ${{ matrix.data.repo_environment_var }}=${{ env.REGISTRY }}/${{ matrix.data.image }}
+
+      - name: Scan for vulnerabilities
+        uses: aquasecurity/trivy-action@fbd16365eb88e12433951383f5e99bd901fc618f # 0.12.0
+        with:
+          image-ref: ${{ env.REGISTRY }}/${{ matrix.data.image }}:${{ env.TAG }}
+          vuln-type: 'os,library'
+          ignore-unfixed: true
+          format: 'sarif'
+          output: ${{ matrix.data.image }}-results.sarif
+
+      - uses: actions/upload-artifact@a8a3f3ad30e3422c9c7b888a15615d19a852ae32 # v3.1.3
+        with:
+          name: ${{ matrix.data.image }} Scan Results
+          path: ${{ matrix.data.image }}-results.sarif
+
+  upload_vulnerabilities:
+    name: Upload ${{ matrix.image }} results to GitHub Security
+    runs-on: ubuntu-latest
+    needs: scan_vulnerabilities
+    if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && github.event.inputs.upload-results == 'true')
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+    strategy:
+      matrix:
+        image: [remover, eraser-manager, collector, eraser-trivy-scanner]
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@1b05615854632b887b69ae1be8cbefe72d3ae423 # v2.6.0
+        with:
+          egress-policy: audit
+
+      - uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a # v3.0.2
+        with:
+          name: ${{ matrix.image }} Scan Results
+          path: ${{ matrix.image }}-results.sarif
+
+      - name: Upload results to GitHub Security
+        uses: github/codeql-action/upload-sarif@798e74c57dbcad53929892efdf30dfafe12c8c37 # v2.14.4
+        with:
+          sarif_file: ${{ matrix.image }}-results.sarif

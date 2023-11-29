@@ -14,7 +14,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@8ca2b8b2ece13480cda6dacd3511b49857a23c09
+        uses: step-security/harden-runner@1b05615854632b887b69ae1be8cbefe72d3ae423
         with:
           egress-policy: audit
       - name: Set up Go 1.20
@@ -22,10 +22,10 @@ jobs:
         with:
           go-version: "1.20"
       - name: Setup buildx instance
-        uses: docker/setup-buildx-action@885d1462b80bc1c1c7f0b00334ad271f09369c55 # v2.10.0
+        uses: docker/setup-buildx-action@f95db51fddba0c2d1ec667646a06c2ce06100226 # v3.0.0
         with:
           use: true
-      - uses: actions/cache@88522ab9f39a2ea568f7027eddc7d8d8bc9d59c8 # v3.3.1
+      - uses: actions/cache@704facf57e6136b1bc63b828d79edcd491f0ee84 # v3.3.2
         with:
           key: ${{ runner.OS }}-go-${{ hashFiles('**/go.sum') }}
           restore-keys: |
@@ -33,9 +33,9 @@ jobs:
           path: |
             ~/go/pkg/mod
             ~/.cache/go-build
-      - uses: crazy-max/ghaction-github-runtime@056b8ec6661ce03a987ab8643a0edc346ae63fe3 # v2.2.0
+      - uses: crazy-max/ghaction-github-runtime@b3a9207c0e1ef41f4cf215303c976869d0c2c1c4 # v3.0.0
       - name: Check out code into the Go module directory
-        uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3.6.0
+        uses: actions/checkout@8ade135a41bc03ea155e62e844d188df1ea18608 # v4.1.0
       - run: 'echo ${{ inputs.bucket-id }}'
       - name: Set env
         run: |
@@ -44,7 +44,7 @@ jobs:
       - name: Build remover
         run: 'make docker-build-remover OUTPUT_TYPE=type=oci,dest=./${REMOVER_REPO}_${REMOVER_TAG}.tar,name=${REMOVER_REPO}:${REMOVER_TAG}'
       - name: Upload Build Artifacts
-        uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce # v3.1.2
+        uses: actions/upload-artifact@a8a3f3ad30e3422c9c7b888a15615d19a852ae32 # v3.1.3
         with:
           name: ${{ inputs.bucket-id }}
           path: remover_test.tar
@@ -55,7 +55,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@8ca2b8b2ece13480cda6dacd3511b49857a23c09
+        uses: step-security/harden-runner@1b05615854632b887b69ae1be8cbefe72d3ae423
         with:
           egress-policy: audit
       - name: Set up Go 1.20
@@ -63,10 +63,10 @@ jobs:
         with:
           go-version: "1.20"
       - name: Setup buildx instance
-        uses: docker/setup-buildx-action@885d1462b80bc1c1c7f0b00334ad271f09369c55 # v2.10.0
+        uses: docker/setup-buildx-action@f95db51fddba0c2d1ec667646a06c2ce06100226 # v3.0.0
         with:
           use: true
-      - uses: actions/cache@88522ab9f39a2ea568f7027eddc7d8d8bc9d59c8 # v3.3.1
+      - uses: actions/cache@704facf57e6136b1bc63b828d79edcd491f0ee84 # v3.3.2
         with:
           key: ${{ runner.OS }}-go-${{ hashFiles('**/go.sum') }}
           restore-keys: |
@@ -74,9 +74,9 @@ jobs:
           path: |
             ~/go/pkg/mod
             ~/.cache/go-build
-      - uses: crazy-max/ghaction-github-runtime@056b8ec6661ce03a987ab8643a0edc346ae63fe3 # v2.2.0
+      - uses: crazy-max/ghaction-github-runtime@b3a9207c0e1ef41f4cf215303c976869d0c2c1c4 # v3.0.0
       - name: Check out code into the Go module directory
-        uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3.6.0
+        uses: actions/checkout@8ade135a41bc03ea155e62e844d188df1ea18608 # v4.1.0
       - name: Set env
         run: |
           echo TRIVY_SCANNER_REPO=scanner >> $GITHUB_ENV
@@ -84,7 +84,7 @@ jobs:
       - name: Build trivy-scanner
         run: 'make docker-build-trivy-scanner OUTPUT_TYPE=type=oci,dest=./${TRIVY_SCANNER_REPO}_${TRIVY_SCANNER_TAG}.tar,name=${TRIVY_SCANNER_REPO}:${TRIVY_SCANNER_TAG}'
       - name: Upload Build Artifacts
-        uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce # v3.1.2
+        uses: actions/upload-artifact@a8a3f3ad30e3422c9c7b888a15615d19a852ae32 # v3.1.3
         with:
           name: ${{ inputs.bucket-id }}
           path: scanner_test.tar
@@ -95,7 +95,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@8ca2b8b2ece13480cda6dacd3511b49857a23c09
+        uses: step-security/harden-runner@1b05615854632b887b69ae1be8cbefe72d3ae423
         with:
           egress-policy: audit
       - name: Set up Go 1.20
@@ -103,10 +103,10 @@ jobs:
         with:
           go-version: "1.20"
       - name: Setup buildx instance
-        uses: docker/setup-buildx-action@885d1462b80bc1c1c7f0b00334ad271f09369c55 # v2.10.0
+        uses: docker/setup-buildx-action@f95db51fddba0c2d1ec667646a06c2ce06100226 # v3.0.0
         with:
           use: true
-      - uses: actions/cache@88522ab9f39a2ea568f7027eddc7d8d8bc9d59c8 # v3.3.1
+      - uses: actions/cache@704facf57e6136b1bc63b828d79edcd491f0ee84 # v3.3.2
         with:
           key: ${{ runner.OS }}-go-${{ hashFiles('**/go.sum') }}
           restore-keys: |
@@ -114,9 +114,9 @@ jobs:
           path: |
             ~/go/pkg/mod
             ~/.cache/go-build
-      - uses: crazy-max/ghaction-github-runtime@056b8ec6661ce03a987ab8643a0edc346ae63fe3 # v2.2.0
+      - uses: crazy-max/ghaction-github-runtime@b3a9207c0e1ef41f4cf215303c976869d0c2c1c4 # v3.0.0
       - name: Check out code into the Go module directory
-        uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3.6.0
+        uses: actions/checkout@8ade135a41bc03ea155e62e844d188df1ea18608 # v4.1.0
       - name: Set env
         run: |
           echo MANAGER_REPO=manager >> $GITHUB_ENV
@@ -124,7 +124,7 @@ jobs:
       - name: Build manager
         run: 'make docker-build-manager OUTPUT_TYPE=type=oci,dest=./${MANAGER_REPO}_${MANAGER_TAG}.tar,name=${MANAGER_REPO}:${MANAGER_TAG}'
       - name: Upload Build Artifacts
-        uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce # v3.1.2
+        uses: actions/upload-artifact@a8a3f3ad30e3422c9c7b888a15615d19a852ae32 # v3.1.3
         with:
           name: ${{ inputs.bucket-id }}
           path: manager_test.tar
@@ -135,7 +135,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@8ca2b8b2ece13480cda6dacd3511b49857a23c09
+        uses: step-security/harden-runner@1b05615854632b887b69ae1be8cbefe72d3ae423
         with:
           egress-policy: audit
       - name: Set up Go 1.20
@@ -143,10 +143,10 @@ jobs:
         with:
           go-version: "1.20"
       - name: Setup buildx instance
-        uses: docker/setup-buildx-action@885d1462b80bc1c1c7f0b00334ad271f09369c55 # v2.10.0
+        uses: docker/setup-buildx-action@f95db51fddba0c2d1ec667646a06c2ce06100226 # v3.0.0
         with:
           use: true
-      - uses: actions/cache@88522ab9f39a2ea568f7027eddc7d8d8bc9d59c8 # v3.3.1
+      - uses: actions/cache@704facf57e6136b1bc63b828d79edcd491f0ee84 # v3.3.2
         with:
           key: ${{ runner.OS }}-go-${{ hashFiles('**/go.sum') }}
           restore-keys: |
@@ -154,9 +154,9 @@ jobs:
           path: |
             ~/go/pkg/mod
             ~/.cache/go-build
-      - uses: crazy-max/ghaction-github-runtime@056b8ec6661ce03a987ab8643a0edc346ae63fe3 # v2.2.0
+      - uses: crazy-max/ghaction-github-runtime@b3a9207c0e1ef41f4cf215303c976869d0c2c1c4 # v3.0.0
       - name: Check out code into the Go module directory
-        uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3.6.0
+        uses: actions/checkout@8ade135a41bc03ea155e62e844d188df1ea18608 # v4.1.0
       - name: Set env
         run: |
           echo COLLECTOR_REPO=collector >> $GITHUB_ENV
@@ -164,7 +164,7 @@ jobs:
       - name: Build collector
         run: 'make docker-build-collector OUTPUT_TYPE=type=oci,dest=./${COLLECTOR_REPO}_${COLLECTOR_TAG}.tar,name=${COLLECTOR_REPO}:${COLLECTOR_TAG}'
       - name: Upload Build Artifacts
-        uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce # v3.1.2
+        uses: actions/upload-artifact@a8a3f3ad30e3422c9c7b888a15615d19a852ae32 # v3.1.3
         with:
           name: ${{ inputs.bucket-id }}
           path: collector_test.tar
