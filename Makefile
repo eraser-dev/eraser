@@ -9,7 +9,7 @@ REMOVER_TAG ?= ${VERSION}
 TRIVY_SCANNER_REPO ?= ghcr.io/eraser-dev/eraser-trivy-scanner
 TRIVY_SCANNER_IMG ?= ${TRIVY_SCANNER_REPO}:${TRIVY_SCANNER_TAG}
 TRIVY_BINARY_REPO ?= ghcr.io/aquasecurity/trivy
-TRIVY_BINARY_TAG ?= 0.43.0
+TRIVY_BINARY_TAG ?= 0.45.1
 TRIVY_BINARY_IMG ?= ${TRIVY_BINARY_REPO}:${TRIVY_BINARY_TAG}
 MANAGER_REPO ?= ghcr.io/eraser-dev/eraser-manager
 MANAGER_IMG ?= ${MANAGER_REPO}:${MANAGER_TAG}
@@ -156,6 +156,13 @@ busybox-img:
 		--build-arg IMG=$(BUSYBOX_BASE_IMG) test/e2e/test-data
 BUSYBOX_IMG=busybox-e2e-test:latest
 
+collector-dummy-img:
+	docker build -t $(COLLECTOR_REPO):dummy \
+		-f test/e2e/test-data/Dockerfile.dummyCollector \
+		test/e2e/test-data
+COLLECTOR_IMAGE_DUMMY=$(COLLECTOR_REPO):dummy
+
+
 vulnerable-img:
 	docker pull $(VULNERABLE_IMG)
 
@@ -171,7 +178,7 @@ non-vulnerable-img:
 		-t ${NON_VULNERABLE_IMG} \
 		--target non-vulnerable .
 
-e2e-test: vulnerable-img eol-img non-vulnerable-img busybox-img
+e2e-test: vulnerable-img eol-img non-vulnerable-img busybox-img collector-dummy-img
 	for test in $(E2E_TESTS); do \
 		CGO_ENABLED=0 \
             PROJECT_ABSOLUTE_PATH=$(CURDIR) \
@@ -185,6 +192,7 @@ e2e-test: vulnerable-img eol-img non-vulnerable-img busybox-img
 			COLLECTOR_IMAGE=${COLLECTOR_IMG} \
 			SCANNER_IMAGE=${TRIVY_SCANNER_IMG} \
 			BUSYBOX_IMAGE=${BUSYBOX_IMG} \
+			COLLECTOR_IMAGE_DUMMY=${COLLECTOR_IMAGE_DUMMY} \
 			VULNERABLE_IMAGE=${VULNERABLE_IMG} \
 			NON_VULNERABLE_IMAGE=${NON_VULNERABLE_IMG} \
 			EOL_IMAGE=${EOL_IMG} \

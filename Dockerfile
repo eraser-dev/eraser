@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1.6
 
 ARG BUILDERIMAGE="golang:1.20-bullseye"
-ARG TRIVY_BINARY_IMG="ghcr.io/aquasecurity/trivy:0.44.0"
+ARG TRIVY_BINARY_IMG="ghcr.io/aquasecurity/trivy:0.45.1"
 ARG STATICBASEIMAGE="gcr.io/distroless/static:latest"
 ARG STATICNONROOTBASEIMAGE="gcr.io/distroless/static:nonroot"
 ARG BUILDKIT_SBOM_SCAN_STAGE=builder,manager-build,collector-build,remover-build,trivy-scanner-build

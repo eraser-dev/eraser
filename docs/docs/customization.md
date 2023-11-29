@@ -178,10 +178,11 @@ vulnerabilities:
   types: # a list of vulnerability types. for more info, see trivy's documentation.
     - os
     - library
-  securityChecks: # see trivy's documentation for more invormation
+  securityChecks: # see trivy's documentation for more information
     - vuln
   severities: # in this case, only flag images with CRITICAL vulnerability for removal
     - CRITICAL
+  ignoredStatuses: # a list of trivy statuses to ignore. See https://aquasecurity.github.io/trivy/v0.44/docs/configuration/filtering/#by-status.
 timeout:
   total: 23h # if scanning isn't completed before this much time elapses, abort the whole scan
   perImage: 1h # if scanning a single image exceeds this time, scanning will be aborted

@@ -30,6 +30,7 @@ const (
 	trivySecurityChecksFlag = "--scanners"
 	trivySeveritiesFlag     = "--severity"
 	trivyRuntimeFlag        = "--image-src"
+	trivyIgnoreStatusFlag   = "--ignore-status"
 )
 
 type (
@@ -45,10 +46,11 @@ type (
 	}
 
 	VulnConfig struct {
-		IgnoreUnfixed  bool     `json:"ignoreUnfixed,omitempty"`
-		Types          []string `json:"types,omitempty"`
-		SecurityChecks []string `json:"securityChecks,omitempty"`
-		Severities     []string `json:"severities,omitempty"`
+		IgnoreUnfixed   bool     `json:"ignoreUnfixed,omitempty"`
+		Types           []string `json:"types,omitempty"`
+		SecurityChecks  []string `json:"securityChecks,omitempty"`
+		Severities      []string `json:"severities,omitempty"`
+		IgnoredStatuses []string `json:"ignoredStatuses,omitempty"`
 	}
 
 	TimeoutConfig struct {
@@ -77,8 +79,9 @@ func DefaultConfig() *Config {
 				vulnTypeOs,
 				vulnTypeLibrary,
 			},
-			SecurityChecks: []string{securityCheckVuln},
-			Severities:     []string{severityCritical, severityHigh, severityMedium, severityLow},
+			SecurityChecks:  []string{securityCheckVuln},
+			Severities:      []string{severityCritical, severityHigh, severityMedium, severityLow},
+			IgnoredStatuses: []string{},
 		},
 		Timeout: TimeoutConfig{
 			Total:    unversioned.Duration(time.Hour * 23),
@@ -130,6 +133,11 @@ func (c *Config) cliArgs(ref string) []string {
 	if len(c.Vulnerabilities.Severities) > 0 {
 		allSeverities := strings.Join(c.Vulnerabilities.Severities, ",")
 		args = append(args, trivySeveritiesFlag, allSeverities)
+	}
+
+	if len(c.Vulnerabilities.IgnoredStatuses) > 0 {
+		allIgnoredStatuses := strings.Join(c.Vulnerabilities.IgnoredStatuses, ",")
+		args = append(args, trivyIgnoreStatusFlag, allIgnoredStatuses)
 	}
 
 	args = append(args, ref)
