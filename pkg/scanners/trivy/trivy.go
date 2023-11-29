@@ -100,6 +100,7 @@ func main() {
 		log.Error(err, "unable to read images from provider")
 		os.Exit(generalErr)
 	}
+	// TODO - 2. We could filter the pinned images out here, to not affect the template.
 
 	s, err := initScanner(&userConfig)
 	if err != nil {
@@ -110,11 +111,11 @@ func main() {
 	//   1. Filter inside the `ReceiveImages` function, part of the scanner template, so `allImages` is all non-pinned.
 	//   2. Filter `allImages` AFTER `ReceiveImages`, so we don't affect the scanner template function.
 	//   3. During the `scan` (or `Scan`) function, check if the image is pinned and continue.
-	//		- This would be the most performant, where we don't add extra filtering, just `continue` during image scans.
-	//		- We'd also decide here if we still want to scan the pinned image, even when we don't want to delete it.
+	//		- This could be the most performant, where we don't add extra filtering, and just `continue` during image scans.
+	//		- We could decide here if we still want to scan the pinned image, even when we don't want to delete it.
 	//   4. Filter inside the `SendImages` function, part of the scanner template, so the images sent to the eraser are non-pinned.
 	//		- Not sure how our template works, and if we'd want to filter there so other implementations don't have to.
-	//   Adding filtering (aside from step 3 where we `continue`) would add O(n)+ time complexity to go through all images and filter.
+	//   Adding filtering (aside from step 3 where we `continue`) would add an extra O(n) time complexity to go through all images and filter.
 	vulnerableImages, failedImages, err := scan(s, allImages)
 	if err != nil {
 		log.Error(err, "total image scan timed out")
@@ -184,6 +185,7 @@ func scan(s Scanner, allImages []unversioned.Image) ([]unversioned.Image, []unve
 	// track total scan job time
 
 	for idx, img := range allImages {
+		// TODO - 3. we could filter out Pinned images here by `continue`-ing. we'll need to be sure nothing wonky happens with pinned images on timeout.
 		select {
 		case <-s.Timer().C:
 			failedImages = append(failedImages, allImages[idx:]...)
