@@ -46,7 +46,6 @@ func NewImageProvider(funcs ...ConfigFunc) ImageProvider {
 		ctx:                    context.Background(),
 		log:                    logf.Log.WithName("scanner"),
 		deleteScanFailedImages: true,
-		deletePinnedImages:     false,
 		reportMetrics:          false,
 	}
 
@@ -58,7 +57,6 @@ func NewImageProvider(funcs ...ConfigFunc) ImageProvider {
 	return cfg
 }
 
-// TODO - 1. We could filter here, so the returned images are all images that are not pinned.
 func (cfg *config) ReceiveImages() ([]unversioned.Image, error) {
 	var err error
 
@@ -83,7 +81,6 @@ func (cfg *config) ReceiveImages() ([]unversioned.Image, error) {
 }
 
 func (cfg *config) SendImages(nonCompliantImages, failedImages []unversioned.Image) error {
-	// TODO - 4. we could filter out pinned images here, so they are not deleted.
 	if cfg.deleteScanFailedImages {
 		nonCompliantImages = append(nonCompliantImages, failedImages...)
 	}
@@ -152,13 +149,6 @@ func WithDeleteScanFailedImages(deleteScanFailedImages bool) ConfigFunc {
 func WithDeleteEOLImages(deleteEOLImages bool) ConfigFunc {
 	return func(cfg *config) {
 		cfg.deleteEOLImages = deleteEOLImages
-	}
-}
-
-// sets deletePinnedImages flag.
-func WithDeletePinnedImages(deletePinnedImages bool) ConfigFunc {
-	return func(cfg *config) {
-		cfg.deletePinnedImages = deletePinnedImages
 	}
 }
 

@@ -23,6 +23,7 @@ var (
 	enableProfile = flag.Bool("enable-pprof", false, "enable pprof profiling")
 	profilePort   = flag.Int("pprof-port", 6060, "port for pprof profiling. defaulted to 6060 if unspecified")
 	scanDisabled  = flag.Bool("scan-disabled", false, "boolean for if scanner container is disabled")
+	scanPinned    = flag.Bool("scan-pinned", false, "boolean for if scanner container should scan pinned images")
 
 	// Timeout  of connecting to server (default: 5m).
 	timeout  = 5 * time.Minute
@@ -79,6 +80,11 @@ func main() {
 		os.Exit(1)
 	}
 	log.Info("images collected", "finalImages:", finalImages)
+
+	if !(*scanPinned) {
+		log.Info("skipping scanning pinned images")
+		finalImages = util.RemovePinnedImages(finalImages)
+	}
 
 	data, err := json.Marshal(finalImages)
 	if err != nil {

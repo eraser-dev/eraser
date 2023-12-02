@@ -8,7 +8,7 @@ import (
 	util "github.com/eraser-dev/eraser/pkg/utils"
 )
 
-func removeImages(c cri.Remover, targetImages []string) (int, error) {
+func removeImages(c cri.Remover, removePinned bool, targetImages []string) (int, error) {
 	removed := 0
 
 	backgroundContext, cancel := context.WithTimeout(context.Background(), timeout)
@@ -76,6 +76,12 @@ func removeImages(c cri.Remover, targetImages []string) (int, error) {
 				continue
 			}
 
+			// TODO - figure out why is imgDigestOrTag used instead of imageID when it's called "idToImageMap" (copied usage from isExcluded).
+			if !removePinned && util.IsPinned(imageID, idToImageMap) {
+				log.Info("image is kept due to being pinned", "given", imgDigestOrTag, "imageID", imageID, "name", idToImageMap[imageID])
+				continue
+			}
+
 			err = c.DeleteImage(backgroundContext, imageID)
 			if err != nil {
 				log.Error(err, "error removing image", "given", imgDigestOrTag, "imageID", imageID, "name", idToImageMap[imageID])
@@ -106,6 +112,11 @@ func removeImages(c cri.Remover, targetImages []string) (int, error) {
 
 			if util.IsExcluded(excluded, imageID, idToImageMap) {
 				log.Info("image is excluded", "imageID", imageID, "name", idToImageMap[imageID])
+				continue
+			}
+
+			if !removePinned && util.IsPinned(imageID, idToImageMap) {
+				log.Info("image is kept due to being pinned", "imageID", imageID, "name", idToImageMap[imageID])
 				continue
 			}
 
