@@ -34,7 +34,6 @@ type config struct {
 	log                    logr.Logger
 	deleteScanFailedImages bool
 	deleteEOLImages        bool
-	deletePinnedImages     bool
 	reportMetrics          bool
 }
 
