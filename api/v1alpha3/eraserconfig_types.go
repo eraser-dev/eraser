@@ -50,7 +50,7 @@ const (
 func ConvertRuntimeToRuntimeSpec(r Runtime) (RuntimeSpec, error) {
 	var rs RuntimeSpec
 
-	switch rt := Runtime(r); rt {
+	switch rt := r; rt {
 	case RuntimeContainerd:
 		rs = RuntimeSpec{Name: RuntimeContainerd, Address: RuntimeAddress(fmt.Sprintf("unix://%s", ContainerdPath))}
 	case RuntimeDockerShim:
