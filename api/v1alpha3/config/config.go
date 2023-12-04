@@ -34,41 +34,6 @@ type Manager struct {
 	cfg *v1alpha3.EraserConfig
 }
 
-func (m *Manager) Read() (v1alpha3.EraserConfig, error) {
-	m.mtx.Lock()
-	defer m.mtx.Unlock()
-
-	if m.cfg == nil {
-		return v1alpha3.EraserConfig{}, fmt.Errorf("ConfigManager configuration is nil, aborting")
-	}
-
-	cfg := *m.cfg
-	return cfg, nil
-}
-
-func (m *Manager) Update(newC *v1alpha3.EraserConfig) error {
-	m.mtx.Lock()
-	defer m.mtx.Unlock()
-
-	if m.cfg == nil {
-		return fmt.Errorf("ConfigManager configuration is nil, aborting")
-	}
-
-	if newC == nil {
-		return fmt.Errorf("new configuration is nil, aborting")
-	}
-
-	*m.cfg = *newC
-	return nil
-}
-
-func NewManager(cfg *v1alpha3.EraserConfig) *Manager {
-	return &Manager{
-		mtx: sync.Mutex{},
-		cfg: cfg,
-	}
-}
-
 const (
 	noDelay = v1alpha3.Duration(0)
 	oneDay  = v1alpha3.Duration(time.Hour * 24)
