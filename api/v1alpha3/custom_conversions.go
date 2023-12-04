@@ -10,8 +10,6 @@ func Convert_v1alpha3_ManagerConfig_To_unversioned_ManagerConfig(in *ManagerConf
 	return autoConvert_v1alpha3_ManagerConfig_To_unversioned_ManagerConfig(in, out, s)
 }
 
-// TODO: change this to use unversioned.RuntimeSpec when unversioned is updated
-//
 //nolint:revive
 func manualConvert_v1alpha3_RuntimeSpec_To_unversioned_Runtime(in *RuntimeSpec, out *unversioned.Runtime, _ conversion.Scope) error {
 	*out = unversioned.Runtime(in.Name)
@@ -28,8 +26,6 @@ func Convert_unversioned_ManagerConfig_To_v1alpha3_ManagerConfig(in *unversioned
 	return autoConvert_unversioned_ManagerConfig_To_v1alpha3_ManagerConfig(in, out, s)
 }
 
-// TODO: change this to use unversioned.RuntimeSpec when unversioned is updated
-//
 //nolint:revive
 func manualConvert_unversioned_Runtime_To_v1alpha3_RuntimeSpec(in *unversioned.Runtime, out *RuntimeSpec, _ conversion.Scope) error {
 	out.Name = Runtime(string(*in))
