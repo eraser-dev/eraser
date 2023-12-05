@@ -84,9 +84,13 @@ func (td *Duration) MarshalJSON() ([]byte, error) {
 	return []byte(fmt.Sprintf(`"%s"`, time.Duration(*td).String())), nil
 }
 
-// check validity of provided RuntimeSpec
 func (r *RuntimeSpec) UnmarshalJSON(b []byte) error {
-	var rs RuntimeSpec
+	// create temp RuntimeSpec to prevent recursive error into this function when using unmarshall to check validity of provided RuntimeSpec
+	type TempRuntimeSpec struct {
+		Name    Runtime        `json:"name"`
+		Address RuntimeAddress `json:"address"`
+	}
+	var rs TempRuntimeSpec
 	err := json.Unmarshal(b, &rs)
 	if err != nil {
 		return err
@@ -109,7 +113,7 @@ func (r *RuntimeSpec) UnmarshalJSON(b []byte) error {
 
 			}
 
-			*r = rs
+			*r = RuntimeSpec{Name: rs.Name, Address: rs.Address}
 			return nil
 		}
 
