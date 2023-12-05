@@ -69,6 +69,7 @@ components:
           - HIGH
           - MEDIUM
           - LOW
+        ignoredStatuses:
       timeout:
         total: 23h
         perImage: 1h
