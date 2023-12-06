@@ -110,10 +110,11 @@ func (r *RuntimeSpec) UnmarshalJSON(b []byte) error {
 			case "tcp", "unix":
 			default:
 				return fmt.Errorf("invalid RuntimeAddress scheme: valid schemes for runtime socket address are `tcp` and `unix`")
-
 			}
 
-			*r = RuntimeSpec{Name: rs.Name, Address: rs.Address}
+			r.Name = rs.Name
+			r.Address = rs.Address
+
 			return nil
 		}
 

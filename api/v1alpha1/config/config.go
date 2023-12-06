@@ -2,7 +2,6 @@ package config
 
 import (
 	"fmt"
-	"sync"
 	"time"
 
 	v1alpha1 "github.com/eraser-dev/eraser/api/v1alpha1"
@@ -28,11 +27,6 @@ severities:
   - MEDIUM
   - LOW
 `
-
-type Manager struct {
-	mtx sync.Mutex
-	cfg *v1alpha1.EraserConfig
-}
 
 const (
 	noDelay = v1alpha1.Duration(0)
