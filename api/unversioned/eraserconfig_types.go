@@ -19,6 +19,7 @@ package unversioned
 import (
 	"encoding/json"
 	"fmt"
+	"net/url"
 	"time"
 
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -26,15 +27,42 @@ import (
 )
 
 type (
-	Duration time.Duration
-	Runtime  string
+	Duration       time.Duration
+	Runtime        string
+	RuntimeAddress string
+
+	RuntimeSpec struct {
+		Name    Runtime        `json:"name"`
+		Address RuntimeAddress `json:"address"`
+	}
 )
 
 const (
 	RuntimeContainerd Runtime = "containerd"
 	RuntimeDockerShim Runtime = "dockershim"
 	RuntimeCrio       Runtime = "crio"
+
+	ContainerdPath = "/run/containerd/containerd.sock"
+	DockerPath     = "/run/dockershim.sock"
+	CrioPath       = "/run/crio/crio.sock"
 )
+
+func ConvertRuntimeToRuntimeSpec(r Runtime) (RuntimeSpec, error) {
+	var rs RuntimeSpec
+
+	switch r {
+	case RuntimeContainerd:
+		rs = RuntimeSpec{Name: RuntimeContainerd, Address: RuntimeAddress(fmt.Sprintf("unix://%s", ContainerdPath))}
+	case RuntimeDockerShim:
+		rs = RuntimeSpec{Name: RuntimeDockerShim, Address: RuntimeAddress(fmt.Sprintf("unix://%s", DockerPath))}
+	case RuntimeCrio:
+		rs = RuntimeSpec{Name: RuntimeCrio, Address: RuntimeAddress(fmt.Sprintf("unix://%s", CrioPath))}
+	default:
+		return rs, fmt.Errorf("invalid runtime: valid names are %s, %s, %s", RuntimeContainerd, RuntimeDockerShim, RuntimeCrio)
+	}
+
+	return rs, nil
+}
 
 func (td *Duration) UnmarshalJSON(b []byte) error {
 	var str string
@@ -52,25 +80,55 @@ func (td *Duration) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
-func (r *Runtime) UnmarshalJSON(b []byte) error {
-	var str string
-	err := json.Unmarshal(b, &str)
+func (td *Duration) MarshalJSON() ([]byte, error) {
+	return []byte(fmt.Sprintf(`"%s"`, time.Duration(*td).String())), nil
+}
+
+func (r *RuntimeSpec) UnmarshalJSON(b []byte) error {
+	// create temp RuntimeSpec to prevent recursive error into this function when using unmarshall to check validity of provided RuntimeSpec
+	type TempRuntimeSpec struct {
+		Name    Runtime        `json:"name"`
+		Address RuntimeAddress `json:"address"`
+	}
+	var rs TempRuntimeSpec
+	err := json.Unmarshal(b, &rs)
 	if err != nil {
 		return err
 	}
 
-	switch rt := Runtime(str); rt {
+	switch rt := rs.Name; rt {
+	// make sure user provided Runtime is valid
 	case RuntimeContainerd, RuntimeDockerShim, RuntimeCrio:
-		*r = rt
+		if rs.Address != "" {
+			// check that provided RuntimeAddress is valid
+			u, err := url.Parse(string(rs.Address))
+			if err != nil {
+				return err
+			}
+
+			switch u.Scheme {
+			case "tcp", "unix":
+			default:
+				return fmt.Errorf("invalid RuntimeAddress scheme: valid schemes for runtime socket address are `tcp` and `unix`")
+
+			}
+
+			*r = RuntimeSpec{Name: rs.Name, Address: rs.Address}
+			return nil
+		}
+
+		// if RuntimeAddress is not provided, get defaults
+		converted, err := ConvertRuntimeToRuntimeSpec(rt)
+		if err != nil {
+			return err
+		}
+
+		*r = converted
 	default:
-		return fmt.Errorf("cannot determine runtime type: %s. valid values are containerd, dockershim, or crio", str)
+		return fmt.Errorf("invalid runtime: valid names are %s, %s, %s", RuntimeContainerd, RuntimeDockerShim, RuntimeCrio)
 	}
 
 	return nil
-}
-
-func (td *Duration) MarshalJSON() ([]byte, error) {
-	return []byte(fmt.Sprintf(`"%s"`, time.Duration(*td).String())), nil
 }
 
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
@@ -89,7 +147,7 @@ type ContainerConfig struct {
 }
 
 type ManagerConfig struct {
-	Runtime           Runtime          `json:"runtime,omitempty"`
+	Runtime           RuntimeSpec      `json:"runtime,omitempty"`
 	OTLPEndpoint      string           `json:"otlpEndpoint,omitempty"`
 	LogLevel          string           `json:"logLevel,omitempty"`
 	Scheduling        ScheduleConfig   `json:"scheduling,omitempty"`
