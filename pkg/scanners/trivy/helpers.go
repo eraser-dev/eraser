@@ -12,12 +12,14 @@ func loadConfig(filename string) (Config, error) {
 
 	b, err := os.ReadFile(filename)
 	if err != nil {
+		log.Info("LOADCONFIG unable to read file")
 		return cfg, err
 	}
 
 	var eraserConfig unversioned.EraserConfig
 	err = yaml.Unmarshal(b, &eraserConfig)
 	if err != nil {
+		log.Info("LOADCONFIG yaml.Unmarshal error")
 		return cfg, err
 	}
 
@@ -29,6 +31,7 @@ func loadConfig(filename string) (Config, error) {
 
 	err = yaml.Unmarshal(scanCfgBytes, &cfg)
 	if err != nil {
+		log.Info("LOADCONFIG scannner config yaml.Unmarshal error")
 		return cfg, err
 	}
 
