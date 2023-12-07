@@ -87,21 +87,21 @@ func (td *Duration) MarshalJSON() ([]byte, error) {
 func (r *RuntimeSpec) UnmarshalJSON(b []byte) error {
 	// create temp RuntimeSpec to prevent recursive error into this function when using unmarshall to check validity of provided RuntimeSpec
 	type TempRuntimeSpec struct {
-		Name    Runtime        `json:"name"`
-		Address RuntimeAddress `json:"address"`
+		Name    string `json:"name"`
+		Address string `json:"address"`
 	}
 	var rs TempRuntimeSpec
 	err := json.Unmarshal(b, &rs)
 	if err != nil {
-		return err
+		return fmt.Errorf("error unmarshalling into TempRuntimeSpec %v", err)
 	}
 
-	switch rt := rs.Name; rt {
+	switch rt := Runtime(rs.Name); rt {
 	// make sure user provided Runtime is valid
 	case RuntimeContainerd, RuntimeDockerShim, RuntimeCrio:
 		if rs.Address != "" {
 			// check that provided RuntimeAddress is valid
-			u, err := url.Parse(string(rs.Address))
+			u, err := url.Parse(rs.Address)
 			if err != nil {
 				return err
 			}
@@ -112,8 +112,8 @@ func (r *RuntimeSpec) UnmarshalJSON(b []byte) error {
 				return fmt.Errorf("invalid RuntimeAddress scheme: valid schemes for runtime socket address are `tcp` and `unix`")
 			}
 
-			r.Name = rs.Name
-			r.Address = rs.Address
+			r.Name = Runtime(rs.Name)
+			r.Address = RuntimeAddress(rs.Address)
 
 			return nil
 		}
