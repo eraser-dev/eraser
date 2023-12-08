@@ -93,7 +93,7 @@ func (r *RuntimeSpec) UnmarshalJSON(b []byte) error {
 	var rs TempRuntimeSpec
 	err := json.Unmarshal(b, &rs)
 	if err != nil {
-		return fmt.Errorf("error unmarshalling into TempRuntimeSpec %v", err)
+		return fmt.Errorf("error unmarshalling into TempRuntimeSpec %v %s", err, string(b))
 	}
 
 	switch rt := Runtime(rs.Name); rt {
