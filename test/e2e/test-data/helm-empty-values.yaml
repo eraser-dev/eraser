@@ -13,7 +13,7 @@
 # used, the test will fail.
 
 runtimeConfig:
-  apiVersion: eraser.sh/v1alpha2
+  apiVersion: eraser.sh/v1alpha3
   components:
     collector:
       image:
