@@ -2,7 +2,6 @@ package config
 
 import (
 	"fmt"
-	"sync"
 	"time"
 
 	v1alpha1 "github.com/eraser-dev/eraser/api/v1alpha1"
@@ -28,46 +27,6 @@ severities:
   - MEDIUM
   - LOW
 `
-
-type Manager struct {
-	mtx sync.Mutex
-	cfg *v1alpha1.EraserConfig
-}
-
-func (m *Manager) Read() (v1alpha1.EraserConfig, error) {
-	m.mtx.Lock()
-	defer m.mtx.Unlock()
-
-	if m.cfg == nil {
-		return v1alpha1.EraserConfig{}, fmt.Errorf("ConfigManager configuration is nil, aborting")
-	}
-
-	cfg := *m.cfg
-	return cfg, nil
-}
-
-func (m *Manager) Update(newC *v1alpha1.EraserConfig) error {
-	m.mtx.Lock()
-	defer m.mtx.Unlock()
-
-	if m.cfg == nil {
-		return fmt.Errorf("ConfigManager configuration is nil, aborting")
-	}
-
-	if newC == nil {
-		return fmt.Errorf("new configuration is nil, aborting")
-	}
-
-	*m.cfg = *newC
-	return nil
-}
-
-func NewManager(cfg *v1alpha1.EraserConfig) *Manager {
-	return &Manager{
-		mtx: sync.Mutex{},
-		cfg: cfg,
-	}
-}
 
 const (
 	noDelay = v1alpha1.Duration(0)
