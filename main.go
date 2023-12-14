@@ -46,6 +46,8 @@ import (
 	v1alpha1Config "github.com/eraser-dev/eraser/api/v1alpha1/config"
 	eraserv1alpha2 "github.com/eraser-dev/eraser/api/v1alpha2"
 	v1alpha2Config "github.com/eraser-dev/eraser/api/v1alpha2/config"
+	eraserv1alpha3 "github.com/eraser-dev/eraser/api/v1alpha3"
+	v1alpha3Config "github.com/eraser-dev/eraser/api/v1alpha3/config"
 	"github.com/eraser-dev/eraser/controllers"
 	"github.com/eraser-dev/eraser/pkg/logger"
 	"github.com/eraser-dev/eraser/version"
@@ -58,6 +60,7 @@ var (
 
 	fromV1alpha1 = eraserv1alpha1.Convert_v1alpha1_EraserConfig_To_unversioned_EraserConfig
 	fromV1alpha2 = eraserv1alpha2.Convert_v1alpha2_EraserConfig_To_unversioned_EraserConfig
+	fromV1alpha3 = eraserv1alpha3.Convert_v1alpha3_EraserConfig_To_unversioned_EraserConfig
 )
 
 func init() {
@@ -196,6 +199,8 @@ func getConfig(configFile string) (*unversioned.EraserConfig, error) {
 		return getUnversioned(fileBytes, v1alpha1Config.Default(), fromV1alpha1)
 	case "eraser.sh/v1alpha2":
 		return getUnversioned(fileBytes, v1alpha2Config.Default(), fromV1alpha2)
+	case "eraser.sh/v1alpha3":
+		return getUnversioned(fileBytes, v1alpha3Config.Default(), fromV1alpha3)
 	default:
 		setupLog.Error(fmt.Errorf("unknown api version"), "error", "apiVersion", av.APIVersion)
 		return nil, err
