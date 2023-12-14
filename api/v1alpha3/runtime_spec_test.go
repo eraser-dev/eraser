@@ -1,6 +1,7 @@
 package v1alpha3
 
 import (
+	"encoding/json"
 	"fmt"
 	"testing"
 )
@@ -63,27 +64,27 @@ func TestUnmarshalJSON(t *testing.T) {
 
 	tests := map[string]testCase{
 		"ValidContainerd": {
-			input:     []byte(`{"Name": "containerd", "Address": "unix:///run/containerd/containerd.sock"}`),
+			input:     []byte(`{"name": "containerd", "address": "unix:///run/containerd/containerd.sock"}`),
 			expected:  RuntimeSpec{Name: RuntimeContainerd, Address: RuntimeAddress(fmt.Sprintf("unix://%s", ContainerdPath))},
 			shouldErr: false,
 		},
 		"ValidDockerShim": {
-			input:     []byte(`{"Name": "dockershim", "Address": "unix:///run/dockershim.sock"}`),
+			input:     []byte(`{"name": "dockershim", "address": "unix:///run/dockershim.sock"}`),
 			expected:  RuntimeSpec{Name: RuntimeDockerShim, Address: RuntimeAddress(fmt.Sprintf("unix://%s", DockerPath))},
 			shouldErr: false,
 		},
 		"ValidCrio": {
-			input:     []byte(`{"Name": "crio", "Address": "unix:///run/crio/crio.sock"}`),
+			input:     []byte(`{"name": "crio", "address": "unix:///run/crio/crio.sock"}`),
 			expected:  RuntimeSpec{Name: RuntimeCrio, Address: RuntimeAddress(fmt.Sprintf("unix://%s", CrioPath))},
 			shouldErr: false,
 		},
 		"InvalidName": {
-			input:     []byte(`{"Name": "invalid", "Address": "unix:///invalid"}`),
+			input:     []byte(`{"name": "invalid", "address": "unix:///invalid"}`),
 			expected:  RuntimeSpec{},
 			shouldErr: true,
 		},
 		"InvalidAddressScheme": {
-			input:     []byte(`{"Name": "containerd", "Address": "http://invalid"}`),
+			input:     []byte(`{"name": "containerd", "address": "http://invalid"}`),
 			expected:  RuntimeSpec{},
 			shouldErr: true,
 		},
@@ -92,7 +93,7 @@ func TestUnmarshalJSON(t *testing.T) {
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
 			var rs RuntimeSpec
-			err := rs.UnmarshalJSON(test.input)
+			err := json.Unmarshal(test.input, &rs)
 
 			if test.shouldErr && err == nil {
 				t.Error("Expected an error but got nil")
