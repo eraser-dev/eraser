@@ -1,7 +1,9 @@
-apiVersion: eraser.sh/v1alpha2
+apiVersion: eraser.sh/v1alpha3
 kind: EraserConfig
 manager:
-  runtime: containerd
+  runtime:
+    name: containerd
+    address: unix:///run/containerd/containerd.sock
   otlpEndpoint: ""
   logLevel: info
   scheduling:
