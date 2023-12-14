@@ -16,17 +16,17 @@ func TestConvertRuntimeToRuntimeSpec(t *testing.T) {
 	tests := map[string]testCase{
 		"Containerd": {
 			input:     RuntimeContainerd,
-			expected:  RuntimeSpec{Name: RuntimeContainerd, Address: RuntimeAddress(fmt.Sprintf("unix://%s", ContainerdPath))},
+			expected:  RuntimeSpec{Name: RuntimeContainerd, Address: fmt.Sprintf("unix://%s", ContainerdPath)},
 			shouldErr: false,
 		},
 		"DockerShim": {
 			input:     RuntimeDockerShim,
-			expected:  RuntimeSpec{Name: RuntimeDockerShim, Address: RuntimeAddress(fmt.Sprintf("unix://%s", DockerPath))},
+			expected:  RuntimeSpec{Name: RuntimeDockerShim, Address: fmt.Sprintf("unix://%s", DockerPath)},
 			shouldErr: false,
 		},
 		"Crio": {
 			input:     RuntimeCrio,
-			expected:  RuntimeSpec{Name: RuntimeCrio, Address: RuntimeAddress(fmt.Sprintf("unix://%s", CrioPath))},
+			expected:  RuntimeSpec{Name: RuntimeCrio, Address: fmt.Sprintf("unix://%s", CrioPath)},
 			shouldErr: false,
 		},
 		"InvalidRuntime": {
@@ -65,17 +65,17 @@ func TestUnmarshalJSON(t *testing.T) {
 	tests := map[string]testCase{
 		"ValidContainerd": {
 			input:     []byte(`{"name": "containerd", "address": "unix:///run/containerd/containerd.sock"}`),
-			expected:  RuntimeSpec{Name: RuntimeContainerd, Address: RuntimeAddress(fmt.Sprintf("unix://%s", ContainerdPath))},
+			expected:  RuntimeSpec{Name: RuntimeContainerd, Address: fmt.Sprintf("unix://%s", ContainerdPath)},
 			shouldErr: false,
 		},
 		"ValidDockerShim": {
 			input:     []byte(`{"name": "dockershim", "address": "unix:///run/dockershim.sock"}`),
-			expected:  RuntimeSpec{Name: RuntimeDockerShim, Address: RuntimeAddress(fmt.Sprintf("unix://%s", DockerPath))},
+			expected:  RuntimeSpec{Name: RuntimeDockerShim, Address: fmt.Sprintf("unix://%s", DockerPath)},
 			shouldErr: false,
 		},
 		"ValidCrio": {
 			input:     []byte(`{"name": "crio", "address": "unix:///run/crio/crio.sock"}`),
-			expected:  RuntimeSpec{Name: RuntimeCrio, Address: RuntimeAddress(fmt.Sprintf("unix://%s", CrioPath))},
+			expected:  RuntimeSpec{Name: RuntimeCrio, Address: fmt.Sprintf("unix://%s", CrioPath)},
 			shouldErr: false,
 		},
 		"InvalidName": {

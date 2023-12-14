@@ -492,7 +492,7 @@ func Convert_unversioned_ResourceRequirements_To_v1alpha3_ResourceRequirements(i
 
 func autoConvert_v1alpha3_RuntimeSpec_To_unversioned_RuntimeSpec(in *RuntimeSpec, out *unversioned.RuntimeSpec, s conversion.Scope) error {
 	out.Name = unversioned.Runtime(in.Name)
-	out.Address = unversioned.RuntimeAddress(in.Address)
+	out.Address = in.Address
 	return nil
 }
 
@@ -503,7 +503,7 @@ func Convert_v1alpha3_RuntimeSpec_To_unversioned_RuntimeSpec(in *RuntimeSpec, ou
 
 func autoConvert_unversioned_RuntimeSpec_To_v1alpha3_RuntimeSpec(in *unversioned.RuntimeSpec, out *RuntimeSpec, s conversion.Scope) error {
 	out.Name = Runtime(in.Name)
-	out.Address = RuntimeAddress(in.Address)
+	out.Address = in.Address
 	return nil
 }
 

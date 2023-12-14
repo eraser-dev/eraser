@@ -27,13 +27,12 @@ import (
 )
 
 type (
-	Duration       time.Duration
-	Runtime        string
-	RuntimeAddress string
+	Duration time.Duration
+	Runtime  string
 
 	RuntimeSpec struct {
-		Name    Runtime        `json:"name"`
-		Address RuntimeAddress `json:"address"`
+		Name    Runtime `json:"name"`
+		Address string  `json:"address"`
 	}
 )
 
@@ -52,11 +51,11 @@ func ConvertRuntimeToRuntimeSpec(r Runtime) (RuntimeSpec, error) {
 
 	switch r {
 	case RuntimeContainerd:
-		rs = RuntimeSpec{Name: RuntimeContainerd, Address: RuntimeAddress(fmt.Sprintf("unix://%s", ContainerdPath))}
+		rs = RuntimeSpec{Name: RuntimeContainerd, Address: fmt.Sprintf("unix://%s", ContainerdPath)}
 	case RuntimeDockerShim:
-		rs = RuntimeSpec{Name: RuntimeDockerShim, Address: RuntimeAddress(fmt.Sprintf("unix://%s", DockerPath))}
+		rs = RuntimeSpec{Name: RuntimeDockerShim, Address: fmt.Sprintf("unix://%s", DockerPath)}
 	case RuntimeCrio:
-		rs = RuntimeSpec{Name: RuntimeCrio, Address: RuntimeAddress(fmt.Sprintf("unix://%s", CrioPath))}
+		rs = RuntimeSpec{Name: RuntimeCrio, Address: fmt.Sprintf("unix://%s", CrioPath)}
 	default:
 		return rs, fmt.Errorf("invalid runtime: valid names are %s, %s, %s", RuntimeContainerd, RuntimeDockerShim, RuntimeCrio)
 	}
@@ -113,7 +112,7 @@ func (r *RuntimeSpec) UnmarshalJSON(b []byte) error {
 			}
 
 			r.Name = Runtime(rs.Name)
-			r.Address = RuntimeAddress(rs.Address)
+			r.Address = rs.Address
 
 			return nil
 		}
