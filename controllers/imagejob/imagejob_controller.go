@@ -16,6 +16,7 @@ package imagejob
 import (
 	"context"
 	"fmt"
+	"net/url"
 	"os"
 	"strings"
 	"time"
@@ -566,10 +567,6 @@ func copyAndFillTemplateSpec(templateSpecTemplate *corev1.PodSpec, env []corev1.
 
 	env = append(env, runtimeEnv)
 
-	volumes := []corev1.Volume{
-		{Name: "runtime-sock-volume", VolumeSource: corev1.VolumeSource{HostPath: &corev1.HostPathVolumeSource{Path: runtimeSpec.Address}}},
-	}
-
 	toMountRuntimeAddress := controllerUtils.ContainerdPath
 
 	switch runtimeName {
@@ -577,6 +574,15 @@ func copyAndFillTemplateSpec(templateSpecTemplate *corev1.PodSpec, env []corev1.
 		toMountRuntimeAddress = controllerUtils.CrioPath
 	case unversioned.RuntimeDockerShim:
 		toMountRuntimeAddress = controllerUtils.DockerPath
+	}
+
+	u, err := url.Parse(runtimeSpec.Address)
+	if err != nil {
+		return nil, err
+	}
+
+	volumes := []corev1.Volume{
+		{Name: "runtime-sock-volume", VolumeSource: corev1.VolumeSource{HostPath: &corev1.HostPathVolumeSource{Path: u.Path}}},
 	}
 
 	volumeMounts := []corev1.VolumeMount{
