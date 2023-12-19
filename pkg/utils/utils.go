@@ -37,7 +37,7 @@ const (
 	ContainerdPath    = "/run/containerd/containerd.sock"
 	CrioPath          = "/run/crio/crio.sock"
 
-	EnvEraserContainerRuntime = "ERASER_CONTAINER_RUNTIME"
+	EnvEraserRuntimeName = "ERASER_RUNTIME_NAME"
 )
 
 type ExclusionList struct {
@@ -48,12 +48,6 @@ var (
 	ErrProtocolNotSupported  = errors.New("protocol not supported")
 	ErrEndpointDeprecated    = errors.New("endpoint is deprecated, please consider using full url format")
 	ErrOnlySupportUnixSocket = errors.New("only support unix socket endpoint")
-
-	RuntimeSocketPathMap = map[string]string{
-		RuntimeDocker:     DockerPath,
-		RuntimeContainerd: ContainerdPath,
-		RuntimeCrio:       CrioPath,
-	}
 )
 
 func GetConn(ctx context.Context, socketPath string) (conn *grpc.ClientConn, err error) {

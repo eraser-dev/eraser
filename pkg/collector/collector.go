@@ -19,7 +19,6 @@ import (
 )
 
 var (
-	runtimePtr    = flag.String("runtime", "containerd", "container runtime")
 	enableProfile = flag.Bool("enable-pprof", false, "enable pprof profiling")
 	profilePort   = flag.Int("pprof-port", 6060, "port for pprof profiling. defaulted to 6060 if unspecified")
 	scanDisabled  = flag.Bool("scan-disabled", false, "boolean for if scanner container is disabled")
@@ -49,10 +48,14 @@ func main() {
 		os.Exit(1)
 	}
 
-	socketPath, found := util.RuntimeSocketPathMap[*runtimePtr]
-	if !found {
-		log.Error(fmt.Errorf("unsupported runtime"), "runtime", *runtimePtr)
-		os.Exit(1)
+	runtimeName := os.Getenv(util.EnvEraserRuntimeName)
+	socketPath := util.ContainerdPath
+
+	switch runtimeName {
+	case util.RuntimeCrio:
+		socketPath = util.CrioPath
+	case util.RuntimeDocker:
+		socketPath = util.DockerPath
 	}
 
 	client, err := cri.NewCollectorClient(socketPath)
