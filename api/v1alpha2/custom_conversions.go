@@ -13,7 +13,13 @@ func Convert_v1alpha2_ManagerConfig_To_unversioned_ManagerConfig(in *ManagerConf
 //nolint:revive
 func manualConvert_v1alpha2_Runtime_To_unversioned_RuntimeSpec(in *Runtime, out *unversioned.RuntimeSpec, _ conversion.Scope) error {
 	out.Name = unversioned.Runtime(string(*in))
-	out.Address = ""
+
+	rs, err := unversioned.ConvertRuntimeToRuntimeSpec(out.Name)
+	if err != nil {
+		return err
+	}
+	out.Address = rs.Address
+
 	return nil
 }
 
