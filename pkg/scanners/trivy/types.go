@@ -16,6 +16,9 @@ const (
 	StatusFailed ScanStatus = iota
 	StatusNonCompliant
 	StatusOK
+	ImgSrcPodman     = "podman"
+	ImgSrcDocker     = "docker"
+	ImgSrcContainerd = "containerd"
 )
 
 const (
@@ -35,13 +38,13 @@ const (
 
 type (
 	Config struct {
-		Runtime            string        `json:"runtime,omitempty"`
-		CacheDir           string        `json:"cacheDir,omitempty"`
-		DBRepo             string        `json:"dbRepo,omitempty"`
-		DeleteFailedImages bool          `json:"deleteFailedImages,omitempty"`
-		DeleteEOLImages    bool          `json:"deleteEOLImages,omitempty"`
-		Vulnerabilities    VulnConfig    `json:"vulnerabilities,omitempty"`
-		Timeout            TimeoutConfig `json:"timeout,omitempty"`
+		Runtime            unversioned.RuntimeSpec `json:"runtime,omitempty"`
+		CacheDir           string                  `json:"cacheDir,omitempty"`
+		DBRepo             string                  `json:"dbRepo,omitempty"`
+		DeleteFailedImages bool                    `json:"deleteFailedImages,omitempty"`
+		DeleteEOLImages    bool                    `json:"deleteEOLImages,omitempty"`
+		Vulnerabilities    VulnConfig              `json:"vulnerabilities,omitempty"`
+		Timeout            TimeoutConfig           `json:"timeout,omitempty"`
 	}
 
 	VulnConfig struct {
@@ -67,6 +70,10 @@ type (
 
 func DefaultConfig() *Config {
 	return &Config{
+		Runtime: unversioned.RuntimeSpec{
+			Name:    unversioned.RuntimeContainerd,
+			Address: unversioned.ContainerdPath,
+		},
 		CacheDir:           "/var/lib/trivy",
 		DBRepo:             "ghcr.io/aquasecurity/trivy-db",
 		DeleteFailedImages: true,
@@ -102,13 +109,7 @@ func (c *Config) cliArgs(ref string) []string {
 		args = append(args, trivyTimeoutFlag, time.Duration(c.Timeout.PerImage).String())
 	}
 
-	runtime := "containerd"
-	// `trivy image`-specific options
-	if c.Runtime != "" {
-		runtime = c.Runtime
-	}
-
-	args = append(args, trivyImageArg, trivyRuntimeFlag, runtime)
+	args = append(args, trivyImageArg, trivyRuntimeFlag, c.getRuntimeVar())
 
 	if c.DBRepo != "" {
 		args = append(args, trivyDBRepoFlag, c.DBRepo)
@@ -143,6 +144,22 @@ func (c *Config) cliArgs(ref string) []string {
 	return args
 }
 
+func (c *Config) getRuntimeVar() string {
+	var imgsrc string
+	runtimeName := c.Runtime.Name
+
+	switch runtimeName {
+	case unversioned.RuntimeCrio:
+		imgsrc = ImgSrcPodman
+	case unversioned.RuntimeDockerShim:
+		imgsrc = ImgSrcDocker
+	default:
+		imgsrc = ImgSrcContainerd
+	}
+
+	return imgsrc
+}
+
 type ImageScanner struct {
 	config Config
 	timer  *time.Timer
@@ -165,6 +182,7 @@ func (s *ImageScanner) Scan(img unversioned.Image) (ScanStatus, error) {
 		cmd := exec.Command(trivyCommandName, cliArgs...)
 		cmd.Stdout = stdout
 		cmd.Stderr = stderr
+		cmd.Env = setRuntimeSocketEnvVars(cmd, s.config.Runtime)
 
 		log.V(1).Info("scanning image ref", "ref", refs[i], "cli_invocation", fmt.Sprintf("%s %s", trivyCommandName, strings.Join(cliArgs, " ")))
 		if err := cmd.Run(); err != nil {
@@ -201,6 +219,20 @@ func (s *ImageScanner) Scan(img unversioned.Image) (ScanStatus, error) {
 	}
 
 	return status, nil
+}
+
+func setRuntimeSocketEnvVars(cmd *exec.Cmd, runtime unversioned.RuntimeSpec) []string {
+	envKey := "CONTAINERD_ADDRESS"
+	envVal := runtime.Address
+
+	switch runtime.Name {
+	case unversioned.RuntimeDockerShim:
+		envKey = "DOCKER_HOST"
+	case unversioned.RuntimeCrio:
+		envKey = "XDG_RUNTIME_DIR"
+	}
+
+	return append(cmd.Env, fmt.Sprintf("%s=%s", envKey, envVal))
 }
 
 func (s *ImageScanner) Timer() *time.Timer {

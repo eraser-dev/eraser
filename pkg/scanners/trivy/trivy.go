@@ -160,12 +160,21 @@ func initScanner(userConfig *Config) (Scanner, error) {
 	sugar := logger.Sugar()
 	trivylogger.Logger = sugar
 
-	runtime := os.Getenv(utils.EnvEraserContainerRuntime)
-	if runtime == "" {
-		runtime = utils.RuntimeContainerd
+	runtimeName := os.Getenv(utils.EnvEraserRuntimeName)
+	runtimeAddress := utils.ContainerdPath
+
+	switch runtimeName {
+	case utils.RuntimeCrio:
+		runtimeAddress = utils.CrioPath
+	case utils.RuntimeDocker:
+		runtimeAddress = utils.DockerPath
 	}
 
-	userConfig.Runtime = runtime
+	userConfig.Runtime = unversioned.RuntimeSpec{
+		Name:    unversioned.Runtime(runtimeName),
+		Address: runtimeAddress,
+	}
+
 	totalTimeout := time.Duration(userConfig.Timeout.Total)
 	timer := time.NewTimer(totalTimeout)
 
