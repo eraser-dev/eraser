@@ -37,9 +37,10 @@ type (
 )
 
 const (
-	RuntimeContainerd Runtime = "containerd"
-	RuntimeDockerShim Runtime = "dockershim"
-	RuntimeCrio       Runtime = "crio"
+	RuntimeContainerd  Runtime = "containerd"
+	RuntimeDockerShim  Runtime = "dockershim"
+	RuntimeCrio        Runtime = "crio"
+	RuntimeNotProvided Runtime = ""
 
 	ContainerdPath = "/run/containerd/containerd.sock"
 	DockerPath     = "/run/dockershim.sock"
@@ -124,6 +125,14 @@ func (r *RuntimeSpec) UnmarshalJSON(b []byte) error {
 		}
 
 		*r = converted
+	case RuntimeNotProvided:
+		if rs.Address != "" {
+			return fmt.Errorf("runtime name must be provided with address")
+		}
+
+		// if empty name and address, use containerd as default
+		r.Name = RuntimeContainerd
+		r.Address = ContainerdPath
 	default:
 		return fmt.Errorf("invalid runtime: valid names are %s, %s, %s", RuntimeContainerd, RuntimeDockerShim, RuntimeCrio)
 	}
