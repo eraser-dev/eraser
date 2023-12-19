@@ -237,14 +237,22 @@ func setRuntimeSocketEnvVars(cmd *exec.Cmd, runtime unversioned.RuntimeSpec) []s
 			log.Error(err, "unable to get permissions for cri directory")
 		}
 
-		infoSocket, err := os.Stat("/run/cri/cri.sock")
+		infoSocket, err := os.Stat(utils.CRIPath)
 		if err != nil {
 			log.Error(err, "unable to get permissions for cri socket")
 		}
 
-		os.Mkdir("/run/podman", infoParent.Mode().Perm())
-		os.Symlink("/run/cri/cri.sock", "/run/podman/podman.sock")
-		os.Chmod("/run/podman/podman.sock", infoSocket.Mode().Perm())
+		if err := os.Mkdir("/run/podman", infoParent.Mode().Perm()); err != nil {
+			log.Error(err, "unable to create /run/podman dir")
+		}
+
+		if err := os.Symlink(utils.CRIPath, "/run/podman/podman.sock"); err != nil {
+			log.Error(err, "unable to create symlink between CRI path and /run/podman/podman.sock")
+		}
+
+		if err := os.Chmod("/run/podman/podman.sock", infoSocket.Mode().Perm()); err != nil {
+			log.Error(err, "unable to change /run/podman/podman.sock permissions")
+		}
 		envKey = "XDG_RUNTIME_DIR"
 		envVal = "/run"
 	}
