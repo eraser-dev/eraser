@@ -30,12 +30,7 @@ const (
 	EraseCompleteMessage     = "complete"
 	EraseCompleteScanPath    = "/run/eraser.sh/shared-data/eraseCompleteScan"
 
-	RuntimeDocker     = "docker"
-	RuntimeContainerd = "containerd"
-	RuntimeCrio       = "cri-o"
-	DockerPath        = "/run/dockershim.sock"
-	ContainerdPath    = "/run/containerd/containerd.sock"
-	CrioPath          = "/run/crio/crio.sock"
+	CRIPath = "/run/cri/cri.sock"
 
 	EnvEraserRuntimeName = "ERASER_RUNTIME_NAME"
 )

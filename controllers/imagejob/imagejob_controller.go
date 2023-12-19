@@ -558,23 +558,6 @@ nodes:
 
 func copyAndFillTemplateSpec(templateSpecTemplate *corev1.PodSpec, env []corev1.EnvVar, node *corev1.Node, runtimeSpec *unversioned.RuntimeSpec) (*corev1.PodSpec, error) {
 	nodeName := node.Name
-	runtimeName := runtimeSpec.Name
-
-	runtimeEnv := corev1.EnvVar{
-		Name:  "ERASER_RUNTIME_NAME",
-		Value: string(runtimeName),
-	}
-
-	env = append(env, runtimeEnv)
-
-	toMountRuntimeAddress := controllerUtils.ContainerdPath
-
-	switch runtimeName {
-	case unversioned.RuntimeCrio:
-		toMountRuntimeAddress = controllerUtils.CrioPath
-	case unversioned.RuntimeDockerShim:
-		toMountRuntimeAddress = controllerUtils.DockerPath
-	}
 
 	u, err := url.Parse(runtimeSpec.Address)
 	if err != nil {
@@ -586,7 +569,7 @@ func copyAndFillTemplateSpec(templateSpecTemplate *corev1.PodSpec, env []corev1.
 	}
 
 	volumeMounts := []corev1.VolumeMount{
-		{MountPath: toMountRuntimeAddress, Name: "runtime-sock-volume"},
+		{MountPath: controllerUtils.CRIPath, Name: "runtime-sock-volume"},
 	}
 
 	templateSpec := templateSpecTemplate.DeepCopy()

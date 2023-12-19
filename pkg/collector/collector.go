@@ -48,17 +48,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	runtimeName := os.Getenv(util.EnvEraserRuntimeName)
-	socketPath := util.ContainerdPath
-
-	switch runtimeName {
-	case util.RuntimeCrio:
-		socketPath = util.CrioPath
-	case util.RuntimeDocker:
-		socketPath = util.DockerPath
-	}
-
-	client, err := cri.NewCollectorClient(socketPath)
+	client, err := cri.NewCollectorClient(util.CRIPath)
 	if err != nil {
 		log.Error(err, "failed to get image client")
 		os.Exit(1)

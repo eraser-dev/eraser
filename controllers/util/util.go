@@ -16,9 +16,6 @@ import (
 var (
 	RemoverImage        = flag.String("remover-image", "", "remover image")
 	EraserConfigmapName = "eraser-manager-config"
-	DockerPath          = "/run/dockershim.sock"
-	ContainerdPath      = "/run/containerd/containerd.sock"
-	CrioPath            = "/run/crio/crio.sock"
 )
 
 func init() {
@@ -34,6 +31,7 @@ const (
 
 	EnvVarContainerdNamespaceKey   = "CONTAINERD_NAMESPACE"
 	EnvVarContainerdNamespaceValue = "k8s.io"
+	CRIPath                        = "/run/cri/cri.sock"
 )
 
 func NeverOnCreate(_ event.CreateEvent) bool {

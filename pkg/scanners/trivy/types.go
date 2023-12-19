@@ -4,12 +4,14 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"os"
 	"os/exec"
 	"strings"
 	"time"
 
 	trivyTypes "github.com/aquasecurity/trivy/pkg/types"
 	"github.com/eraser-dev/eraser/api/unversioned"
+	"github.com/eraser-dev/eraser/pkg/utils"
 )
 
 const (
@@ -72,7 +74,7 @@ func DefaultConfig() *Config {
 	return &Config{
 		Runtime: unversioned.RuntimeSpec{
 			Name:    unversioned.RuntimeContainerd,
-			Address: unversioned.ContainerdPath,
+			Address: utils.CRIPath,
 		},
 		CacheDir:           "/var/lib/trivy",
 		DBRepo:             "ghcr.io/aquasecurity/trivy-db",
@@ -182,9 +184,10 @@ func (s *ImageScanner) Scan(img unversioned.Image) (ScanStatus, error) {
 		cmd := exec.Command(trivyCommandName, cliArgs...)
 		cmd.Stdout = stdout
 		cmd.Stderr = stderr
+		cmd.Env = append(cmd.Env, os.Environ()...)
 		cmd.Env = setRuntimeSocketEnvVars(cmd, s.config.Runtime)
 
-		log.V(1).Info("scanning image ref", "ref", refs[i], "cli_invocation", fmt.Sprintf("%s %s", trivyCommandName, strings.Join(cliArgs, " ")))
+		log.V(1).Info("scanning image ref", "ref", refs[i], "cli_invocation", fmt.Sprintf("%s %s", trivyCommandName, strings.Join(cliArgs, " ")), "env", cmd.Env)
 		if err := cmd.Run(); err != nil {
 			log.Error(err, "error scanning image", "imageID", img.ImageID, "reference", refs[i], "stderr", stderr.String())
 			continue
@@ -223,13 +226,27 @@ func (s *ImageScanner) Scan(img unversioned.Image) (ScanStatus, error) {
 
 func setRuntimeSocketEnvVars(cmd *exec.Cmd, runtime unversioned.RuntimeSpec) []string {
 	envKey := "CONTAINERD_ADDRESS"
-	envVal := runtime.Address
+	envVal := utils.CRIPath
 
 	switch runtime.Name {
 	case unversioned.RuntimeDockerShim:
 		envKey = "DOCKER_HOST"
 	case unversioned.RuntimeCrio:
+		infoParent, err := os.Stat("/run/cri")
+		if err != nil {
+			log.Error(err, "unable to get permissions for cri directory")
+		}
+
+		infoSocket, err := os.Stat("/run/cri/cri.sock")
+		if err != nil {
+			log.Error(err, "unable to get permissions for cri socket")
+		}
+
+		os.Mkdir("/run/podman", infoParent.Mode().Perm())
+		os.Symlink("/run/cri/cri.sock", "/run/podman/podman.sock")
+		os.Chmod("/run/podman/podman.sock", infoSocket.Mode().Perm())
 		envKey = "XDG_RUNTIME_DIR"
+		envVal = "/run"
 	}
 
 	return append(cmd.Env, fmt.Sprintf("%s=%s", envKey, envVal))
