@@ -132,7 +132,7 @@ func (r *RuntimeSpec) UnmarshalJSON(b []byte) error {
 
 		// if empty name and address, use containerd as default
 		r.Name = RuntimeContainerd
-		r.Address = ContainerdPath
+		r.Address = fmt.Sprintf("unix://%s", ContainerdPath)
 	default:
 		return fmt.Errorf("invalid runtime: valid names are %s, %s, %s", RuntimeContainerd, RuntimeDockerShim, RuntimeCrio)
 	}
