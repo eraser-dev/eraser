@@ -42,6 +42,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 	"sigs.k8s.io/kind/pkg/errors"
 
+	"github.com/eraser-dev/eraser/api/unversioned"
 	"github.com/eraser-dev/eraser/api/unversioned/config"
 	eraserv1 "github.com/eraser-dev/eraser/api/v1"
 	controllerUtils "github.com/eraser-dev/eraser/controllers/util"
@@ -387,7 +388,7 @@ func (r *Reconciler) handleNewJob(ctx context.Context, imageJob *eraserv1.ImageJ
 	podSpecTemplate := template.Template.Spec
 	for i := range nodeList {
 		log := log.WithValues("node", nodeList[i].Name)
-		podSpec, err := copyAndFillTemplateSpec(&podSpecTemplate, env, &nodeList[i])
+		podSpec, err := copyAndFillTemplateSpec(&podSpecTemplate, env, &nodeList[i], &eraserConfig.Manager.Runtime)
 		if err != nil {
 			return err
 		}
@@ -554,36 +555,43 @@ nodes:
 	return nodeList, skipped, nil
 }
 
-func copyAndFillTemplateSpec(templateSpecTemplate *corev1.PodSpec, env []corev1.EnvVar, node *corev1.Node) (*corev1.PodSpec, error) {
+func copyAndFillTemplateSpec(templateSpecTemplate *corev1.PodSpec, env []corev1.EnvVar, node *corev1.Node, runtimeSpec *unversioned.RuntimeSpec) (*corev1.PodSpec, error) {
 	nodeName := node.Name
-	runtime := node.Status.NodeInfo.ContainerRuntimeVersion
-	runtimeName := strings.Split(runtime, ":")[0]
+	runtimeName := runtimeSpec.Name
 
-	mountPath, ok := eraserUtils.RuntimeSocketPathMap[runtimeName]
-	if !ok {
-		return nil, fmt.Errorf("incompatible runtime on node")
+	runtimeEnv := corev1.EnvVar{
+		Name:  "ERASER_RUNTIME_NAME",
+		Value: string(runtimeName),
 	}
 
-	args := []string{"--runtime=" + runtimeName}
+	env = append(env, runtimeEnv)
+
 	volumes := []corev1.Volume{
-		{Name: runtimeName + "-sock-volume", VolumeSource: corev1.VolumeSource{HostPath: &corev1.HostPathVolumeSource{Path: mountPath}}},
+		{Name: "runtime-sock-volume", VolumeSource: corev1.VolumeSource{HostPath: &corev1.HostPathVolumeSource{Path: runtimeSpec.Address}}},
+	}
+
+	toMountRuntimeAddress := controllerUtils.ContainerdPath
+
+	switch runtimeName {
+	case unversioned.RuntimeCrio:
+		toMountRuntimeAddress = controllerUtils.CrioPath
+	case unversioned.RuntimeDockerShim:
+		toMountRuntimeAddress = controllerUtils.DockerPath
 	}
 
 	volumeMounts := []corev1.VolumeMount{
-		{MountPath: mountPath, Name: runtimeName + "-sock-volume"},
+		{MountPath: toMountRuntimeAddress, Name: "runtime-sock-volume"},
 	}
 
 	templateSpec := templateSpecTemplate.DeepCopy()
 	templateSpec.Tolerations = defaultTolerations
 
 	eraserImg := &templateSpec.Containers[0]
-	eraserImg.Args = append(eraserImg.Args, args...)
 	eraserImg.VolumeMounts = append(eraserImg.VolumeMounts, volumeMounts...)
 	eraserImg.Env = append(eraserImg.Env, env...)
 
 	if len(templateSpec.Containers) > 1 {
 		collectorImg := &templateSpec.Containers[1]
-		collectorImg.Args = append(collectorImg.Args, args...)
 		collectorImg.VolumeMounts = append(collectorImg.VolumeMounts, volumeMounts...)
 		collectorImg.Env = append(collectorImg.Env, env...)
 	}
@@ -592,10 +600,6 @@ func copyAndFillTemplateSpec(templateSpecTemplate *corev1.PodSpec, env []corev1.
 		scannerImg := &templateSpec.Containers[2]
 		scannerImg.VolumeMounts = append(scannerImg.VolumeMounts, volumeMounts...)
 		scannerImg.Env = append(scannerImg.Env,
-			corev1.EnvVar{
-				Name:  eraserUtils.EnvEraserContainerRuntime,
-				Value: runtimeName,
-			},
 			corev1.EnvVar{
 				Name:  controllerUtils.EnvVarContainerdNamespaceKey,
 				Value: controllerUtils.EnvVarContainerdNamespaceValue,
