@@ -49,6 +49,9 @@ spec:
               fieldPath: metadata.namespace
         - name: OTEL_SERVICE_NAME
           value: eraser-manager
+        {{- if .Values.runtimeConfig.manager.extraEnv }}
+           {{- toYaml .Values.runtimeConfig.manager.extraEnv | nindent 8 }}
+        {{- end }}
         image: '{{ .Values.deploy.image.repo }}:{{ .Values.deploy.image.tag | default .Chart.AppVersion }}'
         imagePullPolicy: '{{ .Values.deploy.image.pullPolicy }}'
         livenessProbe:
@@ -80,6 +83,9 @@ spec:
         volumeMounts:
         - mountPath: /config
           name: eraser-manager-config
+        {{- if .Values.deploy.extraVolumeMounts }}
+           {{- toYaml .Values.deploy.extraVolumeMounts| nindent 8 }}
+        {{- end }}
       nodeSelector:
         {{- toYaml .Values.deploy.nodeSelector | nindent 8 }}
       priorityClassName: '{{ .Values.deploy.priorityClassName }}'
@@ -91,3 +97,6 @@ spec:
       - configMap:
           name: eraser-manager-config
         name: eraser-manager-config
+      {{- if .Values.deploy.extraVolumes }}
+        {{- toYaml .Values.deploy.extraVolumes | nindent 6 }}
+      {{- end }}

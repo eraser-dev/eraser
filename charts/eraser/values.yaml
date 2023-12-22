@@ -13,6 +13,19 @@ runtimeConfig:
   manager:
     runtime: containerd
     otlpEndpoint: ""
+    extraEnv: []
+    # - name: SECRET_ENV_VARIABLE
+    #   valueFrom:
+    #     secretKeyRef:
+    #       name: my-secret
+    #       key: secret-key
+    # - name: FIELD_ENV_VARIABLE
+    #   valueFrom:
+    #     fieldRef:
+    #       apiVersion: v1
+    #       fieldPath: metadata.namespace
+    # - name: ANOTHER_ENV_VARIABLE
+    #   value: another_value
     logLevel: info
     scheduling: {}
       # repeatInterval: ""
@@ -111,5 +124,13 @@ deploy:
   tolerations: []
 
   affinity: {}
+
+  extraVolumes: []
+    # - name: additional-volume
+    #   emptyDir: {}
+
+  extraVolumeMounts: []
+    # - name: additional-volume
+    #   mountPath: /data
 
 nameOverride: ""
