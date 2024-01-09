@@ -25,6 +25,11 @@ func TestMain(m *testing.M) {
 	scannerImage := util.ParsedImages.ScannerImage
 
 	util.Testenv = env.NewWithConfig(envconf.New())
+
+	if err := os.Setenv("CONTAINERD_ADDRESS", "/fake/runtime/address.sock"); err != nil {
+		os.Exit(1)
+	}
+
 	// Create KinD Cluster
 	util.Testenv.Setup(
 		envfuncs.CreateKindClusterWithConfig(util.KindClusterName, util.NodeVersion, util.KindConfigPath),
@@ -64,7 +69,7 @@ func TestMain(m *testing.M) {
 			"--set", util.CustomRuntimeName.Set("containerd"),
 		),
 	).Finish(
-	// envfuncs.DestroyKindCluster(util.KindClusterName),
+		envfuncs.DestroyKindCluster(util.KindClusterName),
 	)
 	os.Exit(util.Testenv.Run(m))
 }

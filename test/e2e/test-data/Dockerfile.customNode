@@ -1,5 +1,0 @@
-ARG NODE_VERSION
-FROM kindest/node:v${NODE_VERSION}
-
-RUN echo '[grpc]' >> /etc/containerd/config.toml \
-    && echo '  address = "/fake/socket/address.sock"' >> /etc/containerd/config.toml

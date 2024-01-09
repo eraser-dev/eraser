@@ -110,6 +110,7 @@ var (
 	E2EPath                            = filepath.Join(ProjectAbsDir, "test", "e2e")
 	TestDataPath                       = filepath.Join(E2EPath, "test-data")
 	KindConfigPath                     = filepath.Join(E2EPath, "kind-config.yaml")
+	KindConfigCustomRuntimePath        = filepath.Join(E2EPath, "kind-config-custom-runtime.yaml")
 	HelmEmptyValuesPath                = filepath.Join(TestDataPath, "helm-empty-values.yaml")
 	ChartPath                          = filepath.Join(ProjectAbsDir, providerResourceChartDir)
 	DeployPath                         = filepath.Join(ProjectAbsDir, providerResourceDeployDir)
@@ -119,11 +120,10 @@ var (
 	EraserV1ImagelistPath              = filepath.Join(TestDataPath, "eraser_v1_imagelist.yaml")
 	ImagelistAlpinePath                = filepath.Join(TestDataPath, "imagelist_alpine.yaml")
 
-	NodeVersion       = os.Getenv("NODE_VERSION")
-	ModifiedNodeImage = os.Getenv("MODIFIED_NODE_IMAGE")
-	TestNamespace     = envconf.RandomName("test-ns", 16)
-	EraserNamespace   = pkgUtil.GetNamespace()
-	TestLogDir        = os.Getenv("TEST_LOGDIR")
+	NodeVersion     = os.Getenv("NODE_VERSION")
+	TestNamespace   = envconf.RandomName("test-ns", 16)
+	EraserNamespace = pkgUtil.GetNamespace()
+	TestLogDir      = os.Getenv("TEST_LOGDIR")
 
 	ParsedImages        *Images
 	Timeout             = time.Minute * 5
