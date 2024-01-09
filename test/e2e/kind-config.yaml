@@ -4,3 +4,7 @@ nodes:
 - role: control-plane
 - role: worker
 - role: worker
+containerdConfigPatches:
+- |
+  [grpc]
+    address = "/fake/socket/address.sock"

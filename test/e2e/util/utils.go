@@ -79,6 +79,9 @@ const (
 	FilterNodesType       = HelmPath("runtimeConfig.manager.nodeFilter.type")
 	ScheduleImmediate     = HelmPath("runtimeConfig.manager.scheduling.beginImmediately")
 
+	CustomRuntimeAddress = HelmPath("runtimeConfig.manager.runtime.name")
+	CustomRuntimeName    = HelmPath("runtimeConfig.manager.runtime.address")
+
 	CollectorLabel       = "collector"
 	ManualLabel          = "manual"
 	ImageJobTypeLabelKey = "eraser.sh/type"
@@ -116,10 +119,11 @@ var (
 	EraserV1ImagelistPath              = filepath.Join(TestDataPath, "eraser_v1_imagelist.yaml")
 	ImagelistAlpinePath                = filepath.Join(TestDataPath, "imagelist_alpine.yaml")
 
-	NodeVersion     = os.Getenv("NODE_VERSION")
-	TestNamespace   = envconf.RandomName("test-ns", 16)
-	EraserNamespace = pkgUtil.GetNamespace()
-	TestLogDir      = os.Getenv("TEST_LOGDIR")
+	NodeVersion       = os.Getenv("NODE_VERSION")
+	ModifiedNodeImage = os.Getenv("MODIFIED_NODE_IMAGE")
+	TestNamespace     = envconf.RandomName("test-ns", 16)
+	EraserNamespace   = pkgUtil.GetNamespace()
+	TestLogDir        = os.Getenv("TEST_LOGDIR")
 
 	ParsedImages        *Images
 	Timeout             = time.Minute * 5

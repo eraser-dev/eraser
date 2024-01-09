@@ -32,6 +32,8 @@ var (
 func main() {
 	flag.Parse()
 
+	log.Info("starting collector")
+
 	if *enableProfile {
 		go func() {
 			server := &http.Server{
@@ -43,10 +45,14 @@ func main() {
 		}()
 	}
 
+	log.Info("setting up logger")
+
 	if err := logger.Configure(); err != nil {
 		fmt.Fprintln(os.Stderr, "Error setting up logger:", err)
 		os.Exit(1)
 	}
+
+	log.Info("new collector client")
 
 	client, err := cri.NewCollectorClient(util.CRIPath)
 	if err != nil {
