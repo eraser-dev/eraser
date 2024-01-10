@@ -4,7 +4,7 @@ ARG BUILDKIT_SBOM_SCAN_STAGE=builder,manager-build,collector-build,remover-build
 FROM --platform=$TARGETPLATFORM ghcr.io/aquasecurity/trivy:0.48.1 AS trivy-binary
 
 # Build the manager binary
-FROM --platform=$BUILDPLATFORM golang:1.21-bookworm AS builder
+FROM --platform=$BUILDPLATFORM mcr.microsoft.com/oss/go/microsoft/golang:1.21-fips-cbl-mariner2.0 AS builder
 WORKDIR /workspace
 # Copy the Go Modules manifests
 COPY go.mod go.mod
@@ -12,7 +12,6 @@ COPY go.sum go.sum
 # cache deps before building and copying source so that we don't need to re-download as much
 # and so that source changes don't invalidate our downloaded layer
 ENV GOCACHE=/root/gocache
-ENV CGO_ENABLED=0
 RUN \
     --mount=type=cache,target=${GOCACHE} \
     --mount=type=cache,target=/go/pkg/mod \
@@ -27,41 +26,41 @@ FROM builder AS manager-build
 RUN \
     --mount=type=cache,target=${GOCACHE} \
     --mount=type=cache,target=/go/pkg/mod \
-    GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build ${LDFLAGS:+-ldflags "$LDFLAGS"} -o out/manager main.go
+    GOOS=${TARGETOS} GOARCH=${TARGETARCH} GOEXPERIMENT=systemcrypto go build -tags=requirefips ${LDFLAGS:+-ldflags "$LDFLAGS"} -o out/manager main.go
 
 FROM builder AS collector-build
 RUN \
     --mount=type=cache,target=${GOCACHE} \
     --mount=type=cache,target=/go/pkg/mod \
-    GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build ${LDFLAGS:+-ldflags "$LDFLAGS"} -o out/collector ./pkg/collector
+    GOOS=${TARGETOS} GOARCH=${TARGETARCH} GOEXPERIMENT=systemcrypto go build -tags=requirefips ${LDFLAGS:+-ldflags "$LDFLAGS"} -o out/collector ./pkg/collector
 
 FROM builder AS remover-build
 RUN \
     --mount=type=cache,target=${GOCACHE} \
     --mount=type=cache,target=/go/pkg/mod \
-    GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build ${LDFLAGS:+-ldflags "$LDFLAGS"} -o out/remover ./pkg/remover
+    GOOS=${TARGETOS} GOARCH=${TARGETARCH} GOEXPERIMENT=systemcrypto go build -tags=requirefips ${LDFLAGS:+-ldflags "$LDFLAGS"} -o out/remover ./pkg/remover
 
 FROM builder AS trivy-scanner-build
 RUN \
     --mount=type=cache,target=${GOCACHE} \
     --mount=type=cache,target=/go/pkg/mod \
-    GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build ${LDFLAGS:+-ldflags "$LDFLAGS"} -o out/trivy-scanner ./pkg/scanners/trivy
+    GOOS=${TARGETOS} GOARCH=${TARGETARCH} GOEXPERIMENT=systemcrypto go build -tags=requirefips ${LDFLAGS:+-ldflags "$LDFLAGS"} -o out/trivy-scanner ./pkg/scanners/trivy
 
-FROM --platform=$TARGETPLATFORM gcr.io/distroless/static:nonroot AS manager
+FROM --platform=$TARGETPLATFORM mcr.microsoft.com/cbl-mariner/distroless/base:2.0 AS manager
 WORKDIR /
 COPY --from=manager-build /workspace/out/manager .
 USER 65532:65532
 ENTRYPOINT ["/manager"]
 
-FROM --platform=$TARGETPLATFORM gcr.io/distroless/static:latest as collector
+FROM --platform=$TARGETPLATFORM mcr.microsoft.com/cbl-mariner/distroless/base:2.0 as collector
 COPY --from=collector-build /workspace/out/collector /
 ENTRYPOINT ["/collector"]
 
-FROM --platform=$TARGETPLATFORM gcr.io/distroless/static:latest as remover
+FROM --platform=$TARGETPLATFORM mcr.microsoft.com/cbl-mariner/distroless/base:2.0 as remover
 COPY --from=remover-build /workspace/out/remover /
 ENTRYPOINT ["/remover"]
 
-FROM --platform=$TARGETPLATFORM gcr.io/distroless/static:latest as trivy-scanner
+FROM --platform=$TARGETPLATFORM mcr.microsoft.com/cbl-mariner/distroless/base:2.0 as trivy-scanner
 COPY --from=trivy-scanner-build /workspace/out/trivy-scanner /
 COPY --from=trivy-binary /usr/local/bin/trivy /
 WORKDIR /var/lib/trivy
