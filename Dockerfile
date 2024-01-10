@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1.6
 
-ARG BUILDERIMAGE="golang:1.20-bullseye"
+ARG BUILDERIMAGE="golang:1.21-bookworm"
 ARG TRIVY_BINARY_IMG="ghcr.io/aquasecurity/trivy:0.45.1"
 ARG STATICBASEIMAGE="gcr.io/distroless/static:latest"
 ARG STATICNONROOTBASEIMAGE="gcr.io/distroless/static:nonroot"
