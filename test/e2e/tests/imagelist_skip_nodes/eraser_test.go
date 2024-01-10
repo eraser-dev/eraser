@@ -128,7 +128,7 @@ func TestSkipNodes(t *testing.T) {
 			defer cancel()
 
 			// ensure images are removed from all nodes except the one we are skipping. remove the node we are skipping from the list of nodes.
-			util.CheckImageRemoved(ctxT, false, t, clusterNodes, util.Nginx)
+			util.CheckImageRemoved(ctxT, t, clusterNodes, util.Nginx)
 
 			// get pod logs before imagejob is deleted
 			if err := util.GetPodLogs(t); err != nil {

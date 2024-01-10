@@ -18,7 +18,7 @@ func TestEnsureScannerFunctions(t *testing.T) {
 		Assess("Vulnerable and EOL images are successfully deleted from all nodes", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
 			ctxT, cancel := context.WithTimeout(ctx, util.Timeout)
 			defer cancel()
-			util.CheckImageRemoved(ctxT, false, t, util.GetClusterNodes(t), util.Alpine)
+			util.CheckImageRemoved(ctxT, t, util.GetClusterNodes(t), util.Alpine)
 
 			return ctx
 		}).

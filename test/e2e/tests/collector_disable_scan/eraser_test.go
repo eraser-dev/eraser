@@ -19,7 +19,7 @@ func TestDisableScanner(t *testing.T) {
 		Assess("Non-vulnerable image successfully deleted from all nodes", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
 			ctxT, cancel := context.WithTimeout(ctx, util.Timeout)
 			defer cancel()
-			util.CheckImageRemoved(ctxT, false, t, util.GetClusterNodes(t), util.NonVulnerableImage)
+			util.CheckImageRemoved(ctxT, t, util.GetClusterNodes(t), util.NonVulnerableImage)
 
 			return ctx
 		}).
