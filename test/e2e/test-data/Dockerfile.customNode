@@ -1,4 +1,4 @@
-ARG NODE_VERSION
-FROM kindest/node:v${NODE_VERSION}
+ARG KUBERNETES_VERSION
+FROM kindest/node:v${KUBERNETES_VERSION}
 
 ENV CONTAINERD_ADDRESS="/fake/socket/address.sock"
