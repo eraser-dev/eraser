@@ -161,7 +161,7 @@ func TestEnsureAliasedImageRemoved(t *testing.T) {
 
 			ctxT, cancel := context.WithTimeout(ctx, util.Timeout)
 			defer cancel()
-			util.CheckImageRemoved(ctxT, t, []string{nodeName}, util.Nginx)
+			util.CheckImageRemoved(false, ctxT, t, []string{nodeName}, util.Nginx)
 
 			return ctx
 		}).

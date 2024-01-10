@@ -121,7 +121,7 @@ func TestUpdateImageList(t *testing.T) {
 
 			ctxT, cancel := context.WithTimeout(ctx, util.Timeout)
 			defer cancel()
-			util.CheckImageRemoved(ctxT, t, util.GetClusterNodes(t), util.Nginx)
+			util.CheckImageRemoved(false, ctxT, t, util.GetClusterNodes(t), util.Nginx)
 
 			return ctx
 		}).
@@ -133,7 +133,7 @@ func TestUpdateImageList(t *testing.T) {
 
 			ctxT, cancel := context.WithTimeout(ctx, util.Timeout)
 			defer cancel()
-			util.CheckImageRemoved(ctxT, t, util.GetClusterNodes(t), util.Redis)
+			util.CheckImageRemoved(false, ctxT, t, util.GetClusterNodes(t), util.Redis)
 
 			return ctx
 		}).

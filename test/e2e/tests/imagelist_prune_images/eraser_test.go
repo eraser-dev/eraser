@@ -146,11 +146,11 @@ func TestPrune(t *testing.T) {
 			// So we'll give plenty of time and fail slow here.
 			ctxT, cancel := context.WithTimeout(ctx, util.Timeout)
 			defer cancel()
-			util.CheckImageRemoved(ctxT, t, util.GetClusterNodes(t), util.Redis)
+			util.CheckImageRemoved(false, ctxT, t, util.GetClusterNodes(t), util.Redis)
 
 			ctxT, cancel = context.WithTimeout(ctx, util.Timeout)
 			defer cancel()
-			util.CheckImageRemoved(ctxT, t, util.GetClusterNodes(t), util.Caddy)
+			util.CheckImageRemoved(false, ctxT, t, util.GetClusterNodes(t), util.Caddy)
 
 			// Make sure nginx is still there
 			util.CheckImagesExist(t, util.GetClusterNodes(t), util.Nginx)

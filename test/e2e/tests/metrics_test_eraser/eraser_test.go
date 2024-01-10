@@ -29,7 +29,7 @@ func TestMetricsEraserOnly(t *testing.T) {
 
 			ctxT, cancel := context.WithTimeout(ctx, util.Timeout)
 			defer cancel()
-			util.CheckImageRemoved(ctxT, t, util.GetClusterNodes(t), util.VulnerableImage)
+			util.CheckImageRemoved(false, ctxT, t, util.GetClusterNodes(t), util.VulnerableImage)
 
 			return ctx
 		}).

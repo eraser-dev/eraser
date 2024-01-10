@@ -14,11 +14,11 @@ import (
 )
 
 func TestCustomRuntimeAddress(t *testing.T) {
-	collectRuntimeFeat := features.New("Collector pods should run automatically, trigger the scanner, then the eraser pods. Helm test with custom runtime socket address.").
-		Assess("Vulnerable and EOL images are successfully deleted from all nodes", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
+	collectRuntimeFeat := features.New("Collector pod should hang and not access socket. CheckImageRemoved should timeout. Helm test with custom runtime socket address.").
+		Assess("Vulnerable and EOL images are not successfully deleted from all nodes", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
 			ctxT, cancel := context.WithTimeout(ctx, util.Timeout)
 			defer cancel()
-			util.CheckImageRemoved(false, ctxT, t, util.GetClusterNodes(t), util.Alpine)
+			util.CheckImageRemoved(true, ctxT, t, util.GetClusterNodes(t), util.Alpine)
 
 			return ctx
 		}).

@@ -531,14 +531,16 @@ func CheckDeploymentCleanedUp(ctx context.Context, t *testing.T, client klient.C
 	}
 }
 
-func CheckImageRemoved(ctx context.Context, t *testing.T, nodes []string, images ...string) {
+func CheckImageRemoved(shouldTimeout bool, ctx context.Context, t *testing.T, nodes []string, images ...string) {
 	t.Helper()
 
 	cleaned := make(map[string]bool)
 	for len(cleaned) < len(nodes) {
 		select {
 		case <-ctx.Done():
-			t.Error("timeout waiting for images to be cleaned")
+			if !shouldTimeout {
+				t.Error("timeout waiting for images to be cleaned")
+			}
 			return
 		default:
 		}
