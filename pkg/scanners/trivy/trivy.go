@@ -161,7 +161,7 @@ func initScanner(userConfig *Config) (Scanner, error) {
 	trivylogger.Logger = sugar
 
 	userConfig.Runtime = unversioned.RuntimeSpec{
-		Name:    unversioned.Runtime(utils.EnvEraserRuntimeName),
+		Name:    unversioned.Runtime(os.Getenv(utils.EnvEraserRuntimeName)),
 		Address: utils.CRIPath,
 	}
 
