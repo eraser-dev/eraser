@@ -177,13 +177,13 @@ non-vulnerable-img:
 		-t ${NON_VULNERABLE_IMG} \
 		--target non-vulnerable .
 
-custom-node:
-	docker build -t custom-node:latest \
+custom-node-v$(KUBERNETES_VERSION):
+	docker build -t custom-node:v$(KUBERNETES_VERSION) \
 		-f test/e2e/test-data/Dockerfile.customNode \
 		--build-arg NODE_VERSION=${KUBERNETES_VERSION} test/e2e/test-data
-MODIFIED_NODE_IMAGE=custom-node:latest
+MODIFIED_NODE_IMAGE=custom-node:v$(KUBERNETES_VERSION)
 
-e2e-test: vulnerable-img eol-img non-vulnerable-img busybox-img collector-dummy-img custom-node
+e2e-test: vulnerable-img eol-img non-vulnerable-img busybox-img collector-dummy-img custom-node-v$(KUBERNETES_VERSION)
 	for test in $(E2E_TESTS); do \
 		CGO_ENABLED=0 \
             PROJECT_ABSOLUTE_PATH=$(CURDIR) \
