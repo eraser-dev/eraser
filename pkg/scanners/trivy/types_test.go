@@ -39,9 +39,14 @@ func TestCLIArgs(t *testing.T) {
 			expected: []string{"--format=json", "image", "--image-src", ImgSrcContainerd, ref},
 		},
 		{
-			desc:     "alternative runtime",
+			desc:     "alternative runtime crio",
 			config:   Config{Runtime: unversioned.RuntimeSpec{Name: unversioned.RuntimeCrio, Address: unversioned.CrioPath}},
 			expected: []string{"--format=json", "image", "--image-src", ImgSrcPodman, ref},
+		},
+		{
+			desc:     "alternative runtime dockershim",
+			config:   Config{Runtime: unversioned.RuntimeSpec{Name: unversioned.RuntimeDockerShim, Address: unversioned.DockerPath}},
+			expected: []string{"--format=json", "image", "--image-src", ImgSrcDocker, ref},
 		},
 		{
 			desc:     "with cachedir",
