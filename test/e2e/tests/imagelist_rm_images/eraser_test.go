@@ -140,7 +140,7 @@ func TestImageListTriggersRemoverImageJob(t *testing.T) {
 
 			ctxT, cancel := context.WithTimeout(ctx, time.Minute*3)
 			defer cancel()
-			util.CheckImageRemoved(false, ctxT, t, util.GetClusterNodes(t), util.Nginx)
+			util.CheckImageRemoved(ctxT, false, t, util.GetClusterNodes(t), util.Nginx)
 
 			return ctx
 		}).

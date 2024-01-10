@@ -531,7 +531,7 @@ func CheckDeploymentCleanedUp(ctx context.Context, t *testing.T, client klient.C
 	}
 }
 
-func CheckImageRemoved(shouldTimeout bool, ctx context.Context, t *testing.T, nodes []string, images ...string) {
+func CheckImageRemoved(ctx context.Context, shouldTimeout bool, t *testing.T, nodes []string, images ...string) {
 	t.Helper()
 
 	cleaned := make(map[string]bool)

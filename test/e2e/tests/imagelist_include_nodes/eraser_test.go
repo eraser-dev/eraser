@@ -128,7 +128,7 @@ func TestIncludeNodes(t *testing.T) {
 			defer cancel()
 
 			// ensure image is removed from filtered node.
-			util.CheckImageRemoved(false, ctxT, t, []string{util.FilterNodeName}, util.Nginx)
+			util.CheckImageRemoved(ctxT, false, t, []string{util.FilterNodeName}, util.Nginx)
 
 			// Wait for the imagejob to be completed by checking for its nonexistence in the cluster
 			err = wait.For(util.ImagejobNotInCluster(cfg.KubeconfigFile()), wait.WithTimeout(util.Timeout))

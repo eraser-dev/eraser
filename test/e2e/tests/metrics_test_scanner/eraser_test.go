@@ -24,7 +24,7 @@ func TestMetricsWithScanner(t *testing.T) {
 		Assess("Alpine image is removed", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
 			ctxT, cancel := context.WithTimeout(ctx, util.Timeout)
 			defer cancel()
-			util.CheckImageRemoved(ctxT, t, util.GetClusterNodes(t), util.VulnerableImage)
+			util.CheckImageRemoved(ctxT, false, t, util.GetClusterNodes(t), util.VulnerableImage)
 
 			return ctx
 		}).
