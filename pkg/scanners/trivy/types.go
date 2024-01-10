@@ -111,7 +111,12 @@ func (c *Config) cliArgs(ref string) []string {
 		args = append(args, trivyTimeoutFlag, time.Duration(c.Timeout.PerImage).String())
 	}
 
-	args = append(args, trivyImageArg, trivyRuntimeFlag, c.getRuntimeVar())
+	runtimeVar, err := c.getRuntimeVar()
+	if err != nil {
+		log.Error(err, "invalid runtime provided")
+	}
+
+	args = append(args, trivyImageArg, trivyRuntimeFlag, runtimeVar)
 
 	if c.DBRepo != "" {
 		args = append(args, trivyDBRepoFlag, c.DBRepo)
@@ -146,20 +151,20 @@ func (c *Config) cliArgs(ref string) []string {
 	return args
 }
 
-func (c *Config) getRuntimeVar() string {
+func (c *Config) getRuntimeVar() (string, error) {
 	var imgsrc string
 	runtimeName := c.Runtime.Name
-
 	switch runtimeName {
 	case unversioned.RuntimeCrio:
 		imgsrc = ImgSrcPodman
 	case unversioned.RuntimeDockerShim:
 		imgsrc = ImgSrcDocker
-	default:
+	case unversioned.RuntimeContainerd, unversioned.Runtime(""):
 		imgsrc = ImgSrcContainerd
+	default:
+		return "", fmt.Errorf("invalid runtime provided: %q", runtimeName)
 	}
-
-	return imgsrc
+	return imgsrc, nil
 }
 
 type ImageScanner struct {
