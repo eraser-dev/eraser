@@ -26,13 +26,9 @@ func TestMain(m *testing.M) {
 
 	util.Testenv = env.NewWithConfig(envconf.New())
 
-	if err := os.Setenv("CONTAINERD_ADDRESS", "/fake/runtime/address.sock"); err != nil {
-		os.Exit(1)
-	}
-
 	// Create KinD Cluster
 	util.Testenv.Setup(
-		envfuncs.CreateKindClusterWithConfig(util.KindClusterName, util.NodeVersion, util.KindConfigPath),
+		envfuncs.CreateKindClusterWithConfig(util.KindClusterName, util.ModifiedNodeImage, util.KindConfigCustomRuntimePath),
 		envfuncs.CreateNamespace(util.TestNamespace),
 		util.LoadImageToCluster(util.KindClusterName, util.ManagerImage, util.ManagerTarballPath),
 		util.LoadImageToCluster(util.KindClusterName, util.RemoverImage, util.RemoverTarballPath),

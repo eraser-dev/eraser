@@ -18,7 +18,7 @@ REMOVER_IMG ?= ${REMOVER_REPO}:${REMOVER_TAG}
 COLLECTOR_REPO ?= ghcr.io/eraser-dev/collector
 COLLECTOR_IMG ?= ${COLLECTOR_REPO}:${COLLECTOR_TAG}
 VULNERABLE_IMG ?= docker.io/library/alpine:3.7.3
-EOL_IMG ?= docker.io/library/alpine:3.1
+EOL_IMG ?= docker.io/library/alpine:3.7.3
 BUSYBOX_BASE_IMG ?= busybox:1.36.0
 NON_VULNERABLE_IMG ?= ghcr.io/eraser-dev/non-vulnerable:latest
 E2E_TESTS ?= $(shell find ./test/e2e/tests/ -mindepth 1 -type d)
@@ -177,7 +177,13 @@ non-vulnerable-img:
 		-t ${NON_VULNERABLE_IMG} \
 		--target non-vulnerable .
 
-e2e-test: vulnerable-img eol-img non-vulnerable-img busybox-img collector-dummy-img
+custom-node:
+	docker build -t custom-node:latest \
+		-f test/e2e/test-data/Dockerfile.customNode \
+		--build-arg NODE_VERSION=${KUBERNETES_VERSION} test/e2e/test-data
+MODIFIED_NODE_IMAGE=custom-node:latest
+
+e2e-test: vulnerable-img eol-img non-vulnerable-img busybox-img collector-dummy-img custom-node
 	for test in $(E2E_TESTS); do \
 		CGO_ENABLED=0 \
             PROJECT_ABSOLUTE_PATH=$(CURDIR) \
@@ -196,6 +202,7 @@ e2e-test: vulnerable-img eol-img non-vulnerable-img busybox-img collector-dummy-
 			NON_VULNERABLE_IMAGE=${NON_VULNERABLE_IMG} \
 			EOL_IMAGE=${EOL_IMG} \
 			NODE_VERSION=kindest/node:v${KUBERNETES_VERSION} \
+			MODIFIED_NODE_IMAGE=${MODIFIED_NODE_IMAGE} \
 			TEST_LOGDIR=${TEST_LOGDIR} \
 			go test -count=$(TEST_COUNT) -timeout=$(TIMEOUT) $(TESTFLAGS) -tags=e2e -v $$test ; \
 	done

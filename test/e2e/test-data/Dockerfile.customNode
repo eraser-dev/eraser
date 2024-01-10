@@ -1,0 +1,4 @@
+ARG NODE_VERSION
+FROM kindest/node:v${NODE_VERSION}
+
+ENV CONTAINERD_ADDRESS="/fake/socket/address.sock"
