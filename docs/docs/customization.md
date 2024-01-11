@@ -87,7 +87,9 @@ these options, see the [table](#detailed-options).
 
 ```yaml
 manager:
-  runtime: containerd
+  runtime:
+    name: containerd
+    address: unix:///run/containerd/containerd.sock
   otlpEndpoint: "" # empty string disables OpenTelemetry
   logLevel: info
   profile:
@@ -192,7 +194,8 @@ timeout:
 
 | Option | Description | Default |
 | --- | --- | --- |
-| manager.runtime | The runtime to use for the manager's containers. Must be one of containerd, crio, or dockershim. It is assumed that your nodes are all using the same runtime, and there is currently no way to configure multiple runtimes. | containerd |
+| manager.runtime.name | The runtime to use for the manager's containers. Must be one of containerd, crio, or dockershim. It is assumed that your nodes are all using the same runtime, and there is currently no way to configure multiple runtimes. | containerd |
+| manager.runtime.address | The runtime socket address to use for the containers. Can provide a custom address for containerd and dockershim runtimes, but not for crio due to Trivy restrictions. | unix:///run/containerd/containerd.sock |
 | manager.otlpEndpoint | The endpoint to send OpenTelemetry data to. If empty, data will not be sent. | "" |
 | manager.logLevel | The log level for the manager's containers. Must be one of debug, info, warn, error, dpanic, panic, or fatal. | info |
 | manager.scheduling.repeatInterval | Use only when collector ando/or scanner are enabled. This is like a cron job, and will spawn an _ImageJob_ at the interval provided. | 24h |
