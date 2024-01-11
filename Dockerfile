@@ -1,7 +1,8 @@
 # syntax=docker/dockerfile:1.6
+ARG TRIVY_BINARY_IMG="ghcr.io/aquasecurity/trivy:0.48.3"
 ARG BUILDKIT_SBOM_SCAN_STAGE=builder,manager-build,collector-build,remover-build,trivy-scanner-build
 
-FROM --platform=$TARGETPLATFORM ghcr.io/aquasecurity/trivy:0.48.3 AS trivy-binary
+FROM --platform=$TARGETPLATFORM $TRIVY_BINARY_IMG AS trivy-binary
 
 # Build the manager binary
 FROM --platform=$BUILDPLATFORM golang:1.21-bookworm AS builder
