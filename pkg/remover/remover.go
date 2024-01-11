@@ -26,7 +26,6 @@ import (
 )
 
 var (
-	runtimePtr    = flag.String("runtime", "containerd", "container runtime")
 	imageListPtr  = flag.String("imagelist", "", "name of ImageList")
 	enableProfile = flag.Bool("enable-pprof", false, "enable pprof profiling")
 	profilePort   = flag.Int("pprof-port", 6060, "port for pprof profiling. defaulted to 6060 if unspecified")
@@ -60,13 +59,7 @@ func main() {
 		os.Exit(generalErr)
 	}
 
-	socketPath, found := util.RuntimeSocketPathMap[*runtimePtr]
-	if !found {
-		log.Error(fmt.Errorf("unsupported runtime"), "runtime", *runtimePtr)
-		os.Exit(generalErr)
-	}
-
-	client, err := cri.NewRemoverClient(socketPath)
+	client, err := cri.NewRemoverClient(util.CRIPath)
 	if err != nil {
 		log.Error(err, "failed to get image client")
 		os.Exit(generalErr)
