@@ -79,6 +79,9 @@ const (
 	FilterNodesType       = HelmPath("runtimeConfig.manager.nodeFilter.type")
 	ScheduleImmediate     = HelmPath("runtimeConfig.manager.scheduling.beginImmediately")
 
+	CustomRuntimeAddress = HelmPath("runtimeConfig.manager.runtime.address")
+	CustomRuntimeName    = HelmPath("runtimeConfig.manager.runtime.name")
+
 	CollectorLabel       = "collector"
 	ManualLabel          = "manual"
 	ImageJobTypeLabelKey = "eraser.sh/type"
@@ -107,6 +110,7 @@ var (
 	E2EPath                            = filepath.Join(ProjectAbsDir, "test", "e2e")
 	TestDataPath                       = filepath.Join(E2EPath, "test-data")
 	KindConfigPath                     = filepath.Join(E2EPath, "kind-config.yaml")
+	KindConfigCustomRuntimePath        = filepath.Join(E2EPath, "kind-config-custom-runtime.yaml")
 	HelmEmptyValuesPath                = filepath.Join(TestDataPath, "helm-empty-values.yaml")
 	ChartPath                          = filepath.Join(ProjectAbsDir, providerResourceChartDir)
 	DeployPath                         = filepath.Join(ProjectAbsDir, providerResourceDeployDir)
@@ -116,10 +120,11 @@ var (
 	EraserV1ImagelistPath              = filepath.Join(TestDataPath, "eraser_v1_imagelist.yaml")
 	ImagelistAlpinePath                = filepath.Join(TestDataPath, "imagelist_alpine.yaml")
 
-	NodeVersion     = os.Getenv("NODE_VERSION")
-	TestNamespace   = envconf.RandomName("test-ns", 16)
-	EraserNamespace = pkgUtil.GetNamespace()
-	TestLogDir      = os.Getenv("TEST_LOGDIR")
+	NodeVersion       = os.Getenv("NODE_VERSION")
+	ModifiedNodeImage = os.Getenv("MODIFIED_NODE_IMAGE")
+	TestNamespace     = envconf.RandomName("test-ns", 16)
+	EraserNamespace   = pkgUtil.GetNamespace()
+	TestLogDir        = os.Getenv("TEST_LOGDIR")
 
 	ParsedImages        *Images
 	Timeout             = time.Minute * 5
@@ -583,20 +588,6 @@ func DockerPullImage(image string) (string, error) {
 func DockerTagImage(image, tag string) (string, error) {
 	args := []string{"tag", image, tag}
 	cmd := exec.Command("docker", args...)
-
-	stdoutStderr, err := cmd.CombinedOutput()
-	output := strings.TrimSpace(string(stdoutStderr))
-	if err != nil {
-		err = fmt.Errorf("%w: %s", err, output)
-	}
-
-	return output, err
-}
-
-func KindLoadImage(clusterName string, images ...string) (string, error) {
-	args := []string{"load", "docker-image", "--name", clusterName}
-	args = append(args, images...)
-	cmd := exec.Command("kind", args...)
 
 	stdoutStderr, err := cmd.CombinedOutput()
 	output := strings.TrimSpace(string(stdoutStderr))

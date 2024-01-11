@@ -162,7 +162,6 @@ collector-dummy-img:
 		test/e2e/test-data
 COLLECTOR_IMAGE_DUMMY=$(COLLECTOR_REPO):dummy
 
-
 vulnerable-img:
 	docker pull $(VULNERABLE_IMG)
 
@@ -178,7 +177,13 @@ non-vulnerable-img:
 		-t ${NON_VULNERABLE_IMG} \
 		--target non-vulnerable .
 
-e2e-test: vulnerable-img eol-img non-vulnerable-img busybox-img collector-dummy-img
+custom-node-v$(KUBERNETES_VERSION):
+	docker build -t custom-node:v$(KUBERNETES_VERSION) \
+		-f test/e2e/test-data/Dockerfile.customNode \
+		--build-arg KUBERNETES_VERSION=${KUBERNETES_VERSION} test/e2e/test-data
+MODIFIED_NODE_IMAGE=custom-node:v$(KUBERNETES_VERSION)
+
+e2e-test: vulnerable-img eol-img non-vulnerable-img busybox-img collector-dummy-img custom-node-v$(KUBERNETES_VERSION)
 	for test in $(E2E_TESTS); do \
 		CGO_ENABLED=0 \
             PROJECT_ABSOLUTE_PATH=$(CURDIR) \
@@ -197,6 +202,7 @@ e2e-test: vulnerable-img eol-img non-vulnerable-img busybox-img collector-dummy-
 			NON_VULNERABLE_IMAGE=${NON_VULNERABLE_IMG} \
 			EOL_IMAGE=${EOL_IMG} \
 			NODE_VERSION=kindest/node:v${KUBERNETES_VERSION} \
+			MODIFIED_NODE_IMAGE=${MODIFIED_NODE_IMAGE} \
 			TEST_LOGDIR=${TEST_LOGDIR} \
 			go test -count=$(TEST_COUNT) -timeout=$(TIMEOUT) $(TESTFLAGS) -tags=e2e -v $$test ; \
 	done

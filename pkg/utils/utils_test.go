@@ -16,10 +16,10 @@ func TestParseEndpointWithFallBackProtocol(t *testing.T) {
 		errCheck         func(t *testing.T, err error)
 	}{
 		{
-			endpoint:         fmt.Sprintf("unix://%s", ContainerdPath),
+			endpoint:         fmt.Sprintf("unix://%s", CRIPath),
 			fallbackProtocol: "unix",
 			protocol:         "unix",
-			addr:             ContainerdPath,
+			addr:             CRIPath,
 			errCheck: func(t *testing.T, err error) {
 				if err != nil {
 					t.Error(err)
@@ -81,9 +81,9 @@ func TestParseEndpoint(t *testing.T) {
 		errCheck func(t *testing.T, err error)
 	}{
 		{
-			endpoint: fmt.Sprintf("unix://%s", ContainerdPath),
+			endpoint: fmt.Sprintf("unix://%s", CRIPath),
 			protocol: "unix",
-			addr:     ContainerdPath,
+			addr:     CRIPath,
 			errCheck: func(t *testing.T, err error) {
 				if err != nil {
 					t.Error(err)
@@ -140,8 +140,8 @@ func TestGetAddressAndDialer(t *testing.T) {
 		err      error
 	}{
 		{
-			endpoint: fmt.Sprintf("unix://%s", DockerPath),
-			addr:     DockerPath,
+			endpoint: fmt.Sprintf("unix://%s", CRIPath),
+			addr:     CRIPath,
 			err:      nil,
 		},
 		{
