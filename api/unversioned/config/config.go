@@ -78,7 +78,10 @@ const (
 func Default() *unversioned.EraserConfig {
 	return &unversioned.EraserConfig{
 		Manager: unversioned.ManagerConfig{
-			Runtime:      "containerd",
+			Runtime: unversioned.RuntimeSpec{
+				Name:    unversioned.RuntimeContainerd,
+				Address: "unix:///run/containerd/containerd.sock",
+			},
 			OTLPEndpoint: "",
 			LogLevel:     "info",
 			Scheduling: unversioned.ScheduleConfig{

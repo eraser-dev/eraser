@@ -9,7 +9,7 @@ REMOVER_TAG ?= ${VERSION}
 TRIVY_SCANNER_REPO ?= ghcr.io/eraser-dev/eraser-trivy-scanner
 TRIVY_SCANNER_IMG ?= ${TRIVY_SCANNER_REPO}:${TRIVY_SCANNER_TAG}
 TRIVY_BINARY_REPO ?= ghcr.io/aquasecurity/trivy
-TRIVY_BINARY_TAG ?= 0.45.1
+TRIVY_BINARY_TAG ?= 0.48.3
 TRIVY_BINARY_IMG ?= ${TRIVY_BINARY_REPO}:${TRIVY_BINARY_TAG}
 MANAGER_REPO ?= ghcr.io/eraser-dev/eraser-manager
 MANAGER_IMG ?= ${MANAGER_REPO}:${MANAGER_TAG}
@@ -22,7 +22,7 @@ EOL_IMG ?= docker.io/library/alpine:3.1
 BUSYBOX_BASE_IMG ?= busybox:1.36.0
 NON_VULNERABLE_IMG ?= ghcr.io/eraser-dev/non-vulnerable:latest
 E2E_TESTS ?= $(shell find ./test/e2e/tests/ -mindepth 1 -type d)
-API_VERSIONS ?= ./api/v1alpha1,./api/v1,./api/v1alpha2
+API_VERSIONS ?= ./api/v1alpha1,./api/v1,./api/v1alpha2,./api/v1alpha3
 
 HELM_UPGRADE_TEST ?=
 TEST_LOGDIR ?= $(PWD)/test_logs
@@ -162,7 +162,6 @@ collector-dummy-img:
 		test/e2e/test-data
 COLLECTOR_IMAGE_DUMMY=$(COLLECTOR_REPO):dummy
 
-
 vulnerable-img:
 	docker pull $(VULNERABLE_IMG)
 
@@ -178,7 +177,13 @@ non-vulnerable-img:
 		-t ${NON_VULNERABLE_IMG} \
 		--target non-vulnerable .
 
-e2e-test: vulnerable-img eol-img non-vulnerable-img busybox-img collector-dummy-img
+custom-node-v$(KUBERNETES_VERSION):
+	docker build -t custom-node:v$(KUBERNETES_VERSION) \
+		-f test/e2e/test-data/Dockerfile.customNode \
+		--build-arg KUBERNETES_VERSION=${KUBERNETES_VERSION} test/e2e/test-data
+MODIFIED_NODE_IMAGE=custom-node:v$(KUBERNETES_VERSION)
+
+e2e-test: vulnerable-img eol-img non-vulnerable-img busybox-img collector-dummy-img custom-node-v$(KUBERNETES_VERSION)
 	for test in $(E2E_TESTS); do \
 		CGO_ENABLED=0 \
             PROJECT_ABSOLUTE_PATH=$(CURDIR) \
@@ -197,6 +202,7 @@ e2e-test: vulnerable-img eol-img non-vulnerable-img busybox-img collector-dummy-
 			NON_VULNERABLE_IMAGE=${NON_VULNERABLE_IMG} \
 			EOL_IMAGE=${EOL_IMG} \
 			NODE_VERSION=kindest/node:v${KUBERNETES_VERSION} \
+			MODIFIED_NODE_IMAGE=${MODIFIED_NODE_IMAGE} \
 			TEST_LOGDIR=${TEST_LOGDIR} \
 			go test -count=$(TEST_COUNT) -timeout=$(TIMEOUT) $(TESTFLAGS) -tags=e2e -v $$test ; \
 	done

@@ -12,13 +12,14 @@ func loadConfig(filename string) (Config, error) {
 
 	b, err := os.ReadFile(filename)
 	if err != nil {
+		log.Error(err, "unable to read eraser config")
 		return cfg, err
 	}
 
 	var eraserConfig unversioned.EraserConfig
 	err = yaml.Unmarshal(b, &eraserConfig)
 	if err != nil {
-		return cfg, err
+		log.Error(err, "unable to unmarshal eraser config")
 	}
 
 	scanCfgYaml := eraserConfig.Components.Scanner.Config
@@ -29,6 +30,7 @@ func loadConfig(filename string) (Config, error) {
 
 	err = yaml.Unmarshal(scanCfgBytes, &cfg)
 	if err != nil {
+		log.Error(err, "unable to unmarshal scanner config")
 		return cfg, err
 	}
 
