@@ -8,9 +8,7 @@ REMOVER_TAG ?= ${VERSION}
 # Image URL to use all building/pushing image targets
 TRIVY_SCANNER_REPO ?= ghcr.io/eraser-dev/eraser-trivy-scanner
 TRIVY_SCANNER_IMG ?= ${TRIVY_SCANNER_REPO}:${TRIVY_SCANNER_TAG}
-TRIVY_BINARY_REPO ?= ghcr.io/aquasecurity/trivy
-TRIVY_BINARY_TAG ?= 0.45.1
-TRIVY_BINARY_IMG ?= ${TRIVY_BINARY_REPO}:${TRIVY_BINARY_TAG}
+TRIVY_BINARY_VERSION ?= 0.48.3
 MANAGER_REPO ?= ghcr.io/eraser-dev/eraser-manager
 MANAGER_IMG ?= ${MANAGER_REPO}:${MANAGER_TAG}
 REMOVER_REPO ?= ghcr.io/eraser-dev/remover
@@ -43,7 +41,7 @@ PLATFORM ?= linux
 # build variables
 LDFLAGS ?= $(shell build/version.sh "${VERSION}")
 ERASER_LDFLAGS ?= -extldflags=-static $(LDFLAGS) -w
-TRIVY_SCANNER_LDFLAGS ?= $(ERASER_LDFLAGS) -X 'main.trivyVersion=v$(TRIVY_BINARY_TAG)'
+TRIVY_SCANNER_LDFLAGS ?= $(ERASER_LDFLAGS) -X 'main.trivyVersion=v$(TRIVY_BINARY_VERSION)'
 
 # Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
 ifeq (,$(shell go env GOBIN))
@@ -222,7 +220,6 @@ docker-build-trivy-scanner: ## Build docker image for trivy-scanner image.
 	docker buildx build \
 		$(_CACHE_FROM) $(_CACHE_TO) \
 		$(_ATTESTATIONS) \
-		--build-arg TRIVY_BINARY_IMG="$(TRIVY_BINARY_IMG)" \
 		--build-arg LDFLAGS="$(TRIVY_SCANNER_LDFLAGS)" \
 		--platform="$(PLATFORM)" \
 		--output=$(OUTPUT_TYPE) \
