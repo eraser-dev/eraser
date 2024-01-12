@@ -8,6 +8,9 @@ updates:
     commit-message:
       prefix: "chore"
     groups:
+      docusaurus:
+        patterns:
+        - "@docusaurus/*"
       all:
         patterns:
         - "*"
@@ -34,6 +37,10 @@ updates:
         update-types:
         - "version-update:semver-major"
         - "version-update:semver-minor"
+    groups:
+      k8s:
+        patterns:
+        - "k8s.io/kubernetes"
 
   - package-ecosystem: docker
     directory: /
