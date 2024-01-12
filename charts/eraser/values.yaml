@@ -1,5 +1,5 @@
 runtimeConfig:
-  apiVersion: eraser.sh/v1alpha2
+  apiVersion: eraser.sh/v1alpha3
   kind: EraserConfig
   health: {}
     # healthProbeBindAddress: :8081
@@ -11,7 +11,9 @@ runtimeConfig:
     # leaderElect: true
     # resourceName: e29e094a.k8s.io
   manager:
-    runtime: containerd
+    runtime:
+      name: containerd
+      address: unix:///run/containerd/containerd.sock
     otlpEndpoint: ""
     logLevel: info
     scheduling: {}
@@ -37,7 +39,7 @@ runtimeConfig:
       enabled: true
       image:
         # repo: ""
-        tag: "v1.3.0-beta.0"
+        tag: "v1.4.0-beta.0"
       request: {}
         # mem: ""
         # cpu: ""
@@ -48,7 +50,7 @@ runtimeConfig:
       enabled: true
       image:
         # repo: ""
-        tag: "v1.3.0-beta.0"
+        tag: "v1.4.0-beta.0"
       request: {}
         # mem: ""
         # cpu: ""
@@ -72,13 +74,14 @@ runtimeConfig:
         #     - HIGH
         #     - MEDIUM
         #     - LOW
+        #   ignoredStatuses:
         # timeout:
         #   total: 23h
         #   perImage: 1h
     remover:
       image:
         # repo: ""
-        tag: "v1.3.0-beta.0"
+        tag: "v1.4.0-beta.0"
       request: {}
         # mem: ""
         # cpu: ""
@@ -91,7 +94,7 @@ deploy:
     repo: ghcr.io/eraser-dev/eraser-manager
     pullPolicy: IfNotPresent
     # Overrides the image tag whose default is the chart appVersion.
-    tag: "v1.3.0-beta.0"
+    tag: "v1.4.0-beta.0"
   additionalArgs: []
   priorityClassName: ""
 
