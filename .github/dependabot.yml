@@ -37,7 +37,9 @@ updates:
     groups:
       k8s:
         patterns:
-        - "k8s.io/kubernetes"
+        - "k8s.io/*"
+        exclude-patterns:
+        - "k8s.io/cri-api"
 
   - package-ecosystem: docker
     directory: /
