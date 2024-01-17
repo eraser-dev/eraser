@@ -438,6 +438,10 @@ func (r *Reconciler) createImageJob(ctx context.Context) (ctrl.Result, error) {
 					Name:  "OTEL_SERVICE_NAME",
 					Value: "trivy-scanner",
 				},
+				{
+					Name:  "ERASER_RUNTIME_NAME",
+					Value: string(mgrCfg.Runtime.Name),
+				},
 			},
 		}
 		jobTemplate.Spec.Containers = append(jobTemplate.Spec.Containers, scannerContainer)
