@@ -26,67 +26,72 @@ func TestCLIArgs(t *testing.T) {
 			desc:   "empty config",
 			config: Config{},
 			// default container runtime is containerd
-			expected: []string{"--format=json", "image", "--image-src", "containerd", ref},
+			expected: []string{"--format=json", "image", "--image-src", ImgSrcContainerd, ref},
 		},
 		{
 			desc:     "DeleteFailedImages has no effect",
 			config:   Config{DeleteFailedImages: true},
-			expected: []string{"--format=json", "image", "--image-src", "containerd", ref},
+			expected: []string{"--format=json", "image", "--image-src", ImgSrcContainerd, ref},
 		},
 		{
 			desc:     "DeleteEOLImages has no effect",
 			config:   Config{DeleteEOLImages: true},
-			expected: []string{"--format=json", "image", "--image-src", "containerd", ref},
+			expected: []string{"--format=json", "image", "--image-src", ImgSrcContainerd, ref},
 		},
 		{
-			desc:     "alternative runtime",
-			config:   Config{Runtime: "crio"},
-			expected: []string{"--format=json", "image", "--image-src", "crio", ref},
+			desc:     "alternative runtime crio",
+			config:   Config{Runtime: unversioned.RuntimeSpec{Name: unversioned.RuntimeCrio, Address: unversioned.CrioPath}},
+			expected: []string{"--format=json", "image", "--image-src", ImgSrcPodman, ref},
+		},
+		{
+			desc:     "alternative runtime dockershim",
+			config:   Config{Runtime: unversioned.RuntimeSpec{Name: unversioned.RuntimeDockerShim, Address: unversioned.DockerPath}},
+			expected: []string{"--format=json", "image", "--image-src", ImgSrcDocker, ref},
 		},
 		{
 			desc:     "with cachedir",
 			config:   Config{CacheDir: "/var/lib/trivy"},
-			expected: []string{"--format=json", "--cache-dir", "/var/lib/trivy", "image", "--image-src", "containerd", ref},
+			expected: []string{"--format=json", "--cache-dir", "/var/lib/trivy", "image", "--image-src", ImgSrcContainerd, ref},
 		},
 		{
 			desc:     "with custom db repo",
 			config:   Config{DBRepo: "example.test/db/repo"},
-			expected: []string{"--format=json", "image", "--image-src", "containerd", "--db-repository", "example.test/db/repo", ref},
+			expected: []string{"--format=json", "image", "--image-src", ImgSrcContainerd, "--db-repository", "example.test/db/repo", ref},
 		},
 		{
 			desc:     "ignore unfixed",
 			config:   Config{Vulnerabilities: VulnConfig{IgnoreUnfixed: true}},
-			expected: []string{"--format=json", "image", "--image-src", "containerd", "--ignore-unfixed", ref},
+			expected: []string{"--format=json", "image", "--image-src", ImgSrcContainerd, "--ignore-unfixed", ref},
 		},
 		{
 			desc:     "specify vulnerability types",
 			config:   Config{Vulnerabilities: VulnConfig{Types: []string{"library", "os"}}},
-			expected: []string{"--format=json", "image", "--image-src", "containerd", "--vuln-type", "library,os", ref},
+			expected: []string{"--format=json", "image", "--image-src", ImgSrcContainerd, "--vuln-type", "library,os", ref},
 		},
 		{
 			desc:     "specify security checks / scanners",
 			config:   Config{Vulnerabilities: VulnConfig{SecurityChecks: []string{"license", "vuln"}}},
-			expected: []string{"--format=json", "image", "--image-src", "containerd", "--scanners", "license,vuln", ref},
+			expected: []string{"--format=json", "image", "--image-src", ImgSrcContainerd, "--scanners", "license,vuln", ref},
 		},
 		{
 			desc:     "specify severities",
 			config:   Config{Vulnerabilities: VulnConfig{Severities: []string{"LOW", "MEDIUM"}}},
-			expected: []string{"--format=json", "image", "--image-src", "containerd", "--severity", "LOW,MEDIUM", ref},
+			expected: []string{"--format=json", "image", "--image-src", ImgSrcContainerd, "--severity", "LOW,MEDIUM", ref},
 		},
 		{
 			desc:     "specify statuses to ignore",
 			config:   Config{Vulnerabilities: VulnConfig{IgnoredStatuses: []string{statusUnknown, statusFixed, statusWillNotFix}}},
-			expected: []string{"--format=json", "image", "--image-src", "containerd", "--ignore-status", "unknown,fixed,will_not_fix", ref},
+			expected: []string{"--format=json", "image", "--image-src", ImgSrcContainerd, "--ignore-status", "unknown,fixed,will_not_fix", ref},
 		},
 		{
 			desc:     "total timeout has no effect",
 			config:   Config{Timeout: TimeoutConfig{Total: testDuration}},
-			expected: []string{"--format=json", "image", "--image-src", "containerd", ref},
+			expected: []string{"--format=json", "image", "--image-src", ImgSrcContainerd, ref},
 		},
 		{
 			desc:     "per-image timeout",
 			config:   Config{Timeout: TimeoutConfig{PerImage: testDuration}},
-			expected: []string{"--format=json", "--timeout", "1m40s", "image", "--image-src", "containerd", ref},
+			expected: []string{"--format=json", "--timeout", "1m40s", "image", "--image-src", ImgSrcContainerd, ref},
 		},
 		{
 			desc:   "all global options",
@@ -97,8 +102,11 @@ func TestCLIArgs(t *testing.T) {
 		{
 			desc: "all `image` options",
 			config: Config{
-				Runtime: "crio",
-				DBRepo:  "example.test/db/repo",
+				Runtime: unversioned.RuntimeSpec{
+					Name:    unversioned.RuntimeCrio,
+					Address: unversioned.CrioPath,
+				},
+				DBRepo: "example.test/db/repo",
 				Vulnerabilities: VulnConfig{
 					IgnoreUnfixed:   true,
 					Types:           []string{"library", "os"},
@@ -108,7 +116,7 @@ func TestCLIArgs(t *testing.T) {
 				},
 			},
 			expected: []string{
-				"--format=json", "image", "--image-src", "crio", "--db-repository", "example.test/db/repo", "--ignore-unfixed",
+				"--format=json", "image", "--image-src", ImgSrcPodman, "--db-repository", "example.test/db/repo", "--ignore-unfixed",
 				"--vuln-type", "library,os", "--scanners", "license,vuln", "--severity", "LOW,MEDIUM", "--ignore-status", "unknown,fixed", ref,
 			},
 		},
@@ -117,8 +125,11 @@ func TestCLIArgs(t *testing.T) {
 			config: Config{
 				CacheDir: "/var/lib/trivy",
 				Timeout:  TimeoutConfig{PerImage: testDuration},
-				Runtime:  "crio",
-				DBRepo:   "example.test/db/repo",
+				Runtime: unversioned.RuntimeSpec{
+					Name:    unversioned.RuntimeCrio,
+					Address: unversioned.CrioPath,
+				},
+				DBRepo: "example.test/db/repo",
 				Vulnerabilities: VulnConfig{
 					IgnoreUnfixed:   true,
 					Types:           []string{"os"},
@@ -128,7 +139,7 @@ func TestCLIArgs(t *testing.T) {
 				},
 			},
 			expected: []string{
-				"--format=json", "--cache-dir", "/var/lib/trivy", "--timeout", "1m40s", "image", "--image-src", "crio",
+				"--format=json", "--cache-dir", "/var/lib/trivy", "--timeout", "1m40s", "image", "--image-src", ImgSrcPodman,
 				"--db-repository", "example.test/db/repo", "--ignore-unfixed", "--vuln-type", "os", "--scanners",
 				"license,vuln", "--severity", "CRITICAL", "--ignore-status", "unknown,fixed", ref,
 			},

@@ -31,6 +31,7 @@ const (
 
 	EnvVarContainerdNamespaceKey   = "CONTAINERD_NAMESPACE"
 	EnvVarContainerdNamespaceValue = "k8s.io"
+	CRIPath                        = "/run/cri/cri.sock"
 )
 
 func NeverOnCreate(_ event.CreateEvent) bool {
