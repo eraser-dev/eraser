@@ -55,7 +55,7 @@ jobs:
       - name: Fetch Build Artifacts
         uses: actions/download-artifact@6b208ae046db98c579e8a3aa621ab581ff575935 # v4.1.1
         with:
-          name: ${{ inputs.bucket-id }}
+          pattern: ${{ inputs.bucket-id }}-*
           path: ${{ github.workspace }}/images
           merge-multiple: true
       - name: Set up Go
