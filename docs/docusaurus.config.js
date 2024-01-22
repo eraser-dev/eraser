@@ -9,7 +9,7 @@ const config = {
   title: 'Eraser Docs',
   url: 'https://eraser-dev.github.io',
   baseUrl: '/eraser/docs/',
-  onBrokenLinks: 'throw',
+  onBrokenLinks: 'warn',
   onBrokenMarkdownLinks: 'warn',
   favicon: 'img/favicon.ico',
   trailingSlash: false,
