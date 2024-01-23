@@ -326,8 +326,8 @@ func (r *Reconciler) handleNewJob(ctx context.Context, imageJob *eraserv1.ImageJ
 	}
 
 	var nodeNames []string
-	for _, node := range nodes.Items {
-		nodeNames = append(nodeNames, node.Name)
+	for i := range nodes.Items {
+		nodeNames = append(nodeNames, nodes.Items[i].Name)
 	}
 	// free up space
 	nodes = nil
