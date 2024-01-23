@@ -37,6 +37,7 @@ import (
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 
 	"github.com/eraser-dev/eraser/api/unversioned"
@@ -50,6 +51,7 @@ import (
 	v1alpha3Config "github.com/eraser-dev/eraser/api/v1alpha3/config"
 	"github.com/eraser-dev/eraser/controllers"
 	"github.com/eraser-dev/eraser/pkg/logger"
+	"github.com/eraser-dev/eraser/pkg/utils"
 	"github.com/eraser-dev/eraser/version"
 	//+kubebuilder:scaffold:imports
 )
@@ -104,6 +106,7 @@ func main() {
 		Port:                   9443,
 		HealthProbeBindAddress: ":8081",
 		LeaderElection:         false,
+		NewCache:               cache.MultiNamespacedCacheBuilder([]string{"default", utils.GetNamespace()}),
 	}
 
 	if configFile == "" {
