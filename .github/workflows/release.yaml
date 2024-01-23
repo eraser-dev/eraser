@@ -20,7 +20,7 @@ jobs:
     timeout-minutes: 60
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@1b05615854632b887b69ae1be8cbefe72d3ae423
+        uses: step-security/harden-runner@eb238b55efaa70779f274895e782ed17c84f2895
         with:
           egress-policy: audit
 
@@ -32,7 +32,7 @@ jobs:
         with:
           use: true
 
-      - uses: actions/cache@704facf57e6136b1bc63b828d79edcd491f0ee84 # v3.3.2
+      - uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2 # v4.0.0
         with:
           key: ${{ runner.OS }}-go-${{ hashFiles('**/go.sum') }}
           restore-keys: |
