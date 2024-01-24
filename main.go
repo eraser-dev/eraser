@@ -54,6 +54,7 @@ import (
 	v1alpha3Config "github.com/eraser-dev/eraser/api/v1alpha3/config"
 	"github.com/eraser-dev/eraser/controllers"
 	"github.com/eraser-dev/eraser/pkg/logger"
+	"github.com/eraser-dev/eraser/pkg/utils"
 	"github.com/eraser-dev/eraser/version"
 	//+kubebuilder:scaffold:imports
 )
@@ -112,16 +113,17 @@ func main() {
 			SelectorsByObject: cache.SelectorsByObject{
 				// to watch eraser pods
 				&corev1.Pod{}: {
-					Field: fields.OneTermEqualSelector("metadata.namespace", "eraser-system"),
+					Field: fields.OneTermEqualSelector("metadata.namespace", utils.GetNamespace()),
 				},
 				// to watch eraser podTemplates
 				&corev1.PodTemplate{}: {
-					Field: fields.OneTermEqualSelector("metadata.namespace", "eraser-system"),
+					Field: fields.OneTermEqualSelector("metadata.namespace", utils.GetNamespace()),
 				},
 				// to watch eraser-manager-configs
 				&corev1.ConfigMap{}: {
-					Field: fields.OneTermEqualSelector("metadata.namespace", "eraser-system"),
+					Field: fields.OneTermEqualSelector("metadata.namespace", utils.GetNamespace()),
 				},
+				// to watch ImageJobs created by imagecollector controler
 				&eraserv1.ImageJob{}: {
 					Label: labels.SelectorFromSet(
 						labels.Set{
@@ -133,6 +135,21 @@ func main() {
 					Label: labels.SelectorFromSet(
 						labels.Set{
 							"eraser.sh/job-owner": "imagecollector",
+						},
+					),
+				},
+				// to watch ImageJobs created by imagelist controler
+				&eraserv1.ImageJob{}: {
+					Label: labels.SelectorFromSet(
+						labels.Set{
+							"eraser.sh/job-owner": "imagelist",
+						},
+					),
+				},
+				&eraserv1alpha1.ImageJob{}: {
+					Label: labels.SelectorFromSet(
+						labels.Set{
+							"eraser.sh/job-owner": "imagelist",
 						},
 					),
 				},
