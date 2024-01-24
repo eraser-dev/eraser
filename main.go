@@ -123,22 +123,15 @@ func main() {
 				&corev1.ConfigMap{}: {
 					Field: fields.OneTermEqualSelector("metadata.namespace", utils.GetNamespace()),
 				},
-				// to watch ImageJobs created by imagecollector controler
+				// to watch ImageJobs
 				&eraserv1.ImageJob{}: {
 					Label: labels.SelectorFromSet(
 						labels.Set{
-							"eraser.sh/job-owner": "imagecollector",
+							"eraser.sh/job-owner": "",
 						},
 					),
 				},
-				// to watch ImageJobs created by imagelist controler
-				&eraserv1.ImageJob{}: {
-					Label: labels.SelectorFromSet(
-						labels.Set{
-							"eraser.sh/job-owner": "imagelist-controller",
-						},
-					),
-				},
+				// to watch ImageLists
 				&eraserv1.ImageList{}: {
 					Field: fields.OneTermEqualSelector("metadata.name", "imagelist"),
 				},
