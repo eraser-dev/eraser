@@ -131,13 +131,6 @@ func main() {
 						},
 					),
 				},
-				&eraserv1alpha1.ImageJob{}: {
-					Label: labels.SelectorFromSet(
-						labels.Set{
-							"eraser.sh/job-owner": "imagecollector",
-						},
-					),
-				},
 				// to watch ImageJobs created by imagelist controler
 				&eraserv1.ImageJob{}: {
 					Label: labels.SelectorFromSet(
@@ -146,17 +139,7 @@ func main() {
 						},
 					),
 				},
-				&eraserv1alpha1.ImageJob{}: {
-					Label: labels.SelectorFromSet(
-						labels.Set{
-							"eraser.sh/job-owner": "imagelist-controller",
-						},
-					),
-				},
 				&eraserv1.ImageList{}: {
-					Field: fields.OneTermEqualSelector("metadata.name", "imagelist"),
-				},
-				&eraserv1alpha1.ImageList{}: {
 					Field: fields.OneTermEqualSelector("metadata.name", "imagelist"),
 				},
 			},
