@@ -142,14 +142,14 @@ func main() {
 				&eraserv1.ImageJob{}: {
 					Label: labels.SelectorFromSet(
 						labels.Set{
-							"eraser.sh/job-owner": "imagelist",
+							"eraser.sh/job-owner": "imagelist-controller",
 						},
 					),
 				},
 				&eraserv1alpha1.ImageJob{}: {
 					Label: labels.SelectorFromSet(
 						labels.Set{
-							"eraser.sh/job-owner": "imagelist",
+							"eraser.sh/job-owner": "imagelist-controller",
 						},
 					),
 				},
