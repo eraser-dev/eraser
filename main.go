@@ -32,7 +32,10 @@ import (
 	"k8s.io/utils/inotify"
 	"sigs.k8s.io/yaml"
 
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/conversion"
+	"k8s.io/apimachinery/pkg/fields"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
@@ -51,7 +54,6 @@ import (
 	v1alpha3Config "github.com/eraser-dev/eraser/api/v1alpha3/config"
 	"github.com/eraser-dev/eraser/controllers"
 	"github.com/eraser-dev/eraser/pkg/logger"
-	"github.com/eraser-dev/eraser/pkg/utils"
 	"github.com/eraser-dev/eraser/version"
 	//+kubebuilder:scaffold:imports
 )
@@ -106,7 +108,32 @@ func main() {
 		Port:                   9443,
 		HealthProbeBindAddress: ":8081",
 		LeaderElection:         false,
-		NewCache:               cache.MultiNamespacedCacheBuilder([]string{"default", utils.GetNamespace()}),
+		NewCache: cache.BuilderWithOptions(cache.Options{
+			SelectorsByObject: cache.SelectorsByObject{
+				// to watch eraser pods
+				&corev1.Pod{}: {
+					Field: fields.OneTermEqualSelector("metadata.namespace", "eraser-system"),
+				},
+				// to watch eraser podTemplates
+				&corev1.PodTemplate{}: {
+					Field: fields.OneTermEqualSelector("metadata.namespace", "eraser-system"),
+				},
+				// to watch eraser-manager-configs
+				&corev1.ConfigMap{}: {
+					Field: fields.OneTermEqualSelector("metadata.namespace", "eraser-system"),
+				},
+				&eraserv1.ImageJob{}: {
+					Label: labels.SelectorFromSet(
+						labels.Set{
+							"eraser.sh/job-owner": "imagecollector",
+						},
+					),
+				},
+				&eraserv1.ImageList{}: {
+					Field: fields.OneTermEqualSelector("metadata.name", "imagelist"),
+				},
+			},
+		}),
 	}
 
 	if configFile == "" {
