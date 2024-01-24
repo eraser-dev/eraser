@@ -35,7 +35,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/conversion"
 	"k8s.io/apimachinery/pkg/fields"
-	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
@@ -124,17 +123,9 @@ func main() {
 					Field: fields.OneTermEqualSelector("metadata.namespace", utils.GetNamespace()),
 				},
 				// to watch ImageJobs
-				&eraserv1.ImageJob{}: {
-					Label: labels.SelectorFromSet(
-						labels.Set{
-							"eraser.sh/job-owner": "",
-						},
-					),
-				},
+				&eraserv1.ImageJob{}: {},
 				// to watch ImageLists
-				&eraserv1.ImageList{}: {
-					Field: fields.OneTermEqualSelector("metadata.name", "imagelist"),
-				},
+				&eraserv1.ImageList{}: {},
 			},
 		}),
 	}
