@@ -189,9 +189,9 @@ func checkNodeFitness(pod *corev1.Pod, node *corev1.Node) bool {
 }
 
 //+kubebuilder:rbac:groups=eraser.sh,resources=imagejobs,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups="",resources=podtemplates,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups="",namespace="system",resources=podtemplates,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=eraser.sh,resources=imagejobs/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups="",resources=configmaps,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups="",namespace="system",resources=configmaps,verbs=get;list;watch;create;update;patch;delete
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.

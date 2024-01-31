@@ -1,5 +1,5 @@
 apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRole
+kind: Role
 metadata:
   labels:
     app.kubernetes.io/instance: '{{ .Release.Name }}'
@@ -7,19 +7,12 @@ metadata:
     app.kubernetes.io/name: '{{ template "eraser.name" . }}'
     helm.sh/chart: '{{ template "eraser.name" . }}'
   name: eraser-manager-role
+  namespace: '{{ .Release.Namespace }}'
 rules:
 - apiGroups:
   - ""
   resources:
-  - nodes
-  verbs:
-  - get
-  - list
-  - watch
-- apiGroups:
-  - eraser.sh
-  resources:
-  - imagejobs
+  - configmaps
   verbs:
   - create
   - delete
@@ -29,17 +22,20 @@ rules:
   - update
   - watch
 - apiGroups:
-  - eraser.sh
+  - ""
   resources:
-  - imagejobs/status
+  - pods
   verbs:
+  - create
+  - delete
   - get
-  - patch
+  - list
   - update
+  - watch
 - apiGroups:
-  - eraser.sh
+  - ""
   resources:
-  - imagelists
+  - podtemplates
   verbs:
   - create
   - delete
@@ -48,11 +44,3 @@ rules:
   - patch
   - update
   - watch
-- apiGroups:
-  - eraser.sh
-  resources:
-  - imagelists/status
-  verbs:
-  - get
-  - patch
-  - update
