@@ -121,7 +121,7 @@ type Reconciler struct {
 	eraserConfig *config.Manager
 }
 
-//+kubebuilder:rbac:groups=eraser.sh,resources=imagelists,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=eraser.sh,resources=imagelists,verbs=get;list;watch
 //+kubebuilder:rbac:groups="",namespace="system",resources=podtemplates,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=eraser.sh,resources=imagelists/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups="",resources=nodes,verbs=get;list;watch

@@ -37,12 +37,8 @@ rules:
   resources:
   - imagelists
   verbs:
-  - create
-  - delete
   - get
   - list
-  - patch
-  - update
   - watch
 - apiGroups:
   - eraser.sh
