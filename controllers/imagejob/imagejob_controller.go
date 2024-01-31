@@ -188,7 +188,7 @@ func checkNodeFitness(pod *corev1.Pod, node *corev1.Node) bool {
 	return true
 }
 
-//+kubebuilder:rbac:groups=eraser.sh,resources=imagejobs,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=eraser.sh,resources=imagejobs,verbs=get;list;watch;create;delete
 //+kubebuilder:rbac:groups="",namespace="system",resources=podtemplates,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=eraser.sh,resources=imagejobs/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups="",namespace="system",resources=configmaps,verbs=get;list;watch;create;update;patch;delete
