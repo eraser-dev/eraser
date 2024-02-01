@@ -39,7 +39,7 @@ runtimeConfig:
       enabled: true
       image:
         # repo: ""
-        tag: "v1.3.0"
+        tag: "v1.3.1"
       request: {}
         # mem: ""
         # cpu: ""
@@ -50,7 +50,7 @@ runtimeConfig:
       enabled: true
       image:
         # repo: ""
-        tag: "v1.3.0"
+        tag: "v1.3.1"
       request: {}
         # mem: ""
         # cpu: ""
@@ -81,7 +81,7 @@ runtimeConfig:
     remover:
       image:
         # repo: ""
-        tag: "v1.3.0"
+        tag: "v1.3.1"
       request: {}
         # mem: ""
         # cpu: ""
@@ -94,7 +94,7 @@ deploy:
     repo: ghcr.io/eraser-dev/eraser-manager
     pullPolicy: IfNotPresent
     # Overrides the image tag whose default is the chart appVersion.
-    tag: "v1.3.0"
+    tag: "v1.3.1"
   additionalArgs: []
   priorityClassName: ""
 
