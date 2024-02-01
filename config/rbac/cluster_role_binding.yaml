@@ -1,12 +1,12 @@
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: imagejob-pods-cluster-rolebinding
+  name: manager-rolebinding
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: imagejob-pods-cluster-role
+  name: manager-role
 subjects:
 - kind: ServiceAccount
-  name: imagejob-pods
+  name: controller-manager
   namespace: system
