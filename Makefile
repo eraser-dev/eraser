@@ -34,7 +34,7 @@ SCANNER_TARBALL_PATH ?=
 
 KUSTOMIZE_VERSION ?= 3.8.9
 KUBERNETES_VERSION ?= 1.25.3
-NODE_VERSION ?= 16-bullseye-slim
+NODE_VERSION ?= 20-bullseye-slim
 ENVTEST_K8S_VERSION ?= 1.25
 GOLANGCI_LINT_VERSION := 1.43.0
 
@@ -341,8 +341,8 @@ version-docs:
 		$(IDFLAGS) \
 		node:${NODE_VERSION} \
 		sh -c "yarn install --frozen-lockfile && yarn run docusaurus docs:version ${NEWVERSION}"
-	@sed -i 's/https:\/\/raw\.githubusercontent\.com\/eraser-dev\/eraser\/main\/deploy\/eraser\.yaml.*/https:\/\/raw\.githubusercontent\.com\/eraser-dev\/eraser\/${TAG}\/deploy\/eraser\.yaml/' ./website/versioned_docs/version-${NEWVERSION}/installation.md
+	@sed -i 's/https:\/\/raw\.githubusercontent\.com\/eraser-dev\/eraser\/main\/deploy\/eraser\.yaml.*/https:\/\/raw\.githubusercontent\.com\/eraser-dev\/eraser\/${TAG}\/deploy\/eraser\.yaml/' ./docs/versioned_docs/version-${NEWVERSION}/installation.md
 
 .PHONY: patch-version-docs
 patch-version-docs:
-	@sed -i 's/https:\/\/raw\.githubusercontent\.com\/eraser-dev\/eraser\/${OLDVERSION}\/deploy\/eraser\.yaml.*/https:\/\/raw\.githubusercontent\.com\/eraser-dev\/eraser\/${TAG}\/deploy\/eraser\.yaml/' ./website/versioned_docs/version-${NEWVERSION}/installation.md
+	@sed -i 's/https:\/\/raw\.githubusercontent\.com\/eraser-dev\/eraser\/${OLDVERSION}\/deploy\/eraser\.yaml.*/https:\/\/raw\.githubusercontent\.com\/eraser-dev\/eraser\/${TAG}\/deploy\/eraser\.yaml/' ./docs/versioned_docs/version-${NEWVERSION}/installation.md
