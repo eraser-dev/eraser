@@ -341,3 +341,8 @@ version-docs:
 		$(IDFLAGS) \
 		node:${NODE_VERSION} \
 		sh -c "yarn install --frozen-lockfile && yarn run docusaurus docs:version ${NEWVERSION}"
+	@sed -i 's/https:\/\/raw\.githubusercontent\.com\/eraser-dev\/eraser\/main\/deploy\/eraser\.yaml.*/https:\/\/raw\.githubusercontent\.com\/eraser-dev\/eraser\/${TAG}\/deploy\/eraser\.yaml/' ./website/versioned_docs/version-${NEWVERSION}/installation.md
+
+.PHONY: patch-version-docs
+patch-version-docs:
+	@sed -i 's/https:\/\/raw\.githubusercontent\.com\/eraser-dev\/eraser\/${OLDVERSION}\/deploy\/eraser\.yaml.*/https:\/\/raw\.githubusercontent\.com\/eraser-dev\/eraser\/${TAG}\/deploy\/eraser\.yaml/' ./website/versioned_docs/version-${NEWVERSION}/installation.md
