@@ -33,9 +33,9 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Create release branch if needed # patched docs are always being merged to the master branch
+      - name: Create release branch if needed # patched docs are always being merged to the main branch
         run: |
-          git checkout master 
+          git checkout main 
       
       - name: Create patch version docs
         run: make patch-version-docs NEWVERSION=v${MAJOR_VERSION}.${MINOR_VERSION}.x TAG=v${TAG} OLDVERSION=v${MAJOR_VERSION}.${MINOR_VERSION}.$((PATCH_VERSION-1))
@@ -46,7 +46,7 @@ jobs:
           commit-message: "chore: Patch docs for ${{ env.TAG }} release"
           title: "chore: Patch docs for ${{ env.TAG }} release"
           branch: "patch-docs-${{ env.TAG }}"
-          base: "master"
+          base: "main"
           signoff: true
           labels: |
             release-pr
