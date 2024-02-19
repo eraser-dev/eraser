@@ -45,7 +45,7 @@ jobs:
       - name: Build remover
         run: 'make docker-build-remover OUTPUT_TYPE=type=oci,dest=./${REMOVER_REPO}_${REMOVER_TAG}.tar,name=${REMOVER_REPO}:${REMOVER_TAG}'
       - name: Upload Build Artifacts
-        uses: actions/upload-artifact@26f96dfa697d77e81fd5907df203aa23a56210a8  # v4.3.0
+        uses: actions/upload-artifact@5d5d22a31266ced268874388b861e4b58bb5c2f3  # v4.3.1
         with:
           name: ${{ inputs.bucket-id }}-remover
           path: remover_test.tar
@@ -87,7 +87,7 @@ jobs:
       - name: Build trivy-scanner
         run: 'make docker-build-trivy-scanner OUTPUT_TYPE=type=oci,dest=./${TRIVY_SCANNER_REPO}_${TRIVY_SCANNER_TAG}.tar,name=${TRIVY_SCANNER_REPO}:${TRIVY_SCANNER_TAG}'
       - name: Upload Build Artifacts
-        uses: actions/upload-artifact@26f96dfa697d77e81fd5907df203aa23a56210a8  # v4.3.0
+        uses: actions/upload-artifact@5d5d22a31266ced268874388b861e4b58bb5c2f3  # v4.3.1
         with:
           name: ${{ inputs.bucket-id }}-scanner
           path: scanner_test.tar
@@ -129,7 +129,7 @@ jobs:
       - name: Build manager
         run: 'make docker-build-manager OUTPUT_TYPE=type=oci,dest=./${MANAGER_REPO}_${MANAGER_TAG}.tar,name=${MANAGER_REPO}:${MANAGER_TAG}'
       - name: Upload Build Artifacts
-        uses: actions/upload-artifact@26f96dfa697d77e81fd5907df203aa23a56210a8  # v4.3.0
+        uses: actions/upload-artifact@5d5d22a31266ced268874388b861e4b58bb5c2f3  # v4.3.1
         with:
           name: ${{ inputs.bucket-id }}-manager
           path: manager_test.tar
@@ -171,7 +171,7 @@ jobs:
       - name: Build collector
         run: 'make docker-build-collector OUTPUT_TYPE=type=oci,dest=./${COLLECTOR_REPO}_${COLLECTOR_TAG}.tar,name=${COLLECTOR_REPO}:${COLLECTOR_TAG}'
       - name: Upload Build Artifacts
-        uses: actions/upload-artifact@26f96dfa697d77e81fd5907df203aa23a56210a8  # v4.3.0
+        uses: actions/upload-artifact@5d5d22a31266ced268874388b861e4b58bb5c2f3  # v4.3.1
         with:
           name: ${{ inputs.bucket-id }}-collector
           path: collector_test.tar
