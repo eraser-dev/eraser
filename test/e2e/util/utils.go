@@ -753,7 +753,7 @@ func GetPodLogs(t *testing.T) error {
 }
 
 func MakeDeploy(env map[string]string) env.Func {
-	return func(ctx context.Context, cfg *envconf.Config) (context.Context, error) {
+	return func(ctx context.Context, _ *envconf.Config) (context.Context, error) {
 		args := []string{"deploy"}
 		for k, v := range env {
 			args = append(args, fmt.Sprintf("%s=%s", k, v))
