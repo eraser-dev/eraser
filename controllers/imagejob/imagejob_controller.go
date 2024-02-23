@@ -409,10 +409,12 @@ func (r *Reconciler) handleNewJob(ctx context.Context, imageJob *eraserv1.ImageJ
 			},
 		}
 
+		pod.Labels = eraserConfig.Manager.AdditionalPodLabels
+
 		if containerName == removerContainer {
-			pod.Labels = map[string]string{imageJobTypeLabelKey: manualJobType}
+			pod.Labels[imageJobTypeLabelKey] = manualJobType
 		} else {
-			pod.Labels = map[string]string{imageJobTypeLabelKey: collectorJobType}
+			pod.Labels[imageJobTypeLabelKey] = collectorJobType
 		}
 
 		fitness := checkNodeFitness(pod, &nodeList[i])

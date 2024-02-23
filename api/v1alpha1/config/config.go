@@ -61,6 +61,7 @@ func Default() *v1alpha1.EraserConfig {
 					"eraser.sh/cleanup.filter",
 				},
 			},
+			AdditionalPodLabels: map[string]string{},
 		},
 		Components: v1alpha1.Components{
 			Collector: v1alpha1.OptionalContainerConfig{

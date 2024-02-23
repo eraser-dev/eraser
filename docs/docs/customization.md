@@ -102,6 +102,7 @@ manager:
       delayOnFailure: 24h
   pullSecrets: [] # image pull secrets for collector/scanner/remover
   priorityClassName: "" # priority class name for collector/scanner/remover
+  additionalPodLabels: {}
   nodeFilter:
     type: exclude # must be either exclude|include
     selectors:
@@ -207,6 +208,7 @@ timeout:
 | manager.imageJob.cleanup.delayOnFailure | The amount of time to wait after a failed image job before performing cleanup. | 24h |
 | manager.pullSecrets | The image pull secrets to use for collector, scanner, and remover containers. | [] |
 | manager.priorityClassName | The priority class to use for collector, scanner, and remover containers. | "" |
+| manager.additionalPodLabels | Additional labels for all pods that the controller creates at runtime. | `{}` |
 | manager.nodeFilter.type | The type of node filter to use. Must be either "exclude" or "include". | exclude |
 | manager.nodeFilter.selectors | A list of selectors used to filter nodes. | [] |
 | components.collector.enabled | Whether to enable the collector component. | true |

@@ -609,6 +609,7 @@ func autoConvert_v1alpha1_ManagerConfig_To_unversioned_ManagerConfig(in *Manager
 		return err
 	}
 	out.PriorityClassName = in.PriorityClassName
+	out.AdditionalPodLabels = *(*map[string]string)(unsafe.Pointer(&in.AdditionalPodLabels))
 	return nil
 }
 
@@ -632,6 +633,7 @@ func autoConvert_unversioned_ManagerConfig_To_v1alpha1_ManagerConfig(in *unversi
 		return err
 	}
 	out.PriorityClassName = in.PriorityClassName
+	out.AdditionalPodLabels = *(*map[string]string)(unsafe.Pointer(&in.AdditionalPodLabels))
 	return nil
 }
 
