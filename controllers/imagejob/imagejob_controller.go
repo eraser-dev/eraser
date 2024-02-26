@@ -409,7 +409,11 @@ func (r *Reconciler) handleNewJob(ctx context.Context, imageJob *eraserv1.ImageJ
 			},
 		}
 
-		pod.Labels = eraserConfig.Manager.AdditionalPodLabels
+		pod.Labels = map[string]string{}
+
+		for k, v := range eraserConfig.Manager.AdditionalPodLabels {
+			pod.Labels[k] = v
+		}
 
 		if containerName == removerContainer {
 			pod.Labels[imageJobTypeLabelKey] = manualJobType
