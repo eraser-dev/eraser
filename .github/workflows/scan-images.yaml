@@ -51,7 +51,7 @@ jobs:
           make ${{ matrix.data.build_cmd }} VERSION=${{ env.TAG }} ${{ matrix.data.repo_environment_var }}=${{ env.REGISTRY }}/${{ matrix.data.image }}
 
       - name: Scan for vulnerabilities
-        uses: aquasecurity/trivy-action@84384bd6e777ef152729993b8145ea352e9dd3ef # 0.17.0
+        uses: aquasecurity/trivy-action@062f2592684a31eb3aa050cc61e7ca1451cecd3d # 0.18.0
         with:
           image-ref: ${{ env.REGISTRY }}/${{ matrix.data.image }}:${{ env.TAG }}
           vuln-type: 'os,library'
@@ -83,7 +83,7 @@ jobs:
         with:
           egress-policy: audit
 
-      - uses: actions/download-artifact@eaceaf801fd36c7dee90939fad912460b18a1ffe # v4.1.2
+      - uses: actions/download-artifact@c850b930e6ba138125429b7e5c93fc707a7f8427 # v4.1.4
         with:
           name: ${{ matrix.image }} Scan Results
           path: ${{ matrix.image }}-results.sarif
