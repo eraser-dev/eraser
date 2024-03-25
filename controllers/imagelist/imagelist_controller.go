@@ -291,7 +291,15 @@ func (r *Reconciler) handleImageListEvent(ctx context.Context, imageList *eraser
 		pullSecrets = append(pullSecrets, corev1.LocalObjectReference{Name: secret})
 	}
 
+	labels := map[string]string{}
+	for k, v := range eraserConfig.Manager.AdditionalPodLabels {
+		labels[k] = v
+	}
+
 	jobTemplate := corev1.PodTemplateSpec{
+		ObjectMeta: metav1.ObjectMeta{
+			Labels: labels,
+		},
 		Spec: corev1.PodSpec{
 			Volumes: []corev1.Volume{
 				{
