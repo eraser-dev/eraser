@@ -162,7 +162,7 @@ jobs:
           tar zxvf trivy_${{ env.TRIVY_VERSION }}_Linux-64bit.tar.gz
           echo "$(pwd)" >> $GITHUB_PATH
         env:
-          TRIVY_VERSION: "0.28.0"
+          TRIVY_VERSION: "0.50.0"
 
       - name: Build eraser-manager
         run: |
