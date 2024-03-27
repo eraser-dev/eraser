@@ -21,6 +21,7 @@ spec:
   template:
     metadata:
       labels:
+        {{- if .Values.deploy.additionalPodLabels }}{{- toYaml .Values.deploy.additionalPodLabels | nindent 8 }}{{end}}
         app.kubernetes.io/instance: '{{ .Release.Name }}'
         app.kubernetes.io/managed-by: '{{ .Release.Service }}'
         app.kubernetes.io/name: '{{ template "eraser.name" . }}'

@@ -45,6 +45,7 @@ _See [helm install](https://helm.sh/docs/helm/helm_install/) for command documen
 | runtimeConfig.manager.imageJob.cleanup          | Settings for image job cleanup.                                                                      | `{}`                           |
 | runtimeConfig.manager.pullSecrets               | Image pull secrets for collector/scanner/eraser.                                                     | `[]`                           |
 | runtimeConfig.manager.priorityClassName         | Priority class name for collector/scanner/eraser.                                                    | `""`                           |
+| runtimeConfig.manager.additionalPodLabels       | Additional labels for all pods that the controller creates at runtime.                               | `{}`                           |
 | runtimeConfig.manager.nodeFilter                | Filter for nodes.                                                                                    | `{}`                           |
 | runtimeConfig.components.collector              | Settings for the collector component.                                                                | `{ enabled: false }`           |
 | runtimeConfig.components.scanner                | Settings for the scanner component.                                                                  | `{ enabled: false }`           |
@@ -54,6 +55,7 @@ _See [helm install](https://helm.sh/docs/helm/helm_install/) for command documen
 | deploy.image.tag                                | Overrides the default image tag.                                                                     | `""`                           |
 | deploy.additionalArgs                           | Additional arguments to pass to the command.                                                         | `[]`                           |
 | deploy.priorityClassName                        | Priority class name.                                                                                 | `""`                           |
+| deploy.additionalPodLabels                      | Additional labels for the controller pod.                                                            | `{}`                           |
 | deploy.securityContext.allowPrivilegeEscalation | Whether to allow privilege escalation.                                                               | `false`                        |
 | deploy.resources.limits.memory                  | Memory limit for the resources.                                                                      | `30Mi`                         |
 | deploy.resources.requests.cpu                   | CPU request for the resources.                                                                       | `100m`                         |

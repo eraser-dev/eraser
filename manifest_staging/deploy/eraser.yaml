@@ -432,6 +432,7 @@ data:
           delayOnFailure: 24h
       pullSecrets: [] # image pull secrets for collector/scanner/eraser
       priorityClassName: "" # priority class name for collector/scanner/eraser
+      additionalPodLabels: {}
       nodeFilter:
         type: exclude # must be either exclude|include
         selectors:

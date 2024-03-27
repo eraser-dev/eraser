@@ -156,15 +156,16 @@ type ContainerConfig struct {
 }
 
 type ManagerConfig struct {
-	Runtime           RuntimeSpec      `json:"runtime,omitempty"`
-	OTLPEndpoint      string           `json:"otlpEndpoint,omitempty"`
-	LogLevel          string           `json:"logLevel,omitempty"`
-	Scheduling        ScheduleConfig   `json:"scheduling,omitempty"`
-	Profile           ProfileConfig    `json:"profile,omitempty"`
-	ImageJob          ImageJobConfig   `json:"imageJob,omitempty"`
-	PullSecrets       []string         `json:"pullSecrets,omitempty"`
-	NodeFilter        NodeFilterConfig `json:"nodeFilter,omitempty"`
-	PriorityClassName string           `json:"priorityClassName,omitempty"`
+	Runtime             RuntimeSpec       `json:"runtime,omitempty"`
+	OTLPEndpoint        string            `json:"otlpEndpoint,omitempty"`
+	LogLevel            string            `json:"logLevel,omitempty"`
+	Scheduling          ScheduleConfig    `json:"scheduling,omitempty"`
+	Profile             ProfileConfig     `json:"profile,omitempty"`
+	ImageJob            ImageJobConfig    `json:"imageJob,omitempty"`
+	PullSecrets         []string          `json:"pullSecrets,omitempty"`
+	NodeFilter          NodeFilterConfig  `json:"nodeFilter,omitempty"`
+	PriorityClassName   string            `json:"priorityClassName,omitempty"`
+	AdditionalPodLabels map[string]string `json:"additionalPodLabels,omitempty"`
 }
 
 type ScheduleConfig struct {
