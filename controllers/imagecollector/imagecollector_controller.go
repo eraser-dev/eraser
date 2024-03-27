@@ -323,15 +323,7 @@ func (r *Reconciler) createImageJob(ctx context.Context) (ctrl.Result, error) {
 		pullSecrets = append(pullSecrets, corev1.LocalObjectReference{Name: secret})
 	}
 
-	labels := map[string]string{}
-	for k, v := range mgrCfg.AdditionalPodLabels {
-		labels[k] = v
-	}
-
 	jobTemplate := corev1.PodTemplateSpec{
-		ObjectMeta: metav1.ObjectMeta{
-			Labels: labels,
-		},
 		Spec: corev1.PodSpec{
 			Volumes: []corev1.Volume{
 				{
