@@ -106,6 +106,7 @@ func Default() *unversioned.EraserConfig {
 					"eraser.sh/cleanup.filter",
 				},
 			},
+			AdditionalPodLabels: map[string]string{},
 		},
 		Components: unversioned.Components{
 			Collector: unversioned.OptionalContainerConfig{

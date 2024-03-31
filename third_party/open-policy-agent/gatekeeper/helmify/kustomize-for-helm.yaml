@@ -5,6 +5,9 @@ metadata:
   namespace: eraser-system
 spec:
   template:
+    metadata:
+      labels:
+        HELMSUBST_DEPLOYMENT_CONTROLLER_MANAGER_ADDITIONALPODLABELS: ""
     spec:
       HELMSUBST_DEPLOYMENT_CONTROLLER_MANAGER_PULL_SECRETS: ""
       volumes:
