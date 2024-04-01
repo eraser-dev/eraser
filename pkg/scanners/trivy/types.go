@@ -81,7 +81,7 @@ func DefaultConfig() *Config {
 		DeleteFailedImages: true,
 		DeleteEOLImages:    true,
 		Vulnerabilities: VulnConfig{
-			IgnoreUnfixed: true,
+			IgnoreUnfixed: false,
 			Types: []string{
 				vulnTypeOs,
 				vulnTypeLibrary,

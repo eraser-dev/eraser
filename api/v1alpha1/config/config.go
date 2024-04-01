@@ -15,7 +15,7 @@ dbRepo: ghcr.io/aquasecurity/trivy-db
 deleteFailedImages: true
 deleteEOLImages: true
 vulnerabilities:
-  ignoreUnfixed: true
+  ignoreUnfixed: false
   types:
     - os
     - library
