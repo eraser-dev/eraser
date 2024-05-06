@@ -37,7 +37,7 @@ jobs:
           - {image: eraser-trivy-scanner, build_cmd: docker-build-trivy-scanner, repo_environment_var: TRIVY_SCANNER_REPO}
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@63c24ba6bd7ba022e95695ff85de572c04a18142 # v2.7.0
+        uses: step-security/harden-runner@a4aa98b93cab29d9b1101a6143fb8bce00e2eac4 # v2.7.1
         with:
           egress-policy: audit
 
@@ -79,7 +79,7 @@ jobs:
         image: [remover, eraser-manager, collector, eraser-trivy-scanner]
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@63c24ba6bd7ba022e95695ff85de572c04a18142 # v2.7.0
+        uses: step-security/harden-runner@a4aa98b93cab29d9b1101a6143fb8bce00e2eac4 # v2.7.1
         with:
           egress-policy: audit
 
