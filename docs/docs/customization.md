@@ -70,6 +70,8 @@ take place when:
 1. The collector and/or scanner `components` are enabled, AND
 1. The job was *not* triggered manually by creating an _ImageList_.
 
+Disabling scanner will remove all non-running images by default.
+
 ### Swapping out components
 
 The collector, scanner, and remover components can all be swapped out. This
