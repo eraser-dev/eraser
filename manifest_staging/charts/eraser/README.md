@@ -47,8 +47,8 @@ _See [helm install](https://helm.sh/docs/helm/helm_install/) for command documen
 | runtimeConfig.manager.priorityClassName         | Priority class name for collector/scanner/eraser.                                                    | `""`                           |
 | runtimeConfig.manager.additionalPodLabels       | Additional labels for all pods that the controller creates at runtime.                               | `{}`                           |
 | runtimeConfig.manager.nodeFilter                | Filter for nodes.                                                                                    | `{}`                           |
-| runtimeConfig.components.collector              | Settings for the collector component.                                                                | `{ enabled: false }`           |
-| runtimeConfig.components.scanner                | Settings for the scanner component.                                                                  | `{ enabled: false }`           |
+| runtimeConfig.components.collector              | Settings for the collector component.                                                                | `{ enabled: true }`           |
+| runtimeConfig.components.scanner                | Settings for the scanner component.                                                                  | `{ enabled: true }`           |
 | runtimeConfig.components.eraser                 | Settings for the eraser component.                                                                   | `{}`                           |
 | deploy.image.repo                               | Repository for the image.                                                                            | `ghcr.io/eraser-dev/eraser-manager` |
 | deploy.image.pullPolicy                         | Policy for pulling the image.                                                                        | `IfNotPresent`                 |
