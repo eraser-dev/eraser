@@ -37,7 +37,7 @@ jobs:
           - {image: eraser-trivy-scanner, build_cmd: docker-build-trivy-scanner, repo_environment_var: TRIVY_SCANNER_REPO}
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@a4aa98b93cab29d9b1101a6143fb8bce00e2eac4 # v2.7.1
+        uses: step-security/harden-runner@f086349bfa2bd1361f7909c78558e816508cdc10 # v2.8.0
         with:
           egress-policy: audit
 
@@ -51,7 +51,7 @@ jobs:
           make ${{ matrix.data.build_cmd }} VERSION=${{ env.TAG }} ${{ matrix.data.repo_environment_var }}=${{ env.REGISTRY }}/${{ matrix.data.image }}
 
       - name: Scan for vulnerabilities
-        uses: aquasecurity/trivy-action@b2933f565dbc598b29947660e66259e3c7bc8561 # 0.20.0
+        uses: aquasecurity/trivy-action@fd25fed6972e341ff0007ddb61f77e88103953c2 # 0.21.0
         with:
           image-ref: ${{ env.REGISTRY }}/${{ matrix.data.image }}:${{ env.TAG }}
           vuln-type: 'os,library'
@@ -79,7 +79,7 @@ jobs:
         image: [remover, eraser-manager, collector, eraser-trivy-scanner]
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@a4aa98b93cab29d9b1101a6143fb8bce00e2eac4 # v2.7.1
+        uses: step-security/harden-runner@f086349bfa2bd1361f7909c78558e816508cdc10 # v2.8.0
         with:
           egress-policy: audit
 
@@ -90,6 +90,6 @@ jobs:
           merge-multiple: true
 
       - name: Upload results to GitHub Security
-        uses: github/codeql-action/upload-sarif@b7cec7526559c32f1616476ff32d17ba4c59b2d6 # v2.14.4
+        uses: github/codeql-action/upload-sarif@9fdb3e49720b44c48891d036bb502feb25684276 # v2.14.4
         with:
           sarif_file: ${{ matrix.image }}-results.sarif
