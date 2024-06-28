@@ -29,6 +29,7 @@ var (
 	imageListPtr  = flag.String("imagelist", "", "name of ImageList")
 	enableProfile = flag.Bool("enable-pprof", false, "enable pprof profiling")
 	profilePort   = flag.Int("pprof-port", 6060, "port for pprof profiling. defaulted to 6060 if unspecified")
+	removePinned  = flag.Bool("remove-pinned", false, "skip over pinned images when removing")
 
 	// Timeout  of connecting to server (default: 5m).
 	timeout  = 5 * time.Minute
@@ -123,7 +124,8 @@ func main() {
 		log.Info("no images to exclude")
 	}
 
-	removed, err := removeImages(client, imagelist)
+	// we pass in the removePinned flag to removeImages, because as of now we just have a list of imageIDs, and we don't know if they are pinned or not
+	removed, err := removeImages(client, *removePinned, imagelist)
 	if err != nil {
 		log.Error(err, "failed to remove images")
 		os.Exit(generalErr)
