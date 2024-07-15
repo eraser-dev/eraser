@@ -170,7 +170,7 @@ jobs:
           make docker-build-trivy-scanner TRIVY_SCANNER_REPO=${{ env.REGISTRY }}/${REPO}-trivy-scanner TRIVY_SCANNER_TAG=test
 
       - name: Run trivy for remover
-        uses: aquasecurity/trivy-action@0.19.0
+        uses: aquasecurity/trivy-action@d710430a6722f083d3b36b8339ff66b32f22ee55
         with:
           image-ref: ${{ env.REGISTRY }}/remover:test
           exit-code: "1"
@@ -178,7 +178,7 @@ jobs:
           vuln-type: "os,library"
 
       - name: Run trivy for eraser-manager
-        uses: aquasecurity/trivy-action@0.19.0
+        uses: aquasecurity/trivy-action@d710430a6722f083d3b36b8339ff66b32f22ee55
         with:
           image-ref: ${{ env.REGISTRY }}/${{ env.REPO }}-manager:test
           exit-code: "1"
@@ -186,7 +186,7 @@ jobs:
           vuln-type: "os,library"
 
       - name: Run trivy for collector
-        uses: aquasecurity/trivy-action@0.19.0
+        uses: aquasecurity/trivy-action@d710430a6722f083d3b36b8339ff66b32f22ee55
         with:
           image-ref: ${{ env.REGISTRY }}/collector:test
           exit-code: "1"
@@ -194,7 +194,7 @@ jobs:
           vuln-type: "os,library"
 
       - name: Run trivy for trivy-scanner
-        uses: aquasecurity/trivy-action@0.19.0
+        uses: aquasecurity/trivy-action@d710430a6722f083d3b36b8339ff66b32f22ee55
         with:
           image-ref: ${{ env.REGISTRY }}/${{ env.REPO }}-trivy-scanner:test
           exit-code: "1"
