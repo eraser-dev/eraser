@@ -155,14 +155,6 @@ jobs:
       - name: Get repo
         run: |
           echo "REPO=$(echo $GITHUB_REPOSITORY | awk '{print tolower($0)}')" >> $GITHUB_ENV
-      - name: Download trivy
-        run: |
-          pushd $(mktemp -d)
-          wget https://github.com/aquasecurity/trivy/releases/download/v${{ env.TRIVY_VERSION }}/trivy_${{ env.TRIVY_VERSION }}_Linux-64bit.tar.gz
-          tar zxvf trivy_${{ env.TRIVY_VERSION }}_Linux-64bit.tar.gz
-          echo "$(pwd)" >> $GITHUB_PATH
-        env:
-          TRIVY_VERSION: "0.50.0"
 
       - name: Build eraser-manager
         run: |
@@ -176,14 +168,35 @@ jobs:
       - name: Build trivy scanner
         run: |
           make docker-build-trivy-scanner TRIVY_SCANNER_REPO=${{ env.REGISTRY }}/${REPO}-trivy-scanner TRIVY_SCANNER_TAG=test
+
       - name: Run trivy for remover
-        run: trivy image --ignore-unfixed --exit-code=1 --vuln-type=os,library ${{ env.REGISTRY }}/remover:test
+        uses: aquasecurity/trivy-action@0.19.0
+        with:
+          image-ref: ${{ env.REGISTRY }}/remover:test
+          exit-code: "1"
+          ignore-unfixed: true
+          vuln-type: "os,library"
 
       - name: Run trivy for eraser-manager
-        run: trivy image --ignore-unfixed --exit-code=1 --vuln-type=os,library ${{ env.REGISTRY }}/${REPO}-manager:test
+        uses: aquasecurity/trivy-action@0.19.0
+        with:
+          image-ref: ${{ env.REGISTRY }}/${{ env.REPO }}-manager:test
+          exit-code: "1"
+          ignore-unfixed: true
+          vuln-type: "os,library"
 
       - name: Run trivy for collector
-        run: trivy image --ignore-unfixed --exit-code=1 --vuln-type=os,library ${{ env.REGISTRY }}/collector:test
+        uses: aquasecurity/trivy-action@0.19.0
+        with:
+          image-ref: ${{ env.REGISTRY }}/collector:test
+          exit-code: "1"
+          ignore-unfixed: true
+          vuln-type: "os,library"
 
       - name: Run trivy for trivy-scanner
-        run: trivy image --ignore-unfixed --exit-code=1 --vuln-type=os,library ${{ env.REGISTRY }}/${REPO}-trivy-scanner:test
+        uses: aquasecurity/trivy-action@0.19.0
+        with:
+          image-ref: ${{ env.REGISTRY }}/${{ env.REPO }}-trivy-scanner:test
+          exit-code: "1"
+          ignore-unfixed: true
+          vuln-type: "os,library"
