@@ -43,7 +43,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        KUBERNETES_VERSION: ["1.26.6", "1.27.3", "1.28.0", "1.29.0"]
+        KUBERNETES_VERSION: ["1.27.13", "1.28.9", "1.29.4", "1.30.2"]
         E2E_TEST: ${{ fromJson(needs.build-e2e-test-list.outputs.e2e-tests) }}
     steps:
       - name: Harden Runner
@@ -100,11 +100,16 @@ jobs:
           make e2e-test \
             KUBERNETES_VERSION=${{ matrix.KUBERNETES_VERSION }} \
             E2E_TESTS=${{ matrix.E2E_TEST }}
+      - name: Remove slash from E2E_TEST
+        run: |
+          E2E_TEST=${{ matrix.E2E_TEST }}
+          E2E_TEST=${E2E_TEST//\//_}
+          echo "E2E_TEST=${E2E_TEST}" >> $GITHUB_ENV
       - name: Upload artifacts
         uses: actions/upload-artifact@0b2256b8c012f0828dc542b3febcab082c67f72b  # v4.3.4
         if: always()
         with:
-          name: test_logs
+          name: test_logs_${{ matrix.KUBERNETES_VERSION }}_${{ env.E2E_TEST }}
           path: ${{ github.workspace }}/test_logs/
           retention-days: 1
           overwrite: true
