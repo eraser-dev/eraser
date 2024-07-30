@@ -25,6 +25,7 @@ type Image struct {
 	ImageID string   `json:"image_id"`
 	Names   []string `json:"names,omitempty"`
 	Digests []string `json:"digests,omitempty"`
+	Pinned  bool     `json:"pinned,omitempty"`
 }
 
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!

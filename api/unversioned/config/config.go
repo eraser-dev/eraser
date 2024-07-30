@@ -75,6 +75,7 @@ const (
 	oneDay  = unversioned.Duration(time.Hour * 24)
 )
 
+// TODO - add defaults for gathering/scanning/removing Pinned images
 func Default() *unversioned.EraserConfig {
 	return &unversioned.EraserConfig{
 		Manager: unversioned.ManagerConfig{
