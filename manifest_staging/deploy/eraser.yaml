@@ -489,6 +489,7 @@ data:
           timeout:
             total: 23h
             perImage: 1h
+        volumes: []
       remover:
         image:
           repo: ghcr.io/eraser-dev/remover

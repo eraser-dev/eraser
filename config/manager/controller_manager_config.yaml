@@ -76,6 +76,7 @@ components:
       timeout:
         total: 23h
         perImage: 1h
+    volumes: []
   remover:
     image:
       repo: REMOVER_REPO
