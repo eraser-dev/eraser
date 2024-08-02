@@ -21,6 +21,7 @@ limitations under the License.
 package v1alpha3
 
 import (
+	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
@@ -140,6 +141,20 @@ func (in *ManagerConfig) DeepCopyInto(out *ManagerConfig) {
 		*out = make(map[string]string, len(*in))
 		for key, val := range *in {
 			(*out)[key] = val
+		}
+	}
+	if in.ExtraScannerVolumes != nil {
+		in, out := &in.ExtraScannerVolumes, &out.ExtraScannerVolumes
+		*out = make([]v1.Volume, len(*in))
+		for i := range *in {
+			(*in)[i].DeepCopyInto(&(*out)[i])
+		}
+	}
+	if in.ExtraScannerVolumeMounts != nil {
+		in, out := &in.ExtraScannerVolumeMounts, &out.ExtraScannerVolumeMounts
+		*out = make([]v1.VolumeMount, len(*in))
+		for i := range *in {
+			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
 	}
 }

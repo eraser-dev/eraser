@@ -5,9 +5,11 @@ import (
 	"sync"
 	"time"
 
+	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
+
 	"github.com/eraser-dev/eraser/api/unversioned"
 	"github.com/eraser-dev/eraser/version"
-	"k8s.io/apimachinery/pkg/api/resource"
 )
 
 var defaultScannerConfig = `
@@ -106,7 +108,9 @@ func Default() *unversioned.EraserConfig {
 					"eraser.sh/cleanup.filter",
 				},
 			},
-			AdditionalPodLabels: map[string]string{},
+			AdditionalPodLabels:      map[string]string{},
+			ExtraScannerVolumes:      []v1.Volume{},
+			ExtraScannerVolumeMounts: []v1.VolumeMount{},
 		},
 		Components: unversioned.Components{
 			Collector: unversioned.OptionalContainerConfig{
