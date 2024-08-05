@@ -24,6 +24,7 @@ import (
 	unsafe "unsafe"
 
 	unversioned "github.com/eraser-dev/eraser/api/unversioned"
+	v1 "k8s.io/api/core/v1"
 	conversion "k8s.io/apimachinery/pkg/conversion"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 )
@@ -341,6 +342,8 @@ func autoConvert_v1alpha3_ManagerConfig_To_unversioned_ManagerConfig(in *Manager
 	}
 	out.PriorityClassName = in.PriorityClassName
 	out.AdditionalPodLabels = *(*map[string]string)(unsafe.Pointer(&in.AdditionalPodLabels))
+	out.ExtraScannerVolumes = *(*[]v1.Volume)(unsafe.Pointer(&in.ExtraScannerVolumes))
+	out.ExtraScannerVolumeMounts = *(*[]v1.VolumeMount)(unsafe.Pointer(&in.ExtraScannerVolumeMounts))
 	return nil
 }
 
@@ -370,6 +373,8 @@ func autoConvert_unversioned_ManagerConfig_To_v1alpha3_ManagerConfig(in *unversi
 	}
 	out.PriorityClassName = in.PriorityClassName
 	out.AdditionalPodLabels = *(*map[string]string)(unsafe.Pointer(&in.AdditionalPodLabels))
+	out.ExtraScannerVolumes = *(*[]v1.Volume)(unsafe.Pointer(&in.ExtraScannerVolumes))
+	out.ExtraScannerVolumeMounts = *(*[]v1.VolumeMount)(unsafe.Pointer(&in.ExtraScannerVolumeMounts))
 	return nil
 }
 

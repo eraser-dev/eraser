@@ -448,6 +448,11 @@ func (r *Reconciler) createImageJob(ctx context.Context) (ctrl.Result, error) {
 				},
 			},
 		}
+
+		log.Info("extra mount for scanner starts")
+		jobTemplate.Spec.Volumes = append(jobTemplate.Spec.Volumes, mgrCfg.ExtraScannerVolumes...)
+		scannerContainer.VolumeMounts = append(scannerContainer.VolumeMounts, mgrCfg.ExtraScannerVolumeMounts...)
+
 		jobTemplate.Spec.Containers = append(jobTemplate.Spec.Containers, scannerContainer)
 	}
 

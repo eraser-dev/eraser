@@ -433,6 +433,8 @@ data:
       pullSecrets: [] # image pull secrets for collector/scanner/eraser
       priorityClassName: "" # priority class name for collector/scanner/eraser
       additionalPodLabels: {}
+      extraScannerVolumes: {}
+      extraScannerVolumeMounts: {}
       nodeFilter:
         type: exclude # must be either exclude|include
         selectors:
