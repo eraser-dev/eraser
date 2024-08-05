@@ -55,26 +55,26 @@ jobs:
           go-version: "1.21"
           check-latest: true
       - name: lint manager
-        uses: golangci/golangci-lint-action@a4f60bb28d35aeee14e6880718e0c85ff1882e64 # v6.0.1
+        uses: golangci/golangci-lint-action@aaa42aa0628b4ae2578232a66b541047968fac86 # v6.1.0
         with:
           version: latest
           args: --timeout=10m
       - name: lint remover
-        uses: golangci/golangci-lint-action@a4f60bb28d35aeee14e6880718e0c85ff1882e64 # v6.0.1
+        uses: golangci/golangci-lint-action@aaa42aa0628b4ae2578232a66b541047968fac86 # v6.1.0
         with:
           version: latest
           working-directory: pkg/remover
           skip-pkg-cache: true
           args: --timeout=10m
       - name: lint collector
-        uses: golangci/golangci-lint-action@a4f60bb28d35aeee14e6880718e0c85ff1882e64 # v6.0.1
+        uses: golangci/golangci-lint-action@aaa42aa0628b4ae2578232a66b541047968fac86 # v6.1.0
         with:
           version: latest
           working-directory: pkg/collector
           skip-pkg-cache: true
           args: --timeout=10m
       - name: lint trivvy scanner
-        uses: golangci/golangci-lint-action@a4f60bb28d35aeee14e6880718e0c85ff1882e64 # v6.0.1
+        uses: golangci/golangci-lint-action@aaa42aa0628b4ae2578232a66b541047968fac86 # v6.1.0
         with:
           version: latest
           working-directory: pkg/scanners/trivy
