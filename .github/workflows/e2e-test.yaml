@@ -19,7 +19,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@0d381219ddf674d61a7572ddd19d7941e271515c # v2.9.0
+        uses: step-security/harden-runner@5c7944e73c4c2a096b17a9cb74d65b6c2bbafbde # v2.9.1
         with:
           egress-policy: audit
 
@@ -47,7 +47,7 @@ jobs:
         E2E_TEST: ${{ fromJson(needs.build-e2e-test-list.outputs.e2e-tests) }}
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@0d381219ddf674d61a7572ddd19d7941e271515c
+        uses: step-security/harden-runner@5c7944e73c4c2a096b17a9cb74d65b6c2bbafbde
         with:
           egress-policy: audit
       - name: Check out code into the Go module directory
@@ -106,7 +106,7 @@ jobs:
           E2E_TEST=${E2E_TEST//\//_}
           echo "E2E_TEST=${E2E_TEST}" >> $GITHUB_ENV
       - name: Upload artifacts
-        uses: actions/upload-artifact@89ef406dd8d7e03cfd12d9e0a4a378f454709029  # v4.3.5
+        uses: actions/upload-artifact@834a144ee995460fba8ed112a2fc961b36a5ec5a  # v4.3.6
         if: always()
         with:
           name: test_logs_${{ matrix.KUBERNETES_VERSION }}_${{ env.E2E_TEST }}
