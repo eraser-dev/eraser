@@ -448,6 +448,27 @@ func (r *Reconciler) createImageJob(ctx context.Context) (ctrl.Result, error) {
 				},
 			},
 		}
+
+		log.Info("extra mount for scanner starts")
+		scannerVolumes := compCfg.Scanner.Volumes
+		if len(scannerVolumes) != 0 {
+			jobTemplate.Spec.Volumes = append(jobTemplate.Spec.Volumes, scannerVolumes...)
+			scannerVolumeMounts := []corev1.VolumeMount{}
+			for idx := range scannerVolumes {
+				volume := scannerVolumes[idx]
+				if volume.HostPath == nil {
+					log.Error(fmt.Errorf("volume hostPath is nil"), "invalid volume", "volumeName", volume.Name)
+					continue
+				}
+				scannerVolumeMounts = append(scannerVolumeMounts, corev1.VolumeMount{
+					Name:      volume.Name,
+					MountPath: volume.HostPath.Path,
+					ReadOnly:  true,
+				})
+			}
+			scannerContainer.VolumeMounts = append(scannerContainer.VolumeMounts, scannerVolumeMounts...)
+		}
+
 		jobTemplate.Spec.Containers = append(jobTemplate.Spec.Containers, scannerContainer)
 	}
 

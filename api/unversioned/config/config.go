@@ -5,9 +5,11 @@ import (
 	"sync"
 	"time"
 
+	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
+
 	"github.com/eraser-dev/eraser/api/unversioned"
 	"github.com/eraser-dev/eraser/version"
-	"k8s.io/apimachinery/pkg/api/resource"
 )
 
 var defaultScannerConfig = `
@@ -142,7 +144,8 @@ func Default() *unversioned.EraserConfig {
 						Mem: resource.MustParse("2Gi"),
 						CPU: resource.MustParse("1500m"),
 					},
-					Config: &defaultScannerConfig,
+					Config:  &defaultScannerConfig,
+					Volumes: []v1.Volume{},
 				},
 			},
 			Remover: unversioned.ContainerConfig{

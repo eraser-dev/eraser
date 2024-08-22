@@ -105,6 +105,8 @@ manager:
   pullSecrets: [] # image pull secrets for collector/scanner/remover
   priorityClassName: "" # priority class name for collector/scanner/remover
   additionalPodLabels: {}
+  extraScannerVolumes: {}
+  extraScannerVolumeMounts: {}
   nodeFilter:
     type: exclude # must be either exclude|include
     selectors:
@@ -228,6 +230,7 @@ timeout:
 | components.scanner.limit.mem | The maximum amount of memory the scanner container is allowed to use. | 2Gi |
 | components.scanner.limit.cpu | The maximum amount of CPU the scanner container is allowed to use. | 0 |
 | components.scanner.config | The configuration to pass to the scanner container, as a YAML string. | See YAML below |
+| components.scanner.volumes | Extra volumes for scanner. | `{}` |
 | components.remover.image.repo | The repository containing the remover image. | ghcr.io/eraser-dev/remover |
 | components.remover.image.tag | The tag of the remover image. | v1.0.0 |
 | components.remover.request.mem | The amount of memory to request for the remover container. | 25Mi |

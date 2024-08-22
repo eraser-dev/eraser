@@ -21,6 +21,7 @@ limitations under the License.
 package unversioned
 
 import (
+	"k8s.io/api/core/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 )
 
@@ -52,6 +53,13 @@ func (in *ContainerConfig) DeepCopyInto(out *ContainerConfig) {
 		in, out := &in.Config, &out.Config
 		*out = new(string)
 		**out = **in
+	}
+	if in.Volumes != nil {
+		in, out := &in.Volumes, &out.Volumes
+		*out = make([]v1.Volume, len(*in))
+		for i := range *in {
+			(*in)[i].DeepCopyInto(&(*out)[i])
+		}
 	}
 }
 
