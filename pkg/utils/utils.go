@@ -51,10 +51,8 @@ func GetConn(ctx context.Context, socketPath string) (conn *grpc.ClientConn, err
 		return nil, err
 	}
 
-	return grpc.DialContext(
-		ctx,
+	return grpc.NewClient(
 		addr,
-		grpc.WithBlock(),
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithContextDialer(dialer),
 	)
