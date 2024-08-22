@@ -45,7 +45,7 @@ var (
 	ErrOnlySupportUnixSocket = errors.New("only support unix socket endpoint")
 )
 
-func GetConn(ctx context.Context, socketPath string) (conn *grpc.ClientConn, err error) {
+func GetConn(socketPath string) (conn *grpc.ClientConn, err error) {
 	addr, dialer, err := getAddressAndDialer(socketPath)
 	if err != nil {
 		return nil, err
