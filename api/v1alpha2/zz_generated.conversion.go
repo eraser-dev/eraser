@@ -24,6 +24,7 @@ import (
 	unsafe "unsafe"
 
 	unversioned "github.com/eraser-dev/eraser/api/unversioned"
+	v1 "k8s.io/api/core/v1"
 	conversion "k8s.io/apimachinery/pkg/conversion"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 )
@@ -215,6 +216,7 @@ func autoConvert_v1alpha2_ContainerConfig_To_unversioned_ContainerConfig(in *Con
 		return err
 	}
 	out.Config = (*string)(unsafe.Pointer(in.Config))
+	out.Volumes = *(*[]v1.Volume)(unsafe.Pointer(&in.Volumes))
 	return nil
 }
 
@@ -234,6 +236,7 @@ func autoConvert_unversioned_ContainerConfig_To_v1alpha2_ContainerConfig(in *unv
 		return err
 	}
 	out.Config = (*string)(unsafe.Pointer(in.Config))
+	out.Volumes = *(*[]v1.Volume)(unsafe.Pointer(&in.Volumes))
 	return nil
 }
 
