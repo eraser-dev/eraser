@@ -22,6 +22,7 @@ import (
 	"time"
 
 	"github.com/eraser-dev/eraser/api/unversioned"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/conversion"
@@ -88,6 +89,7 @@ type ContainerConfig struct {
 	Request ResourceRequirements `json:"request,omitempty"`
 	Limit   ResourceRequirements `json:"limit,omitempty"`
 	Config  *string              `json:"config,omitempty"`
+	Volumes []corev1.Volume      `json:"volumes,omitempty"`
 }
 
 type ManagerConfig struct {

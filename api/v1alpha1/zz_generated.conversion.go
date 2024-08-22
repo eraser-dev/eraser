@@ -24,7 +24,8 @@ import (
 	unsafe "unsafe"
 
 	unversioned "github.com/eraser-dev/eraser/api/unversioned"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	conversion "k8s.io/apimachinery/pkg/conversion"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 )
@@ -282,6 +283,7 @@ func autoConvert_v1alpha1_ContainerConfig_To_unversioned_ContainerConfig(in *Con
 		return err
 	}
 	out.Config = (*string)(unsafe.Pointer(in.Config))
+	out.Volumes = *(*[]v1.Volume)(unsafe.Pointer(&in.Volumes))
 	return nil
 }
 
@@ -301,6 +303,7 @@ func autoConvert_unversioned_ContainerConfig_To_v1alpha1_ContainerConfig(in *unv
 		return err
 	}
 	out.Config = (*string)(unsafe.Pointer(in.Config))
+	out.Volumes = *(*[]v1.Volume)(unsafe.Pointer(&in.Volumes))
 	return nil
 }
 
@@ -465,7 +468,7 @@ func autoConvert_v1alpha1_ImageJobStatus_To_unversioned_ImageJobStatus(in *Image
 	out.Desired = in.Desired
 	out.Skipped = in.Skipped
 	out.Phase = unversioned.JobPhase(in.Phase)
-	out.DeleteAfter = (*v1.Time)(unsafe.Pointer(in.DeleteAfter))
+	out.DeleteAfter = (*metav1.Time)(unsafe.Pointer(in.DeleteAfter))
 	return nil
 }
 
@@ -480,7 +483,7 @@ func autoConvert_unversioned_ImageJobStatus_To_v1alpha1_ImageJobStatus(in *unver
 	out.Desired = in.Desired
 	out.Skipped = in.Skipped
 	out.Phase = JobPhase(in.Phase)
-	out.DeleteAfter = (*v1.Time)(unsafe.Pointer(in.DeleteAfter))
+	out.DeleteAfter = (*metav1.Time)(unsafe.Pointer(in.DeleteAfter))
 	return nil
 }
 
@@ -564,7 +567,7 @@ func Convert_unversioned_ImageListSpec_To_v1alpha1_ImageListSpec(in *unversioned
 }
 
 func autoConvert_v1alpha1_ImageListStatus_To_unversioned_ImageListStatus(in *ImageListStatus, out *unversioned.ImageListStatus, s conversion.Scope) error {
-	out.Timestamp = (*v1.Time)(unsafe.Pointer(in.Timestamp))
+	out.Timestamp = (*metav1.Time)(unsafe.Pointer(in.Timestamp))
 	out.Success = in.Success
 	out.Failed = in.Failed
 	out.Skipped = in.Skipped
@@ -577,7 +580,7 @@ func Convert_v1alpha1_ImageListStatus_To_unversioned_ImageListStatus(in *ImageLi
 }
 
 func autoConvert_unversioned_ImageListStatus_To_v1alpha1_ImageListStatus(in *unversioned.ImageListStatus, out *ImageListStatus, s conversion.Scope) error {
-	out.Timestamp = (*v1.Time)(unsafe.Pointer(in.Timestamp))
+	out.Timestamp = (*metav1.Time)(unsafe.Pointer(in.Timestamp))
 	out.Success = in.Success
 	out.Failed = in.Failed
 	out.Skipped = in.Skipped
