@@ -3,9 +3,9 @@ entries:
   eraser:
   - apiVersion: v2
     appVersion: v1.4.0-beta.0
-    created: "2024-01-12T17:57:07.449539295Z"
+    created: "2024-09-05T16:45:51.757510112Z"
     description: A Helm chart for Eraser
-    digest: a248f935995aa43975dc78f7328887b74c439e5d31b24ffbfd7b9414590b2944
+    digest: 79bc315db776afbcafd3f311b37ad33dfbaa87a87d2f6d231e448cff43ee76ac
     home: https://github.com/eraser-dev/eraser
     name: eraser
     sources:
@@ -274,4 +274,4 @@ entries:
     urls:
     - https://eraser-dev.github.io/eraser/charts/eraser-0.2.0.tgz
     version: 0.2.0
-generated: "2024-02-01T21:33:37.666498244Z"
+generated: "2024-09-05T16:45:51.756763926Z"
