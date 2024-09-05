@@ -29,6 +29,7 @@ runtimeConfig:
         # delayOnFailure: ""
     pullSecrets: [] # image pull secrets for collector/scanner/eraser
     priorityClassName: "" # priority class name for collector/scanner/eraser
+    additionalPodLabels: {}
     nodeFilter:
       type: exclude # must be either exclude|include
       selectors:
@@ -39,7 +40,7 @@ runtimeConfig:
       enabled: true
       image:
         # repo: ""
-        tag: "v1.4.0-beta.0"
+        tag: "v1.5.0-beta.0"
       request: {}
         # mem: ""
         # cpu: ""
@@ -50,7 +51,7 @@ runtimeConfig:
       enabled: true
       image:
         # repo: ""
-        tag: "v1.4.0-beta.0"
+        tag: "v1.5.0-beta.0"
       request: {}
         # mem: ""
         # cpu: ""
@@ -63,7 +64,7 @@ runtimeConfig:
         # deleteFailedImages: true
         # deleteEOLImages: true
         # vulnerabilities:
-        #   ignoreUnfixed: true
+        #   ignoreUnfixed: false
         #   types:
         #     - os
         #     - library
@@ -81,7 +82,7 @@ runtimeConfig:
     remover:
       image:
         # repo: ""
-        tag: "v1.4.0-beta.0"
+        tag: "v1.5.0-beta.0"
       request: {}
         # mem: ""
         # cpu: ""
@@ -94,9 +95,10 @@ deploy:
     repo: ghcr.io/eraser-dev/eraser-manager
     pullPolicy: IfNotPresent
     # Overrides the image tag whose default is the chart appVersion.
-    tag: "v1.4.0-beta.0"
+    tag: "v1.5.0-beta.0"
   additionalArgs: []
   priorityClassName: ""
+  additionalPodLabels: {}
 
   securityContext:
     allowPrivilegeEscalation: false

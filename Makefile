@@ -1,4 +1,4 @@
-VERSION := v1.4.0-beta.0
+VERSION := v1.5.0-beta.0
 
 MANAGER_TAG ?= ${VERSION}
 TRIVY_SCANNER_TAG ?= ${VERSION}
