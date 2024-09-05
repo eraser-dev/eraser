@@ -9,8 +9,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.9.0
-  creationTimestamp: null
+    controller-gen.kubebuilder.io/version: v0.14.0
   name: imagejobs.eraser.sh
 spec:
   group: eraser.sh
@@ -27,10 +26,19 @@ spec:
         description: ImageJob is the Schema for the imagejobs API.
         properties:
           apiVersion:
-            description: 'APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
             type: string
           kind:
-            description: 'Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
             type: string
           metadata:
             type: object
@@ -76,10 +84,19 @@ spec:
         description: ImageJob is the Schema for the imagejobs API.
         properties:
           apiVersion:
-            description: 'APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
             type: string
           kind:
-            description: 'Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
             type: string
           metadata:
             type: object
@@ -122,8 +139,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.9.0
-  creationTimestamp: null
+    controller-gen.kubebuilder.io/version: v0.14.0
   name: imagelists.eraser.sh
 spec:
   group: eraser.sh
@@ -140,10 +156,19 @@ spec:
         description: ImageList is the Schema for the imagelists API.
         properties:
           apiVersion:
-            description: 'APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
             type: string
           kind:
-            description: 'Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
             type: string
           metadata:
             type: object
@@ -196,10 +221,19 @@ spec:
         description: ImageList is the Schema for the imagelists API.
         properties:
           apiVersion:
-            description: 'APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
             type: string
           kind:
-            description: 'Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
             type: string
           metadata:
             type: object
@@ -258,16 +292,10 @@ metadata:
   namespace: eraser-system
 ---
 apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRole
+kind: Role
 metadata:
-  creationTimestamp: null
-  name: eraser-imagejob-pods-cluster-role
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRole
-metadata:
-  creationTimestamp: null
   name: eraser-manager-role
+  namespace: eraser-system
 rules:
 - apiGroups:
   - ""
@@ -280,14 +308,6 @@ rules:
   - list
   - patch
   - update
-  - watch
-- apiGroups:
-  - ""
-  resources:
-  - nodes
-  verbs:
-  - get
-  - list
   - watch
 - apiGroups:
   - ""
@@ -312,6 +332,20 @@ rules:
   - patch
   - update
   - watch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: eraser-manager-role
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - nodes
+  verbs:
+  - get
+  - list
+  - watch
 - apiGroups:
   - eraser.sh
   resources:
@@ -321,8 +355,6 @@ rules:
   - delete
   - get
   - list
-  - patch
-  - update
   - watch
 - apiGroups:
   - eraser.sh
@@ -337,12 +369,8 @@ rules:
   resources:
   - imagelists
   verbs:
-  - create
-  - delete
   - get
   - list
-  - patch
-  - update
   - watch
 - apiGroups:
   - eraser.sh
@@ -354,16 +382,17 @@ rules:
   - update
 ---
 apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRoleBinding
+kind: RoleBinding
 metadata:
-  name: eraser-imagejob-pods-cluster-rolebinding
+  name: eraser-manager-rolebinding
+  namespace: eraser-system
 roleRef:
   apiGroup: rbac.authorization.k8s.io
-  kind: ClusterRole
-  name: eraser-imagejob-pods-cluster-role
+  kind: Role
+  name: eraser-manager-role
 subjects:
 - kind: ServiceAccount
-  name: eraser-imagejob-pods
+  name: eraser-controller-manager
   namespace: eraser-system
 ---
 apiVersion: rbac.authorization.k8s.io/v1
@@ -403,6 +432,7 @@ data:
           delayOnFailure: 24h
       pullSecrets: [] # image pull secrets for collector/scanner/eraser
       priorityClassName: "" # priority class name for collector/scanner/eraser
+      additionalPodLabels: {}
       nodeFilter:
         type: exclude # must be either exclude|include
         selectors:
@@ -413,7 +443,7 @@ data:
         enabled: true
         image:
           repo: ghcr.io/eraser-dev/collector
-          tag: v1.4.0-beta.0
+          tag: v1.5.0-beta.0
         request:
           mem: 25Mi
           cpu: 7m
@@ -425,7 +455,7 @@ data:
         enabled: true
         image:
           repo: ghcr.io/eraser-dev/eraser-trivy-scanner # supply custom image for custom scanner
-          tag: v1.4.0-beta.0
+          tag: v1.5.0-beta.0
         request:
           mem: 500Mi
           cpu: 1000m
@@ -444,7 +474,7 @@ data:
           deleteFailedImages: true
           deleteEOLImages: true
           vulnerabilities:
-            ignoreUnfixed: true
+            ignoreUnfixed: false
             types:
               - os
               - library
@@ -459,10 +489,11 @@ data:
           timeout:
             total: 23h
             perImage: 1h
+        volumes: []
       remover:
         image:
           repo: ghcr.io/eraser-dev/remover
-          tag: v1.4.0-beta.0
+          tag: v1.5.0-beta.0
         request:
           mem: 25Mi
           # https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/#how-pods-with-resource-limits-are-run
@@ -505,7 +536,7 @@ spec:
               fieldPath: metadata.namespace
         - name: OTEL_SERVICE_NAME
           value: eraser-manager
-        image: ghcr.io/eraser-dev/eraser-manager:v1.4.0-beta.0
+        image: ghcr.io/eraser-dev/eraser-manager:v1.5.0-beta.0
         livenessProbe:
           httpGet:
             path: /healthz
