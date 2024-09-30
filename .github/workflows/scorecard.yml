@@ -30,7 +30,7 @@ jobs:
           egress-policy: audit
 
       - name: "Checkout code"
-        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v3.1.0
+        uses: actions/checkout@d632683dd7b4114ad314bca15554477dd762a938 # v3.1.0
         with:
           persist-credentials: false
 
@@ -66,6 +66,6 @@ jobs:
 
       # Upload the results to GitHub's code scanning dashboard.
       - name: "Upload to code-scanning"
-        uses: github/codeql-action/upload-sarif@294a9d92911152fe08befb9ec03e240add280cb3 # v2.2.4
+        uses: github/codeql-action/upload-sarif@461ef6c76dfe95d5c364de2f431ddbd31a417628 # v2.2.4
         with:
           sarif_file: results.sarif
