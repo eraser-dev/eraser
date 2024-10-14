@@ -95,7 +95,7 @@ jobs:
         with:
           go-version: "1.21"
           check-latest: true
-      - uses: actions/cache@2cdf405574d6ef1f33a1d12acccd3ae82f47b3f2 # v4.1.0
+      - uses: actions/cache@3624ceb22c1c5a301c8db4169662070a689d9ea8 # v4.1.1
         with:
           key: ${{ runner.OS }}-go-${{ hashFiles('**/go.sum') }}
           restore-keys: |
@@ -170,7 +170,7 @@ jobs:
           make docker-build-trivy-scanner TRIVY_SCANNER_REPO=${{ env.REGISTRY }}/${REPO}-trivy-scanner TRIVY_SCANNER_TAG=test
 
       - name: Run trivy for remover
-        uses: aquasecurity/trivy-action@6e7b7d1fd3e4fef0c5fa8cce1229c54b2c9bd0d8
+        uses: aquasecurity/trivy-action@5681af892cd0f4997658e2bacc62bd0a894cf564
         with:
           image-ref: ${{ env.REGISTRY }}/remover:test
           exit-code: "1"
@@ -178,7 +178,7 @@ jobs:
           vuln-type: "os,library"
 
       - name: Run trivy for eraser-manager
-        uses: aquasecurity/trivy-action@6e7b7d1fd3e4fef0c5fa8cce1229c54b2c9bd0d8
+        uses: aquasecurity/trivy-action@5681af892cd0f4997658e2bacc62bd0a894cf564
         with:
           image-ref: ${{ env.REGISTRY }}/${{ env.REPO }}-manager:test
           exit-code: "1"
@@ -186,7 +186,7 @@ jobs:
           vuln-type: "os,library"
 
       - name: Run trivy for collector
-        uses: aquasecurity/trivy-action@6e7b7d1fd3e4fef0c5fa8cce1229c54b2c9bd0d8
+        uses: aquasecurity/trivy-action@5681af892cd0f4997658e2bacc62bd0a894cf564
         with:
           image-ref: ${{ env.REGISTRY }}/collector:test
           exit-code: "1"
@@ -194,7 +194,7 @@ jobs:
           vuln-type: "os,library"
 
       - name: Run trivy for trivy-scanner
-        uses: aquasecurity/trivy-action@6e7b7d1fd3e4fef0c5fa8cce1229c54b2c9bd0d8
+        uses: aquasecurity/trivy-action@5681af892cd0f4997658e2bacc62bd0a894cf564
         with:
           image-ref: ${{ env.REGISTRY }}/${{ env.REPO }}-trivy-scanner:test
           exit-code: "1"
