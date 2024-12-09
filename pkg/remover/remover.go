@@ -14,7 +14,7 @@ import (
 	"syscall"
 	"time"
 
-	"go.opentelemetry.io/otel/metric/global"
+	"go.opentelemetry.io/otel"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 
 	"github.com/eraser-dev/eraser/pkg/cri"
@@ -134,9 +134,9 @@ func main() {
 		ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 
 		exporter, reader, provider := metrics.ConfigureMetrics(ctx, log, os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT"))
-		global.SetMeterProvider(provider)
+		otel.SetMeterProvider(provider)
 
-		if err := metrics.RecordMetricsRemover(ctx, global.MeterProvider(), int64(removed)); err != nil {
+		if err := metrics.RecordMetricsRemover(ctx, otel.GetMeterProvider(), int64(removed)); err != nil {
 			log.Error(err, "error recording metrics")
 		}
 		metrics.ExportMetrics(log, exporter, reader)
