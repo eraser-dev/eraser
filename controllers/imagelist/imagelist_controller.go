@@ -23,7 +23,7 @@ import (
 	"syscall"
 	"time"
 
-	"go.opentelemetry.io/otel/metric/global"
+	"go.opentelemetry.io/otel"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -97,7 +97,7 @@ func newReconciler(mgr manager.Manager, cfg *config.Manager) (reconcile.Reconcil
 		defer cancel()
 
 		exporter, reader, provider = metrics.ConfigureMetrics(ctx, log, otlpEndpoint)
-		global.SetMeterProvider(provider)
+		otel.SetMeterProvider(provider)
 	}
 
 	rec := &Reconciler{
@@ -209,7 +209,7 @@ func (r *Reconciler) handleJobListEvent(ctx context.Context, imageList *eraserv1
 		otlpEndpoint := eraserConfig.Manager.OTLPEndpoint
 		if otlpEndpoint != "" {
 			// record metrics
-			if err := metrics.RecordMetricsController(ctx, global.MeterProvider(), float64(time.Since(startTime).Seconds()), int64(job.Status.Succeeded), int64(job.Status.Failed)); err != nil {
+			if err := metrics.RecordMetricsController(ctx, otel.GetMeterProvider(), float64(time.Since(startTime).Seconds()), int64(job.Status.Succeeded), int64(job.Status.Failed)); err != nil {
 				log.Error(err, "error recording metrics")
 			}
 			metrics.ExportMetrics(log, exporter, reader)
