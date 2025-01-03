@@ -45,16 +45,14 @@ var (
 	ErrOnlySupportUnixSocket = errors.New("only support unix socket endpoint")
 )
 
-func GetConn(ctx context.Context, socketPath string) (conn *grpc.ClientConn, err error) {
+func GetConn(socketPath string) (conn *grpc.ClientConn, err error) {
 	addr, dialer, err := getAddressAndDialer(socketPath)
 	if err != nil {
 		return nil, err
 	}
 
-	return grpc.DialContext(
-		ctx,
+	return grpc.NewClient(
 		addr,
-		grpc.WithBlock(),
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithContextDialer(dialer),
 	)
