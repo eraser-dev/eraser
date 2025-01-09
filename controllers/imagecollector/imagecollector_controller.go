@@ -312,10 +312,12 @@ func (r *Reconciler) createImageJob(ctx context.Context) (ctrl.Result, error) {
 		fmt.Sprintf("--pprof-port=%d", profileConfig.Port),
 	}
 
-	collArgs := []string{"--scan-disabled=" + strconv.FormatBool(scanDisabled)}
+	// todo implement the config for this
+	collArgs := []string{"--scan-disabled=" + strconv.FormatBool(scanDisabled), "--scan-pinned=" + strconv.FormatBool(scanCfg.ScanPinned)}
 	collArgs = append(collArgs, profileArgs...)
 
-	removerArgs := []string{"--log-level=" + logger.GetLevel()}
+	// todo implement the config for this
+	removerArgs := []string{"--log-level=" + logger.GetLevel(), "--remove-pinned=" + strconv.FormatBool(eraserCfg.RemovePinned)}
 	removerArgs = append(removerArgs, profileArgs...)
 
 	pullSecrets := []corev1.LocalObjectReference{}
