@@ -27,7 +27,7 @@ require (
 	k8s.io/kubernetes v1.26.11
 	k8s.io/utils v0.0.0-20230115233650-391b47cb4029
 	oras.land/oras-go v1.2.2
-	sigs.k8s.io/controller-runtime v0.14.1
+	sigs.k8s.io/controller-runtime v0.14.7
 	sigs.k8s.io/e2e-framework v0.0.8
 	sigs.k8s.io/kind v0.15.0
 	sigs.k8s.io/yaml v1.3.0
