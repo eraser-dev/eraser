@@ -36,7 +36,7 @@ func NewCollectorClient(socketPath string) (Collector, error) {
 func NewRemoverClient(socketPath string) (Remover, error) {
 	ctx := context.Background()
 
-	conn, err := utils.GetConn(ctx, socketPath)
+	conn, err := utils.GetConn(socketPath)
 	if err != nil {
 		return nil, err
 	}
