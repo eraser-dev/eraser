@@ -20,7 +20,6 @@ linters:
   disable-all: true
   enable:
     - errcheck
-    - exportloopref
     - forcetypeassert
     - gocritic
     - goconst
