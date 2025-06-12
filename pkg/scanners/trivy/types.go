@@ -172,23 +172,9 @@ func (c *Config) getRuntimeVar() (string, error) {
 }
 
 type ImageScanner struct {
-	config Config
-	timer  *time.Timer
-}
-
-func (s *ImageScanner) findTrivyExecutable() (string, error) {
-	// First, check if trivy exists at the hardcoded path
-	if _, err := os.Stat(trivyCommandName); err == nil {
-		return trivyCommandName, nil
-	}
-
-	// If not found at hardcoded path, try to find it in PATH
-	path, err := currentExecutingLookPath("trivy")
-	if err != nil {
-		return "", fmt.Errorf("trivy executable not found at %s and not found in PATH: %w", trivyCommandName, err)
-	}
-
-	return path, nil
+	config    Config
+	timer     *time.Timer
+	trivyPath string
 }
 
 func (s *ImageScanner) Scan(img unversioned.Image) (ScanStatus, error) {
@@ -196,12 +182,6 @@ func (s *ImageScanner) Scan(img unversioned.Image) (ScanStatus, error) {
 	refs = append(refs, img.Digests...)
 	refs = append(refs, img.Names...)
 	scanSucceeded := false
-
-	// Find trivy executable path
-	trivyPath, err := s.findTrivyExecutable()
-	if err != nil {
-		return StatusFailed, err
-	}
 
 	log.Info("scanning image with id", "imageID", img.ImageID, "refs", refs)
 	for i := 0; i < len(refs) && !scanSucceeded; i++ {
@@ -211,13 +191,13 @@ func (s *ImageScanner) Scan(img unversioned.Image) (ScanStatus, error) {
 		stderr := new(bytes.Buffer)
 
 		cliArgs := s.config.cliArgs(refs[i])
-		cmd := exec.Command(trivyPath, cliArgs...)
+		cmd := exec.Command(s.trivyPath, cliArgs...) // nolint:gosec // G204: Subprocess launched with variable
 		cmd.Stdout = stdout
 		cmd.Stderr = stderr
 		cmd.Env = append(cmd.Env, os.Environ()...)
 		cmd.Env = setRuntimeSocketEnvVars(cmd, s.config.Runtime)
 
-		log.V(1).Info("scanning image ref", "ref", refs[i], "cli_invocation", fmt.Sprintf("%s %s", trivyPath, strings.Join(cliArgs, " ")), "env", cmd.Env)
+		log.V(1).Info("scanning image ref", "ref", refs[i], "cli_invocation", fmt.Sprintf("%s %s", s.trivyPath, strings.Join(cliArgs, " ")), "env", cmd.Env)
 		if err := cmd.Run(); err != nil {
 			log.Error(err, "error scanning image", "imageID", img.ImageID, "reference", refs[i], "stderr", stderr.String())
 			continue
