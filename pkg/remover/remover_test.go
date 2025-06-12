@@ -31,7 +31,6 @@ func TestRemoveImages(t *testing.T) {
 	}
 
 	for k, tc := range cases {
-		tc := tc
 		t.Run(k, func(t *testing.T) {
 			client := &testClient{t: t}
 			added := make(map[string]struct{})
