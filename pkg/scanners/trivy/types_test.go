@@ -2,7 +2,6 @@ package main
 
 import (
 	"errors"
-	"fmt"
 	"strings"
 	"testing"
 
@@ -174,13 +173,11 @@ func TestCLIArgs(t *testing.T) {
 	}
 }
 
-// TestImageScanner_findTrivyExecutable tests the findTrivyExecutable method in isolation.
-func TestImageScanner_findTrivyExecutable(t *testing.T) {
+// TestFindTrivyExecutable tests the findTrivyExecutable function in isolation.
+func TestFindTrivyExecutable(t *testing.T) {
 	// Store original function to restore after tests
 	originalLookPath := currentExecutingLookPath
 	defer func() { currentExecutingLookPath = originalLookPath }()
-
-	scanner := &ImageScanner{}
 
 	testCases := []struct {
 		name               string
@@ -219,7 +216,7 @@ func TestImageScanner_findTrivyExecutable(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			tc.lookPathSetup()
 
-			path, err := scanner.findTrivyExecutable()
+			path, err := findTrivyExecutable()
 
 			if tc.expectedError {
 				assert.Error(t, err)
@@ -233,94 +230,45 @@ func TestImageScanner_findTrivyExecutable(t *testing.T) {
 	}
 }
 
-// TestImageScanner_Scan_TrivyPathLookup tests the logic for finding the trivy executable.
+// TestImageScanner_Scan_TrivyPathLookup tests the logic for using the trivy executable path.
 func TestImageScanner_Scan_TrivyPathLookup(t *testing.T) {
-	// Store original function to restore after tests
-	originalLookPath := currentExecutingLookPath
-	defer func() { currentExecutingLookPath = originalLookPath }()
-
 	// Base configuration for the scanner
 	baseConfig := DefaultConfig()
-	scanner := &ImageScanner{
-		config: *baseConfig,
-	}
 	// Dummy image for testing
 	img := unversioned.Image{ImageID: "test-image-id", Names: []string{"test-image:latest"}}
 
-	// Expected error message prefix when trivy is not found
-	expectedNotFoundErrorMsgPrefix := fmt.Sprintf("trivy executable not found at %s", trivyCommandName)
-
 	testCases := []struct {
-		name                     string
-		lookPathSetup            func() // Sets up the mock for exec.LookPath
-		expectedStatus           ScanStatus
-		expectNotFoundError      bool   // True if we expect the specific "trivy not found by LookPath" error
-		expectedErrorMsgContains string // The prefix for the "not found" error message
+		name           string
+		trivyPath      string
+		expectedStatus ScanStatus
 	}{
 		{
-			name: "Trivy found at hardcoded path /trivy",
-			lookPathSetup: func() {
-				currentExecutingLookPath = func(file string) (string, error) {
-					if file == trivyExecutableName {
-						return trivyPathBin, nil // Found in PATH
-					}
-					return originalLookPath(file) // Fallback for any other calls
-				}
-			},
-			// Scan will likely still fail due to inability to run actual scan in test,
-			// but it should not be the "trivy not found by LookPath" error.
-			expectedStatus:      StatusFailed,
-			expectNotFoundError: false,
+			name:           "Trivy path set to hardcoded path /trivy",
+			trivyPath:      trivyCommandName,
+			expectedStatus: StatusFailed, // Will fail during actual execution but not due to path issues
 		},
 		{
-			name: "Trivy found in $PATH, not at /trivy",
-			lookPathSetup: func() {
-				currentExecutingLookPath = func(file string) (string, error) {
-					if file == trivyExecutableName {
-						return trivyPathBin, nil // Found in $PATH
-					}
-					return originalLookPath(file)
-				}
-			},
-			expectedStatus:      StatusFailed, // Similar to above, subsequent scan steps will fail.
-			expectNotFoundError: false,
-		},
-		{
-			name: "Trivy not found anywhere",
-			lookPathSetup: func() {
-				currentExecutingLookPath = func(file string) (string, error) {
-					if file == trivyExecutableName {
-						return "", errors.New("mock: trivy not in $PATH")
-					}
-					return originalLookPath(file)
-				}
-			},
-			expectedStatus:           StatusFailed,
-			expectNotFoundError:      true,
-			expectedErrorMsgContains: expectedNotFoundErrorMsgPrefix,
+			name:           "Trivy path set to system PATH location",
+			trivyPath:      trivyPathBin,
+			expectedStatus: StatusFailed, // Will fail during actual execution but not due to path issues
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			tc.lookPathSetup()
+			scanner := &ImageScanner{
+				config:    *baseConfig,
+				trivyPath: tc.trivyPath,
+			}
 
 			status, err := scanner.Scan(img)
 
-			if tc.expectNotFoundError {
-				assert.Error(t, err, "Expected an error when trivy is not found")
-				if err != nil { // Check prefix only if error is not nil
-					assert.True(t, strings.HasPrefix(err.Error(), tc.expectedErrorMsgContains),
-						"Error message should start with '%s'. Got: %s", tc.expectedErrorMsgContains, err.Error())
-				}
-				assert.Equal(t, tc.expectedStatus, status, "ScanStatus should be StatusFailed")
-			} else if err != nil {
-				// If trivy was "found" by LookPath, any error should be from subsequent operations (e.g., cmd.Run, JSON unmarshal),
-				// not the specific "trivy executable not found by LookPath..." error.
-				assert.False(t, strings.HasPrefix(err.Error(), expectedNotFoundErrorMsgPrefix),
-					"Error should not be the 'trivy not found by LookPath' error. Got: %s", err.Error())
-				// The status might still be StatusFailed due to these subsequent errors,
-				// which is acceptable for this test's focus on path lookup.
+			// The scan will likely fail due to inability to run actual scan in test,
+			// but it should not be a "trivy not found" error since the path is already set
+			assert.Equal(t, tc.expectedStatus, status, "ScanStatus should be StatusFailed")
+			if err != nil {
+				assert.NotContains(t, err.Error(), "trivy executable not found",
+					"Error should not be about trivy not being found since path is pre-set")
 			}
 		})
 	}
