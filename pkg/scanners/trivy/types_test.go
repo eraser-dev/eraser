@@ -1,18 +1,21 @@
 package main
 
 import (
-	"strings"
-	"testing"
-
 	"errors"
 	"fmt"
+	"strings"
+	"testing"
 
 	"github.com/eraser-dev/eraser/api/unversioned"
 
 	"github.com/stretchr/testify/assert"
 )
 
-const ref = "image:tag"
+const (
+	ref                 = "image:tag"
+	trivyExecutableName = "trivy"
+	trivyPathBin        = "/usr/bin/trivy"
+)
 
 var testDuration = unversioned.Duration(100000000000)
 
@@ -190,19 +193,19 @@ func TestImageScanner_findTrivyExecutable(t *testing.T) {
 			name: "Trivy found in PATH only",
 			lookPathSetup: func() {
 				currentExecutingLookPath = func(file string) (string, error) {
-					if file == "trivy" {
-						return "/usr/bin/trivy", nil
+					if file == trivyExecutableName {
+						return trivyPathBin, nil
 					}
 					return "", errors.New("not found")
 				}
 			},
-			expectedPath:  "/usr/bin/trivy",
+			expectedPath:  trivyPathBin,
 			expectedError: false,
 		},
 		{
 			name: "Trivy not found anywhere",
 			lookPathSetup: func() {
-				currentExecutingLookPath = func(file string) (string, error) {
+				currentExecutingLookPath = func(_ string) (string, error) {
 					return "", errors.New("executable file not found in $PATH")
 				}
 			},
@@ -258,8 +261,8 @@ func TestImageScanner_Scan_TrivyPathLookup(t *testing.T) {
 			name: "Trivy found at hardcoded path /trivy",
 			lookPathSetup: func() {
 				currentExecutingLookPath = func(file string) (string, error) {
-					if file == "trivy" {
-						return "/usr/bin/trivy", nil // Found in PATH
+					if file == trivyExecutableName {
+						return trivyPathBin, nil // Found in PATH
 					}
 					return originalLookPath(file) // Fallback for any other calls
 				}
@@ -273,8 +276,8 @@ func TestImageScanner_Scan_TrivyPathLookup(t *testing.T) {
 			name: "Trivy found in $PATH, not at /trivy",
 			lookPathSetup: func() {
 				currentExecutingLookPath = func(file string) (string, error) {
-					if file == "trivy" {
-						return "/usr/bin/trivy", nil // Found in $PATH
+					if file == trivyExecutableName {
+						return trivyPathBin, nil // Found in $PATH
 					}
 					return originalLookPath(file)
 				}
@@ -286,7 +289,7 @@ func TestImageScanner_Scan_TrivyPathLookup(t *testing.T) {
 			name: "Trivy not found anywhere",
 			lookPathSetup: func() {
 				currentExecutingLookPath = func(file string) (string, error) {
-					if file == "trivy" {
+					if file == trivyExecutableName {
 						return "", errors.New("mock: trivy not in $PATH")
 					}
 					return originalLookPath(file)
@@ -311,13 +314,11 @@ func TestImageScanner_Scan_TrivyPathLookup(t *testing.T) {
 						"Error message should start with '%s'. Got: %s", tc.expectedErrorMsgContains, err.Error())
 				}
 				assert.Equal(t, tc.expectedStatus, status, "ScanStatus should be StatusFailed")
-			} else {
+			} else if err != nil {
 				// If trivy was "found" by LookPath, any error should be from subsequent operations (e.g., cmd.Run, JSON unmarshal),
 				// not the specific "trivy executable not found by LookPath..." error.
-				if err != nil {
-					assert.False(t, strings.HasPrefix(err.Error(), expectedNotFoundErrorMsgPrefix),
-						"Error should not be the 'trivy not found by LookPath' error. Got: %s", err.Error())
-				}
+				assert.False(t, strings.HasPrefix(err.Error(), expectedNotFoundErrorMsgPrefix),
+					"Error should not be the 'trivy not found by LookPath' error. Got: %s", err.Error())
 				// The status might still be StatusFailed due to these subsequent errors,
 				// which is acceptable for this test's focus on path lookup.
 			}
