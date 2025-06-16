@@ -14,10 +14,6 @@ import (
 	"github.com/eraser-dev/eraser/pkg/utils"
 )
 
-// currentExecutingLookPath is a variable that points to exec.LookPath by default,
-// but can be overridden for testing purposes.
-var currentExecutingLookPath = exec.LookPath
-
 const (
 	StatusFailed ScanStatus = iota
 	StatusNonCompliant

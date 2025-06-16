@@ -1,13 +1,14 @@
 package main
 
 import (
-	"errors"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
 	"github.com/eraser-dev/eraser/api/unversioned"
-
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 const (
@@ -174,36 +175,43 @@ func TestCLIArgs(t *testing.T) {
 
 // TestFindTrivyExecutable tests the findTrivyExecutable function in isolation.
 func TestFindTrivyExecutable(t *testing.T) {
-	// Store original function to restore after tests
-	originalLookPath := currentExecutingLookPath
-	defer func() { currentExecutingLookPath = originalLookPath }()
+	// Save original PATH to restore after tests
+	originalPath := os.Getenv("PATH")
+	defer func() { os.Setenv("PATH", originalPath) }()
 
 	testCases := []struct {
 		name               string
-		lookPathSetup      func()
+		setupFunc          func(t *testing.T) string // returns tempdir path
 		expectedPath       string
 		expectedError      bool
 		expectedErrorMatch string
 	}{
 		{
 			name: "Trivy found in PATH only",
-			lookPathSetup: func() {
-				currentExecutingLookPath = func(file string) (string, error) {
-					if file == trivyExecutableName {
-						return trivyPathBin, nil
-					}
-					return "", errors.New("not found")
-				}
+			setupFunc: func(t *testing.T) string {
+				tempDir := t.TempDir()
+				trivyPath := filepath.Join(tempDir, "trivy")
+
+				// Create executable file
+				file, err := os.Create(trivyPath)
+				require.NoError(t, err)
+				file.Close()
+				err = os.Chmod(trivyPath, 0o755)
+				require.NoError(t, err)
+
+				// Set PATH to include temp directory
+				os.Setenv("PATH", tempDir)
+				return trivyPath
 			},
-			expectedPath:  trivyPathBin,
 			expectedError: false,
 		},
 		{
 			name: "Trivy not found anywhere",
-			lookPathSetup: func() {
-				currentExecutingLookPath = func(_ string) (string, error) {
-					return "", errors.New("executable file not found in $PATH")
-				}
+			setupFunc: func(t *testing.T) string {
+				// Set PATH to empty temp directory without trivy
+				tempDir := t.TempDir()
+				os.Setenv("PATH", tempDir)
+				return ""
 			},
 			expectedPath:       "",
 			expectedError:      true,
@@ -213,7 +221,10 @@ func TestFindTrivyExecutable(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			tc.lookPathSetup()
+			expectedPath := tc.setupFunc(t)
+			if expectedPath == "" {
+				expectedPath = tc.expectedPath
+			}
 
 			path, err := findTrivyExecutable()
 
@@ -223,7 +234,7 @@ func TestFindTrivyExecutable(t *testing.T) {
 				assert.Empty(t, path)
 			} else {
 				assert.NoError(t, err)
-				assert.Equal(t, tc.expectedPath, path)
+				assert.Equal(t, expectedPath, path)
 			}
 		})
 	}

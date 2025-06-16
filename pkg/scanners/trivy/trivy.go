@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"os/exec"
 	"time"
 
 	"github.com/eraser-dev/eraser/api/unversioned"
@@ -154,7 +155,7 @@ func findTrivyExecutable() (string, error) {
 	}
 
 	// If not found at hardcoded path, try to find it in PATH
-	path, err := currentExecutingLookPath("trivy")
+	path, err := exec.LookPath("trivy")
 	if err != nil {
 		return "", fmt.Errorf("trivy executable not found at %s and not found in PATH: %w", trivyCommandName, err)
 	}
