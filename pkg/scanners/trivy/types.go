@@ -14,10 +14,6 @@ import (
 	"github.com/eraser-dev/eraser/pkg/utils"
 )
 
-// currentExecutingLookPath is a variable that points to exec.LookPath by default,
-// but can be overridden for testing purposes.
-var currentExecutingLookPath = exec.LookPath
-
 const (
 	StatusFailed ScanStatus = iota
 	StatusNonCompliant
@@ -172,9 +168,8 @@ func (c *Config) getRuntimeVar() (string, error) {
 }
 
 type ImageScanner struct {
-	config    Config
-	timer     *time.Timer
-	trivyPath string
+	config Config
+	timer  *time.Timer
 }
 
 func (s *ImageScanner) Scan(img unversioned.Image) (ScanStatus, error) {
@@ -191,13 +186,13 @@ func (s *ImageScanner) Scan(img unversioned.Image) (ScanStatus, error) {
 		stderr := new(bytes.Buffer)
 
 		cliArgs := s.config.cliArgs(refs[i])
-		cmd := exec.Command(s.trivyPath, cliArgs...) // nolint:gosec // G204: Subprocess launched with variable
+		cmd := exec.Command(trivyCommandName, cliArgs...)
 		cmd.Stdout = stdout
 		cmd.Stderr = stderr
 		cmd.Env = append(cmd.Env, os.Environ()...)
 		cmd.Env = setRuntimeSocketEnvVars(cmd, s.config.Runtime)
 
-		log.V(1).Info("scanning image ref", "ref", refs[i], "cli_invocation", fmt.Sprintf("%s %s", s.trivyPath, strings.Join(cliArgs, " ")), "env", cmd.Env)
+		log.V(1).Info("scanning image ref", "ref", refs[i], "cli_invocation", fmt.Sprintf("%s %s", trivyCommandName, strings.Join(cliArgs, " ")), "env", cmd.Env)
 		if err := cmd.Run(); err != nil {
 			log.Error(err, "error scanning image", "imageID", img.ImageID, "reference", refs[i], "stderr", stderr.String())
 			continue
