@@ -1,14 +1,13 @@
 package main
 
 import (
-	"os"
-	"path/filepath"
+	"errors"
 	"strings"
 	"testing"
 
 	"github.com/eraser-dev/eraser/api/unversioned"
+
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 const (
@@ -173,189 +172,103 @@ func TestCLIArgs(t *testing.T) {
 	}
 }
 
-// TestEnsureTrivyExecutable tests the ensureTrivyExecutable function in isolation.
-func TestEnsureTrivyExecutable(t *testing.T) {
-	// Save original PATH to restore after tests
-	originalPath := os.Getenv("PATH")
-	defer func() { os.Setenv("PATH", originalPath) }()
+// TestFindTrivyExecutable tests the findTrivyExecutable function in isolation.
+func TestFindTrivyExecutable(t *testing.T) {
+	// Store original function to restore after tests
+	originalLookPath := currentExecutingLookPath
+	defer func() { currentExecutingLookPath = originalLookPath }()
 
 	testCases := []struct {
-		name             string
-		setupFunc        func(t *testing.T) (targetPath string, cleanup func())
-		expectedError    bool
-		expectedErrorMsg string
-		validateFunc     func(t *testing.T, targetPath string)
+		name               string
+		lookPathSetup      func()
+		expectedPath       string
+		expectedError      bool
+		expectedErrorMatch string
 	}{
 		{
-			name: "Trivy already exists at target path",
-			setupFunc: func(t *testing.T) (string, func()) {
-				tempDir := t.TempDir()
-				targetPath := filepath.Join(tempDir, "trivy")
-
-				// Create a trivy executable at the target path
-				file, err := os.Create(targetPath)
-				require.NoError(t, err)
-				file.Close()
-				err = os.Chmod(targetPath, 0o755)
-				require.NoError(t, err)
-
-				return targetPath, func() {}
+			name: "Trivy found in PATH only",
+			lookPathSetup: func() {
+				currentExecutingLookPath = func(file string) (string, error) {
+					if file == trivyExecutableName {
+						return trivyPathBin, nil
+					}
+					return "", errors.New("not found")
+				}
 			},
+			expectedPath:  trivyPathBin,
 			expectedError: false,
-			validateFunc: func(t *testing.T, targetPath string) {
-				// Should not create a symlink, original file should still exist
-				info, err := os.Lstat(targetPath)
-				require.NoError(t, err)
-				assert.Equal(t, os.FileMode(0o755), info.Mode().Perm(), "Original file should be preserved")
-
-				// Verify it's not a symlink
-				assert.Equal(t, 0, int(info.Mode()&os.ModeSymlink), "Should not be a symlink")
-			},
-		},
-		{
-			name: "Trivy found in PATH, symlink created successfully",
-			setupFunc: func(t *testing.T) (string, func()) {
-				tempDir := t.TempDir()
-				pathDir := filepath.Join(tempDir, "bin")
-				err := os.Mkdir(pathDir, 0o755)
-				require.NoError(t, err)
-
-				// Create a trivy executable in the PATH directory
-				trivyInPath := filepath.Join(pathDir, "trivy")
-				file, err := os.Create(trivyInPath)
-				require.NoError(t, err)
-				file.Close()
-				err = os.Chmod(trivyInPath, 0o755)
-				require.NoError(t, err)
-
-				// Set PATH to include our temp bin directory
-				os.Setenv("PATH", pathDir)
-
-				// Target path where symlink should be created
-				targetPath := filepath.Join(tempDir, "target_trivy")
-
-				return targetPath, func() {}
-			},
-			expectedError: false,
-			validateFunc: func(t *testing.T, targetPath string) {
-				// Should create a symlink at target path
-				info, err := os.Lstat(targetPath)
-				require.NoError(t, err)
-
-				// Verify it's a symlink
-				assert.NotEqual(t, 0, int(info.Mode()&os.ModeSymlink), "Should be a symlink")
-
-				// Verify symlink points to the correct location
-				linkTarget, err := os.Readlink(targetPath)
-				require.NoError(t, err)
-				assert.Contains(t, linkTarget, "trivy", "Symlink should point to trivy executable")
-			},
 		},
 		{
 			name: "Trivy not found anywhere",
-			setupFunc: func(t *testing.T) (string, func()) {
-				tempDir := t.TempDir()
-				emptyPathDir := filepath.Join(tempDir, "empty")
-				err := os.Mkdir(emptyPathDir, 0o755)
-				require.NoError(t, err)
-
-				// Set PATH to empty directory without trivy
-				os.Setenv("PATH", emptyPathDir)
-
-				targetPath := filepath.Join(tempDir, "target_trivy")
-				return targetPath, func() {}
-			},
-			expectedError:    true,
-			expectedErrorMsg: "trivy executable not found",
-			validateFunc: func(t *testing.T, targetPath string) {
-				// Should not create any file or symlink
-				_, err := os.Lstat(targetPath)
-				assert.True(t, os.IsNotExist(err), "Target path should not exist when trivy is not found")
-			},
-		},
-		{
-			name: "Symlink creation fails due to permission",
-			setupFunc: func(t *testing.T) (string, func()) {
-				if os.Getuid() == 0 {
-					t.Skip("Skipping permission test when running as root")
-				}
-
-				tempDir := t.TempDir()
-				pathDir := filepath.Join(tempDir, "bin")
-				err := os.Mkdir(pathDir, 0o755)
-				require.NoError(t, err)
-
-				// Create a trivy executable in PATH
-				trivyInPath := filepath.Join(pathDir, "trivy")
-				file, err := os.Create(trivyInPath)
-				require.NoError(t, err)
-				file.Close()
-				err = os.Chmod(trivyInPath, 0o755)
-				require.NoError(t, err)
-
-				os.Setenv("PATH", pathDir)
-
-				// Try to create symlink in root directory (should fail for non-root users)
-				targetPath := "/trivy_test_symlink"
-
-				return targetPath, func() {
-					// Clean up any created symlink
-					os.Remove(targetPath)
+			lookPathSetup: func() {
+				currentExecutingLookPath = func(_ string) (string, error) {
+					return "", errors.New("executable file not found in $PATH")
 				}
 			},
-			expectedError:    true,
-			expectedErrorMsg: "failed to create symlink",
-			validateFunc: func(t *testing.T, targetPath string) {
-				// Should not create symlink due to permission error
-				_, err := os.Lstat(targetPath)
-				assert.True(t, os.IsNotExist(err), "Target path should not exist when symlink creation fails")
-			},
+			expectedPath:       "",
+			expectedError:      true,
+			expectedErrorMatch: "trivy executable not found at /trivy and not found in PATH",
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			targetPath, cleanup := tc.setupFunc(t)
-			defer cleanup()
+			tc.lookPathSetup()
 
-			// Test the ensureTrivyExecutable function
-			err := ensureTrivyExecutable(targetPath)
+			path, err := findTrivyExecutable()
 
 			if tc.expectedError {
 				assert.Error(t, err)
-				assert.Contains(t, err.Error(), tc.expectedErrorMsg)
+				assert.Contains(t, err.Error(), tc.expectedErrorMatch)
+				assert.Empty(t, path)
 			} else {
 				assert.NoError(t, err)
-			}
-
-			if tc.validateFunc != nil {
-				tc.validateFunc(t, targetPath)
+				assert.Equal(t, tc.expectedPath, path)
 			}
 		})
 	}
 }
 
-// TestInitScanner_TrivySymlinkCreation tests the symlink creation logic in initScanner.
-func TestInitScanner_TrivySymlinkCreation(t *testing.T) {
-	// This test verifies that initScanner properly calls ensureTrivyExecutable
-	// and handles errors appropriately. Since ensureTrivyExecutable is tested
-	// comprehensively above, this focuses on the integration aspect.
+// TestImageScanner_Scan_TrivyPathLookup tests the logic for using the trivy executable path.
+func TestImageScanner_Scan_TrivyPathLookup(t *testing.T) {
+	// Base configuration for the scanner
+	baseConfig := DefaultConfig()
+	// Dummy image for testing
+	img := unversioned.Image{ImageID: "test-image-id", Names: []string{"test-image:latest"}}
 
-	// Save original PATH to restore after test
-	originalPath := os.Getenv("PATH")
-	defer func() { os.Setenv("PATH", originalPath) }()
+	testCases := []struct {
+		name           string
+		trivyPath      string
+		expectedStatus ScanStatus
+	}{
+		{
+			name:           "Trivy path set to hardcoded path /trivy",
+			trivyPath:      trivyCommandName,
+			expectedStatus: StatusFailed, // Will fail during actual execution but not due to path issues
+		},
+		{
+			name:           "Trivy path set to system PATH location",
+			trivyPath:      trivyPathBin,
+			expectedStatus: StatusFailed, // Will fail during actual execution but not due to path issues
+		},
+	}
 
-	t.Run("initScanner fails when trivy not found", func(t *testing.T) {
-		// Set PATH to empty directory
-		tempDir := t.TempDir()
-		os.Setenv("PATH", tempDir)
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			scanner := &ImageScanner{
+				config:    *baseConfig,
+				trivyPath: tc.trivyPath,
+			}
 
-		config := DefaultConfig()
-		scanner, err := initScanner(config)
+			status, err := scanner.Scan(img)
 
-		// Should fail because trivy is not found
-		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "trivy executable not found")
-		assert.Nil(t, scanner)
-	})
+			// The scan will likely fail due to inability to run actual scan in test,
+			// but it should not be a "trivy not found" error since the path is already set
+			assert.Equal(t, tc.expectedStatus, status, "ScanStatus should be StatusFailed")
+			if err != nil {
+				assert.NotContains(t, err.Error(), "trivy executable not found",
+					"Error should not be about trivy not being found since path is pre-set")
+			}
+		})
+	}
 }

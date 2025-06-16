@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	"os/exec"
 	"time"
 
 	"github.com/eraser-dev/eraser/api/unversioned"
@@ -148,28 +147,19 @@ func runProfileServer() {
 	log.Error(err, "pprof server failed")
 }
 
-// ensureTrivyExecutable ensures that a trivy executable is available at the target path.
-// If the executable is not found at the target path, it searches for trivy in PATH
-// and creates a symlink at the target path pointing to the found executable.
-func ensureTrivyExecutable(targetPath string) error {
-	// Check if trivy already exists at the target path
-	if _, err := os.Stat(targetPath); err == nil {
-		return nil
+func findTrivyExecutable() (string, error) {
+	// First, check if trivy exists at the hardcoded path
+	if _, err := os.Stat(trivyCommandName); err == nil {
+		return trivyCommandName, nil
 	}
 
-	// If not found at target path, try to find it in PATH
-	pathLocation, err := exec.LookPath("trivy")
+	// If not found at hardcoded path, try to find it in PATH
+	path, err := currentExecutingLookPath("trivy")
 	if err != nil {
-		return fmt.Errorf("trivy executable not found at %s and not found in PATH: %w", targetPath, err)
+		return "", fmt.Errorf("trivy executable not found at %s and not found in PATH: %w", trivyCommandName, err)
 	}
 
-	// Create symlink at target path pointing to the found executable
-	if err := os.Symlink(pathLocation, targetPath); err != nil {
-		return fmt.Errorf("failed to create symlink from %s to %s: %w", targetPath, pathLocation, err)
-	}
-
-	log.Info("created trivy symlink", "from", targetPath, "to", pathLocation)
-	return nil
+	return path, nil
 }
 
 func initScanner(userConfig *Config) (Scanner, error) {
@@ -190,8 +180,9 @@ func initScanner(userConfig *Config) (Scanner, error) {
 		Address: utils.CRIPath,
 	}
 
-	// Ensure trivy executable is available at the hardcoded path
-	if err := ensureTrivyExecutable(trivyCommandName); err != nil {
+	// Find trivy executable path during initialization
+	trivyPath, err := findTrivyExecutable()
+	if err != nil {
 		return nil, err
 	}
 
@@ -199,8 +190,9 @@ func initScanner(userConfig *Config) (Scanner, error) {
 	timer := time.NewTimer(totalTimeout)
 
 	var s Scanner = &ImageScanner{
-		config: *userConfig,
-		timer:  timer,
+		config:    *userConfig,
+		timer:     timer,
+		trivyPath: trivyPath,
 	}
 	return s, nil
 }
