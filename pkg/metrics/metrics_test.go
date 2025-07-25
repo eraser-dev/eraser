@@ -7,9 +7,10 @@ import (
 	"github.com/go-logr/logr"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	metric "go.opentelemetry.io/otel/metric"
-	"go.opentelemetry.io/otel/metric/global"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/metric"
 	sdkmetric "go.opentelemetry.io/otel/sdk/metric"
+	"go.opentelemetry.io/otel/sdk/metric/metricdata"
 )
 
 func TestConfigureMetrics(t *testing.T) {
@@ -24,19 +25,19 @@ func TestConfigureMetrics(t *testing.T) {
 		t.Fatal("unable to configure exporter")
 	}
 
-	global.SetMeterProvider(provider)
+	otel.SetMeterProvider(provider)
 }
 
 func TestRecordMetrics(t *testing.T) {
-	if err := RecordMetricsRemover(context.Background(), global.MeterProvider(), 1); err != nil {
+	if err := RecordMetricsRemover(context.Background(), otel.GetMeterProvider(), 1); err != nil {
 		t.Fatal("could not record eraser metrics")
 	}
 
-	if err := RecordMetricsScanner(context.Background(), global.MeterProvider(), 1); err != nil {
+	if err := RecordMetricsScanner(context.Background(), otel.GetMeterProvider(), 1); err != nil {
 		t.Fatal("could not record scanner metrics")
 	}
 
-	if err := RecordMetricsController(context.Background(), global.MeterProvider(), 1.0, 1, 1); err != nil {
+	if err := RecordMetricsController(context.Background(), otel.GetMeterProvider(), 1.0, 1, 1); err != nil {
 		t.Fatal("could not record scanner metrics")
 	}
 }
@@ -49,7 +50,7 @@ func TestMeterCreatesInstrument(t *testing.T) {
 		{
 			name: "AsyncInt64Count",
 			fn: func(t *testing.T, m metric.Meter) {
-				ctr, err := m.SyncInt64().Counter(ImagesRemovedCounter)
+				ctr, err := m.Int64Counter(ImagesRemovedCounter)
 				assert.NoError(t, err)
 				ctr.Add(context.Background(), 1)
 				assert.NoError(t, err)
@@ -64,7 +65,8 @@ func TestMeterCreatesInstrument(t *testing.T) {
 
 			tt.fn(t, m)
 
-			rm, err := rdr.Collect(context.Background())
+			var rm metricdata.ResourceMetrics
+			err := rdr.Collect(context.Background(), &rm)
 			assert.NoError(t, err)
 
 			require.Len(t, rm.ScopeMetrics, 1)
