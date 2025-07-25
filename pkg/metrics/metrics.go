@@ -49,7 +49,7 @@ func ConfigureMetrics(ctx context.Context, log logr.Logger, endpoint string) (sd
 
 func ExportMetrics(log logr.Logger, exporter sdkmetric.Exporter, reader sdkmetric.Reader) {
 	ctxB := context.Background()
-	
+
 	var m metricdata.ResourceMetrics
 	err := reader.Collect(ctxB, &m)
 	if err != nil {
