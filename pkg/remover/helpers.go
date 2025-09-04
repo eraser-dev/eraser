@@ -70,8 +70,8 @@ func removeImages(c cri.Remover, targetImages []string) (int, error) {
 		}
 
 		if imageID, isNonRunning := nonRunningImages[imgDigestOrTag]; isNonRunning {
-			if ex := util.IsExcluded(excluded, imgDigestOrTag, idToImageMap); ex {
-				log.Info("image is excluded", "given", imgDigestOrTag, "imageID", imageID, "name", idToImageMap[imageID])
+			if ex := util.ShouldKeep(included, excluded, imgDigestOrTag, idToImageMap); ex {
+				log.Info("image should be kept", "given", imgDigestOrTag, "imageID", imageID, "name", idToImageMap[imageID])
 				continue
 			}
 
@@ -103,8 +103,8 @@ func removeImages(c cri.Remover, targetImages []string) (int, error) {
 				continue
 			}
 
-			if util.IsExcluded(excluded, imageID, idToImageMap) {
-				log.Info("image is excluded", "imageID", imageID, "name", idToImageMap[imageID])
+			if util.ShouldKeep(included, excluded, imageID, idToImageMap) {
+				log.Info("image should be kept", "imageID", imageID, "name", idToImageMap[imageID])
 				continue
 			}
 

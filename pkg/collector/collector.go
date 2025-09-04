@@ -27,6 +27,7 @@ var (
 	timeout  = 5 * time.Minute
 	log      = logf.Log.WithName("collector")
 	excluded map[string]struct{}
+	included map[string]struct{}
 )
 
 func main() {
@@ -54,7 +55,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	excluded, err = util.ParseExcluded()
+	excluded, included, err = util.ParseExcluded()
 	if os.IsNotExist(err) {
 		log.Info("configmaps for exclusion do not exist")
 	} else if err != nil {
@@ -63,6 +64,9 @@ func main() {
 	}
 	if len(excluded) == 0 {
 		log.Info("no images to exclude")
+	}
+	if len(included) == 0 {
+		log.Info("no images to include")
 	}
 
 	// finalImages of type []Image

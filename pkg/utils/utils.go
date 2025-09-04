@@ -37,6 +37,7 @@ const (
 
 type ExclusionList struct {
 	Excluded []string `json:"excluded"`
+	Included []string `json:"included"`
 }
 
 var (
@@ -167,7 +168,15 @@ func GetNonRunningImages(runningImages map[string]string, allImages []unversione
 	return nonRunningImages
 }
 
-func IsExcluded(excluded map[string]struct{}, img string, idToImageMap map[string]unversioned.Image) bool {
+func ShouldKeep(included map[string]struct{}, excluded map[string]struct{}, img string, idToImageMap map[string]unversioned.Image) bool {
+	if len(included) > 0 {
+		return !HasImage(included, img, idToImageMap)
+	}
+
+	return HasImage(excluded, img, idToImageMap)
+}
+
+func HasImage(excluded map[string]struct{}, img string, idToImageMap map[string]unversioned.Image) bool {
 	if len(excluded) == 0 {
 		return false
 	}
@@ -257,22 +266,25 @@ func ParseImageList(path string) ([]string, error) {
 	return imagelist, nil
 }
 
-func ParseExcluded() (map[string]struct{}, error) {
+func ParseExcluded() (map[string]struct{}, map[string]struct{}, error) {
 	excludedMap := make(map[string]struct{})
+	includedMap := make(map[string]struct{})
 	var excludedList []string
+	var includedList []string
 
 	files, err := os.ReadDir("./")
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	for _, file := range files {
 		if strings.HasPrefix(file.Name(), "exclude-") {
-			temp, err := readConfigMap(file.Name())
+			excluded, included, err := readConfigMap(file.Name())
 			if err != nil {
-				return nil, err
+				return nil, nil, err
 			}
-			excludedList = append(excludedList, temp...)
+			excludedList = append(excludedList, excluded...)
+			includedList = append(includedList, included...)
 		}
 	}
 
@@ -280,19 +292,23 @@ func ParseExcluded() (map[string]struct{}, error) {
 		excludedMap[img] = struct{}{}
 	}
 
-	return excludedMap, nil
+	for _, img := range includedList {
+		includedMap[img] = struct{}{}
+	}
+
+	return excludedMap, includedMap, nil
 }
 
 func BoolPtr(b bool) *bool {
 	return &b
 }
 
-func readConfigMap(path string) ([]string, error) {
+func readConfigMap(path string) ([]string, []string, error) {
 	var fileName string
 
 	files, err := os.ReadDir(path)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	for _, f := range files {
@@ -302,23 +318,20 @@ func readConfigMap(path string) ([]string, error) {
 		}
 	}
 
-	var images []string
 	data, err := os.ReadFile(path + "/" + fileName)
 
 	if os.IsNotExist(err) {
-		return nil, err
+		return nil, nil, err
 	} else if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	var result ExclusionList
 	if err := json.Unmarshal(data, &result); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	images = append(images, result.Excluded...)
-
-	return images, nil
+	return result.Excluded, result.Included, nil
 }
 
 func ReadCollectScanPipe(ctx context.Context) ([]unversioned.Image, error) {

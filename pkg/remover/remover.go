@@ -34,6 +34,7 @@ var (
 	timeout  = 5 * time.Minute
 	log      = logf.Log.WithName("remover")
 	excluded map[string]struct{}
+	included map[string]struct{}
 )
 
 const (
@@ -112,15 +113,18 @@ func main() {
 		log.Info("successfully parsed image list file")
 	}
 
-	excluded, err = util.ParseExcluded()
+	excluded, included, err = util.ParseExcluded()
 	if os.IsNotExist(err) {
 		log.Info("configmaps for exclusion do not exist")
 	} else if err != nil {
 		log.Error(err, "failed to parse exclusion list")
-		os.Exit(generalErr)
+		os.Exit(1)
 	}
 	if len(excluded) == 0 {
 		log.Info("no images to exclude")
+	}
+	if len(included) == 0 {
+		log.Info("no images to include")
 	}
 
 	removed, err := removeImages(client, imagelist)
