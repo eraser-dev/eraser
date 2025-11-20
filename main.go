@@ -40,6 +40,7 @@ import (
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 
 	"github.com/eraser-dev/eraser/api/unversioned"
@@ -108,8 +109,8 @@ func main() {
 		Port:                   9443,
 		HealthProbeBindAddress: ":8081",
 		LeaderElection:         false,
-		NewCache: cache.BuilderWithOptions(cache.Options{
-			SelectorsByObject: cache.SelectorsByObject{
+		Cache: cache.Options{
+			ByObject: map[client.Object]cache.ByObject{
 				// to watch eraser pods
 				&corev1.Pod{}: {
 					Field: fields.OneTermEqualSelector("metadata.namespace", utils.GetNamespace()),
@@ -127,7 +128,7 @@ func main() {
 				// to watch ImageLists
 				&eraserv1.ImageList{}: {},
 			},
-		}),
+		},
 	}
 
 	if configFile == "" {

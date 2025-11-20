@@ -1,13 +1,13 @@
 # syntax=docker/dockerfile:1.6
 
 # Default Trivy binary image, overwritten by Makefile
-ARG TRIVY_BINARY_IMG="ghcr.io/aquasecurity/trivy:0.50.0"
+ARG TRIVY_BINARY_IMG="ghcr.io/aquasecurity/trivy:0.58.1"
 ARG BUILDKIT_SBOM_SCAN_STAGE=builder,manager-build,collector-build,remover-build,trivy-scanner-build
 
 FROM --platform=$TARGETPLATFORM $TRIVY_BINARY_IMG AS trivy-binary
 
 # Build the manager binary
-FROM --platform=$BUILDPLATFORM golang:1.25-bookworm AS builder
+FROM --platform=$BUILDPLATFORM golang:1.23.4-bookworm AS builder
 WORKDIR /workspace
 # Copy the Go Modules manifests
 COPY go.mod go.mod
