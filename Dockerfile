@@ -66,7 +66,7 @@ ENTRYPOINT ["/remover"]
 
 FROM --platform=$TARGETPLATFORM gcr.io/distroless/static:latest as trivy-scanner
 COPY --from=trivy-scanner-build /workspace/out/trivy-scanner /
-COPY --from=trivy-binary /usr/local/bin/trivy /
+COPY --from=trivy-binary /usr/local/bin/trivy /trivy
 WORKDIR /var/lib/trivy
 ENTRYPOINT ["/trivy-scanner"]
 

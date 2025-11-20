@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"os/exec"
 	"time"
 
 	"github.com/eraser-dev/eraser/api/unversioned"
@@ -147,6 +148,21 @@ func runProfileServer() {
 	log.Error(err, "pprof server failed")
 }
 
+func findTrivyExecutable() (string, error) {
+	// First, check if trivy exists at the hardcoded path
+	if _, err := os.Stat(trivyCommandName); err == nil {
+		return trivyCommandName, nil
+	}
+
+	// If not found at hardcoded path, try to find it in PATH
+	path, err := exec.LookPath("trivy")
+	if err != nil {
+		return "", fmt.Errorf("trivy executable not found at %s and not found in PATH: %w", trivyCommandName, err)
+	}
+
+	return path, nil
+}
+
 func initScanner(userConfig *Config) (Scanner, error) {
 	if userConfig == nil {
 		return nil, fmt.Errorf("invalid trivy scanner config")
@@ -165,12 +181,19 @@ func initScanner(userConfig *Config) (Scanner, error) {
 		Address: utils.CRIPath,
 	}
 
+	// Find trivy executable path during initialization
+	trivyPath, err := findTrivyExecutable()
+	if err != nil {
+		return nil, err
+	}
+
 	totalTimeout := time.Duration(userConfig.Timeout.Total)
 	timer := time.NewTimer(totalTimeout)
 
 	var s Scanner = &ImageScanner{
-		config: *userConfig,
-		timer:  timer,
+		config:    *userConfig,
+		timer:     timer,
+		trivyPath: trivyPath,
 	}
 	return s, nil
 }
