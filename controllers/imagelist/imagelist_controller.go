@@ -441,14 +441,14 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	}
 
 	err = c.Watch(
-		&source.Kind{Type: &eraserv1.ImageList{}},
+		source.Kind(mgr.GetCache(), &eraserv1.ImageList{}),
 		&handler.EnqueueRequestForObject{}, predicate.GenerationChangedPredicate{})
 	if err != nil {
 		return err
 	}
 	err = c.Watch(
-		&source.Kind{Type: &eraserv1.ImageJob{}},
-		&handler.EnqueueRequestForOwner{OwnerType: &eraserv1.ImageList{}, IsController: true},
+		source.Kind(mgr.GetCache(), &eraserv1.ImageJob{}),
+		handler.EnqueueRequestForOwner(mgr.GetScheme(), mgr.GetRESTMapper(), &eraserv1.ImageList{}),
 		predicate.Funcs{
 			// Do nothing on Create, Delete, or Generic events
 			CreateFunc:  util.NeverOnCreate,

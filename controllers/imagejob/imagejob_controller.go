@@ -102,7 +102,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	}
 
 	// Watch for changes to ImageJob
-	err = c.Watch(&source.Kind{Type: &eraserv1.ImageJob{}}, &handler.EnqueueRequestForObject{}, predicate.Funcs{
+	err = c.Watch(source.Kind(mgr.GetCache(), &eraserv1.ImageJob{}), &handler.EnqueueRequestForObject{}, predicate.Funcs{
 		UpdateFunc: func(e event.UpdateEvent) bool {
 			if job, ok := e.ObjectNew.(*eraserv1.ImageJob); ok && controllerUtils.IsCompletedOrFailed(job.Status.Phase) {
 				return false // handled by Owning controller
@@ -120,13 +120,8 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 
 	// Watch for changes to pods created by ImageJob (eraser pods)
 	err = c.Watch(
-		&source.Kind{
-			Type: &corev1.Pod{},
-		},
-		&handler.EnqueueRequestForOwner{
-			OwnerType:    &corev1.PodTemplate{},
-			IsController: true,
-		},
+		source.Kind(mgr.GetCache(), &corev1.Pod{}),
+		handler.EnqueueRequestForOwner(mgr.GetScheme(), mgr.GetRESTMapper(), &corev1.PodTemplate{}),
 		predicate.Funcs{
 			CreateFunc: func(e event.CreateEvent) bool {
 				return e.Object.GetNamespace() == eraserUtils.GetNamespace()
@@ -145,13 +140,8 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 
 	// watch for changes to imagejob podTemplate (owned by controller manager pod)
 	err = c.Watch(
-		&source.Kind{
-			Type: &corev1.PodTemplate{},
-		},
-		&handler.EnqueueRequestForOwner{
-			OwnerType:    &corev1.Pod{},
-			IsController: true,
-		},
+		source.Kind(mgr.GetCache(), &corev1.PodTemplate{}),
+		handler.EnqueueRequestForOwner(mgr.GetScheme(), mgr.GetRESTMapper(), &corev1.Pod{}),
 		predicate.Funcs{
 			CreateFunc: func(e event.CreateEvent) bool {
 				ownerLabels, ok := e.Object.GetLabels()[managerLabelKey]

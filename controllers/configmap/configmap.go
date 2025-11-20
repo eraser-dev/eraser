@@ -63,7 +63,7 @@ func Add(mgr manager.Manager, cfg *config.Manager) error {
 	}
 
 	err = c.Watch(
-		&source.Kind{Type: &corev1.ConfigMap{}},
+		source.Kind(mgr.GetCache(), &corev1.ConfigMap{}),
 		&handler.EnqueueRequestForObject{},
 		predicate.ResourceVersionChangedPredicate{},
 		predicate.Funcs{
