@@ -7,7 +7,7 @@ ARG BUILDKIT_SBOM_SCAN_STAGE=builder,manager-build,collector-build,remover-build
 FROM --platform=$TARGETPLATFORM $TRIVY_BINARY_IMG AS trivy-binary
 
 # Build the manager binary
-FROM --platform=$BUILDPLATFORM golang:1.23.4-bookworm AS builder
+FROM --platform=$BUILDPLATFORM golang:1.25.3-bookworm AS builder
 WORKDIR /workspace
 # Copy the Go Modules manifests
 COPY go.mod go.mod
@@ -56,19 +56,19 @@ COPY --from=manager-build /workspace/out/manager .
 USER 65532:65532
 ENTRYPOINT ["/manager"]
 
-FROM --platform=$TARGETPLATFORM gcr.io/distroless/static:latest as collector
+FROM --platform=$TARGETPLATFORM gcr.io/distroless/static-debian12:nonroot AS collector
 COPY --from=collector-build /workspace/out/collector /
 ENTRYPOINT ["/collector"]
 
-FROM --platform=$TARGETPLATFORM gcr.io/distroless/static:latest as remover
+FROM --platform=$TARGETPLATFORM gcr.io/distroless/static-debian12:nonroot AS remover
 COPY --from=remover-build /workspace/out/remover /
 ENTRYPOINT ["/remover"]
 
-FROM --platform=$TARGETPLATFORM gcr.io/distroless/static:latest as trivy-scanner
+FROM --platform=$TARGETPLATFORM gcr.io/distroless/static-debian12:nonroot AS trivy-scanner
 COPY --from=trivy-scanner-build /workspace/out/trivy-scanner /
 COPY --from=trivy-binary /usr/local/bin/trivy /
 WORKDIR /var/lib/trivy
 ENTRYPOINT ["/trivy-scanner"]
 
-FROM gcr.io/distroless/static:nonroot as non-vulnerable
+FROM gcr.io/distroless/static:nonroot AS non-vulnerable
 COPY --from=builder /tmp /tmp
