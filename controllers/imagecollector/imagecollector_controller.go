@@ -27,7 +27,7 @@ import (
 	"syscall"
 	"time"
 
-	"go.opentelemetry.io/otel/metric/global"
+	"go.opentelemetry.io/otel"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -120,7 +120,7 @@ func newReconciler(mgr manager.Manager, cfg *config.Manager) (*Reconciler, error
 		defer cancel()
 
 		exporter, reader, provider = metrics.ConfigureMetrics(ctx, log, otlpEndpoint)
-		global.SetMeterProvider(provider)
+		otel.SetMeterProvider(provider)
 	}
 
 	rec := &Reconciler{
@@ -556,7 +556,7 @@ func (r *Reconciler) handleCompletedImageJob(ctx context.Context, childJob *eras
 
 		if otlpEndpoint != "" {
 			// record metrics
-			if err := metrics.RecordMetricsController(ctx, global.MeterProvider(), float64(time.Since(startTime).Seconds()), int64(childJob.Status.Succeeded), int64(childJob.Status.Failed)); err != nil {
+			if err := metrics.RecordMetricsController(ctx, otel.GetMeterProvider(), float64(time.Since(startTime).Seconds()), int64(childJob.Status.Succeeded), int64(childJob.Status.Failed)); err != nil {
 				log.Error(err, "error recording metrics")
 			}
 			metrics.ExportMetrics(log, exporter, reader)
@@ -578,7 +578,7 @@ func (r *Reconciler) handleCompletedImageJob(ctx context.Context, childJob *eras
 
 		if otlpEndpoint != "" {
 			// record metrics
-			if err := metrics.RecordMetricsController(ctx, global.MeterProvider(), float64(time.Since(startTime).Milliseconds()), int64(childJob.Status.Succeeded), int64(childJob.Status.Failed)); err != nil {
+			if err := metrics.RecordMetricsController(ctx, otel.GetMeterProvider(), float64(time.Since(startTime).Milliseconds()), int64(childJob.Status.Succeeded), int64(childJob.Status.Failed)); err != nil {
 				log.Error(err, "error recording metrics")
 			}
 			metrics.ExportMetrics(log, exporter, reader)
