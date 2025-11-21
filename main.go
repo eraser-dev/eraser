@@ -112,21 +112,21 @@ func main() {
 		Cache: cache.Options{
 			ByObject: map[client.Object]cache.ByObject{
 				// to watch eraser pods
-				&corev1.Pod{}: {
+				&corev1.Pod{}: cache.ObjectSelector{
 					Field: fields.OneTermEqualSelector("metadata.namespace", utils.GetNamespace()),
 				},
 				// to watch eraser podTemplates
-				&corev1.PodTemplate{}: {
+				&corev1.PodTemplate{}: cache.ObjectSelector{
 					Field: fields.OneTermEqualSelector("metadata.namespace", utils.GetNamespace()),
 				},
 				// to watch eraser-manager-configs
-				&corev1.ConfigMap{}: {
+				&corev1.ConfigMap{}: cache.ObjectSelector{
 					Field: fields.OneTermEqualSelector("metadata.namespace", utils.GetNamespace()),
 				},
 				// to watch ImageJobs
-				&eraserv1.ImageJob{}: {},
+				&eraserv1.ImageJob{}: cache.ObjectSelector{},
 				// to watch ImageLists
-				&eraserv1.ImageList{}: {},
+				&eraserv1.ImageList{}: cache.ObjectSelector{},
 			},
 		},
 	}
