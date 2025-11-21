@@ -6,7 +6,7 @@ import (
 	"os/exec"
 	"strings"
 
-	"k8s.io/klog/v2"
+	klog "k8s.io/klog/v2"
 )
 
 // KubectlApply executes "kubectl apply" given a list of arguments.
