@@ -8,8 +8,8 @@ require (
 	github.com/aquasecurity/trivy v0.35.0
 	github.com/aquasecurity/trivy-db v0.0.0-20220627104749-930461748b63 // indirect
 	github.com/go-logr/logr v1.4.3
-	github.com/onsi/ginkgo/v2 v2.6.0
-	github.com/onsi/gomega v1.24.1
+	github.com/onsi/ginkgo/v2 v2.6.1
+	github.com/onsi/gomega v1.24.2
 	github.com/stretchr/testify v1.10.0
 	go.opentelemetry.io/otel v1.37.0
 	go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetrichttp v1.37.0
@@ -24,12 +24,12 @@ require (
 	k8s.io/apimachinery v0.26.11
 	k8s.io/client-go v0.26.11
 	// keeping this on 0.25 as updating to 0.26 will remove CRI v1alpha2 version
-	k8s.io/cri-api v0.25.5
+	k8s.io/cri-api v0.25.16
 	k8s.io/klog/v2 v2.100.1
-	k8s.io/kubernetes v1.26.11
+	k8s.io/kubernetes v1.26.15
 	k8s.io/utils v0.0.0-20230115233650-391b47cb4029
 	oras.land/oras-go v1.2.2
-	sigs.k8s.io/controller-runtime v0.14.1
+	sigs.k8s.io/controller-runtime v0.14.7
 	sigs.k8s.io/e2e-framework v0.0.8
 	sigs.k8s.io/kind v0.15.0
 	sigs.k8s.io/yaml v1.3.0
