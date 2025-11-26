@@ -2,7 +2,7 @@ module github.com/eraser-dev/eraser
 
 go 1.24.0
 
-toolchain go1.24.5
+toolchain go1.24.9
 
 require (
 	github.com/aquasecurity/trivy v0.51.2
