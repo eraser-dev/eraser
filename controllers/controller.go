@@ -1,3 +1,4 @@
+// Package controllers implements Kubernetes controllers for eraser resources.
 package controllers
 
 import (

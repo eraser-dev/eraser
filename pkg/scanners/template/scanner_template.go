@@ -64,7 +64,7 @@ func (cfg *config) ReceiveImages() ([]unversioned.Image, error) {
 		return nil, err
 	}
 
-	err = os.Chmod(util.EraseCompleteScanPath, 0o666)
+	err = os.Chmod(util.EraseCompleteScanPath, 0o600)
 	if err != nil {
 		cfg.log.Error(err, "unable to enable pipe for writing", "pipeName", util.EraseCompleteScanPath)
 		return nil, err
@@ -119,7 +119,10 @@ func (cfg *config) Finish() error {
 		return err
 	}
 
-	file.Close()
+	if err := file.Close(); err != nil {
+		cfg.log.Error(err, "failed to close pipe", "pipeName", util.EraseCompleteScanPath)
+		return err
+	}
 
 	if string(data) != util.EraseCompleteMessage {
 		cfg.log.Info("garbage in pipe", "pipeName", util.EraseCompleteScanPath, "in_pipe", string(data))

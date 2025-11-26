@@ -147,7 +147,6 @@ func TestCLIArgs(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		tt := tt
 		t.Run(tt.desc, func(t *testing.T) {
 			actual := tt.config.cliArgs(ref)
 			if len(actual) != len(tt.expected) {

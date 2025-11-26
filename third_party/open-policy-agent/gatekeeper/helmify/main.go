@@ -15,7 +15,7 @@ var outputDir = flag.String("output-dir", "manifest_staging/charts/eraser", "The
 
 var kindRegex = regexp.MustCompile(`(?m)^kind:[\s]+([\S]+)[\s]*$`)
 
-// use exactly two spaces to be sure we are capturing metadata.name
+// use exactly two spaces to be sure we are capturing metadata.name.
 var nameRegex = regexp.MustCompile(`(?m)^  name:[\s]+([\S]+)[\s]*$`)
 
 func extractKind(s string) (string, error) {

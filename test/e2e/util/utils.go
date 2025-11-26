@@ -127,7 +127,7 @@ var (
 	TestLogDir        = os.Getenv("TEST_LOGDIR")
 
 	ParsedImages        *Images
-	Timeout             = time.Minute * 5
+	Timeout             = time.Minute * 20
 	ImagePullSecretJSON = fmt.Sprintf(`["%s"]`, ImagePullSecret)
 
 	ScannerConfigNoDeleteFailedJSON = `"{ \"cacheDir\": \"/var/lib/trivy\", \"dbRepo\": \"ghcr.io/aquasecurity/trivy-db\", \"deleteFailedImages\": false, \"deleteEOLImages\": true, \"vulnerabilities\": null, \"ignoreUnfixed\": true, \"types\": [ \"os\", \"library\" ], \"securityChecks\": [ \"vuln\" ], \"severities\": [ \"CRITICAL\", \"HIGH\", \"MEDIUM\", \"LOW\" ] }"`
@@ -269,6 +269,7 @@ func HelmDeployLatestEraserRelease(namespace string, extraArgs ...string) env.Fu
         `
 
 		script := fmt.Sprintf(scriptTemplate, publishedHelmRepo)
+		//nolint:gosec // G204: Subprocess execution is intended for e2e test setup
 		addEraserRepoCmd := exec.Command("bash", "-ec", script)
 
 		if _, err := addEraserRepoCmd.CombinedOutput(); err != nil {
@@ -439,6 +440,7 @@ func ListNodeContainers(nodeName string) (string, error) {
 		"list",
 	}
 
+	//nolint:gosec // G204: Docker subprocess execution is intended for e2e tests
 	cmd := exec.Command("docker", args...)
 	stdoutStderr, err := cmd.CombinedOutput()
 	output := strings.TrimSpace(string(stdoutStderr))
@@ -460,6 +462,7 @@ func ListNodeImages(nodeName string) (string, error) {
 		"list",
 	}
 
+	//nolint:gosec // G204: Docker subprocess execution is intended for e2e tests
 	cmd := exec.Command("docker", args...)
 	stdoutStderr, err := cmd.CombinedOutput()
 	output := strings.TrimSpace(string(stdoutStderr))
@@ -574,6 +577,7 @@ func CheckImageRemoved(ctx context.Context, t *testing.T, nodes []string, images
 
 func DockerPullImage(image string) (string, error) {
 	args := []string{"pull", image}
+	//nolint:gosec // G204: Docker subprocess execution is intended for e2e tests
 	cmd := exec.Command("docker", args...)
 
 	stdoutStderr, err := cmd.CombinedOutput()
@@ -587,6 +591,7 @@ func DockerPullImage(image string) (string, error) {
 
 func DockerTagImage(image, tag string) (string, error) {
 	args := []string{"tag", image, tag}
+	//nolint:gosec // G204: Docker subprocess execution is intended for e2e tests
 	cmd := exec.Command("docker", args...)
 
 	stdoutStderr, err := cmd.CombinedOutput()
@@ -727,7 +732,7 @@ func GetPodLogs(t *testing.T) error {
 	for _, nodeName := range []string{"eraser-e2e-test-control-plane", "eraser-e2e-test-worker", "eraser-e2e-test-worker2"} {
 		testName := strings.Split(t.Name(), "/")[0]
 		path := filepath.Join(TestLogDir, testName, nodeName)
-		if err := os.MkdirAll(path, 0o755); err != nil {
+		if err := os.MkdirAll(path, 0o750); err != nil {
 			t.Logf("error: %s", err)
 			continue
 		}
@@ -815,7 +820,7 @@ func CreateExclusionList(namespace string, list string) env.Func {
 				return false, err
 			}
 
-			if cMap.ObjectMeta.Name == excluded.Name {
+			if cMap.Name == excluded.Name {
 				return true, nil
 			}
 

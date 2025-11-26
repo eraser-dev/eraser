@@ -186,6 +186,7 @@ func (s *ImageScanner) Scan(img unversioned.Image) (ScanStatus, error) {
 		stderr := new(bytes.Buffer)
 
 		cliArgs := s.config.cliArgs(refs[i])
+		//nolint:gosec // G204: Trivy subprocess execution is intended functionality
 		cmd := exec.Command(trivyCommandName, cliArgs...)
 		cmd.Stdout = stdout
 		cmd.Stderr = stderr
