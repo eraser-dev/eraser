@@ -293,7 +293,7 @@ ENVTEST = $(shell pwd)/bin/setup-envtest
 envtest: __tooling-image bin/setup-envtest
 
 bin/setup-envtest:
-	docker run --rm -v $(shell pwd)/bin:/go/bin -e GO111MODULE=on eraser-tooling go install sigs.k8s.io/controller-runtime/tools/setup-envtest@latest
+	docker run --rm -v $(shell pwd)/bin:/go/bin -e GO111MODULE=on eraser-tooling go install sigs.k8s.io/controller-runtime/tools/setup-envtest@v0.0.0-20240320141353-395cfc7486e6
 
 __controller-gen: __tooling-image
 CONTROLLER_GEN=docker run --rm -v $(shell pwd):/eraser eraser-tooling controller-gen
