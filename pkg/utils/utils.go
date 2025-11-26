@@ -51,9 +51,11 @@ func GetConn(ctx context.Context, socketPath string) (conn *grpc.ClientConn, err
 		return nil, err
 	}
 
+	//nolint:staticcheck // SA1019: TODO: Replace with grpc.NewClient in future refactor
 	return grpc.DialContext(
 		ctx,
 		addr,
+		//nolint:staticcheck // SA1019: TODO: Remove WithBlock when upgrading to grpc.NewClient
 		grpc.WithBlock(),
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithContextDialer(dialer),
@@ -245,6 +247,7 @@ func IsExcluded(excluded map[string]struct{}, img string, idToImageMap map[strin
 
 func ParseImageList(path string) ([]string, error) {
 	imagelist := []string{}
+	//nolint:gosec // G304: Reading image list file is intended functionality
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return nil, err
@@ -303,6 +306,7 @@ func readConfigMap(path string) ([]string, error) {
 	}
 
 	var images []string
+	//nolint:gosec // G304: Reading excluded images file is intended functionality
 	data, err := os.ReadFile(path + "/" + fileName)
 
 	if os.IsNotExist(err) {

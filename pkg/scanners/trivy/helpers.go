@@ -10,6 +10,7 @@ import (
 func loadConfig(filename string) (Config, error) {
 	cfg := *DefaultConfig()
 
+	//nolint:gosec // G304: Reading config file is intended functionality
 	b, err := os.ReadFile(filename)
 	if err != nil {
 		log.Error(err, "unable to read eraser config")

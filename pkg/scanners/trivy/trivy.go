@@ -88,10 +88,7 @@ func main() {
 		go runProfileServer()
 	}
 
-	recordMetrics := false
-	if os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT") != "" {
-		recordMetrics = true
-	}
+	recordMetrics := os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT") != ""
 
 	ctx := context.Background()
 	provider := template.NewImageProvider(

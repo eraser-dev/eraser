@@ -90,7 +90,10 @@ func main() {
 			log.Error(err, "error reading non-compliant images")
 			os.Exit(generalErr)
 		}
-		f.Close()
+		if err := f.Close(); err != nil {
+			log.Error(err, "error closing non-compliant images file")
+			os.Exit(generalErr)
+		}
 
 		nonCompliantImages := []unversioned.Image{}
 		if err = json.Unmarshal(data, &nonCompliantImages); err != nil {
@@ -155,7 +158,10 @@ func main() {
 			os.Exit(generalErr)
 		}
 
-		file.Close()
+		if err := file.Close(); err != nil {
+			log.Error(err, "unable to close pipe", "pipeFile", util.EraseCompleteCollectPath)
+			os.Exit(generalErr)
+		}
 
 		file, err = os.OpenFile(util.EraseCompleteScanPath, os.O_WRONLY, fs.ModeNamedPipe)
 		// if the scanner is disabled
@@ -172,6 +178,9 @@ func main() {
 			os.Exit(generalErr)
 		}
 
-		file.Close()
+		if err := file.Close(); err != nil {
+			log.Error(err, "unable to close pipe", "pipeFile", util.EraseCompleteScanPath)
+			os.Exit(generalErr)
+		}
 	}
 }

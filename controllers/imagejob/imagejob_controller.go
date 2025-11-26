@@ -175,7 +175,8 @@ func checkNodeFitness(pod *corev1.Pod, node *corev1.Node) bool {
 	totalCPU := resource.NewQuantity(0, resource.DecimalSI)
 	totalMemory := resource.NewQuantity(0, resource.BinarySI)
 
-	for _, container := range pod.Spec.Containers {
+	for i := range pod.Spec.Containers {
+		container := &pod.Spec.Containers[i]
 		if container.Resources.Requests != nil {
 			if cpu, exists := container.Resources.Requests[corev1.ResourceCPU]; exists {
 				totalCPU.Add(cpu)
@@ -454,6 +455,7 @@ func (r *Reconciler) handleNewJob(ctx context.Context, imageJob *eraserv1.ImageJ
 	}
 
 	for _, namespacedName := range namespacedNames {
+		//nolint:staticcheck // SA1019: TODO: Replace with PollUntilContextTimeout in future refactor
 		if err := wait.PollImmediate(time.Nanosecond, time.Minute*5, r.isPodReady(ctx, namespacedName)); err != nil {
 			log.Error(err, "timed out waiting for pod to leave pending state", "pod NamespacedName", namespacedName)
 		}
@@ -526,11 +528,11 @@ nodes:
 			}
 
 			log.V(1).Info("includedLabels", "includedLabels", includedLabels)
-			log.V(1).Info("nodeLabels", "nodeLabels", nodes.Items[i].ObjectMeta.Labels)
-			if includedLabels.Matches(labels.Set(nodes.Items[i].ObjectMeta.Labels)) {
+			log.V(1).Info("nodeLabels", "nodeLabels", nodes.Items[i].Labels)
+			if includedLabels.Matches(labels.Set(nodes.Items[i].Labels)) {
 				log.Info("node is included because it matched the specified labels",
 					"nodeName", nodeName,
-					"labels", nodes.Items[i].ObjectMeta.Labels,
+					"labels", nodes.Items[i].Labels,
 					"specifiedSelectors", includeNodesSelectors,
 				)
 
@@ -560,11 +562,11 @@ nodes:
 			}
 
 			log.V(1).Info("skipLabels", "skipLabels", skipLabels)
-			log.V(1).Info("nodeLabels", "nodeLabels", nodes.Items[i].ObjectMeta.Labels)
-			if skipLabels.Matches(labels.Set(nodes.Items[i].ObjectMeta.Labels)) {
+			log.V(1).Info("nodeLabels", "nodeLabels", nodes.Items[i].Labels)
+			if skipLabels.Matches(labels.Set(nodes.Items[i].Labels)) {
 				log.Info("node will be skipped because it matched the specified labels",
 					"nodeName", nodeName,
-					"labels", nodes.Items[i].ObjectMeta.Labels,
+					"labels", nodes.Items[i].Labels,
 					"specifiedSelectors", skipNodesSelectors,
 				)
 

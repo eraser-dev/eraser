@@ -151,7 +151,7 @@ func add(mgr manager.Manager, r *Reconciler) error {
 			GenericFunc: util.NeverOnGeneric,
 			UpdateFunc: func(e event.UpdateEvent) bool {
 				if job, ok := e.ObjectNew.(*eraserv1.ImageJob); ok && util.IsCompletedOrFailed(job.Status.Phase) {
-					return ownerLabel.Matches(labels.Set(job.ObjectMeta.Labels))
+					return ownerLabel.Matches(labels.Set(job.Labels))
 				}
 
 				return false

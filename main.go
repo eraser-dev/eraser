@@ -209,6 +209,7 @@ func main() {
 }
 
 func getConfig(configFile string) (*unversioned.EraserConfig, error) {
+	//nolint:gosec // G304: Reading config file is intended functionality
 	fileBytes, err := os.ReadFile(configFile)
 	if err != nil {
 		setupLog.Error(err, "configuration is either missing or invalid")
