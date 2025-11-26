@@ -42,6 +42,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
+	"sigs.k8s.io/controller-runtime/pkg/metrics/server"
+	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
 	"github.com/eraser-dev/eraser/api/unversioned"
 	"github.com/eraser-dev/eraser/api/unversioned/config"
@@ -105,28 +107,28 @@ func main() {
 	// these can all be overwritten using EraserConfig.
 	options := ctrl.Options{
 		Scheme:                 scheme,
-		MetricsBindAddress:     ":8889",
-		Port:                   9443,
+		Metrics:                server.Options{BindAddress: ":8889"},
+		WebhookServer:          webhook.NewServer(webhook.Options{Port: 9443}),
 		HealthProbeBindAddress: ":8081",
 		LeaderElection:         false,
 		Cache: cache.Options{
 			ByObject: map[client.Object]cache.ByObject{
 				// to watch eraser pods
-				&corev1.Pod{}: cache.ObjectSelector{
+				&corev1.Pod{}: {
 					Field: fields.OneTermEqualSelector("metadata.namespace", utils.GetNamespace()),
 				},
 				// to watch eraser podTemplates
-				&corev1.PodTemplate{}: cache.ObjectSelector{
+				&corev1.PodTemplate{}: {
 					Field: fields.OneTermEqualSelector("metadata.namespace", utils.GetNamespace()),
 				},
 				// to watch eraser-manager-configs
-				&corev1.ConfigMap{}: cache.ObjectSelector{
+				&corev1.ConfigMap{}: {
 					Field: fields.OneTermEqualSelector("metadata.namespace", utils.GetNamespace()),
 				},
 				// to watch ImageJobs
-				&eraserv1.ImageJob{}: cache.ObjectSelector{},
+				&eraserv1.ImageJob{}: {},
 				// to watch ImageLists
-				&eraserv1.ImageList{}: cache.ObjectSelector{},
+				&eraserv1.ImageList{}: {},
 			},
 		},
 	}
