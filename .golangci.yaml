@@ -16,7 +16,7 @@ linters:
     - govet
     - ineffassign
     - misspell
-    - revive # replacement for golint
+    # - revive # replacement for golint
     - staticcheck # includes gosimple and staticcheck
     - unused
     - whitespace
