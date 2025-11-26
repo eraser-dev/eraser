@@ -51,12 +51,14 @@ func GetConn(ctx context.Context, socketPath string) (conn *grpc.ClientConn, err
 		return nil, err
 	}
 
-	// Use newer grpc.NewClient API - it doesn't block by default so no timeout needed
-	// The connection will fail fast if the socket doesn't exist
+	// Use newer grpc.NewClient API but ensure we respect the passed context
 	return grpc.NewClient(
 		addr,
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
-		grpc.WithContextDialer(dialer),
+		grpc.WithContextDialer(func(dialCtx context.Context, addr string) (net.Conn, error) {
+			// Use the original context to respect any timeouts/cancellation
+			return dialer(ctx, addr)
+		}),
 	)
 }
 
