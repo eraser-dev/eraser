@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1.6
 
 # Default Trivy binary image, overwritten by Makefile
-ARG TRIVY_BINARY_IMG="ghcr.io/aquasecurity/trivy:0.58.1"
+ARG TRIVY_BINARY_IMG="ghcr.io/aquasecurity/trivy:0.67.2"
 ARG BUILDKIT_SBOM_SCAN_STAGE=builder,manager-build,collector-build,remover-build,trivy-scanner-build
 
 FROM --platform=$TARGETPLATFORM $TRIVY_BINARY_IMG AS trivy-binary
