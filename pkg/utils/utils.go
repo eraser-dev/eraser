@@ -51,6 +51,10 @@ func GetConn(ctx context.Context, socketPath string) (conn *grpc.ClientConn, err
 		return nil, err
 	}
 
+	// Add timeout to prevent indefinite blocking on CRI socket connection
+	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+
 	//nolint:staticcheck // SA1019: TODO: Replace with grpc.NewClient in future refactor
 	return grpc.DialContext(
 		ctx,
