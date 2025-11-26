@@ -51,13 +51,18 @@ func GetConn(ctx context.Context, socketPath string) (conn *grpc.ClientConn, err
 		return nil, err
 	}
 
-	// Use newer grpc.NewClient API but ensure we respect the passed context
+	// Use newer grpc.NewClient API with proper context handling
 	return grpc.NewClient(
 		addr,
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithContextDialer(func(dialCtx context.Context, addr string) (net.Conn, error) {
-			// Use the original context to respect any timeouts/cancellation
-			return dialer(ctx, addr)
+			// Use the dialCtx provided by gRPC, but also respect cancellation from original ctx
+			select {
+			case <-ctx.Done():
+				return nil, ctx.Err()
+			default:
+				return dialer(dialCtx, addr)
+			}
 		}),
 	)
 }
