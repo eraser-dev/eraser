@@ -50,21 +50,21 @@ RUN \
     --mount=type=cache,target=/go/pkg/mod \
     GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build ${LDFLAGS:+-ldflags "$LDFLAGS"} -o out/trivy-scanner ./pkg/scanners/trivy
 
-FROM --platform=$TARGETPLATFORM gcr.io/distroless/static-debian12:nonroot AS manager
+FROM --platform=$TARGETPLATFORM gcr.io/distroless/static:nonroot AS manager
 WORKDIR /
 COPY --from=manager-build /workspace/out/manager .
 USER 65532:65532
 ENTRYPOINT ["/manager"]
 
-FROM --platform=$TARGETPLATFORM gcr.io/distroless/static-debian12:nonroot AS collector
+FROM --platform=$TARGETPLATFORM gcr.io/distroless/static:latest as collector
 COPY --from=collector-build /workspace/out/collector /
 ENTRYPOINT ["/collector"]
 
-FROM --platform=$TARGETPLATFORM gcr.io/distroless/static-debian12:nonroot AS remover
+FROM --platform=$TARGETPLATFORM gcr.io/distroless/static:latest as remover
 COPY --from=remover-build /workspace/out/remover /
 ENTRYPOINT ["/remover"]
 
-FROM --platform=$TARGETPLATFORM gcr.io/distroless/static-debian12:nonroot AS trivy-scanner
+FROM --platform=$TARGETPLATFORM gcr.io/distroless/static:latest as trivy-scanner
 COPY --from=trivy-scanner-build /workspace/out/trivy-scanner /
 COPY --from=trivy-binary /usr/local/bin/trivy /
 WORKDIR /var/lib/trivy
