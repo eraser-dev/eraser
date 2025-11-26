@@ -51,19 +51,16 @@ func GetConn(ctx context.Context, socketPath string) (conn *grpc.ClientConn, err
 		return nil, err
 	}
 
-	// Use newer grpc.NewClient API with proper context handling
-	return grpc.NewClient(
+	// Add timeout to prevent indefinite blocking on CRI socket connection
+	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+
+	return grpc.DialContext(
+		ctx,
 		addr,
+		grpc.WithBlock(),
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
-		grpc.WithContextDialer(func(dialCtx context.Context, addr string) (net.Conn, error) {
-			// Use the dialCtx provided by gRPC, but also respect cancellation from original ctx
-			select {
-			case <-ctx.Done():
-				return nil, ctx.Err()
-			default:
-				return dialer(dialCtx, addr)
-			}
-		}),
+		grpc.WithContextDialer(dialer),
 	)
 }
 
