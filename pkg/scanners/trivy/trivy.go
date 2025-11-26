@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/eraser-dev/eraser/api/unversioned"
-	"go.uber.org/zap"
 
 	_ "net/http/pprof"
 
@@ -149,13 +148,7 @@ func initScanner(userConfig *Config) (Scanner, error) {
 		return nil, fmt.Errorf("invalid trivy scanner config")
 	}
 
-	logger, err := zap.NewProduction()
-	if err != nil {
-		return nil, fmt.Errorf("error setting up trivy logger: %w", err)
-	}
-
-	sugar := logger.Sugar()
-	trivylogger.Logger = sugar
+	trivylogger.InitLogger(false, false)
 
 	userConfig.Runtime = unversioned.RuntimeSpec{
 		Name:    unversioned.Runtime(os.Getenv(utils.EnvEraserRuntimeName)),
