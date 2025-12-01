@@ -23,13 +23,11 @@ import (
 
 	"golang.org/x/exp/slices"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/apimachinery/pkg/util/wait"
-
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/wait"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -161,49 +159,6 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	}
 
 	return nil
-}
-
-func checkNodeFitness(pod *corev1.Pod, node *corev1.Node) bool {
-	// Check if node has sufficient resources for the pod
-	nodeAllocatable := node.Status.Allocatable
-	if nodeAllocatable == nil {
-		log.Error(fmt.Errorf("node %v has no allocatable resources", node.Name), "node resource check")
-		return false
-	}
-
-	// Calculate total resource requests from all containers in the pod
-	totalCPU := resource.NewQuantity(0, resource.DecimalSI)
-	totalMemory := resource.NewQuantity(0, resource.BinarySI)
-
-	for i := range pod.Spec.Containers {
-		container := &pod.Spec.Containers[i]
-		if container.Resources.Requests != nil {
-			if cpu, exists := container.Resources.Requests[corev1.ResourceCPU]; exists {
-				totalCPU.Add(cpu)
-			}
-			if memory, exists := container.Resources.Requests[corev1.ResourceMemory]; exists {
-				totalMemory.Add(memory)
-			}
-		}
-	}
-
-	// Check if node has sufficient CPU
-	if allocatableCPU, exists := nodeAllocatable[corev1.ResourceCPU]; exists {
-		if totalCPU.Cmp(allocatableCPU) > 0 {
-			log.Error(fmt.Errorf("pod %v in namespace %v requires more CPU than available on node %v", pod.Name, pod.Namespace, node.Name), "insufficient CPU")
-			return false
-		}
-	}
-
-	// Check if node has sufficient memory
-	if allocatableMemory, exists := nodeAllocatable[corev1.ResourceMemory]; exists {
-		if totalMemory.Cmp(allocatableMemory) > 0 {
-			log.Error(fmt.Errorf("pod %v in namespace %v requires more memory than available on node %v", pod.Name, pod.Namespace, node.Name), "insufficient memory")
-			return false
-		}
-	}
-
-	return true
 }
 
 //+kubebuilder:rbac:groups=eraser.sh,resources=imagejobs,verbs=get;list;watch;create;delete
@@ -437,12 +392,6 @@ func (r *Reconciler) handleNewJob(ctx context.Context, imageJob *eraserv1.ImageJ
 			pod.Labels[imageJobTypeLabelKey] = manualJobType
 		} else {
 			pod.Labels[imageJobTypeLabelKey] = collectorJobType
-		}
-
-		fitness := checkNodeFitness(pod, &nodeList[i])
-		if !fitness {
-			log.Info(containerName + " pod does not fit on node, skipping")
-			continue
 		}
 
 		err = r.Create(ctx, pod)
