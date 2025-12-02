@@ -40,7 +40,10 @@ import (
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
+	"sigs.k8s.io/controller-runtime/pkg/metrics/server"
+	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
 	"github.com/eraser-dev/eraser/api/unversioned"
 	"github.com/eraser-dev/eraser/api/unversioned/config"
@@ -104,12 +107,12 @@ func main() {
 	// these can all be overwritten using EraserConfig.
 	options := ctrl.Options{
 		Scheme:                 scheme,
-		MetricsBindAddress:     ":8889",
-		Port:                   9443,
+		Metrics:                server.Options{BindAddress: ":8889"},
+		WebhookServer:          webhook.NewServer(webhook.Options{Port: 9443}),
 		HealthProbeBindAddress: ":8081",
 		LeaderElection:         false,
-		NewCache: cache.BuilderWithOptions(cache.Options{
-			SelectorsByObject: cache.SelectorsByObject{
+		Cache: cache.Options{
+			ByObject: map[client.Object]cache.ByObject{
 				// to watch eraser pods
 				&corev1.Pod{}: {
 					Field: fields.OneTermEqualSelector("metadata.namespace", utils.GetNamespace()),
@@ -127,7 +130,7 @@ func main() {
 				// to watch ImageLists
 				&eraserv1.ImageList{}: {},
 			},
-		}),
+		},
 	}
 
 	if configFile == "" {
@@ -206,6 +209,7 @@ func main() {
 }
 
 func getConfig(configFile string) (*unversioned.EraserConfig, error) {
+	//nolint:gosec // G304: Reading config file is intended functionality
 	fileBytes, err := os.ReadFile(configFile)
 	if err != nil {
 		setupLog.Error(err, "configuration is either missing or invalid")

@@ -16,7 +16,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
-	"go.opentelemetry.io/otel/metric/global"
+	"go.opentelemetry.io/otel"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -63,7 +63,7 @@ func Add(mgr manager.Manager, cfg *config.Manager) error {
 	}
 
 	err = c.Watch(
-		&source.Kind{Type: &corev1.ConfigMap{}},
+		source.Kind(mgr.GetCache(), &corev1.ConfigMap{}),
 		&handler.EnqueueRequestForObject{},
 		predicate.ResourceVersionChangedPredicate{},
 		predicate.Funcs{
@@ -103,7 +103,7 @@ func newReconciler(mgr manager.Manager, cfg *config.Manager) (reconcile.Reconcil
 		defer cancel()
 
 		_, _, provider = metrics.ConfigureMetrics(ctx, log, otlpEndpoint)
-		global.SetMeterProvider(provider)
+		otel.SetMeterProvider(provider)
 	}
 
 	rec := &Reconciler{

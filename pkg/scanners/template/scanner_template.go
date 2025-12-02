@@ -13,7 +13,7 @@ import (
 
 	"github.com/eraser-dev/eraser/pkg/metrics"
 	util "github.com/eraser-dev/eraser/pkg/utils"
-	"go.opentelemetry.io/otel/metric/global"
+	"go.opentelemetry.io/otel"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
@@ -64,7 +64,7 @@ func (cfg *config) ReceiveImages() ([]unversioned.Image, error) {
 		return nil, err
 	}
 
-	err = os.Chmod(util.EraseCompleteScanPath, 0o666)
+	err = os.Chmod(util.EraseCompleteScanPath, 0o600)
 	if err != nil {
 		cfg.log.Error(err, "unable to enable pipe for writing", "pipeName", util.EraseCompleteScanPath)
 		return nil, err
@@ -94,9 +94,9 @@ func (cfg *config) SendImages(nonCompliantImages, failedImages []unversioned.Ima
 		defer cancel()
 
 		exporter, reader, provider := metrics.ConfigureMetrics(ctx, cfg.log, os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT"))
-		global.SetMeterProvider(provider)
+		otel.SetMeterProvider(provider)
 
-		if err := metrics.RecordMetricsScanner(ctx, global.MeterProvider(), len(nonCompliantImages)); err != nil {
+		if err := metrics.RecordMetricsScanner(ctx, otel.GetMeterProvider(), len(nonCompliantImages)); err != nil {
 			cfg.log.Error(err, "error recording metrics")
 			return err
 		}
@@ -119,7 +119,10 @@ func (cfg *config) Finish() error {
 		return err
 	}
 
-	file.Close()
+	if err := file.Close(); err != nil {
+		cfg.log.Error(err, "failed to close pipe", "pipeName", util.EraseCompleteScanPath)
+		return err
+	}
 
 	if string(data) != util.EraseCompleteMessage {
 		cfg.log.Info("garbage in pipe", "pipeName", util.EraseCompleteScanPath, "in_pipe", string(data))

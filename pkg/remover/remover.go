@@ -14,7 +14,7 @@ import (
 	"syscall"
 	"time"
 
-	"go.opentelemetry.io/otel/metric/global"
+	"go.opentelemetry.io/otel"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 
 	"github.com/eraser-dev/eraser/pkg/cri"
@@ -59,13 +59,23 @@ func main() {
 		os.Exit(generalErr)
 	}
 
+	log.Info("remover starting", "imageListPtr", *imageListPtr, "criPath", util.CRIPath)
+
 	client, err := cri.NewRemoverClient(util.CRIPath)
 	if err != nil {
 		log.Error(err, "failed to get image client")
 		os.Exit(generalErr)
 	}
 
+	log.Info("CRI client created successfully")
+
 	var imagelist []string
+
+	if *imageListPtr == "" {
+		log.Info("imageListPtr is empty, waiting for scan erase path")
+	} else {
+		log.Info("imageListPtr provided, parsing image list file", "path", *imageListPtr)
+	}
 
 	if *imageListPtr == "" {
 		var f *os.File
@@ -90,7 +100,10 @@ func main() {
 			log.Error(err, "error reading non-compliant images")
 			os.Exit(generalErr)
 		}
-		f.Close()
+		if err := f.Close(); err != nil {
+			log.Error(err, "error closing non-compliant images file")
+			os.Exit(generalErr)
+		}
 
 		nonCompliantImages := []unversioned.Image{}
 		if err = json.Unmarshal(data, &nonCompliantImages); err != nil {
@@ -104,12 +117,13 @@ func main() {
 
 		log.Info("successfully created imagelist from scanned non-compliant images")
 	} else {
+		log.Info("attempting to parse image list file", "path", *imageListPtr)
 		imagelist, err = util.ParseImageList(*imageListPtr)
 		if err != nil {
-			log.Error(err, "failed to parse image list file")
+			log.Error(err, "failed to parse image list file", "path", *imageListPtr)
 			os.Exit(generalErr)
 		}
-		log.Info("successfully parsed image list file")
+		log.Info("successfully parsed image list file", "count", len(imagelist), "images", imagelist)
 	}
 
 	excluded, err = util.ParseExcluded()
@@ -134,9 +148,9 @@ func main() {
 		ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 
 		exporter, reader, provider := metrics.ConfigureMetrics(ctx, log, os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT"))
-		global.SetMeterProvider(provider)
+		otel.SetMeterProvider(provider)
 
-		if err := metrics.RecordMetricsRemover(ctx, global.MeterProvider(), int64(removed)); err != nil {
+		if err := metrics.RecordMetricsRemover(ctx, otel.GetMeterProvider(), int64(removed)); err != nil {
 			log.Error(err, "error recording metrics")
 		}
 		metrics.ExportMetrics(log, exporter, reader)
@@ -155,7 +169,10 @@ func main() {
 			os.Exit(generalErr)
 		}
 
-		file.Close()
+		if err := file.Close(); err != nil {
+			log.Error(err, "unable to close pipe", "pipeFile", util.EraseCompleteCollectPath)
+			os.Exit(generalErr)
+		}
 
 		file, err = os.OpenFile(util.EraseCompleteScanPath, os.O_WRONLY, fs.ModeNamedPipe)
 		// if the scanner is disabled
@@ -172,6 +189,9 @@ func main() {
 			os.Exit(generalErr)
 		}
 
-		file.Close()
+		if err := file.Close(); err != nil {
+			log.Error(err, "unable to close pipe", "pipeFile", util.EraseCompleteScanPath)
+			os.Exit(generalErr)
+		}
 	}
 }
