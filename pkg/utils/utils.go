@@ -167,6 +167,10 @@ func GetNonRunningImages(runningImages map[string]string, allImages []unversione
 	return nonRunningImages
 }
 
+func IsPinned(img string, idToImageMap map[string]unversioned.Image) bool {
+	return idToImageMap[img].Pinned
+}
+
 func IsExcluded(excluded map[string]struct{}, img string, idToImageMap map[string]unversioned.Image) bool {
 	if len(excluded) == 0 {
 		return false
@@ -405,4 +409,14 @@ func ProcessRepoDigests(repoDigests []string) ([]string, []error) {
 	}
 
 	return digests, errs
+}
+
+func RemovePinnedImages(images []unversioned.Image) []unversioned.Image {
+	filteredImages := []unversioned.Image{}
+	for _, image := range images {
+		if !image.Pinned {
+			filteredImages = append(filteredImages, image)
+		}
+	}
+	return filteredImages
 }

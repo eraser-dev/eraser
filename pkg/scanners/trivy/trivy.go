@@ -124,6 +124,7 @@ func main() {
 		log.Info("Failed", "Images", failedImages)
 	}
 
+	// send to eraser?
 	err = provider.SendImages(vulnerableImages, failedImages)
 	if err != nil {
 		log.Error(err, "unable to write images")
