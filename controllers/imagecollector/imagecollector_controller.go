@@ -143,7 +143,7 @@ func add(mgr manager.Manager, r *Reconciler) error {
 	}
 
 	err = c.Watch(
-		&source.Kind{Type: &eraserv1.ImageJob{}},
+		source.Kind(mgr.GetCache(), &eraserv1.ImageJob{}),
 		&handler.EnqueueRequestForObject{}, predicate.Funcs{
 			// Do nothing on Create, Delete, or Generic events
 			CreateFunc:  util.NeverOnCreate,
@@ -151,7 +151,7 @@ func add(mgr manager.Manager, r *Reconciler) error {
 			GenericFunc: util.NeverOnGeneric,
 			UpdateFunc: func(e event.UpdateEvent) bool {
 				if job, ok := e.ObjectNew.(*eraserv1.ImageJob); ok && util.IsCompletedOrFailed(job.Status.Phase) {
-					return ownerLabel.Matches(labels.Set(job.ObjectMeta.Labels))
+					return ownerLabel.Matches(labels.Set(job.Labels))
 				}
 
 				return false

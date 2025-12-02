@@ -90,6 +90,7 @@ func main() {
 		os.Exit(1)
 	}
 
+	//nolint:gosec // G304: Opening pipe file is intended functionality
 	file, err := os.OpenFile(path, os.O_WRONLY, 0)
 	if err != nil {
 		log.Error(err, "failed to open pipe", "pipeFile", path)
@@ -101,7 +102,10 @@ func main() {
 		os.Exit(1)
 	}
 
-	file.Close()
+	if err := file.Close(); err != nil {
+		log.Error(err, "failed to close pipe", "pipeFile", path)
+		os.Exit(1)
+	}
 	if err := unix.Mkfifo(util.EraseCompleteCollectPath, util.PipeMode); err != nil {
 		log.Error(err, "failed to create pipe", "pipeFile", util.EraseCompleteCollectPath)
 		os.Exit(1)
@@ -119,7 +123,10 @@ func main() {
 		os.Exit(1)
 	}
 
-	file.Close()
+	if err := file.Close(); err != nil {
+		log.Error(err, "failed to close pipe", "pipeFile", util.EraseCompleteCollectPath)
+		os.Exit(1)
+	}
 
 	if string(data) != util.EraseCompleteMessage {
 		log.Info("garbage in pipe", "pipeFile", util.EraseCompleteCollectPath, "in_pipe", string(data))
