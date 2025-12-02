@@ -37,13 +37,13 @@ jobs:
           - {image: eraser-trivy-scanner, build_cmd: docker-build-trivy-scanner, repo_environment_var: TRIVY_SCANNER_REPO}
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@ec9f2d5744a09debf3a187a3f4f675c53b671911 # v2.13.0
+        uses: step-security/harden-runner@95d9a5deda9de15063e7595e9719c11c38c90ae2 # v2.13.2
         with:
           egress-policy: audit
 
       - name: Check out code
         if: github.event_name == 'schedule' || github.event.inputs.version == ''
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
 
       - name: Build image
         if: github.event_name == 'schedule' || github.event.inputs.version == ''
@@ -51,7 +51,7 @@ jobs:
           make ${{ matrix.data.build_cmd }} VERSION=${{ env.TAG }} ${{ matrix.data.repo_environment_var }}=${{ env.REGISTRY }}/${{ matrix.data.image }}
 
       - name: Scan for vulnerabilities
-        uses: aquasecurity/trivy-action@dc5a429b52fcf669ce959baa2c2dd26090d2a6c4 # 0.32.0
+        uses: aquasecurity/trivy-action@b6643a29fecd7f34b3597bc6acb0a98b03d33ff8 # 0.33.1
         with:
           image-ref: ${{ env.REGISTRY }}/${{ matrix.data.image }}:${{ env.TAG }}
           vuln-type: 'os,library'
@@ -59,7 +59,7 @@ jobs:
           format: 'sarif'
           output: ${{ matrix.data.image }}-results.sarif
 
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4.6.2
+      - uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4  # v5.0.0
         with:
           name: ${{ matrix.data.image }} Scan Results
           path: ${{ matrix.data.image }}-results.sarif
@@ -79,17 +79,17 @@ jobs:
         image: [remover, eraser-manager, collector, eraser-trivy-scanner]
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@ec9f2d5744a09debf3a187a3f4f675c53b671911 # v2.13.0
+        uses: step-security/harden-runner@95d9a5deda9de15063e7595e9719c11c38c90ae2 # v2.13.2
         with:
           egress-policy: audit
 
-      - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
+      - uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6.0.0
         with:
           name: ${{ matrix.image }} Scan Results
           path: ${{ matrix.image }}-results.sarif
           merge-multiple: true
 
       - name: Upload results to GitHub Security
-        uses: github/codeql-action/upload-sarif@df559355d593797519d70b90fc8edd5db049e7a2 # v2.14.4
+        uses: github/codeql-action/upload-sarif@fdbfb4d2750291e159f0156def62b853c2798ca2 # v2.14.4
         with:
           sarif_file: ${{ matrix.image }}-results.sarif
