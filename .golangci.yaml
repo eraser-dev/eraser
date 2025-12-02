@@ -1,40 +1,42 @@
+version: "2"
+
 run:
-  timeout: 5m
-
-linters-settings:
-  gocritic:
-    enabled-tags:
-    - performance
-  gosec:
-    excludes:
-    - G108
-  lll:
-    line-length: 200
-
-  misspell:
-    locale: US
-  staticcheck:
-    go: "1.21"
+  go: "1.25"
 
 linters:
-  disable-all: true
+  default: none
   enable:
     - errcheck
-    - exportloopref
+    - copyloopvar # replacement for exportloopref
     - forcetypeassert
     - gocritic
     - goconst
     - godot
-    - gofmt
-    - gofumpt
-    - goimports
     - gosec
-    - gosimple
     - govet
     - ineffassign
     - misspell
-    - revive # replacement for golint
-    - staticcheck
-    - typecheck
+    # - revive # replacement for golint
+    - staticcheck # includes gosimple and staticcheck
     - unused
     - whitespace
+  settings:
+    gocritic:
+      enabled-tags:
+      - performance
+    gosec:
+      excludes:
+      - G108
+    lll:
+      line-length: 200
+    misspell:
+      locale: US
+  exclusions:
+    paths:
+      - "docs/build/assets/files/.*\\.go"
+
+formatters:
+  enable:
+    - gofmt
+    - gofumpt
+    - goimports

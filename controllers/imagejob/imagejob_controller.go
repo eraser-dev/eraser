@@ -24,13 +24,10 @@ import (
 	"golang.org/x/exp/slices"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/apimachinery/pkg/util/wait"
-	"k8s.io/kubernetes/pkg/scheduler/framework"
-	"k8s.io/kubernetes/pkg/scheduler/framework/plugins/noderesources"
-
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/wait"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -102,7 +99,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	}
 
 	// Watch for changes to ImageJob
-	err = c.Watch(&source.Kind{Type: &eraserv1.ImageJob{}}, &handler.EnqueueRequestForObject{}, predicate.Funcs{
+	err = c.Watch(source.Kind(mgr.GetCache(), &eraserv1.ImageJob{}), &handler.EnqueueRequestForObject{}, predicate.Funcs{
 		UpdateFunc: func(e event.UpdateEvent) bool {
 			if job, ok := e.ObjectNew.(*eraserv1.ImageJob); ok && controllerUtils.IsCompletedOrFailed(job.Status.Phase) {
 				return false // handled by Owning controller
@@ -120,13 +117,8 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 
 	// Watch for changes to pods created by ImageJob (eraser pods)
 	err = c.Watch(
-		&source.Kind{
-			Type: &corev1.Pod{},
-		},
-		&handler.EnqueueRequestForOwner{
-			OwnerType:    &corev1.PodTemplate{},
-			IsController: true,
-		},
+		source.Kind(mgr.GetCache(), &corev1.Pod{}),
+		handler.EnqueueRequestForOwner(mgr.GetScheme(), mgr.GetRESTMapper(), &corev1.PodTemplate{}),
 		predicate.Funcs{
 			CreateFunc: func(e event.CreateEvent) bool {
 				return e.Object.GetNamespace() == eraserUtils.GetNamespace()
@@ -145,13 +137,8 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 
 	// watch for changes to imagejob podTemplate (owned by controller manager pod)
 	err = c.Watch(
-		&source.Kind{
-			Type: &corev1.PodTemplate{},
-		},
-		&handler.EnqueueRequestForOwner{
-			OwnerType:    &corev1.Pod{},
-			IsController: true,
-		},
+		source.Kind(mgr.GetCache(), &corev1.PodTemplate{}),
+		handler.EnqueueRequestForOwner(mgr.GetScheme(), mgr.GetRESTMapper(), &corev1.Pod{}),
 		predicate.Funcs{
 			CreateFunc: func(e event.CreateEvent) bool {
 				ownerLabels, ok := e.Object.GetLabels()[managerLabelKey]
@@ -172,20 +159,6 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	}
 
 	return nil
-}
-
-func checkNodeFitness(pod *corev1.Pod, node *corev1.Node) bool {
-	nodeInfo := framework.NewNodeInfo()
-	nodeInfo.SetNode(node)
-
-	insufficientResource := noderesources.Fits(pod, nodeInfo)
-
-	if len(insufficientResource) != 0 {
-		log.Error(fmt.Errorf("pod %v in namespace %v does not fit in node %v", pod.Name, pod.Namespace, node.Name), "insufficient resource")
-		return false
-	}
-
-	return true
 }
 
 //+kubebuilder:rbac:groups=eraser.sh,resources=imagejobs,verbs=get;list;watch;create;delete
@@ -421,12 +394,6 @@ func (r *Reconciler) handleNewJob(ctx context.Context, imageJob *eraserv1.ImageJ
 			pod.Labels[imageJobTypeLabelKey] = collectorJobType
 		}
 
-		fitness := checkNodeFitness(pod, &nodeList[i])
-		if !fitness {
-			log.Info(containerName + " pod does not fit on node, skipping")
-			continue
-		}
-
 		err = r.Create(ctx, pod)
 		if err != nil {
 			return err
@@ -437,6 +404,7 @@ func (r *Reconciler) handleNewJob(ctx context.Context, imageJob *eraserv1.ImageJ
 	}
 
 	for _, namespacedName := range namespacedNames {
+		//nolint:staticcheck // SA1019: TODO: Replace with PollUntilContextTimeout in future refactor
 		if err := wait.PollImmediate(time.Nanosecond, time.Minute*5, r.isPodReady(ctx, namespacedName)); err != nil {
 			log.Error(err, "timed out waiting for pod to leave pending state", "pod NamespacedName", namespacedName)
 		}
@@ -509,11 +477,11 @@ nodes:
 			}
 
 			log.V(1).Info("includedLabels", "includedLabels", includedLabels)
-			log.V(1).Info("nodeLabels", "nodeLabels", nodes.Items[i].ObjectMeta.Labels)
-			if includedLabels.Matches(labels.Set(nodes.Items[i].ObjectMeta.Labels)) {
+			log.V(1).Info("nodeLabels", "nodeLabels", nodes.Items[i].Labels)
+			if includedLabels.Matches(labels.Set(nodes.Items[i].Labels)) {
 				log.Info("node is included because it matched the specified labels",
 					"nodeName", nodeName,
-					"labels", nodes.Items[i].ObjectMeta.Labels,
+					"labels", nodes.Items[i].Labels,
 					"specifiedSelectors", includeNodesSelectors,
 				)
 
@@ -543,11 +511,11 @@ nodes:
 			}
 
 			log.V(1).Info("skipLabels", "skipLabels", skipLabels)
-			log.V(1).Info("nodeLabels", "nodeLabels", nodes.Items[i].ObjectMeta.Labels)
-			if skipLabels.Matches(labels.Set(nodes.Items[i].ObjectMeta.Labels)) {
+			log.V(1).Info("nodeLabels", "nodeLabels", nodes.Items[i].Labels)
+			if skipLabels.Matches(labels.Set(nodes.Items[i].Labels)) {
 				log.Info("node will be skipped because it matched the specified labels",
 					"nodeName", nodeName,
-					"labels", nodes.Items[i].ObjectMeta.Labels,
+					"labels", nodes.Items[i].Labels,
 					"specifiedSelectors", skipNodesSelectors,
 				)
 

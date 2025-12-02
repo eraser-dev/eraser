@@ -194,9 +194,10 @@ func (r *Reconciler) handleJobListEvent(ctx context.Context, imageList *eraserv1
 		errDelay := time.Duration(cleanupCfg.DelayOnFailure)
 
 		if job.Status.DeleteAfter == nil {
-			if job.Status.Phase == eraserv1.PhaseCompleted {
+			switch job.Status.Phase {
+			case eraserv1.PhaseCompleted:
 				job.Status.DeleteAfter = util.After(time.Now(), int64(successDelay.Seconds()))
-			} else if job.Status.Phase == eraserv1.PhaseFailed {
+			case eraserv1.PhaseFailed:
 				job.Status.DeleteAfter = util.After(time.Now(), int64(errDelay.Seconds()))
 			}
 
@@ -407,7 +408,7 @@ func (r *Reconciler) handleImageListEvent(ctx context.Context, imageList *eraser
 		return reconcile.Result{}, err
 	}
 
-	configMap.ObjectMeta.OwnerReferences = []metav1.OwnerReference{*metav1.NewControllerRef(job, eraserv1.GroupVersion.WithKind("ImageJob"))}
+	configMap.OwnerReferences = []metav1.OwnerReference{*metav1.NewControllerRef(job, eraserv1.GroupVersion.WithKind("ImageJob"))}
 	err = r.Update(ctx, &configMap)
 	if err != nil {
 		return reconcile.Result{}, err
@@ -441,14 +442,14 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	}
 
 	err = c.Watch(
-		&source.Kind{Type: &eraserv1.ImageList{}},
+		source.Kind(mgr.GetCache(), &eraserv1.ImageList{}),
 		&handler.EnqueueRequestForObject{}, predicate.GenerationChangedPredicate{})
 	if err != nil {
 		return err
 	}
 	err = c.Watch(
-		&source.Kind{Type: &eraserv1.ImageJob{}},
-		&handler.EnqueueRequestForOwner{OwnerType: &eraserv1.ImageList{}, IsController: true},
+		source.Kind(mgr.GetCache(), &eraserv1.ImageJob{}),
+		handler.EnqueueRequestForOwner(mgr.GetScheme(), mgr.GetRESTMapper(), &eraserv1.ImageList{}),
 		predicate.Funcs{
 			// Do nothing on Create, Delete, or Generic events
 			CreateFunc:  util.NeverOnCreate,
@@ -456,7 +457,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 			GenericFunc: util.NeverOnGeneric,
 			UpdateFunc: func(e event.UpdateEvent) bool {
 				if job, ok := e.ObjectNew.(*eraserv1.ImageJob); ok && util.IsCompletedOrFailed(job.Status.Phase) {
-					return ownerLabel.Matches(labels.Set(job.ObjectMeta.Labels))
+					return ownerLabel.Matches(labels.Set(job.Labels))
 				}
 
 				return false
