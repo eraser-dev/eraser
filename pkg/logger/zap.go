@@ -7,7 +7,7 @@ import (
 	"github.com/go-logr/logr"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
-	"k8s.io/klog/v2"
+	klog "k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	crzap "sigs.k8s.io/controller-runtime/pkg/log/zap"
 )

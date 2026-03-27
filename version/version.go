@@ -1,3 +1,4 @@
+// Package version provides build version and information for the eraser application.
 package version
 
 import (
