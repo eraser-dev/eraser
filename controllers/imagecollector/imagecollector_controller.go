@@ -57,8 +57,9 @@ import (
 )
 
 const (
-	ownerLabelValue  = "imagecollector"
-	configVolumeName = "eraser-config"
+	ownerLabelValue           = "imagecollector"
+	configVolumeName          = "eraser-config"
+	scannerExtraVolumeBaseDir = "/run/eraser.sh/scanner-extra"
 )
 
 var (
@@ -452,20 +453,22 @@ func (r *Reconciler) createImageJob(ctx context.Context) (ctrl.Result, error) {
 		log.Info("extra mount for scanner starts")
 		scannerVolumes := compCfg.Scanner.Volumes
 		if len(scannerVolumes) != 0 {
-			jobTemplate.Spec.Volumes = append(jobTemplate.Spec.Volumes, scannerVolumes...)
+			allowedScannerVolumes := []corev1.Volume{}
 			scannerVolumeMounts := []corev1.VolumeMount{}
 			for idx := range scannerVolumes {
 				volume := scannerVolumes[idx]
-				if volume.HostPath == nil {
-					log.Error(fmt.Errorf("volume hostPath is nil"), "invalid volume", "volumeName", volume.Name)
+				if volume.HostPath != nil {
+					log.Error(fmt.Errorf("hostPath volumes are not allowed"), "invalid scanner volume", "volumeName", volume.Name, "hostPath", volume.HostPath.Path)
 					continue
 				}
+				allowedScannerVolumes = append(allowedScannerVolumes, volume)
 				scannerVolumeMounts = append(scannerVolumeMounts, corev1.VolumeMount{
 					Name:      volume.Name,
-					MountPath: volume.HostPath.Path,
+					MountPath: filepath.Join(scannerExtraVolumeBaseDir, volume.Name),
 					ReadOnly:  true,
 				})
 			}
+			jobTemplate.Spec.Volumes = append(jobTemplate.Spec.Volumes, allowedScannerVolumes...)
 			scannerContainer.VolumeMounts = append(scannerContainer.VolumeMounts, scannerVolumeMounts...)
 		}
 
