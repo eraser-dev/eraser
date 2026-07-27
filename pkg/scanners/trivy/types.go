@@ -31,7 +31,7 @@ const (
 	trivyTimeoutFlag        = "--timeout"
 	trivyDBRepoFlag         = "--db-repository"
 	trivyIgnoreUnfixedFlag  = "--ignore-unfixed"
-	trivyVulnTypesFlag      = "--vuln-type"
+	trivyPkgTypesFlag       = "--pkg-types"
 	trivySecurityChecksFlag = "--scanners"
 	trivySeveritiesFlag     = "--severity"
 	trivyRuntimeFlag        = "--image-src"
@@ -127,8 +127,8 @@ func (c *Config) cliArgs(ref string) []string {
 	}
 
 	if len(c.Vulnerabilities.Types) > 0 {
-		allVulnTypes := strings.Join(c.Vulnerabilities.Types, ",")
-		args = append(args, trivyVulnTypesFlag, allVulnTypes)
+		allPkgTypes := strings.Join(c.Vulnerabilities.Types, ",")
+		args = append(args, trivyPkgTypesFlag, allPkgTypes)
 	}
 
 	if len(c.Vulnerabilities.SecurityChecks) > 0 {
