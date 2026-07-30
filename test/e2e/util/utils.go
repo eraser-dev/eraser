@@ -35,6 +35,8 @@ const (
 	providerResourceChartDir  = "manifest_staging/charts"
 	providerResourceDeployDir = "manifest_staging/deploy"
 	publishedHelmRepo         = "https://eraser-dev.github.io/eraser/charts"
+	eraserControllerManager   = "eraser-controller-manager"
+	execSubcommand            = "exec"
 
 	KindClusterName  = "eraser-e2e-test"
 	ProviderResource = "eraser.yaml"
@@ -292,7 +294,7 @@ func HelmDeployLatestEraserRelease(namespace string, extraArgs ...string) env.Fu
 
 		// wait for the deployment to finish becoming available
 		eraserManagerDep := appsv1.Deployment{
-			ObjectMeta: metav1.ObjectMeta{Name: "eraser-controller-manager", Namespace: namespace},
+			ObjectMeta: metav1.ObjectMeta{Name: eraserControllerManager, Namespace: namespace},
 		}
 
 		if err := wait.For(conditions.New(client.Resources()).DeploymentConditionMatch(&eraserManagerDep, appsv1.DeploymentAvailable, corev1.ConditionTrue),
@@ -431,7 +433,7 @@ func GetImageJob(ctx context.Context, cfg *envconf.Config) (eraserv1.ImageJob, e
 
 func ListNodeContainers(nodeName string) (string, error) {
 	args := []string{
-		"exec",
+		execSubcommand,
 		nodeName,
 		"ctr",
 		"-n",
@@ -453,7 +455,7 @@ func ListNodeContainers(nodeName string) (string, error) {
 
 func ListNodeImages(nodeName string) (string, error) {
 	args := []string{
-		"exec",
+		execSubcommand,
 		nodeName,
 		"ctr",
 		"-n",
@@ -647,7 +649,7 @@ func DeployEraserHelm(namespace string, args ...string) env.Func {
 
 		// wait for the deployment to finish becoming available
 		eraserManagerDep := appsv1.Deployment{
-			ObjectMeta: metav1.ObjectMeta{Name: "eraser-controller-manager", Namespace: namespace},
+			ObjectMeta: metav1.ObjectMeta{Name: eraserControllerManager, Namespace: namespace},
 		}
 
 		if err = wait.For(conditions.New(client.Resources()).DeploymentConditionMatch(&eraserManagerDep, appsv1.DeploymentAvailable, corev1.ConditionTrue),
@@ -684,7 +686,7 @@ func UpgradeEraserHelm(namespace string, args ...string) env.Func {
 
 		// wait for the deployment to finish becoming available
 		eraserManagerDep := appsv1.Deployment{
-			ObjectMeta: metav1.ObjectMeta{Name: "eraser-controller-manager", Namespace: namespace},
+			ObjectMeta: metav1.ObjectMeta{Name: eraserControllerManager, Namespace: namespace},
 		}
 
 		if err = wait.For(conditions.New(client.Resources()).DeploymentConditionMatch(&eraserManagerDep, appsv1.DeploymentAvailable, corev1.ConditionTrue),
