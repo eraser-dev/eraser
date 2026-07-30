@@ -36,7 +36,7 @@ KUSTOMIZE_VERSION ?= 3.8.9
 KUBERNETES_VERSION ?= 1.29.2
 NODE_VERSION ?= 20-bullseye-slim
 ENVTEST_K8S_VERSION ?= 1.25
-GOLANGCI_LINT_VERSION := 1.43.0
+GOLANGCI_LINT_VERSION := 2.12.2
 
 PLATFORM ?= linux
 
@@ -75,13 +75,14 @@ TOOLS_BIN_DIR := $(abspath $(TOOLS_DIR)/bin)
 GO_INSTALL := ./hack/go-install.sh
 
 GOLANGCI_LINT_BIN := golangci-lint
+GOLANGCI_LINT_MODULE := github.com/golangci/golangci-lint/v2/cmd/golangci-lint
 GOLANGCI_LINT := $(TOOLS_BIN_DIR)/$(GOLANGCI_LINT_BIN)-v$(GOLANGCI_LINT_VERSION)
 
 TEST_COUNT ?= 1
 TIMEOUT ?= 1800s
 
 $(GOLANGCI_LINT):
-	GOBIN=$(TOOLS_BIN_DIR) $(GO_INSTALL) github.com/golangci/golangci-lint/cmd/golangci-lint $(GOLANGCI_LINT_BIN) v$(GOLANGCI_LINT_VERSION)
+	GOBIN=$(TOOLS_BIN_DIR) $(GO_INSTALL) $(GOLANGCI_LINT_MODULE) $(GOLANGCI_LINT_BIN) v$(GOLANGCI_LINT_VERSION)
 
 # Setting SHELL to bash allows bash commands to be executed by recipes.
 # This is a requirement for 'setup-envtest.sh' in the test target.

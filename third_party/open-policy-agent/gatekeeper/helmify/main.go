@@ -110,6 +110,7 @@ func copyStaticFiles(root string, subdirs ...string) error {
 				return err
 			}
 			fmt.Printf("Writing %s\n", destination)
+			//nolint:gosec // G703: destination only adds base names read from the repository-controlled static tree.
 			if err := os.WriteFile(destination, contents, 0o600); err != nil {
 				return err
 			}
