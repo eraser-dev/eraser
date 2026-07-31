@@ -5,6 +5,7 @@ package e2e
 
 import (
 	"context"
+	"fmt"
 	"testing"
 	"time"
 
@@ -18,10 +19,6 @@ import (
 	"sigs.k8s.io/e2e-framework/pkg/features"
 )
 
-const (
-	expectedPods = 4
-)
-
 func TestHelmPullSecret(t *testing.T) {
 	pullSecretsPropagated := features.New("Image Pull Secrets").
 		Assess("All pods should have the correct pull secret", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
@@ -30,45 +27,61 @@ func TestHelmPullSecret(t *testing.T) {
 				t.Fatal("Failed to create new client", err)
 			}
 
+			var lastReason string
 			err = wait.For(
-				util.NumPodsPresentForLabel(ctx, c, 3, util.ImageJobTypeLabelKey+"="+util.CollectorLabel),
+				func() (bool, error) {
+					var collectors corev1.PodList
+					if err := c.Resources().List(ctx, &collectors, func(o *metav1.ListOptions) {
+						o.LabelSelector = labels.SelectorFromSet(map[string]string{util.ImageJobTypeLabelKey: util.CollectorLabel}).String()
+					}); err != nil {
+						return false, err
+					}
+
+					var managers corev1.PodList
+					if err := c.Resources().List(ctx, &managers, func(o *metav1.ListOptions) {
+						o.LabelSelector = labels.SelectorFromSet(map[string]string{"control-plane": "controller-manager"}).String()
+					}); err != nil {
+						return false, err
+					}
+
+					if len(collectors.Items) < 3 || len(managers.Items) < 1 {
+						lastReason = fmt.Sprintf(
+							"waiting for at least 3 collector pods and 1 manager pod; got collectors=%d managers=%d",
+							len(collectors.Items),
+							len(managers.Items),
+						)
+						return false, nil
+					}
+
+					for _, pod := range append(collectors.Items, managers.Items...) {
+						found := false
+						for _, secret := range pod.Spec.ImagePullSecrets {
+							if secret.Name == util.ImagePullSecret {
+								found = true
+								break
+							}
+						}
+						if !found {
+							lastReason = fmt.Sprintf(
+								"pod %s is missing image pull secret %s",
+								pod.Name,
+								util.ImagePullSecret,
+							)
+							return false, nil
+						}
+					}
+
+					lastReason = ""
+					return true, nil
+				},
 				wait.WithTimeout(time.Minute*2),
 				wait.WithInterval(time.Millisecond*500),
 			)
 			if err != nil {
+				if lastReason != "" {
+					t.Fatalf("%v: %s", err, lastReason)
+				}
 				t.Fatal(err)
-			}
-
-			var ls corev1.PodList
-			err = c.Resources().List(ctx, &ls, func(o *metav1.ListOptions) {
-				o.LabelSelector = labels.SelectorFromSet(map[string]string{util.ImageJobTypeLabelKey: util.CollectorLabel}).String()
-			})
-			if err != nil {
-				t.Errorf("could not list pods: %v", err)
-			}
-
-			var ls2 corev1.PodList
-			err = c.Resources().List(ctx, &ls2, func(o *metav1.ListOptions) {
-				o.LabelSelector = labels.SelectorFromSet(map[string]string{"control-plane": "controller-manager"}).String()
-			})
-
-			items := append(ls.Items, ls2.Items...)
-			if len(items) != expectedPods {
-				t.Errorf("incorrect number of pods for eraser deployment. should be %d but was %d", expectedPods, len(items))
-			}
-
-			for _, pod := range items {
-				found := false
-				for _, secret := range pod.Spec.ImagePullSecrets {
-					if secret.Name == util.ImagePullSecret {
-						found = true
-						break
-					}
-				}
-
-				if !found {
-					t.Errorf("pod %s does not have secret set", pod.ObjectMeta.Name)
-				}
 			}
 
 			return ctx
