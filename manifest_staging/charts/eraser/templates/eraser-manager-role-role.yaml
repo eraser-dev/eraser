@@ -13,6 +13,7 @@ rules:
   - ""
   resources:
   - configmaps
+  - podtemplates
   verbs:
   - create
   - delete
@@ -30,17 +31,5 @@ rules:
   - delete
   - get
   - list
-  - update
-  - watch
-- apiGroups:
-  - ""
-  resources:
-  - podtemplates
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
   - update
   - watch
