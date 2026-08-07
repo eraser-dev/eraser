@@ -9,7 +9,7 @@ REMOVER_TAG ?= ${VERSION}
 TRIVY_SCANNER_REPO ?= ghcr.io/eraser-dev/eraser-trivy-scanner
 TRIVY_SCANNER_IMG ?= ${TRIVY_SCANNER_REPO}:${TRIVY_SCANNER_TAG}
 TRIVY_BINARY_REPO ?= ghcr.io/aquasecurity/trivy
-TRIVY_BINARY_TAG ?= 0.67.2
+TRIVY_BINARY_TAG ?= 0.72.0
 TRIVY_BINARY_IMG ?= ${TRIVY_BINARY_REPO}:${TRIVY_BINARY_TAG}
 MANAGER_REPO ?= ghcr.io/eraser-dev/eraser-manager
 MANAGER_IMG ?= ${MANAGER_REPO}:${MANAGER_TAG}
@@ -36,7 +36,7 @@ KUSTOMIZE_VERSION ?= 3.8.9
 KUBERNETES_VERSION ?= 1.29.2
 NODE_VERSION ?= 20-bullseye-slim
 ENVTEST_K8S_VERSION ?= 1.25
-GOLANGCI_LINT_VERSION := 1.43.0
+GOLANGCI_LINT_VERSION := 2.12.2
 
 PLATFORM ?= linux
 
@@ -75,13 +75,14 @@ TOOLS_BIN_DIR := $(abspath $(TOOLS_DIR)/bin)
 GO_INSTALL := ./hack/go-install.sh
 
 GOLANGCI_LINT_BIN := golangci-lint
+GOLANGCI_LINT_MODULE := github.com/golangci/golangci-lint/v2/cmd/golangci-lint
 GOLANGCI_LINT := $(TOOLS_BIN_DIR)/$(GOLANGCI_LINT_BIN)-v$(GOLANGCI_LINT_VERSION)
 
 TEST_COUNT ?= 1
 TIMEOUT ?= 1800s
 
 $(GOLANGCI_LINT):
-	GOBIN=$(TOOLS_BIN_DIR) $(GO_INSTALL) github.com/golangci/golangci-lint/cmd/golangci-lint $(GOLANGCI_LINT_BIN) v$(GOLANGCI_LINT_VERSION)
+	GOBIN=$(TOOLS_BIN_DIR) $(GO_INSTALL) $(GOLANGCI_LINT_MODULE) $(GOLANGCI_LINT_BIN) v$(GOLANGCI_LINT_VERSION)
 
 # Setting SHELL to bash allows bash commands to be executed by recipes.
 # This is a requirement for 'setup-envtest.sh' in the test target.
@@ -293,7 +294,7 @@ ENVTEST = $(shell pwd)/bin/setup-envtest
 envtest: __tooling-image bin/setup-envtest
 
 bin/setup-envtest:
-	docker run --rm -v $(shell pwd)/bin:/go/bin -e GO111MODULE=on eraser-tooling go install sigs.k8s.io/controller-runtime/tools/setup-envtest@v0.0.0-20240320141353-395cfc7486e6
+	docker run --rm -v $(shell pwd)/bin:/go/bin -e GO111MODULE=on eraser-tooling go install sigs.k8s.io/controller-runtime/tools/setup-envtest@v0.24.2-0.20260713111223-0f529e22d5c0
 
 __controller-gen: __tooling-image
 CONTROLLER_GEN=docker run --rm -v $(shell pwd):/eraser eraser-tooling controller-gen

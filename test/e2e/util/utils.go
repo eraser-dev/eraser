@@ -15,7 +15,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	klog "k8s.io/klog/v2"
-	"oras.land/oras-go/pkg/registry"
+	"oras.land/oras-go/v2/registry"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/e2e-framework/klient"
 	"sigs.k8s.io/e2e-framework/klient/k8s/resources"
@@ -35,6 +35,8 @@ const (
 	providerResourceChartDir  = "manifest_staging/charts"
 	providerResourceDeployDir = "manifest_staging/deploy"
 	publishedHelmRepo         = "https://eraser-dev.github.io/eraser/charts"
+	eraserControllerManager   = "eraser-controller-manager"
+	execSubcommand            = "exec"
 
 	KindClusterName  = "eraser-e2e-test"
 	ProviderResource = "eraser.yaml"
@@ -227,7 +229,7 @@ func parseRepoTag(img string) (RepoTag, error) {
 		return RepoTag{}, nil
 	}
 
-	ref, err := registry.ParseReference(img)
+	ref, err := parseRegistryReference(img)
 	if err == nil {
 		return toRepoTag(ref), nil
 	}
@@ -236,7 +238,7 @@ func parseRepoTag(img string) (RepoTag, error) {
 	if parts := strings.Split(img, "/"); len(parts) == 1 {
 		// the parser doesn't like unpublished images, so supply a dummy registry and pass it back to the parser
 		var result registry.Reference
-		result, err = registry.ParseReference(fmt.Sprintf("dummy.co/%s", img))
+		result, err = parseRegistryReference(fmt.Sprintf("dummy.co/%s", img))
 		if err == nil {
 			return RepoTag{
 				// the registry info is discarded since it was a dummy registry
@@ -247,6 +249,35 @@ func parseRepoTag(img string) (RepoTag, error) {
 	}
 
 	return RepoTag{}, err
+}
+
+// parseRegistryReference preserves oras-go v1 compatibility for digest
+// references that use a colon instead of an at sign between the repository
+// and digest. oras-go v2 accepts only the canonical at sign form.
+func parseRegistryReference(ref string) (registry.Reference, error) {
+	parsed, err := registry.ParseReference(ref)
+	if err == nil {
+		return parsed, nil
+	}
+
+	slash := strings.Index(ref, "/")
+	if slash == -1 {
+		return registry.Reference{}, err
+	}
+
+	path := ref[slash+1:]
+	separator := strings.Index(path, ":")
+	if separator == -1 {
+		return registry.Reference{}, err
+	}
+
+	canonical := ref[:slash+1+separator] + "@" + path[separator+1:]
+	parsed, canonicalErr := registry.ParseReference(canonical)
+	if canonicalErr != nil {
+		return registry.Reference{}, err
+	}
+
+	return parsed, nil
 }
 
 func LoadImageToCluster(clusterName, imageRef, tarballPath string) env.Func {
@@ -292,7 +323,7 @@ func HelmDeployLatestEraserRelease(namespace string, extraArgs ...string) env.Fu
 
 		// wait for the deployment to finish becoming available
 		eraserManagerDep := appsv1.Deployment{
-			ObjectMeta: metav1.ObjectMeta{Name: "eraser-controller-manager", Namespace: namespace},
+			ObjectMeta: metav1.ObjectMeta{Name: eraserControllerManager, Namespace: namespace},
 		}
 
 		if err := wait.For(conditions.New(client.Resources()).DeploymentConditionMatch(&eraserManagerDep, appsv1.DeploymentAvailable, corev1.ConditionTrue),
@@ -431,7 +462,7 @@ func GetImageJob(ctx context.Context, cfg *envconf.Config) (eraserv1.ImageJob, e
 
 func ListNodeContainers(nodeName string) (string, error) {
 	args := []string{
-		"exec",
+		execSubcommand,
 		nodeName,
 		"ctr",
 		"-n",
@@ -453,7 +484,7 @@ func ListNodeContainers(nodeName string) (string, error) {
 
 func ListNodeImages(nodeName string) (string, error) {
 	args := []string{
-		"exec",
+		execSubcommand,
 		nodeName,
 		"ctr",
 		"-n",
@@ -647,7 +678,7 @@ func DeployEraserHelm(namespace string, args ...string) env.Func {
 
 		// wait for the deployment to finish becoming available
 		eraserManagerDep := appsv1.Deployment{
-			ObjectMeta: metav1.ObjectMeta{Name: "eraser-controller-manager", Namespace: namespace},
+			ObjectMeta: metav1.ObjectMeta{Name: eraserControllerManager, Namespace: namespace},
 		}
 
 		if err = wait.For(conditions.New(client.Resources()).DeploymentConditionMatch(&eraserManagerDep, appsv1.DeploymentAvailable, corev1.ConditionTrue),
@@ -684,7 +715,7 @@ func UpgradeEraserHelm(namespace string, args ...string) env.Func {
 
 		// wait for the deployment to finish becoming available
 		eraserManagerDep := appsv1.Deployment{
-			ObjectMeta: metav1.ObjectMeta{Name: "eraser-controller-manager", Namespace: namespace},
+			ObjectMeta: metav1.ObjectMeta{Name: eraserControllerManager, Namespace: namespace},
 		}
 
 		if err = wait.For(conditions.New(client.Resources()).DeploymentConditionMatch(&eraserManagerDep, appsv1.DeploymentAvailable, corev1.ConditionTrue),
