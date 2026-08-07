@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"k8s.io/klog/v2"
+	"oras.land/oras-go/v2/registry"
 )
 
 func TestParseRepoTag(t *testing.T) {
@@ -48,6 +49,22 @@ func TestParseRepoTag(t *testing.T) {
 			input: "eraser:sha256:4dca0fd5f424a31b03ab807cbae77eb32bf2d089eed1cee154b3afed458de0dc",
 			expected: RepoTag{
 				Repo: "eraser",
+				Tag:  "sha256:4dca0fd5f424a31b03ab807cbae77eb32bf2d089eed1cee154b3afed458de0dc",
+			},
+			expectErr: false,
+		},
+		{
+			input: "docker.io/nginx:sha256:4dca0fd5f424a31b03ab807cbae77eb32bf2d089eed1cee154b3afed458de0dc",
+			expected: RepoTag{
+				Repo: "docker.io/nginx",
+				Tag:  "sha256:4dca0fd5f424a31b03ab807cbae77eb32bf2d089eed1cee154b3afed458de0dc",
+			},
+			expectErr: false,
+		},
+		{
+			input: "localhost:5000/repo:sha256:4dca0fd5f424a31b03ab807cbae77eb32bf2d089eed1cee154b3afed458de0dc",
+			expected: RepoTag{
+				Repo: "localhost:5000/repo",
 				Tag:  "sha256:4dca0fd5f424a31b03ab807cbae77eb32bf2d089eed1cee154b3afed458de0dc",
 			},
 			expectErr: false,
@@ -146,5 +163,52 @@ func TestParseRepoTag(t *testing.T) {
 			klog.Errorf("wrong result\ninput: %s\nexpected: %#v\ngot:      %#v", c.input, c.expected, result)
 			t.Fail()
 		}
+	}
+}
+
+func TestParseRegistryReferenceLegacyDigest(t *testing.T) {
+	const digest = "sha256:4dca0fd5f424a31b03ab807cbae77eb32bf2d089eed1cee154b3afed458de0dc"
+
+	cases := []struct {
+		name       string
+		input      string
+		registry   string
+		repository string
+	}{
+		{
+			name:       "registry",
+			input:      "docker.io/nginx:" + digest,
+			registry:   "docker.io",
+			repository: "nginx",
+		},
+		{
+			name:       "registry with port",
+			input:      "localhost:5000/repo:" + digest,
+			registry:   "localhost:5000",
+			repository: "repo",
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			if _, err := registry.ParseReference(tc.input); err == nil {
+				t.Fatalf("oras-go v2 unexpectedly accepted legacy digest reference %q; compatibility fallback may be removable", tc.input)
+			}
+
+			got, err := parseRegistryReference(tc.input)
+			if err != nil {
+				t.Fatalf("parseRegistryReference(%q) returned error: %v", tc.input, err)
+			}
+			if got.Registry != tc.registry || got.Repository != tc.repository || got.Reference != digest {
+				t.Fatalf(
+					"parseRegistryReference(%q) = %#v, want registry=%q repository=%q reference=%q",
+					tc.input,
+					got,
+					tc.registry,
+					tc.repository,
+					digest,
+				)
+			}
+		})
 	}
 }

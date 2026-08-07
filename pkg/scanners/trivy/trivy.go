@@ -13,7 +13,6 @@ import (
 
 	_ "net/http/pprof"
 
-	trivylogger "github.com/aquasecurity/trivy/pkg/log"
 	"github.com/eraser-dev/eraser/pkg/logger"
 	"github.com/eraser-dev/eraser/pkg/scanners/template"
 	"github.com/eraser-dev/eraser/pkg/utils"
@@ -147,8 +146,6 @@ func initScanner(userConfig *Config) (Scanner, error) {
 	if userConfig == nil {
 		return nil, fmt.Errorf("invalid trivy scanner config")
 	}
-
-	trivylogger.InitLogger(false, false)
 
 	userConfig.Runtime = unversioned.RuntimeSpec{
 		Name:    unversioned.Runtime(os.Getenv(utils.EnvEraserRuntimeName)),
