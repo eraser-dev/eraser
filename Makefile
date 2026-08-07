@@ -9,7 +9,7 @@ REMOVER_TAG ?= ${VERSION}
 TRIVY_SCANNER_REPO ?= ghcr.io/eraser-dev/eraser-trivy-scanner
 TRIVY_SCANNER_IMG ?= ${TRIVY_SCANNER_REPO}:${TRIVY_SCANNER_TAG}
 TRIVY_BINARY_REPO ?= ghcr.io/aquasecurity/trivy
-TRIVY_BINARY_TAG ?= 0.67.2
+TRIVY_BINARY_TAG ?= 0.72.0
 TRIVY_BINARY_IMG ?= ${TRIVY_BINARY_REPO}:${TRIVY_BINARY_TAG}
 MANAGER_REPO ?= ghcr.io/eraser-dev/eraser-manager
 MANAGER_IMG ?= ${MANAGER_REPO}:${MANAGER_TAG}
@@ -294,7 +294,7 @@ ENVTEST = $(shell pwd)/bin/setup-envtest
 envtest: __tooling-image bin/setup-envtest
 
 bin/setup-envtest:
-	docker run --rm -v $(shell pwd)/bin:/go/bin -e GO111MODULE=on eraser-tooling go install sigs.k8s.io/controller-runtime/tools/setup-envtest@v0.0.0-20240320141353-395cfc7486e6
+	docker run --rm -v $(shell pwd)/bin:/go/bin -e GO111MODULE=on eraser-tooling go install sigs.k8s.io/controller-runtime/tools/setup-envtest@v0.24.2-0.20260713111223-0f529e22d5c0
 
 __controller-gen: __tooling-image
 CONTROLLER_GEN=docker run --rm -v $(shell pwd):/eraser eraser-tooling controller-gen
