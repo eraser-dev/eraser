@@ -32,6 +32,8 @@ require (
 	sigs.k8s.io/yaml v1.4.0
 )
 
+require github.com/Microsoft/go-winio v0.6.2
+
 require (
 	github.com/BurntSushi/toml v1.4.0 // indirect
 	github.com/alessio/shellescape v1.4.1 // indirect
