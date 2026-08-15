@@ -51,9 +51,14 @@ func GetConn(ctx context.Context, socketPath string) (conn *grpc.ClientConn, err
 		return nil, err
 	}
 
+	// Use a timeout context so we fail fast instead of hanging indefinitely
+	// when the CRI socket is inaccessible (e.g. permission denied).
+	connCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+
 	//nolint:staticcheck // SA1019: grpc.DialContext is deprecated but maintains required blocking behavior
 	return grpc.DialContext(
-		ctx,
+		connCtx,
 		addr,
 		//nolint:staticcheck // SA1019: grpc.WithBlock is deprecated but ensures synchronous CRI connection
 		grpc.WithBlock(),
