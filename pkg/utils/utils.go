@@ -5,12 +5,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"net"
 	"net/url"
 	"os"
 	"strings"
-	"time"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -329,68 +327,16 @@ func readConfigMap(path string) ([]string, error) {
 	return images, nil
 }
 
+// ReadCollectScanPipe is the scanner-facing spelling of ReadImagesPipe, kept
+// because custom scanners may call it directly.
 func ReadCollectScanPipe(ctx context.Context) ([]unversioned.Image, error) {
-	timer := time.NewTimer(time.Second)
-	if !timer.Stop() {
-		<-timer.C
-	}
-	defer timer.Stop()
-
-	var f *os.File
-	for {
-		var err error
-
-		f, err = os.OpenFile(CollectScanPath, os.O_RDONLY, 0)
-		if err == nil {
-			break
-		}
-		if !os.IsNotExist(err) {
-			return nil, err
-		}
-
-		timer.Reset(time.Second)
-		select {
-		case <-ctx.Done():
-			return nil, ctx.Err()
-		case <-timer.C:
-			continue
-		}
-	}
-
-	// json data is list of []eraserv1.Image
-	data, err := io.ReadAll(f)
-	if err != nil {
-		return nil, err
-	}
-
-	allImages := []unversioned.Image{}
-	if err = json.Unmarshal(data, &allImages); err != nil {
-		return nil, err
-	}
-
-	return allImages, nil
+	return ReadImagesPipe(ctx, CollectScanPath)
 }
 
+// WriteScanErasePipe is the scanner-facing spelling of WriteImagesPipe, kept
+// because custom scanners may call it directly.
 func WriteScanErasePipe(vulnerableImages []unversioned.Image) error {
-	data, err := json.Marshal(vulnerableImages)
-	if err != nil {
-		return err
-	}
-
-	if err = mkfifo(ScanErasePath, PipeMode); err != nil {
-		return err
-	}
-
-	file, err := os.OpenFile(ScanErasePath, os.O_WRONLY, 0)
-	if err != nil {
-		return err
-	}
-
-	if _, err := file.Write(data); err != nil {
-		return err
-	}
-
-	return file.Close()
+	return WriteImagesPipe(ScanErasePath, vulnerableImages)
 }
 
 func ProcessRepoDigests(repoDigests []string) ([]string, []error) {
