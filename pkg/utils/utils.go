@@ -98,9 +98,14 @@ func ParseEndpoint(endpoint string) (string, string, error) {
 	case "unix":
 		return "unix", u.Path, nil
 	case npipeProtocol:
-		// url.Parse splits `npipe://./pipe/foo` into Host "." and Path "/pipe/foo";
-		// both halves are needed to rebuild the `\\.\pipe\foo` name.
-		return npipeProtocol, `\\` + u.Host + strings.ReplaceAll(u.Path, "/", `\`), nil
+		// Two spellings are in the wild. `npipe://./pipe/foo` splits into Host "."
+		// and Path "/pipe/foo", so both halves are needed. The kubelet form
+		// `npipe:////./pipe/foo` has an empty host and an already-UNC path.
+		addr := strings.ReplaceAll(u.Path, "/", `\`)
+		if u.Host != "" {
+			addr = `\\` + u.Host + addr
+		}
+		return npipeProtocol, addr, nil
 	case "":
 		return "", "", fmt.Errorf("using %q as %w", endpoint, ErrEndpointDeprecated)
 	default:

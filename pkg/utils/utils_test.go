@@ -42,6 +42,18 @@ func TestParseEndpointWithFallBackProtocol(t *testing.T) {
 			},
 		},
 		{
+			// the form kubelet accepts for --container-runtime-endpoint
+			endpoint:         "npipe:////./pipe/containerd-containerd",
+			fallbackProtocol: "npipe",
+			protocol:         "npipe",
+			addr:             `\\.\pipe\containerd-containerd`,
+			errCheck: func(t *testing.T, err error) {
+				if err != nil {
+					t.Error(err)
+				}
+			},
+		},
+		{
 			endpoint:         "192.168.123.132",
 			fallbackProtocol: "unix",
 			protocol:         "unix",
@@ -107,6 +119,17 @@ func TestParseEndpoint(t *testing.T) {
 		},
 		{
 			endpoint: "npipe://./pipe/containerd-containerd",
+			protocol: "npipe",
+			addr:     `\\.\pipe\containerd-containerd`,
+			errCheck: func(t *testing.T, err error) {
+				if err != nil {
+					t.Error(err)
+				}
+			},
+		},
+		{
+			// kubelet spells it with four slashes: empty host, already-UNC path
+			endpoint: "npipe:////./pipe/containerd-containerd",
 			protocol: "npipe",
 			addr:     `\\.\pipe\containerd-containerd`,
 			errCheck: func(t *testing.T, err error) {
