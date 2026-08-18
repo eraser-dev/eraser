@@ -68,7 +68,7 @@ func TestNpipeDialerConnects(t *testing.T) {
 	if err != nil {
 		t.Fatalf("listen pipe: %v", err)
 	}
-	defer l.Close()
+	defer func() { _ = l.Close() }()
 	go func() {
 		if c, err := l.Accept(); err == nil {
 			_ = c.Close()

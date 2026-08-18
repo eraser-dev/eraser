@@ -20,8 +20,6 @@ import (
 )
 
 const (
-	// unixProtocol is the network protocol of unix socket.
-	unixProtocol = "unix"
 	// npipeProtocol is the network protocol of a Windows named pipe.
 	npipeProtocol            = "npipe"
 	PipeMode                 = 0o644

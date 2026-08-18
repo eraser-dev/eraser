@@ -23,9 +23,7 @@ func criDialer(protocol string) (func(ctx context.Context, addr string) (net.Con
 		return nil, ErrProtocolNotSupported
 	}
 
-	return func(ctx context.Context, addr string) (net.Conn, error) {
-		return winio.DialPipeContext(ctx, addr)
-	}, nil
+	return winio.DialPipeContext, nil
 }
 
 func mkfifo(path string, mode uint32) error {

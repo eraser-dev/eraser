@@ -12,6 +12,9 @@ import (
 // CRIPath is the in-container path the manager mounts the host CRI socket to.
 const CRIPath = "/run/cri/cri.sock"
 
+// unixProtocol is the network protocol of a unix socket.
+const unixProtocol = "unix"
+
 const defaultProtocol = unixProtocol
 
 func criDialer(protocol string) (func(ctx context.Context, addr string) (net.Conn, error), error) {

@@ -55,14 +55,14 @@ func TestUnixDialerConnects(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer os.RemoveAll(dir)
+	defer func() { _ = os.RemoveAll(dir) }()
 
 	sock := filepath.Join(dir, "s")
 	l, err := net.Listen("unix", sock)
 	if err != nil {
 		t.Fatalf("listen: %v", err)
 	}
-	defer l.Close()
+	defer func() { _ = l.Close() }()
 	go func() {
 		if c, err := l.Accept(); err == nil {
 			_ = c.Close()
