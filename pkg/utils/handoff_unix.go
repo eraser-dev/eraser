@@ -1,3 +1,5 @@
+//go:build !windows
+
 package utils
 
 import (
@@ -11,9 +13,8 @@ import (
 )
 
 // The collector, scanner and remover hand images off to each other through
-// endpoints in a shared volume. Each operation below was previously written out
-// inline in the three worker binaries; they are gathered here so the transport
-// can be swapped per platform without touching the callers.
+// endpoints in a shared volume. On Unix those endpoints are FIFOs; see
+// handoff_windows.go for the socket-based equivalent.
 //
 // Three properties are load-bearing and must survive any reimplementation.
 // Connecting blocks until the peer is on the other end, which is what makes
@@ -89,7 +90,7 @@ func WriteImagesPipe(path string, images []unversioned.Image) error {
 }
 
 // ReadImagesPipe waits for the endpoint to appear, then reads until the writer
-// finishes. It returns ctx.Err() if the context is cancelled while waiting.
+// finishes. It returns ctx.Err() if the context is canceled while waiting.
 func ReadImagesPipe(ctx context.Context, path string) ([]unversioned.Image, error) {
 	timer := time.NewTimer(time.Second)
 	if !timer.Stop() {

@@ -111,7 +111,7 @@ func (cfg *config) SendImages(nonCompliantImages, failedImages []unversioned.Ima
 }
 
 func (cfg *config) Finish() error {
-	defer cfg.completion.Close()
+	defer func() { _ = cfg.completion.Close() }()
 
 	data, err := cfg.completion.Await()
 	if err != nil {

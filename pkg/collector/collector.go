@@ -86,11 +86,15 @@ func main() {
 		log.Error(err, "failed to create pipe", "pipeFile", util.EraseCompleteCollectPath)
 		os.Exit(1)
 	}
-	defer completion.Close()
 
 	data, err := completion.Await()
 	if err != nil {
 		log.Error(err, "failed to read pipe", "pipeFile", util.EraseCompleteCollectPath)
+		os.Exit(1)
+	}
+
+	if err := completion.Close(); err != nil {
+		log.Error(err, "failed to close pipe", "pipeFile", util.EraseCompleteCollectPath)
 		os.Exit(1)
 	}
 
