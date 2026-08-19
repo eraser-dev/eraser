@@ -48,19 +48,22 @@ func (p *CompletionPipe) Await() ([]byte, error) {
 	}
 
 	data, err := io.ReadAll(file)
-	if err != nil {
-		return nil, err
+	if closeErr := file.Close(); closeErr != nil && err == nil {
+		err = closeErr
 	}
-
-	if err := file.Close(); err != nil {
+	if err != nil {
 		return nil, err
 	}
 
 	return data, nil
 }
 
-// Close releases the endpoint. It is a no-op where the endpoint is a plain
-// filesystem object.
+// Close releases this process's hold on the endpoint. The FIFO itself is left
+// in place: the remover decides whether a scanner exists by whether the
+// scanner's endpoint is on disk, so unlinking here would make a live scanner
+// look absent. The socket implementation cannot keep the endpoint after Close
+// because the listener owns it, which is the one lifecycle difference between
+// the two.
 func (p *CompletionPipe) Close() error {
 	return nil
 }
@@ -82,11 +85,12 @@ func WriteImagesPipe(path string, images []unversioned.Image) error {
 		return err
 	}
 
-	if _, err := file.Write(data); err != nil {
-		return err
+	_, err = file.Write(data)
+	if closeErr := file.Close(); closeErr != nil && err == nil {
+		err = closeErr
 	}
 
-	return file.Close()
+	return err
 }
 
 // ReadImagesPipe waits for the endpoint to appear, then reads until the writer
@@ -121,6 +125,9 @@ func ReadImagesPipe(ctx context.Context, path string) ([]unversioned.Image, erro
 	}
 
 	data, err := io.ReadAll(f)
+	if closeErr := f.Close(); closeErr != nil && err == nil {
+		err = closeErr
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -143,9 +150,10 @@ func WriteCompletionPipe(path string) error {
 		return err
 	}
 
-	if _, err := file.WriteString(EraseCompleteMessage); err != nil {
-		return err
+	_, err = file.WriteString(EraseCompleteMessage)
+	if closeErr := file.Close(); closeErr != nil && err == nil {
+		err = closeErr
 	}
 
-	return file.Close()
+	return err
 }
