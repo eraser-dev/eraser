@@ -26,9 +26,11 @@ import (
 // the endpoint and the reader polls for it; with a socket the reader listens and
 // the writer dials with retry.
 
-// maxSocketPath is the sun_path limit. Exceeding it fails deep inside the
-// syscall with an opaque error, so it is checked up front.
-const maxSocketPath = 108
+// maxSocketPath is the longest usable pathname. The sun_path field is 108
+// bytes and has to hold a terminating NUL, so 107 is the real ceiling.
+// Exceeding it fails deep inside the syscall with an opaque error, so it is
+// checked up front.
+const maxSocketPath = 107
 
 // CompletionPipe is an endpoint a peer can observe before anything is read from
 // it. The scanner creates one early precisely so the remover can tell a scanner
@@ -59,12 +61,16 @@ func (p *CompletionPipe) Await() ([]byte, error) {
 	return io.ReadAll(conn)
 }
 
-// Close releases the endpoint, which also unpublishes it.
+// Close releases the endpoint, which also unpublishes it. Callers both defer
+// this and close explicitly, so repeat calls report success rather than
+// net.ErrClosed.
 func (p *CompletionPipe) Close() error {
 	if p.l == nil {
 		return nil
 	}
-	return p.l.Close()
+	l := p.l
+	p.l = nil
+	return l.Close()
 }
 
 // WriteImagesPipe blocks until the reader is listening, then sends the list.

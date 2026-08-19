@@ -102,7 +102,12 @@ func TestCompletionPipeCloseIsIdempotentlySafe(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CreateCompletionPipe: %v", err)
 	}
+
+	// the scanner defers Close and the collector also closes explicitly
 	if err := pipe.Close(); err != nil {
-		t.Errorf("Close: %v", err)
+		t.Errorf("first Close: %v", err)
+	}
+	if err := pipe.Close(); err != nil {
+		t.Errorf("second Close: %v", err)
 	}
 }
