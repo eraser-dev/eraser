@@ -76,14 +76,17 @@ func main() {
 		path = util.ScanErasePath
 	}
 
-	if err := util.WriteImagesPipe(path, finalImages); err != nil {
-		log.Error(err, "failed to send images", "pipeFile", path)
-		os.Exit(1)
-	}
-
+	// Published before the payload, not after: the peer can finish and signal
+	// back the moment it has read the list, so an endpoint created afterwards
+	// can be missed entirely. The scanner already publishes in this order.
 	completion, err := util.CreateCompletionPipe(util.EraseCompleteCollectPath)
 	if err != nil {
 		log.Error(err, "failed to create pipe", "pipeFile", util.EraseCompleteCollectPath)
+		os.Exit(1)
+	}
+
+	if err := util.WriteImagesPipe(path, finalImages); err != nil {
+		log.Error(err, "failed to send images", "pipeFile", path)
 		os.Exit(1)
 	}
 
