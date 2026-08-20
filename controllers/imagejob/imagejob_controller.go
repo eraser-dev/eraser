@@ -307,7 +307,7 @@ func (r *Reconciler) handleNewJob(ctx context.Context, imageJob *eraserv1.ImageJ
 		&template,
 	)
 	if err != nil {
-		return err
+		return client.IgnoreNotFound(err)
 	}
 
 	imageJob.Status = eraserv1.ImageJobStatus{
