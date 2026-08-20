@@ -21,16 +21,37 @@ import (
 
 const (
 	// npipeProtocol is the network protocol of a Windows named pipe.
-	npipeProtocol            = "npipe"
-	PipeMode                 = 0o644
-	ScanErasePath            = "/run/eraser.sh/shared-data/scanErase"
-	CollectScanPath          = "/run/eraser.sh/shared-data/collectScan"
-	EraseCompleteCollectPath = "/run/eraser.sh/shared-data/eraseCompleteCollect"
+	npipeProtocol = "npipe"
+	PipeMode      = 0o644
+
+	// LinuxSharedDataPath and WindowsSharedDataPath are the in-container mount
+	// points of the shared-data emptyDir the worker containers use to exchange
+	// scan/erase results. The manager always runs on Linux but emits pod specs
+	// for both Linux and Windows nodes, so it needs both values as plain
+	// (non build-tagged) constants; a build-tagged constant would only expose
+	// the Linux value to the manager. These must stay in sync with the paths
+	// the worker binaries open (see the *Path constants below and their Windows
+	// equivalents used by the worker on Windows nodes).
+	LinuxSharedDataPath   = "/run/eraser.sh/shared-data"
+	WindowsSharedDataPath = `C:\run\eraser.sh\shared-data`
+
+	ScanErasePath            = LinuxSharedDataPath + "/scanErase"
+	CollectScanPath          = LinuxSharedDataPath + "/collectScan"
+	EraseCompleteCollectPath = LinuxSharedDataPath + "/eraseCompleteCollect"
 	EraseCompleteMessage     = "complete"
-	EraseCompleteScanPath    = "/run/eraser.sh/shared-data/eraseCompleteScan"
+	EraseCompleteScanPath    = LinuxSharedDataPath + "/eraseCompleteScan"
 
 	EnvEraserRuntimeName = "ERASER_RUNTIME_NAME"
 )
+
+// SharedDataPathForOS returns the shared-data mount path appropriate for the
+// given node operating system (the value of the kubernetes.io/os label).
+func SharedDataPathForOS(osName string) string {
+	if strings.EqualFold(osName, "windows") {
+		return WindowsSharedDataPath
+	}
+	return LinuxSharedDataPath
+}
 
 type ExclusionList struct {
 	Excluded []string `json:"excluded"`

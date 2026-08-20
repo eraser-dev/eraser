@@ -56,6 +56,9 @@ const (
 	removerContainer     = "remover"
 	managerLabelValue    = "controller-manager"
 	managerLabelKey      = "control-plane"
+
+	windowsOS             = "windows"
+	runtimeSockVolumeName = "runtime-sock-volume"
 )
 
 var log = logf.Log.WithName("controller").WithValues("process", "imagejob-controller")
@@ -531,37 +534,21 @@ nodes:
 }
 
 func copyAndFillTemplateSpec(templateSpecTemplate *corev1.PodSpec, env []corev1.EnvVar, node *corev1.Node, runtimeSpec *unversioned.RuntimeSpec) (*corev1.PodSpec, error) {
-	nodeName := node.Name
-
-	u, err := url.Parse(runtimeSpec.Address)
-	if err != nil {
-		return nil, err
-	}
-
-	volumes := []corev1.Volume{
-		{Name: "runtime-sock-volume", VolumeSource: corev1.VolumeSource{HostPath: &corev1.HostPathVolumeSource{Path: u.Path}}},
-	}
-
-	volumeMounts := []corev1.VolumeMount{
-		{MountPath: controllerUtils.CRIPath, Name: "runtime-sock-volume"},
-	}
-
 	templateSpec := templateSpecTemplate.DeepCopy()
 	templateSpec.Tolerations = defaultTolerations
+	templateSpec.NodeName = node.Name
 
+	// Environment injection is OS-independent.
 	eraserImg := &templateSpec.Containers[0]
-	eraserImg.VolumeMounts = append(eraserImg.VolumeMounts, volumeMounts...)
 	eraserImg.Env = append(eraserImg.Env, env...)
 
 	if len(templateSpec.Containers) > 1 {
 		collectorImg := &templateSpec.Containers[1]
-		collectorImg.VolumeMounts = append(collectorImg.VolumeMounts, volumeMounts...)
 		collectorImg.Env = append(collectorImg.Env, env...)
 	}
 
 	if len(templateSpec.Containers) > 2 {
 		scannerImg := &templateSpec.Containers[2]
-		scannerImg.VolumeMounts = append(scannerImg.VolumeMounts, volumeMounts...)
 		scannerImg.Env = append(scannerImg.Env,
 			corev1.EnvVar{
 				Name:  controllerUtils.EnvVarContainerdNamespaceKey,
@@ -578,8 +565,77 @@ func copyAndFillTemplateSpec(templateSpecTemplate *corev1.PodSpec, env []corev1.
 		}
 	}
 
-	templateSpec.Volumes = append(volumes, templateSpec.Volumes...)
-	templateSpec.NodeName = nodeName
+	if isWindowsNode(node) {
+		fillWindowsPodSpec(templateSpec)
+		return templateSpec, nil
+	}
+
+	if err := fillLinuxPodSpec(templateSpec, runtimeSpec); err != nil {
+		return nil, err
+	}
 
 	return templateSpec, nil
+}
+
+// isWindowsNode reports whether the node runs Windows, preferring the
+// kubernetes.io/os label and falling back to the reported node OS.
+func isWindowsNode(node *corev1.Node) bool {
+	if osName, ok := node.Labels[corev1.LabelOSStable]; ok {
+		return strings.EqualFold(osName, windowsOS)
+	}
+	return strings.EqualFold(node.Status.NodeInfo.OperatingSystem, windowsOS)
+}
+
+// fillLinuxPodSpec mounts the host CRI socket into every worker container via a
+// hostPath volume.
+func fillLinuxPodSpec(templateSpec *corev1.PodSpec, runtimeSpec *unversioned.RuntimeSpec) error {
+	u, err := url.Parse(runtimeSpec.Address)
+	if err != nil {
+		return err
+	}
+
+	volumes := []corev1.Volume{
+		{Name: runtimeSockVolumeName, VolumeSource: corev1.VolumeSource{HostPath: &corev1.HostPathVolumeSource{Path: u.Path}}},
+	}
+
+	volumeMounts := []corev1.VolumeMount{
+		{MountPath: controllerUtils.CRIPath, Name: runtimeSockVolumeName},
+	}
+
+	for i := range templateSpec.Containers {
+		templateSpec.Containers[i].VolumeMounts = append(templateSpec.Containers[i].VolumeMounts, volumeMounts...)
+	}
+
+	templateSpec.Volumes = append(volumes, templateSpec.Volumes...)
+
+	return nil
+}
+
+// fillWindowsPodSpec turns the Linux-shaped template into a Windows HostProcess
+// pod. A HostProcess pod runs in the host network namespace and reaches the
+// containerd named pipe directly, so no CRI hostPath volume or mount is added.
+// The Linux-only container security context is dropped in favor of a HostProcess
+// pod-level security context, and shared-data mount paths are rewritten to their
+// Windows form.
+func fillWindowsPodSpec(templateSpec *corev1.PodSpec) {
+	templateSpec.HostNetwork = true
+	templateSpec.SecurityContext = eraserUtils.WindowsHostProcessPodSecurityContext()
+
+	for i := range templateSpec.Containers {
+		c := &templateSpec.Containers[i]
+		// SharedSecurityContext sets Linux-only fields (capabilities,
+		// seccompProfile, readOnlyRootFilesystem) that are invalid on Windows.
+		c.SecurityContext = nil
+		rewriteSharedDataMounts(c)
+	}
+}
+
+// rewriteSharedDataMounts rewrites the shared-data emptyDir mount path from its
+// Linux form to the Windows form for a single container.
+func rewriteSharedDataMounts(c *corev1.Container) {
+	for i := range c.VolumeMounts {
+		if c.VolumeMounts[i].MountPath == eraserUtils.LinuxSharedDataPath {
+			c.VolumeMounts[i].MountPath = eraserUtils.WindowsSharedDataPath
+		}
+	}
 }
