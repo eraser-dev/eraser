@@ -57,8 +57,9 @@ const (
 	managerLabelValue    = "controller-manager"
 	managerLabelKey      = "control-plane"
 
-	windowsOS             = "windows"
-	runtimeSockVolumeName = "runtime-sock-volume"
+	windowsOS              = "windows"
+	runtimeSockVolumeName  = "runtime-sock-volume"
+	windowsSandboxMountEnv = "%CONTAINER_SANDBOX_MOUNT_POINT%"
 )
 
 var log = logf.Log.WithName("controller").WithValues("process", "imagejob-controller")
@@ -615,8 +616,8 @@ func fillLinuxPodSpec(templateSpec *corev1.PodSpec, runtimeSpec *unversioned.Run
 // pod. A HostProcess pod runs in the host network namespace and reaches the
 // containerd named pipe directly, so no CRI hostPath volume or mount is added.
 // The Linux-only container security context is dropped in favor of a HostProcess
-// pod-level security context, and shared-data mount paths are rewritten to their
-// Windows form.
+// pod-level security context, and eraser.sh paths in mounts, args and commands
+// are rewritten to their Windows form.
 func fillWindowsPodSpec(templateSpec *corev1.PodSpec) {
 	templateSpec.HostNetwork = true
 	templateSpec.SecurityContext = eraserUtils.WindowsHostProcessPodSecurityContext()
@@ -626,16 +627,52 @@ func fillWindowsPodSpec(templateSpec *corev1.PodSpec) {
 		// SharedSecurityContext sets Linux-only fields (capabilities,
 		// seccompProfile, readOnlyRootFilesystem) that are invalid on Windows.
 		c.SecurityContext = nil
-		rewriteSharedDataMounts(c)
+
+		// Windows HostProcess containers run directly on the host and do not
+		// support CPU/memory requests or limits; leaving them set makes the
+		// container fail to start ("The system cannot execute the specified
+		// program").
+		c.Resources = corev1.ResourceRequirements{}
+
+		// A HostProcess container's binary lives under the ephemeral sandbox
+		// mount point, whose location is only known at runtime via the
+		// CONTAINER_SANDBOX_MOUNT_POINT environment variable. The kubelet
+		// expands that variable in the pod spec command (but not in a baked-in
+		// image ENTRYPOINT), so set an explicit command. Eraser's Windows worker
+		// images expose the binary as <container-name>.exe at the image root.
+		if len(c.Command) == 0 {
+			c.Command = []string{windowsSandboxMountEnv + `\` + c.Name + ".exe"}
+		}
+
+		for j := range c.VolumeMounts {
+			c.VolumeMounts[j].MountPath = linuxToWindowsEraserPath(c.VolumeMounts[j].MountPath)
+		}
+		for j := range c.Args {
+			c.Args[j] = translateEraserArg(c.Args[j])
+		}
+		for j := range c.Command {
+			c.Command[j] = translateEraserArg(c.Command[j])
+		}
 	}
 }
 
-// rewriteSharedDataMounts rewrites the shared-data emptyDir mount path from its
-// Linux form to the Windows form for a single container.
-func rewriteSharedDataMounts(c *corev1.Container) {
-	for i := range c.VolumeMounts {
-		if c.VolumeMounts[i].MountPath == eraserUtils.LinuxSharedDataPath {
-			c.VolumeMounts[i].MountPath = eraserUtils.WindowsSharedDataPath
-		}
+// linuxToWindowsEraserPath rewrites an absolute eraser.sh path (e.g. the
+// shared-data emptyDir mount or the imagelist configmap mount) from its Linux
+// form to the Windows form.
+func linuxToWindowsEraserPath(p string) string {
+	if strings.HasPrefix(p, eraserUtils.LinuxEraserPath) {
+		rest := strings.ReplaceAll(strings.TrimPrefix(p, eraserUtils.LinuxEraserPath), "/", `\`)
+		return eraserUtils.WindowsEraserPath + rest
 	}
+	return p
+}
+
+// translateEraserArg rewrites an eraser.sh path embedded in a container arg or
+// command entry (e.g. "--imagelist=/run/eraser.sh/imagelist/images").
+func translateEraserArg(a string) string {
+	idx := strings.Index(a, eraserUtils.LinuxEraserPath)
+	if idx < 0 {
+		return a
+	}
+	return a[:idx] + linuxToWindowsEraserPath(a[idx:])
 }

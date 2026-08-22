@@ -24,16 +24,21 @@ const (
 	npipeProtocol = "npipe"
 	PipeMode      = 0o644
 
+	// LinuxEraserPath and WindowsEraserPath are the base directory the eraser
+	// worker containers use for IPC/shared state. The manager always runs on
+	// Linux but emits pod specs for both Linux and Windows nodes, so it needs
+	// both values as plain (non build-tagged) constants to translate paths in
+	// mounts and args when emitting a Windows pod.
+	LinuxEraserPath   = "/run/eraser.sh"
+	WindowsEraserPath = `C:\run\eraser.sh`
+
 	// LinuxSharedDataPath and WindowsSharedDataPath are the in-container mount
 	// points of the shared-data emptyDir the worker containers use to exchange
-	// scan/erase results. The manager always runs on Linux but emits pod specs
-	// for both Linux and Windows nodes, so it needs both values as plain
-	// (non build-tagged) constants; a build-tagged constant would only expose
-	// the Linux value to the manager. These must stay in sync with the paths
-	// the worker binaries open (see the *Path constants below and their Windows
+	// scan/erase results. These must stay in sync with the paths the worker
+	// binaries open (see the *Path constants below and their Windows
 	// equivalents used by the worker on Windows nodes).
-	LinuxSharedDataPath   = "/run/eraser.sh/shared-data"
-	WindowsSharedDataPath = `C:\run\eraser.sh\shared-data`
+	LinuxSharedDataPath   = LinuxEraserPath + "/shared-data"
+	WindowsSharedDataPath = WindowsEraserPath + `\shared-data`
 
 	ScanErasePath            = LinuxSharedDataPath + "/scanErase"
 	CollectScanPath          = LinuxSharedDataPath + "/collectScan"

@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/eraser-dev/eraser/api/unversioned"
@@ -23,14 +24,20 @@ func newTemplateSpec() *corev1.PodSpec {
 		Containers: []corev1.Container{
 			{
 				Name: "collector",
+				Resources: corev1.ResourceRequirements{
+					Requests: corev1.ResourceList{corev1.ResourceMemory: resource.MustParse("25Mi")},
+					Limits:   corev1.ResourceList{corev1.ResourceMemory: resource.MustParse("30Mi")},
+				},
 				VolumeMounts: []corev1.VolumeMount{
 					{MountPath: sharedDataMountPath, Name: "shared-data"},
 				},
 			},
 			{
 				Name: removerContainer,
+				Args: []string{"--imagelist=/run/eraser.sh/imagelist/images", "--log-level=info"},
 				VolumeMounts: []corev1.VolumeMount{
 					{MountPath: sharedDataMountPath, Name: "shared-data"},
+					{MountPath: "/run/eraser.sh/imagelist", Name: "imagelist"},
 				},
 				SecurityContext: eraserUtils.SharedSecurityContext,
 			},
@@ -141,6 +148,26 @@ func TestCopyAndFillTemplateSpecWindows(t *testing.T) {
 		if c.SecurityContext != nil {
 			t.Errorf("container %q Linux SecurityContext should be cleared on Windows", c.Name)
 		}
+		if len(c.Resources.Requests) != 0 || len(c.Resources.Limits) != 0 {
+			t.Errorf("container %q resources should be cleared on Windows HostProcess", c.Name)
+		}
+	}
+
+	// The remover's imagelist mount and --imagelist arg must be rewritten to Windows paths.
+	rem := &spec.Containers[1]
+	if p, _ := containerMountPath(rem, "imagelist"); p != `C:\run\eraser.sh\imagelist` {
+		t.Errorf("imagelist mount = %q, want C:\\run\\eraser.sh\\imagelist", p)
+	}
+	if rem.Args[0] != `--imagelist=C:\run\eraser.sh\imagelist\images` {
+		t.Errorf("imagelist arg = %q, want windows form", rem.Args[0])
+	}
+	if rem.Args[1] != "--log-level=info" {
+		t.Errorf("non-path arg should be untouched, got %q", rem.Args[1])
+	}
+	// HostProcess containers need an explicit sandbox-relative command.
+	wantCmd := `%CONTAINER_SANDBOX_MOUNT_POINT%\remover.exe`
+	if len(rem.Command) != 1 || rem.Command[0] != wantCmd {
+		t.Errorf("remover command = %v, want [%s]", rem.Command, wantCmd)
 	}
 }
 
