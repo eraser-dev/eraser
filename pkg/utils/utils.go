@@ -39,15 +39,6 @@ const (
 	EnvEraserRuntimeName = "ERASER_RUNTIME_NAME"
 )
 
-// SharedDataPathForOS returns the shared-data mount path appropriate for the
-// given node operating system (the value of the kubernetes.io/os label).
-func SharedDataPathForOS(osName string) string {
-	if strings.EqualFold(osName, "windows") {
-		return WindowsSharedDataPath
-	}
-	return LinuxSharedDataPath
-}
-
 type ExclusionList struct {
 	Excluded []string `json:"excluded"`
 }
@@ -57,6 +48,15 @@ var (
 	ErrEndpointDeprecated    = errors.New("endpoint is deprecated, please consider using full url format")
 	ErrOnlySupportUnixSocket = errors.New("only support unix socket endpoint")
 )
+
+// SharedDataPathForOS returns the shared-data mount path appropriate for the
+// given node operating system (the value of the kubernetes.io/os label).
+func SharedDataPathForOS(osName string) string {
+	if strings.EqualFold(osName, "windows") {
+		return WindowsSharedDataPath
+	}
+	return LinuxSharedDataPath
+}
 
 func GetConn(ctx context.Context, socketPath string) (conn *grpc.ClientConn, err error) {
 	addr, dialer, err := getAddressAndDialer(socketPath)
