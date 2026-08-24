@@ -49,9 +49,9 @@ var (
 	ErrOnlySupportUnixSocket = errors.New("only support unix socket endpoint")
 )
 
-// SharedDataPathForOS returns the shared-data mount path appropriate for the
+// GetSharedDataPathForOS returns the shared-data mount path appropriate for the
 // given node operating system (the value of the kubernetes.io/os label).
-func SharedDataPathForOS(osName string) string {
+func GetSharedDataPathForOS(osName string) string {
 	if strings.EqualFold(osName, "windows") {
 		return WindowsSharedDataPath
 	}
