@@ -637,15 +637,7 @@ func fillWindowsPodSpec(templateSpec *corev1.PodSpec) {
 		// program").
 		c.Resources = corev1.ResourceRequirements{}
 
-		// A HostProcess container's binary lives under the ephemeral sandbox
-		// mount point, whose location is only known at runtime via the
-		// CONTAINER_SANDBOX_MOUNT_POINT environment variable. The kubelet
-		// expands that variable in the pod spec command (but not in a baked-in
-		// image ENTRYPOINT), so set an explicit command. Eraser's Windows worker
-		// images expose the binary as <container-name>.exe at the image root.
-		if len(c.Command) == 0 {
-			c.Command = []string{windowsSandboxMountEnv + `\` + c.Name + ".exe"}
-		}
+		c.Command = []string{windowsSandboxMountEnv + `\` + c.Name + ".exe"}
 
 		for j := range c.VolumeMounts {
 			c.VolumeMounts[j].MountPath = linuxToWindowsEraserPath(c.VolumeMounts[j].MountPath)
