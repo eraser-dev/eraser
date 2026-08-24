@@ -619,6 +619,9 @@ func fillLinuxPodSpec(templateSpec *corev1.PodSpec, runtimeSpec *unversioned.Run
 // pod-level security context, and eraser.sh paths in mounts, args and commands
 // are rewritten to their Windows form.
 func fillWindowsPodSpec(templateSpec *corev1.PodSpec) {
+	// Declare the pod's OS so the apiserver enforces Windows OS-field
+	// consistency (e.g. rejects leftover Linux-only securityContext fields).
+	templateSpec.OS = &corev1.PodOS{Name: corev1.Windows}
 	templateSpec.HostNetwork = true
 	templateSpec.SecurityContext = eraserUtils.WindowsHostProcessPodSecurityContext()
 

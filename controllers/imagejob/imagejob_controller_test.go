@@ -90,6 +90,9 @@ func TestCopyAndFillTemplateSpecLinux(t *testing.T) {
 	if spec.HostNetwork {
 		t.Error("HostNetwork should be false for a Linux node")
 	}
+	if spec.OS != nil {
+		t.Errorf("spec.OS should be unset on a Linux node, got %v", spec.OS)
+	}
 	if !hasVolume(spec, runtimeSockVolumeName) {
 		t.Errorf("expected CRI hostPath volume %q on a Linux node", runtimeSockVolumeName)
 	}
@@ -121,6 +124,9 @@ func TestCopyAndFillTemplateSpecWindows(t *testing.T) {
 	}
 	if !spec.HostNetwork {
 		t.Error("HostNetwork should be true for a Windows HostProcess pod")
+	}
+	if spec.OS == nil || spec.OS.Name != corev1.Windows {
+		t.Errorf("spec.OS = %v, want Name=windows", spec.OS)
 	}
 	if hasVolume(spec, runtimeSockVolumeName) {
 		t.Error("CRI hostPath volume must be omitted on a Windows node")
