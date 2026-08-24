@@ -645,9 +645,6 @@ func fillWindowsPodSpec(templateSpec *corev1.PodSpec) {
 		for j := range c.Args {
 			c.Args[j] = translateEraserArg(c.Args[j])
 		}
-		for j := range c.Command {
-			c.Command[j] = translateEraserArg(c.Command[j])
-		}
 	}
 }
 
