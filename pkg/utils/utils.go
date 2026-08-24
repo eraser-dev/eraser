@@ -49,15 +49,6 @@ var (
 	ErrOnlySupportUnixSocket = errors.New("only support unix socket endpoint")
 )
 
-// GetSharedDataPathForOS returns the shared-data mount path appropriate for the
-// given node operating system (the value of the kubernetes.io/os label).
-func GetSharedDataPathForOS(osName string) string {
-	if strings.EqualFold(osName, "windows") {
-		return WindowsSharedDataPath
-	}
-	return LinuxSharedDataPath
-}
-
 func GetConn(ctx context.Context, socketPath string) (conn *grpc.ClientConn, err error) {
 	addr, dialer, err := getAddressAndDialer(socketPath)
 	if err != nil {
