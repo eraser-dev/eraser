@@ -2,11 +2,8 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"flag"
 	"fmt"
-	"io"
-	"io/fs"
 	"net/http"
 	_ "net/http/pprof"
 	"os"
@@ -21,7 +18,6 @@ import (
 	"github.com/eraser-dev/eraser/pkg/logger"
 	"github.com/eraser-dev/eraser/pkg/metrics"
 
-	"github.com/eraser-dev/eraser/api/unversioned"
 	util "github.com/eraser-dev/eraser/pkg/utils"
 )
 
@@ -78,36 +74,9 @@ func main() {
 	}
 
 	if *imageListPtr == "" {
-		var f *os.File
-		for {
-			var err error
-
-			f, err = os.OpenFile(util.ScanErasePath, os.O_RDONLY, 0)
-			if err == nil {
-				break
-			}
-			if !os.IsNotExist(err) {
-				log.Error(err, "error opening scanErase pipe")
-				os.Exit(generalErr)
-			}
-			time.Sleep(1 * time.Second)
-			continue
-		}
-
-		// json data is list of []unversioned.Image
-		data, err := io.ReadAll(f)
+		nonCompliantImages, err := util.ReadImagesPipe(context.Background(), util.ScanErasePath)
 		if err != nil {
 			log.Error(err, "error reading non-compliant images")
-			os.Exit(generalErr)
-		}
-		if err := f.Close(); err != nil {
-			log.Error(err, "error closing non-compliant images file")
-			os.Exit(generalErr)
-		}
-
-		nonCompliantImages := []unversioned.Image{}
-		if err = json.Unmarshal(data, &nonCompliantImages); err != nil {
-			log.Error(err, "error in unmarshal non-compliant images")
 			os.Exit(generalErr)
 		}
 
@@ -158,39 +127,18 @@ func main() {
 	}
 
 	if *imageListPtr == "" {
-		file, err := os.OpenFile(util.EraseCompleteCollectPath, os.O_WRONLY, 0)
-		if err != nil {
-			log.Error(err, "unable to open pipe", "pipeFile", util.EraseCompleteCollectPath)
+		if err := util.WriteCompletionPipe(util.EraseCompleteCollectPath); err != nil {
+			log.Error(err, "unable to signal completion", "pipeFile", util.EraseCompleteCollectPath)
 			os.Exit(generalErr)
 		}
 
-		if _, err := file.WriteString(util.EraseCompleteMessage); err != nil {
-			log.Error(err, "unable to write to pipe", "pipeFile", util.EraseCompleteCollectPath)
-			os.Exit(generalErr)
-		}
-
-		if err := file.Close(); err != nil {
-			log.Error(err, "unable to close pipe", "pipeFile", util.EraseCompleteCollectPath)
-			os.Exit(generalErr)
-		}
-
-		file, err = os.OpenFile(util.EraseCompleteScanPath, os.O_WRONLY, fs.ModeNamedPipe)
+		err := util.WriteCompletionPipe(util.EraseCompleteScanPath)
 		// if the scanner is disabled
 		if os.IsNotExist(err) {
 			return
 		}
 		if err != nil {
-			log.Error(err, "unable to open pipe", "pipeFile", util.EraseCompleteCollectPath)
-			os.Exit(generalErr)
-		}
-
-		if _, err := file.WriteString(util.EraseCompleteMessage); err != nil {
-			log.Error(err, "unable to write to pipe", "pipeFile", util.EraseCompleteCollectPath)
-			os.Exit(generalErr)
-		}
-
-		if err := file.Close(); err != nil {
-			log.Error(err, "unable to close pipe", "pipeFile", util.EraseCompleteScanPath)
+			log.Error(err, "unable to signal completion", "pipeFile", util.EraseCompleteScanPath)
 			os.Exit(generalErr)
 		}
 	}
