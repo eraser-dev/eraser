@@ -2,9 +2,11 @@ package utils
 
 import (
 	"context"
+	"errors"
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/eraser-dev/eraser/api/unversioned"
 )
@@ -36,7 +38,7 @@ func TestImagesHandoffRoundTrip(t *testing.T) {
 	}
 
 	errCh := make(chan error, 1)
-	go func() { errCh <- WriteImagesPipe(path, want) }()
+	go func() { errCh <- WriteImagesPipe(context.Background(), path, want) }()
 
 	got, err := ReadImagesPipe(context.Background(), path)
 	if err != nil {
@@ -66,7 +68,7 @@ func TestCompletionHandoffRoundTrip(t *testing.T) {
 	defer func() { _ = pipe.Close() }()
 
 	errCh := make(chan error, 1)
-	go func() { errCh <- WriteCompletionPipe(path) }()
+	go func() { errCh <- WriteCompletionPipe(context.Background(), path) }()
 
 	data, err := pipe.Await()
 	if err != nil {
@@ -86,12 +88,35 @@ func TestCompletionHandoffRoundTrip(t *testing.T) {
 func TestWriteCompletionPipeAbsentPeerIsNotExist(t *testing.T) {
 	path := filepath.Join(shortTempDir(t), "no-such-peer")
 
-	err := WriteCompletionPipe(path)
+	err := WriteCompletionPipe(context.Background(), path)
 	if err == nil {
 		t.Fatal("expected an error writing to an endpoint nobody published")
 	}
 	if !os.IsNotExist(err) {
 		t.Errorf("os.IsNotExist(%v) = false, want true", err)
+	}
+}
+
+// The whole point of taking a context: a worker whose peer never arrives has to
+// be able to give up, on either platform.
+func TestWriteImagesPipeHonoursACanceledContext(t *testing.T) {
+	path := filepath.Join(shortTempDir(t), "never-read")
+
+	ctx, cancel := context.WithCancel(context.Background())
+
+	errCh := make(chan error, 1)
+	go func() { errCh <- WriteImagesPipe(ctx, path, []unversioned.Image{{ImageID: "sha256:aaaa"}}) }()
+
+	// nothing ever reads the endpoint, so the write is still waiting
+	cancel()
+
+	select {
+	case err := <-errCh:
+		if !errors.Is(err, context.Canceled) {
+			t.Errorf("WriteImagesPipe = %v, want context.Canceled", err)
+		}
+	case <-time.After(30 * time.Second):
+		t.Fatal("WriteImagesPipe ignored the canceled context")
 	}
 }
 

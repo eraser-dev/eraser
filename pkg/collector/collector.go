@@ -1,11 +1,14 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"net/http"
 	_ "net/http/pprof"
 	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/eraser-dev/eraser/pkg/cri"
@@ -28,6 +31,11 @@ var (
 
 func main() {
 	flag.Parse()
+
+	// A terminating pod should not leave the worker blocked on a peer that is
+	// never going to arrive. The stop func is discarded rather than deferred
+	// because every exit path here is os.Exit, which would skip it anyway.
+	ctx, _ := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 
 	if *enableProfile {
 		go func() {
@@ -85,7 +93,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err := util.WriteImagesPipe(path, finalImages); err != nil {
+	if err := util.WriteImagesPipe(ctx, path, finalImages); err != nil {
 		log.Error(err, "failed to send images", "pipeFile", path)
 		os.Exit(1)
 	}

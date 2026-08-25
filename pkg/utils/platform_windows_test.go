@@ -6,6 +6,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net"
 	"os"
 	"path/filepath"
 	"strings"
@@ -77,6 +78,48 @@ func TestSocketPathLimitBoundary(t *testing.T) {
 	if _, err := listen(overLimit); err == nil {
 		t.Errorf("listen(%d-byte path) = nil, want the guard to reject it", len(overLimit))
 	}
+}
+
+// The worker runs as SYSTEM and shares the volume with a scanner image we do
+// not control, so an occupied endpoint path is a reason to stop rather than to
+// start deleting.
+func TestListenRefusesToReplaceANonSocket(t *testing.T) {
+	dir := shortTempDir(t)
+	path := filepath.Join(dir, "occupied")
+
+	if err := os.WriteFile(path, []byte("not a socket"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	if l, err := listen(path); err == nil {
+		_ = l.Close()
+		t.Fatal("listen replaced a regular file, want an error")
+	}
+
+	if _, err := os.Stat(path); err != nil {
+		t.Errorf("the file was removed anyway: %v", err)
+	}
+}
+
+// A socket the previous run failed to clean up must still be reclaimable,
+// otherwise a crashed worker would poison the endpoint for every retry.
+func TestListenReclaimsAStaleSocket(t *testing.T) {
+	dir := shortTempDir(t)
+	path := filepath.Join(dir, "stale")
+
+	stale, err := net.Listen("unix", path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// leaks the endpoint on purpose: Close would unlink it and remove the case
+	// under test
+	t.Cleanup(func() { _ = stale.Close() })
+
+	l, err := listen(path)
+	if err != nil {
+		t.Fatalf("listen over a stale socket: %v", err)
+	}
+	_ = l.Close()
 }
 
 func TestMkfifoUnsupported(t *testing.T) {

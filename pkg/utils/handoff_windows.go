@@ -73,16 +73,15 @@ func (p *CompletionPipe) Close() error {
 	return l.Close()
 }
 
-// WriteImagesPipe blocks until the reader is listening, then sends the list.
-// The unbounded retry mirrors the Unix implementation, where opening a FIFO for
-// writing blocks until a reader arrives.
-func WriteImagesPipe(path string, images []unversioned.Image) error {
+// WriteImagesPipe blocks until the reader is listening, then sends the list, or
+// returns ctx.Err() if the context is done first.
+func WriteImagesPipe(ctx context.Context, path string, images []unversioned.Image) error {
 	data, err := json.Marshal(images)
 	if err != nil {
 		return err
 	}
 
-	conn, err := dialForever(path)
+	conn, err := dial(ctx, path)
 	if err != nil {
 		return err
 	}
@@ -141,7 +140,7 @@ func ReadImagesPipe(ctx context.Context, path string) ([]unversioned.Image, erro
 // WriteCompletionPipe signals a peer that this stage is done. The returned error
 // satisfies os.IsNotExist when the peer never published the endpoint, which is
 // how an absent scanner is detected.
-func WriteCompletionPipe(path string) error {
+func WriteCompletionPipe(ctx context.Context, path string) error {
 	// Dialing a socket that is not there reports connection-refused on Windows
 	// rather than ENOENT, so the filesystem is the only reliable way to tell
 	// "never published" from "published but gone".
@@ -149,7 +148,8 @@ func WriteCompletionPipe(path string) error {
 		return err
 	}
 
-	conn, err := net.Dial("unix", path)
+	var d net.Dialer
+	conn, err := d.DialContext(ctx, "unix", path)
 	if err != nil {
 		return err
 	}
@@ -167,29 +167,48 @@ func listen(path string) (net.Listener, error) {
 		return nil, fmt.Errorf("socket path %q is %d bytes, over the %d byte limit", path, len(path), maxSocketPath)
 	}
 
-	// a socket left behind by a previous run would fail the bind
-	if err := os.Remove(path); err != nil && !errors.Is(err, fs.ErrNotExist) {
+	// A socket left behind by an unclean exit would fail the bind, so it has to
+	// go. Anything else at this path is not ours to delete: the worker runs as
+	// SYSTEM and shares the volume with a scanner image we do not control.
+	switch fi, err := os.Lstat(path); {
+	case errors.Is(err, fs.ErrNotExist):
+	case err != nil:
 		return nil, err
+	case fi.Mode()&os.ModeSocket == 0:
+		return nil, fmt.Errorf("refusing to replace %q: it exists and is not a socket", path)
+	default:
+		if err := os.Remove(path); err != nil && !errors.Is(err, fs.ErrNotExist) {
+			return nil, err
+		}
 	}
 
 	return net.Listen("unix", path)
 }
 
-// dialForever waits for the reader to start listening. Errors are not
-// classified: Windows reports a missing socket as connection-refused, so there
-// is no reliable "not yet" error to match on. Retrying unconditionally mirrors
-// the Unix implementation, where opening a FIFO for writing blocks until a
-// reader arrives.
-func dialForever(path string) (net.Conn, error) {
+// dial waits for the reader to start listening. Errors are not classified:
+// Windows reports a missing socket as connection-refused, so there is no
+// reliable "not yet" error to match on. Retrying on a tick mirrors the Unix
+// implementation, where opening a FIFO for writing blocks until a reader
+// arrives.
+func dial(ctx context.Context, path string) (net.Conn, error) {
 	if len(path) > maxSocketPath {
 		return nil, fmt.Errorf("socket path %q is %d bytes, over the %d byte limit", path, len(path), maxSocketPath)
 	}
 
+	ticker := time.NewTicker(time.Second)
+	defer ticker.Stop()
+
+	var d net.Dialer
 	for {
-		conn, err := net.Dial("unix", path)
+		conn, err := d.DialContext(ctx, "unix", path)
 		if err == nil {
 			return conn, nil
 		}
-		time.Sleep(time.Second)
+
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		case <-ticker.C:
+		}
 	}
 }

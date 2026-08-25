@@ -334,9 +334,10 @@ func ReadCollectScanPipe(ctx context.Context) ([]unversioned.Image, error) {
 }
 
 // WriteScanErasePipe is the scanner-facing spelling of WriteImagesPipe, kept
-// because custom scanners may call it directly.
+// because custom scanners may call it directly. It waits indefinitely; reach
+// for WriteImagesPipe when the wait needs to be cancellable.
 func WriteScanErasePipe(vulnerableImages []unversioned.Image) error {
-	return WriteImagesPipe(ScanErasePath, vulnerableImages)
+	return WriteImagesPipe(context.Background(), ScanErasePath, vulnerableImages)
 }
 
 func ProcessRepoDigests(repoDigests []string) ([]string, []error) {

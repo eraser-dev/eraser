@@ -68,8 +68,9 @@ func (p *CompletionPipe) Close() error {
 	return nil
 }
 
-// WriteImagesPipe publishes the endpoint and blocks until the reader connects.
-func WriteImagesPipe(path string, images []unversioned.Image) error {
+// WriteImagesPipe publishes the endpoint and blocks until the reader connects,
+// or until ctx is done.
+func WriteImagesPipe(ctx context.Context, path string, images []unversioned.Image) error {
 	data, err := json.Marshal(images)
 	if err != nil {
 		return err
@@ -79,8 +80,7 @@ func WriteImagesPipe(path string, images []unversioned.Image) error {
 		return err
 	}
 
-	//nolint:gosec // G304: Opening pipe file is intended functionality
-	file, err := os.OpenFile(path, os.O_WRONLY, 0)
+	file, err := openForWrite(ctx, path)
 	if err != nil {
 		return err
 	}
@@ -91,6 +91,38 @@ func WriteImagesPipe(path string, images []unversioned.Image) error {
 	}
 
 	return err
+}
+
+// openForWrite opens a FIFO for writing, which blocks in the kernel until a
+// reader arrives. The open itself is left untouched -- the rendezvous, and the
+// behavior every existing deployment depends on, is exactly as before. Only
+// the waiting is made interruptible, by doing it on a goroutine that hands the
+// file over if anyone is still listening and closes it if not.
+func openForWrite(ctx context.Context, path string) (*os.File, error) {
+	type opened struct {
+		file *os.File
+		err  error
+	}
+
+	ch := make(chan opened, 1)
+	go func() {
+		//nolint:gosec // G304: Opening pipe file is intended functionality
+		file, err := os.OpenFile(path, os.O_WRONLY, 0)
+		select {
+		case ch <- opened{file: file, err: err}:
+		default:
+			if file != nil {
+				_ = file.Close()
+			}
+		}
+	}()
+
+	select {
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	case o := <-ch:
+		return o.file, o.err
+	}
 }
 
 // ReadImagesPipe waits for the endpoint to appear, then reads until the writer
@@ -143,9 +175,15 @@ func ReadImagesPipe(ctx context.Context, path string) ([]unversioned.Image, erro
 // WriteCompletionPipe signals a peer that this stage is done. The returned error
 // satisfies os.IsNotExist when the peer never published the endpoint, which is
 // how an absent scanner is detected.
-func WriteCompletionPipe(path string) error {
-	//nolint:gosec // G304: Opening pipe file is intended functionality
-	file, err := os.OpenFile(path, os.O_WRONLY, 0)
+func WriteCompletionPipe(ctx context.Context, path string) error {
+	// Checked before the open so that an absent peer is reported as such even
+	// when ctx is already done; otherwise a terminating remover could mistake a
+	// disabled scanner for a cancellation, and vice versa.
+	if _, err := os.Stat(path); err != nil {
+		return err
+	}
+
+	file, err := openForWrite(ctx, path)
 	if err != nil {
 		return err
 	}

@@ -88,7 +88,7 @@ func (cfg *config) SendImages(nonCompliantImages, failedImages []unversioned.Ima
 		nonCompliantImages = append(nonCompliantImages, failedImages...)
 	}
 
-	if err := util.WriteScanErasePipe(nonCompliantImages); err != nil {
+	if err := util.WriteImagesPipe(cfg.ctx, util.ScanErasePath, nonCompliantImages); err != nil {
 		cfg.log.Error(err, "unable to write non-compliant images to scan erase pipe")
 		return err
 	}

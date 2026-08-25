@@ -39,6 +39,11 @@ const (
 func main() {
 	flag.Parse()
 
+	// A terminating pod should not leave the worker blocked on a peer that is
+	// never going to arrive. The stop func is discarded rather than deferred
+	// because every exit path here is os.Exit, which would skip it anyway.
+	ctx, _ := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+
 	if *enableProfile {
 		go func() {
 			server := &http.Server{
@@ -74,7 +79,7 @@ func main() {
 	}
 
 	if *imageListPtr == "" {
-		nonCompliantImages, err := util.ReadImagesPipe(context.Background(), util.ScanErasePath)
+		nonCompliantImages, err := util.ReadImagesPipe(ctx, util.ScanErasePath)
 		if err != nil {
 			log.Error(err, "error reading non-compliant images")
 			os.Exit(generalErr)
@@ -114,8 +119,6 @@ func main() {
 
 	if os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT") != "" {
 		// record metrics
-		ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
-
 		exporter, reader, provider := metrics.ConfigureMetrics(ctx, log, os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT"))
 		otel.SetMeterProvider(provider)
 
@@ -123,16 +126,15 @@ func main() {
 			log.Error(err, "error recording metrics")
 		}
 		metrics.ExportMetrics(log, exporter, reader)
-		cancel()
 	}
 
 	if *imageListPtr == "" {
-		if err := util.WriteCompletionPipe(util.EraseCompleteCollectPath); err != nil {
+		if err := util.WriteCompletionPipe(ctx, util.EraseCompleteCollectPath); err != nil {
 			log.Error(err, "unable to signal completion", "pipeFile", util.EraseCompleteCollectPath)
 			os.Exit(generalErr)
 		}
 
-		err := util.WriteCompletionPipe(util.EraseCompleteScanPath)
+		err := util.WriteCompletionPipe(ctx, util.EraseCompleteScanPath)
 		// if the scanner is disabled
 		if os.IsNotExist(err) {
 			return
