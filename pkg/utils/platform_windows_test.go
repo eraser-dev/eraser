@@ -7,6 +7,8 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/Microsoft/go-winio"
@@ -52,6 +54,28 @@ func TestGetAddressAndDialer(t *testing.T) {
 		if a != tc.addr || !errors.Is(e, tc.err) {
 			t.Errorf("getAddressAndDialer(%q) = (%q, %v), want (%q, %v)", tc.endpoint, a, e, tc.addr, tc.err)
 		}
+	}
+}
+
+// The guard exists to replace an opaque syscall failure with a clear message,
+// so the boundary it enforces has to be the real one.
+func TestSocketPathLimitBoundary(t *testing.T) {
+	dir := shortTempDir(t)
+
+	pathOfLen := func(n int) string {
+		return filepath.Join(dir, strings.Repeat("a", n-len(dir)-1))
+	}
+
+	atLimit := pathOfLen(maxSocketPath)
+	l, err := listen(atLimit)
+	if err != nil {
+		t.Fatalf("listen(%d-byte path) = %v, want success", len(atLimit), err)
+	}
+	_ = l.Close()
+
+	overLimit := pathOfLen(maxSocketPath + 1)
+	if _, err := listen(overLimit); err == nil {
+		t.Errorf("listen(%d-byte path) = nil, want the guard to reject it", len(overLimit))
 	}
 }
 
