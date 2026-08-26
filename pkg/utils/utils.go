@@ -19,13 +19,9 @@ import (
 
 const (
 	// npipeProtocol is the network protocol of a Windows named pipe.
-	npipeProtocol            = "npipe"
-	PipeMode                 = 0o644
-	ScanErasePath            = "/run/eraser.sh/shared-data/scanErase"
-	CollectScanPath          = "/run/eraser.sh/shared-data/collectScan"
-	EraseCompleteCollectPath = "/run/eraser.sh/shared-data/eraseCompleteCollect"
-	EraseCompleteMessage     = "complete"
-	EraseCompleteScanPath    = "/run/eraser.sh/shared-data/eraseCompleteScan"
+	npipeProtocol        = "npipe"
+	PipeMode             = 0o644
+	EraseCompleteMessage = "complete"
 
 	EnvEraserRuntimeName = "ERASER_RUNTIME_NAME"
 )

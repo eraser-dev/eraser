@@ -12,6 +12,16 @@ import (
 // CRIPath is the in-container path the manager mounts the host CRI socket to.
 const CRIPath = "/run/cri/cri.sock"
 
+// The handoff endpoints, rooted where the manager mounts the shared-data volume
+// on this platform. They are build-tagged rather than shared because a Windows
+// worker cannot find a peer at a POSIX path.
+const (
+	ScanErasePath            = "/run/eraser.sh/shared-data/scanErase"
+	CollectScanPath          = "/run/eraser.sh/shared-data/collectScan"
+	EraseCompleteCollectPath = "/run/eraser.sh/shared-data/eraseCompleteCollect"
+	EraseCompleteScanPath    = "/run/eraser.sh/shared-data/eraseCompleteScan"
+)
+
 // unixProtocol is the network protocol of a unix socket.
 const unixProtocol = "unix"
 
