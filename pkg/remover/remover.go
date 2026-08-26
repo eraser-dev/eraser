@@ -26,14 +26,22 @@ var (
 	enableProfile = flag.Bool("enable-pprof", false, "enable pprof profiling")
 	profilePort   = flag.Int("pprof-port", 6060, "port for pprof profiling. defaulted to 6060 if unspecified")
 
-	// Timeout  of connecting to server (default: 5m).
-	timeout  = 5 * time.Minute
 	log      = logf.Log.WithName("remover")
 	excluded map[string]struct{}
 )
 
 const (
 	generalErr = 1
+
+	// listTimeout bounds ListImages and ListContainers together. They are cheap
+	// and near-constant, so they get a tighter budget than a deletion.
+	listTimeout = 2 * time.Minute
+
+	// deleteTimeout bounds a single image. It is per-image rather than per-run
+	// because the total is not knowable in advance: a freshly created AKS
+	// Windows node carried 30 unused images, and deletions there were measured
+	// at 15s to 74s each.
+	deleteTimeout = 5 * time.Minute
 )
 
 func main() {
