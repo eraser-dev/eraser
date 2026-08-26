@@ -8,16 +8,27 @@ import (
 	util "github.com/eraser-dev/eraser/pkg/utils"
 )
 
+// deleteImage gives one image its own budget. Deletion cost tracks unique layer
+// bytes rather than reported size -- measured at 15s, 54s and 74s for three
+// similarly sized Windows images -- so a whole-run budget cannot be sized from
+// the image list up front.
+func deleteImage(ctx context.Context, c cri.Remover, imageID string) error {
+	deleteCtx, cancel := context.WithTimeout(ctx, deleteTimeout)
+	defer cancel()
+
+	return c.DeleteImage(deleteCtx, imageID)
+}
+
 func removeImages(ctx context.Context, c cri.Remover, targetImages []string) (int, error) {
 	removed := 0
 
-	// Derived from the caller's context, not Background: signal notification is
-	// registered for the whole process, so nothing would observe a SIGTERM during
-	// the deletion loop otherwise.
-	backgroundContext, cancel := context.WithTimeout(ctx, timeout)
-	defer cancel()
+	// The listing calls get their own budget, separate from the deletions below.
+	// Sharing one meant a slow node could spend the whole allowance before the
+	// first image was deleted.
+	listCtx, cancelList := context.WithTimeout(ctx, listTimeout)
+	defer cancelList()
 
-	images, err := c.ListImages(backgroundContext)
+	images, err := c.ListImages(listCtx)
 	if err != nil {
 		return 0, err
 	}
@@ -45,7 +56,7 @@ func removeImages(ctx context.Context, c cri.Remover, targetImages []string) (in
 		idToImageMap[img.Id] = newImg
 	}
 
-	containers, err := c.ListContainers(backgroundContext)
+	containers, err := c.ListContainers(listCtx)
 	if err != nil {
 		return 0, err
 	}
@@ -67,6 +78,13 @@ func removeImages(ctx context.Context, c cri.Remover, targetImages []string) (in
 	var prune bool
 	deletedImages := make(map[string]struct{}, len(targetImages))
 	for _, imgDigestOrTag := range targetImages {
+		// Without this the loop keeps going once the caller is gone, logging one
+		// instant failure per remaining image and still reporting partial success.
+		if err := ctx.Err(); err != nil {
+			log.Error(err, "stopping before the image list was finished", "removed", removed, "remaining", len(targetImages)-removed)
+			return removed, err
+		}
+
 		if imgDigestOrTag == "*" {
 			prune = true
 			continue
@@ -78,7 +96,7 @@ func removeImages(ctx context.Context, c cri.Remover, targetImages []string) (in
 				continue
 			}
 
-			err = c.DeleteImage(backgroundContext, imageID)
+			err = deleteImage(ctx, c, imageID)
 			if err != nil {
 				log.Error(err, "error removing image", "given", imgDigestOrTag, "imageID", imageID, "name", idToImageMap[imageID])
 				continue
@@ -102,6 +120,11 @@ func removeImages(ctx context.Context, c cri.Remover, targetImages []string) (in
 	if prune {
 		success := true
 		for _, imageID := range nonRunningImages {
+			if err := ctx.Err(); err != nil {
+				log.Error(err, "stopping before the prune was finished", "removed", removed)
+				return removed, err
+			}
+
 			if _, deleted := deletedImages[imageID]; deleted {
 				continue
 			}
@@ -111,7 +134,7 @@ func removeImages(ctx context.Context, c cri.Remover, targetImages []string) (in
 				continue
 			}
 
-			if err := c.DeleteImage(backgroundContext, imageID); err != nil {
+			if err := deleteImage(ctx, c, imageID); err != nil {
 				success = false
 				log.Error(err, "error removing image", "imageID", imageID, "name", idToImageMap[imageID])
 				continue
