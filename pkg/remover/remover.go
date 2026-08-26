@@ -111,7 +111,7 @@ func main() {
 		log.Info("no images to exclude")
 	}
 
-	removed, err := removeImages(client, imagelist)
+	removed, err := removeImages(ctx, client, imagelist)
 	if err != nil {
 		log.Error(err, "failed to remove images")
 		os.Exit(generalErr)

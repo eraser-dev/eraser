@@ -104,13 +104,19 @@ func openForWrite(ctx context.Context, path string) (*os.File, error) {
 		err  error
 	}
 
-	ch := make(chan opened, 1)
+	// Unbuffered, and paired with abandoned rather than a default case. A
+	// buffered channel would accept the file after the caller had already
+	// returned, orphaning the descriptor; a default case would close a file the
+	// caller was about to ask for, if the open won the race to this select.
+	ch := make(chan opened)
+	abandoned := make(chan struct{})
+
 	go func() {
 		//nolint:gosec // G304: Opening pipe file is intended functionality
 		file, err := os.OpenFile(path, os.O_WRONLY, 0)
 		select {
 		case ch <- opened{file: file, err: err}:
-		default:
+		case <-abandoned:
 			if file != nil {
 				_ = file.Close()
 			}
@@ -119,6 +125,7 @@ func openForWrite(ctx context.Context, path string) (*os.File, error) {
 
 	select {
 	case <-ctx.Done():
+		close(abandoned)
 		return nil, ctx.Err()
 	case o := <-ch:
 		return o.file, o.err

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"testing"
 
 	v1 "k8s.io/cri-api/pkg/apis/runtime/v1"
@@ -50,7 +51,7 @@ func TestRemoveImages(t *testing.T) {
 				}
 			}
 
-			_, err := removeImages(client, tc.remove)
+			_, err := removeImages(context.Background(), client, tc.remove)
 			if tc.shouldErr && err == nil {
 				t.Fatal("expected error, got none")
 			}

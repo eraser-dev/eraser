@@ -32,10 +32,11 @@ var (
 func main() {
 	flag.Parse()
 
-	// A terminating pod should not leave the worker blocked on a peer that is
-	// never going to arrive. The stop func is discarded rather than deferred
-	// because every exit path here is os.Exit, which would skip it anyway.
-	ctx, _ := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	// Scoped to the cancellable write below and stopped before Await, which has
+	// no context: registering the handler suppresses the default SIGTERM exit, so
+	// holding it across an uncancellable wait would turn a terminating pod into a
+	// SIGKILL instead of a clean one.
+	ctx, stopSignals := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 
 	if *enableProfile {
 		go func() {
@@ -97,6 +98,7 @@ func main() {
 		log.Error(err, "failed to send images", "pipeFile", path)
 		os.Exit(1)
 	}
+	stopSignals()
 
 	data, err := completion.Await()
 	if err != nil {

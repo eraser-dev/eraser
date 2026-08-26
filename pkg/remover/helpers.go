@@ -8,10 +8,13 @@ import (
 	util "github.com/eraser-dev/eraser/pkg/utils"
 )
 
-func removeImages(c cri.Remover, targetImages []string) (int, error) {
+func removeImages(ctx context.Context, c cri.Remover, targetImages []string) (int, error) {
 	removed := 0
 
-	backgroundContext, cancel := context.WithTimeout(context.Background(), timeout)
+	// Derived from the caller's context, not Background: signal notification is
+	// registered for the whole process, so nothing would observe a SIGTERM during
+	// the deletion loop otherwise.
+	backgroundContext, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 
 	images, err := c.ListImages(backgroundContext)
