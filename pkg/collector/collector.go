@@ -99,12 +99,17 @@ func main() {
 		log.Error(err, "failed to send images", "pipeFile", path)
 		os.Exit(1)
 	}
+
+	// Read before stopping, because stopSignals cancels this context itself:
+	// checked afterwards it would always report Canceled, and the collector
+	// would exit on every successful run instead of waiting for the erase.
+	sigErr := ctx.Err()
 	stopSignals()
 
-	// A signal that landed after the write completed was consumed by the handler
-	// rather than killing the process, so it has to be acted on here.
-	if err := ctx.Err(); err != nil {
-		log.Error(err, "terminating before waiting for completion")
+	// A signal that landed while the handler was registered was consumed rather
+	// than killing the process, so it has to be acted on here.
+	if sigErr != nil {
+		log.Error(sigErr, "terminating before waiting for completion")
 		os.Exit(1)
 	}
 
