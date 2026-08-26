@@ -85,7 +85,34 @@ func WriteImagesPipe(ctx context.Context, path string, images []unversioned.Imag
 		return err
 	}
 
-	_, err = file.Write(data)
+	return writeAndClose(ctx, file, data)
+}
+
+// writeAndClose writes the payload and closes, which is what frames the message
+// for the reader. The open is not the only place this can block: once the pipe
+// buffer fills, a reader that stops draining blocks the write too, so the
+// watcher closes the file to unblock it.
+func writeAndClose(ctx context.Context, file *os.File, payload []byte) error {
+	done := make(chan struct{})
+	defer close(done)
+
+	go func() {
+		select {
+		case <-ctx.Done():
+			_ = file.Close()
+		case <-done:
+		}
+	}()
+
+	_, err := file.Write(payload)
+
+	// The watcher may already have closed the file, which is what surfaced as the
+	// write error, so the context is checked before the error is trusted.
+	if ctxErr := ctx.Err(); ctxErr != nil {
+		_ = file.Close()
+		return ctxErr
+	}
+
 	if closeErr := file.Close(); closeErr != nil && err == nil {
 		err = closeErr
 	}
@@ -195,10 +222,5 @@ func WriteCompletionPipe(ctx context.Context, path string) error {
 		return err
 	}
 
-	_, err = file.WriteString(EraseCompleteMessage)
-	if closeErr := file.Close(); closeErr != nil && err == nil {
-		err = closeErr
-	}
-
-	return err
+	return writeAndClose(ctx, file, []byte(EraseCompleteMessage))
 }

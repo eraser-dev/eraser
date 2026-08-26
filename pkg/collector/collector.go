@@ -32,12 +32,6 @@ var (
 func main() {
 	flag.Parse()
 
-	// Scoped to the cancellable write below and stopped before Await, which has
-	// no context: registering the handler suppresses the default SIGTERM exit, so
-	// holding it across an uncancellable wait would turn a terminating pod into a
-	// SIGKILL instead of a clean one.
-	ctx, stopSignals := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
-
 	if *enableProfile {
 		go func() {
 			server := &http.Server{
@@ -94,11 +88,25 @@ func main() {
 		os.Exit(1)
 	}
 
+	// Registering the handler suppresses the default SIGTERM exit, so it covers
+	// exactly the one call that observes ctx. Everything above builds its own
+	// timeouts from Background, and Await below has no context at all; holding
+	// the handler across either would swallow the signal.
+	ctx, stopSignals := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+
 	if err := util.WriteImagesPipe(ctx, path, finalImages); err != nil {
+		stopSignals()
 		log.Error(err, "failed to send images", "pipeFile", path)
 		os.Exit(1)
 	}
 	stopSignals()
+
+	// A signal that landed after the write completed was consumed by the handler
+	// rather than killing the process, so it has to be acted on here.
+	if err := ctx.Err(); err != nil {
+		log.Error(err, "terminating before waiting for completion")
+		os.Exit(1)
+	}
 
 	data, err := completion.Await()
 	if err != nil {

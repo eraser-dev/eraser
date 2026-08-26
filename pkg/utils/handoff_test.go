@@ -97,6 +97,25 @@ func TestWriteCompletionPipeAbsentPeerIsNotExist(t *testing.T) {
 	}
 }
 
+// The pre-open Stat exists so this precedence holds: an endpoint nobody
+// published reports IsNotExist even when the caller is already shutting down.
+// Left to a select, the two would race and "the scanner is disabled" would
+// become indistinguishable from "we are terminating".
+func TestWriteCompletionPipeAbsentPeerBeatsACanceledContext(t *testing.T) {
+	path := filepath.Join(shortTempDir(t), "no-such-peer")
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	err := WriteCompletionPipe(ctx, path)
+	if err == nil {
+		t.Fatal("expected an error writing to an endpoint nobody published")
+	}
+	if !os.IsNotExist(err) {
+		t.Errorf("os.IsNotExist(%v) = false, want true", err)
+	}
+}
+
 // The whole point of taking a context: a worker whose peer never arrives has to
 // be able to give up, on either platform.
 func TestWriteImagesPipeHonoursACanceledContext(t *testing.T) {

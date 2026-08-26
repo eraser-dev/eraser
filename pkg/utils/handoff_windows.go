@@ -86,12 +86,38 @@ func WriteImagesPipe(ctx context.Context, path string, images []unversioned.Imag
 		return err
 	}
 
-	if _, err := conn.Write(data); err != nil {
+	return sendAndClose(ctx, conn, data)
+}
+
+// sendAndClose writes the payload and closes, which is what frames the message
+// for the reader. DialContext only makes connecting cancellable, so a peer that
+// connects and then stops reading would block the write itself; closing the
+// connection from the watcher is what unblocks it.
+func sendAndClose(ctx context.Context, conn net.Conn, payload []byte) error {
+	done := make(chan struct{})
+	defer close(done)
+
+	go func() {
+		select {
+		case <-ctx.Done():
+			_ = conn.Close()
+		case <-done:
+		}
+	}()
+
+	_, err := conn.Write(payload)
+
+	// The watcher may already have closed the connection, which is what surfaced
+	// as the write error, so the context is checked before the error is trusted.
+	if ctxErr := ctx.Err(); ctxErr != nil {
+		_ = conn.Close()
+		return ctxErr
+	}
+	if err != nil {
 		_ = conn.Close()
 		return err
 	}
 
-	// closing is what signals end-of-message to the reader
 	return conn.Close()
 }
 
@@ -154,12 +180,7 @@ func WriteCompletionPipe(ctx context.Context, path string) error {
 		return err
 	}
 
-	if _, err := conn.Write([]byte(EraseCompleteMessage)); err != nil {
-		_ = conn.Close()
-		return err
-	}
-
-	return conn.Close()
+	return sendAndClose(ctx, conn, []byte(EraseCompleteMessage))
 }
 
 func listen(path string) (net.Listener, error) {
