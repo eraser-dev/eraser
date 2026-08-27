@@ -8,6 +8,34 @@ import (
 	v1 "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
 
+// The loop guard runs before each deletion, so on the last one there is no
+// later iteration to notice the caller has gone. Without a check on the error
+// path, that deletion fails and the run still returns success.
+func TestRemoveImagesSurfacesCancellationDuringTheFinalDeletion(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+
+	client := &testClient{
+		t: t,
+		images: []*v1.Image{
+			{Id: "aaa"},
+			{Id: "bbb"},
+		},
+	}
+	client.beforeDelete = func(image string) {
+		if image == "bbb" {
+			cancel()
+		}
+	}
+
+	removed, err := removeImages(ctx, client, []string{"aaa", "bbb"})
+	if !errors.Is(err, context.Canceled) {
+		t.Errorf("removeImages = %v, want context.Canceled", err)
+	}
+	if removed != 1 {
+		t.Errorf("removed = %d, want 1 -- the first deletion did succeed", removed)
+	}
+}
+
 // A caller that has gone away should stop the loop, not work through the rest
 // of the list. Previously the shared context expired mid-run and every
 // remaining image logged an instant failure while the run still reported
