@@ -649,10 +649,12 @@ func fillWindowsPodSpec(templateSpec *corev1.PodSpec) {
 
 // raiseWindowsMemoryLimit bumps a container's memory limit up to the
 // Windows-safe minimum when a smaller limit is configured. A limit that is not
-// set is left unset (no Job Object memory cap, so no startup crash).
+// set or is explicitly zero is left as-is (no Job Object memory cap).
 func raiseWindowsMemoryLimit(c *corev1.Container) {
 	limit, ok := c.Resources.Limits[corev1.ResourceMemory]
-	if !ok {
+	// An unset or explicit zero limit means no Job Object memory cap, so there
+	// is no startup crash to guard against; leave it as-is.
+	if !ok || limit.IsZero() {
 		return
 	}
 	minLimit := resource.MustParse(windowsMinMemoryLimit)

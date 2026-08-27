@@ -200,6 +200,7 @@ func TestRaiseWindowsMemoryLimit(t *testing.T) {
 		{"below min is raised", ptr("30Mi"), ptr("256Mi")},
 		{"at min is unchanged", ptr("256Mi"), ptr("256Mi")},
 		{"above min is unchanged", ptr("512Mi"), ptr("512Mi")},
+		{"explicit zero stays unlimited", ptr("0"), ptr("0")},
 		{"unset stays unset", nil, nil},
 	}
 	for _, tc := range cases {
