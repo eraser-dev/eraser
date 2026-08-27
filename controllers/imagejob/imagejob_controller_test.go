@@ -19,7 +19,7 @@ const sharedDataMountPath = eraserUtils.LinuxSharedDataPath
 func newTemplateSpec() *corev1.PodSpec {
 	return &corev1.PodSpec{
 		Volumes: []corev1.Volume{
-			{Name: "shared-data"},
+			{Name: "shared-data", VolumeSource: corev1.VolumeSource{EmptyDir: &corev1.EmptyDirVolumeSource{}}},
 		},
 		Containers: []corev1.Container{
 			{
