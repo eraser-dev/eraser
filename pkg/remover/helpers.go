@@ -98,6 +98,15 @@ func removeImages(ctx context.Context, c cri.Remover, targetImages []string) (in
 
 			err = deleteImage(ctx, c, imageID)
 			if err != nil {
+				// A per-image timeout is that image's problem and the run carries
+				// on, which is the point of giving each one its own budget. The
+				// caller going away is not, and on the last image there is no
+				// further iteration to notice it.
+				if ctxErr := ctx.Err(); ctxErr != nil {
+					log.Error(ctxErr, "stopping during a deletion", "removed", removed, "imageID", imageID)
+					return removed, ctxErr
+				}
+
 				log.Error(err, "error removing image", "given", imgDigestOrTag, "imageID", imageID, "name", idToImageMap[imageID])
 				continue
 			}
@@ -135,6 +144,11 @@ func removeImages(ctx context.Context, c cri.Remover, targetImages []string) (in
 			}
 
 			if err := deleteImage(ctx, c, imageID); err != nil {
+				if ctxErr := ctx.Err(); ctxErr != nil {
+					log.Error(ctxErr, "stopping during a prune deletion", "removed", removed, "imageID", imageID)
+					return removed, ctxErr
+				}
+
 				success = false
 				log.Error(err, "error removing image", "imageID", imageID, "name", idToImageMap[imageID])
 				continue
