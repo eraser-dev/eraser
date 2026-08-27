@@ -29,8 +29,23 @@ func shortTempDir(t *testing.T) string {
 	return dir
 }
 
+// testContext bounds the round trips. Both halves of a handoff block until the
+// peer shows up, so on context.Background a rendezvous that never completes
+// hangs until the package-wide test timeout -- ten minutes of nothing, with no
+// indication of which test is stuck. A deadline turns that into a failure in
+// the test that caused it.
+func testContext(t *testing.T) context.Context {
+	t.Helper()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	t.Cleanup(cancel)
+
+	return ctx
+}
+
 func TestImagesHandoffRoundTrip(t *testing.T) {
 	path := filepath.Join(shortTempDir(t), "images")
+	ctx := testContext(t)
 
 	want := []unversioned.Image{
 		{ImageID: "sha256:aaaa", Names: []string{"repo/one:v1"}},
@@ -38,9 +53,9 @@ func TestImagesHandoffRoundTrip(t *testing.T) {
 	}
 
 	errCh := make(chan error, 1)
-	go func() { errCh <- WriteImagesPipe(context.Background(), path, want) }()
+	go func() { errCh <- WriteImagesPipe(ctx, path, want) }()
 
-	got, err := ReadImagesPipe(context.Background(), path)
+	got, err := ReadImagesPipe(ctx, path)
 	if err != nil {
 		t.Fatalf("ReadImagesPipe: %v", err)
 	}
@@ -60,6 +75,7 @@ func TestImagesHandoffRoundTrip(t *testing.T) {
 
 func TestCompletionHandoffRoundTrip(t *testing.T) {
 	path := filepath.Join(shortTempDir(t), "complete")
+	ctx := testContext(t)
 
 	pipe, err := CreateCompletionPipe(path)
 	if err != nil {
@@ -68,18 +84,36 @@ func TestCompletionHandoffRoundTrip(t *testing.T) {
 	defer func() { _ = pipe.Close() }()
 
 	errCh := make(chan error, 1)
-	go func() { errCh <- WriteCompletionPipe(context.Background(), path) }()
+	go func() { errCh <- WriteCompletionPipe(ctx, path) }()
 
-	data, err := pipe.Await()
-	if err != nil {
-		t.Fatalf("Await: %v", err)
+	type awaited struct {
+		data []byte
+		err  error
+	}
+
+	// Await takes no context, so it cannot be given the deadline directly; the
+	// select is what enforces it.
+	awaitCh := make(chan awaited, 1)
+	go func() {
+		data, err := pipe.Await()
+		awaitCh <- awaited{data: data, err: err}
+	}()
+
+	var got awaited
+	select {
+	case got = <-awaitCh:
+	case <-ctx.Done():
+		t.Fatalf("Await did not return within the deadline: %v", ctx.Err())
+	}
+	if got.err != nil {
+		t.Fatalf("Await: %v", got.err)
 	}
 	if err := <-errCh; err != nil {
 		t.Fatalf("WriteCompletionPipe: %v", err)
 	}
 
-	if string(data) != EraseCompleteMessage {
-		t.Errorf("payload = %q, want %q", string(data), EraseCompleteMessage)
+	if string(got.data) != EraseCompleteMessage {
+		t.Errorf("payload = %q, want %q", string(got.data), EraseCompleteMessage)
 	}
 }
 
