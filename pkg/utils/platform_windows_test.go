@@ -3,7 +3,6 @@
 package utils
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"net"
@@ -151,6 +150,61 @@ func TestListenRefusesALiveSocket(t *testing.T) {
 	}
 }
 
+// Refusing to unlink a live endpoint is not enough on its own: the probe that
+// establishes it is live is itself a connection, and these endpoints serve one.
+// If the probe were mistaken for the peer, the listener it just declined to
+// evict would be handed an empty payload and left with nothing to wait for.
+func TestAwaitIgnoresAConnectThatSaysNothing(t *testing.T) {
+	path := filepath.Join(shortTempDir(t), "complete")
+	ctx := testContext(t)
+
+	pipe, err := CreateCompletionPipe(path)
+	if err != nil {
+		t.Fatalf("CreateCompletionPipe: %v", err)
+	}
+	defer func() { _ = pipe.Close() }()
+
+	// the listener is already published, so this is queued ahead of the peer --
+	// exactly what listen's staleness probe does to a live endpoint
+	probe, err := net.DialTimeout("unix", path, stalenessProbe)
+	if err != nil {
+		t.Fatalf("probing the endpoint: %v", err)
+	}
+	if err := probe.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	errCh := make(chan error, 1)
+	go func() { errCh <- WriteCompletionPipe(ctx, path) }()
+
+	type awaited struct {
+		data []byte
+		err  error
+	}
+	awaitCh := make(chan awaited, 1)
+	go func() {
+		data, err := pipe.Await()
+		awaitCh <- awaited{data: data, err: err}
+	}()
+
+	var got awaited
+	select {
+	case got = <-awaitCh:
+	case <-ctx.Done():
+		t.Fatalf("Await did not return within the deadline: %v", ctx.Err())
+	}
+	if got.err != nil {
+		t.Fatalf("Await: %v", got.err)
+	}
+	if err := <-errCh; err != nil {
+		t.Fatalf("WriteCompletionPipe: %v", err)
+	}
+
+	if string(got.data) != EraseCompleteMessage {
+		t.Errorf("payload = %q, want %q -- the probe was taken for the peer", string(got.data), EraseCompleteMessage)
+	}
+}
+
 func TestMkfifoUnsupported(t *testing.T) {
 	if err := mkfifo("ignored", PipeMode); !errors.Is(err, ErrFifoUnsupported) {
 		t.Errorf("mkfifo on windows = %v, want ErrFifoUnsupported", err)
@@ -176,7 +230,7 @@ func TestNpipeDialerConnects(t *testing.T) {
 		t.Fatalf("getAddressAndDialer: %v", err)
 	}
 
-	conn, err := dialer(context.Background(), addr)
+	conn, err := dialer(testContext(t), addr)
 	if err != nil {
 		t.Fatalf("dial %q: %v", addr, err)
 	}

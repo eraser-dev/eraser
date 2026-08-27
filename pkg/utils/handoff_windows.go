@@ -56,13 +56,29 @@ func CreateCompletionPipe(path string) (*CompletionPipe, error) {
 // Await blocks until a peer signals completion. The payload is returned
 // unvalidated so callers keep their existing handling of unexpected content.
 func (p *CompletionPipe) Await() ([]byte, error) {
-	conn, err := p.l.Accept()
-	if err != nil {
-		return nil, err
-	}
-	defer func() { _ = conn.Close() }()
+	for {
+		conn, err := p.l.Accept()
+		if err != nil {
+			return nil, err
+		}
 
-	return io.ReadAll(conn)
+		data, err := io.ReadAll(conn)
+		_ = conn.Close()
+		if err != nil {
+			return nil, err
+		}
+
+		// A connect that says nothing is not the peer: listen probes this
+		// endpoint to tell a live socket from a stale one, and the volume is
+		// shared, so the peer is not the only thing that can knock. Accepting
+		// one of those as the signal would strand the worker that meant to send
+		// it.
+		if len(data) == 0 {
+			continue
+		}
+
+		return data, nil
+	}
 }
 
 // Close releases the endpoint, which also unpublishes it. Callers both defer
@@ -155,26 +171,33 @@ func ReadImagesPipe(ctx context.Context, path string) ([]unversioned.Image, erro
 		}
 	}()
 
-	conn, err := l.Accept()
-	if err != nil {
-		if ctxErr := ctx.Err(); ctxErr != nil {
-			return nil, ctxErr
+	for {
+		conn, err := l.Accept()
+		if err != nil {
+			if ctxErr := ctx.Err(); ctxErr != nil {
+				return nil, ctxErr
+			}
+			return nil, err
 		}
-		return nil, err
-	}
-	defer func() { _ = conn.Close() }()
 
-	data, err := io.ReadAll(conn)
-	if err != nil {
-		return nil, err
-	}
+		data, err := io.ReadAll(conn)
+		_ = conn.Close()
+		if err != nil {
+			return nil, err
+		}
 
-	images := []unversioned.Image{}
-	if err := json.Unmarshal(data, &images); err != nil {
-		return nil, err
-	}
+		// see Await: a connect that says nothing is not the writer
+		if len(data) == 0 {
+			continue
+		}
 
-	return images, nil
+		images := []unversioned.Image{}
+		if err := json.Unmarshal(data, &images); err != nil {
+			return nil, err
+		}
+
+		return images, nil
+	}
 }
 
 // WriteCompletionPipe signals a peer that this stage is done. The returned error

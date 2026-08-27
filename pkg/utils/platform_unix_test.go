@@ -143,7 +143,7 @@ func TestUnixDialerConnects(t *testing.T) {
 		t.Fatalf("getAddressAndDialer: %v", err)
 	}
 
-	conn, err := dialer(context.Background(), addr)
+	conn, err := dialer(testContext(t), addr)
 	if err != nil {
 		t.Fatalf("dial %q: %v", addr, err)
 	}
