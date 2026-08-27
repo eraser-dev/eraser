@@ -10,7 +10,76 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
+
+	"github.com/eraser-dev/eraser/api/unversioned"
 )
+
+// The rendezvous is not the only place a write can block: once the 64 KiB pipe
+// buffer fills, a reader that has opened the FIFO and then stopped draining
+// holds the writer in Write, which no open deadline covers.
+//
+// This is Unix-only on purpose. The same scenario is not reachable through the
+// socket implementation: a single Write of 64 MiB to a stalled peer was measured
+// completing in 11ms on Windows, because the OS accepts the whole overlapped
+// send regardless of size.
+func TestWriteImagesPipeHonoursCancellationWhileBlockedOnAStalledReader(t *testing.T) {
+	path := filepath.Join(shortTempDir(t), "stalled")
+
+	// well past the 64 KiB pipe buffer, so the write cannot simply complete
+	images := make([]unversioned.Image, 120000)
+	for i := range images {
+		images[i] = unversioned.Image{ImageID: fmt.Sprintf("sha256:%060d", i)}
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+
+	errCh := make(chan error, 1)
+	go func() { errCh <- WriteImagesPipe(ctx, path, images) }()
+
+	stallReader(t, path)
+
+	// The reader is attached, so the open has returned and the writer has moved
+	// on to filling the buffer. There is no way to observe "blocked in Write"
+	// directly, so give it a moment to get there -- otherwise this degrades into
+	// the rendezvous case already covered in handoff_test.go.
+	time.Sleep(500 * time.Millisecond)
+	cancel()
+
+	select {
+	case err := <-errCh:
+		if !errors.Is(err, context.Canceled) {
+			t.Errorf("WriteImagesPipe = %v, want context.Canceled", err)
+		}
+	case <-time.After(30 * time.Second):
+		t.Fatal("WriteImagesPipe ignored cancellation while blocked on a stalled reader")
+	}
+}
+
+// stallReader opens the FIFO for reading and never reads from it. Opening is
+// what releases the writer's blocked open, so the writer proceeds into Write and
+// stops once the pipe buffer is full.
+func stallReader(t *testing.T, path string) {
+	t.Helper()
+
+	// the writer creates the FIFO, so it may not exist yet
+	deadline := time.Now().Add(10 * time.Second)
+	for {
+		//nolint:gosec // G304: opening the test's own pipe is the point
+		f, err := os.OpenFile(path, os.O_RDONLY, 0)
+		if err == nil {
+			t.Cleanup(func() { _ = f.Close() })
+			return
+		}
+		if !os.IsNotExist(err) {
+			t.Fatalf("open fifo for reading: %v", err)
+		}
+		if time.Now().After(deadline) {
+			t.Fatal("the writer never created the fifo")
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+}
 
 func TestGetAddressAndDialer(t *testing.T) {
 	testCases := []struct {

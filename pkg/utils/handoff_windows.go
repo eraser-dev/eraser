@@ -90,9 +90,15 @@ func WriteImagesPipe(ctx context.Context, path string, images []unversioned.Imag
 }
 
 // sendAndClose writes the payload and closes, which is what frames the message
-// for the reader. DialContext only makes connecting cancellable, so a peer that
-// connects and then stops reading would block the write itself; closing the
-// connection from the watcher is what unblocks it.
+// for the reader. DialContext only makes connecting cancellable, so the watcher
+// covers the write itself.
+//
+// A single large Write does not appear to block here in practice -- 64 MiB to a
+// peer that never reads completed in 11ms, because Windows accepts the whole
+// overlapped send regardless of size. The watcher is kept anyway: that is an
+// observation about one OS and Go version, not a documented guarantee, and the
+// Unix implementation genuinely does block once the pipe buffer fills. The
+// contract should not differ between the two.
 func sendAndClose(ctx context.Context, conn net.Conn, payload []byte) error {
 	done := make(chan struct{})
 	defer close(done)
