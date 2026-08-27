@@ -32,10 +32,6 @@ import (
 // checked up front.
 const maxSocketPath = 107
 
-// stalenessProbe bounds the connect used to tell a stale endpoint from a live
-// one. Both ends are local, so a listener that exists answers immediately.
-const stalenessProbe = time.Second
-
 // CompletionPipe is an endpoint a peer can observe before anything is read from
 // it. The scanner creates one early precisely so the remover can tell a scanner
 // is present, which means the listener has to outlive its creation.
@@ -225,27 +221,18 @@ func listen(path string) (net.Listener, error) {
 		return nil, fmt.Errorf("socket path %q is %d bytes, over the %d byte limit", path, len(path), maxSocketPath)
 	}
 
-	// A socket left behind by an unclean exit would fail the bind, so it has to
-	// go. Anything else at this path is not ours to delete: the worker runs as
-	// SYSTEM and shares the volume with a scanner image we do not control.
-	switch fi, err := os.Lstat(path); {
+	// Nothing of ours outlives the pod here: the shared volume is an emptyDir
+	// created with it, and restartPolicy is Never, so a worker that dies is
+	// replaced by a new pod with a new volume rather than restarted onto this
+	// one. Whatever is at this path is therefore not a previous run to clean up,
+	// and the volume is shared with a scanner image we do not control. Unix
+	// refuses the same way, because mkfifo returns EEXIST.
+	switch _, err := os.Lstat(path); {
 	case errors.Is(err, fs.ErrNotExist):
 	case err != nil:
 		return nil, err
-	case fi.Mode()&os.ModeSocket == 0:
-		return nil, fmt.Errorf("refusing to replace %q: it exists and is not a socket", path)
 	default:
-		// The mode says socket, not stale socket -- a live listener looks
-		// identical on disk. Connecting is the only way to tell, and stranding a
-		// peer that is still listening is worse than refusing to start.
-		if conn, err := net.DialTimeout("unix", path, stalenessProbe); err == nil {
-			_ = conn.Close()
-			return nil, fmt.Errorf("refusing to replace %q: something is still listening on it", path)
-		}
-
-		if err := os.Remove(path); err != nil && !errors.Is(err, fs.ErrNotExist) {
-			return nil, err
-		}
+		return nil, fmt.Errorf("refusing to bind %q: something already exists at that path", path)
 	}
 
 	return net.Listen("unix", path)

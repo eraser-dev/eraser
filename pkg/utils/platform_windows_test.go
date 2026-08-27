@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/Microsoft/go-winio"
 )
@@ -90,70 +91,65 @@ func TestListenRefusesToReplaceANonSocket(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if l, err := listen(path); err == nil {
-		_ = l.Close()
-		t.Fatal("listen replaced a regular file, want an error")
-	}
-
-	if _, err := os.Stat(path); err != nil {
-		t.Errorf("the file was removed anyway: %v", err)
-	}
+	assertListenRefuses(t, path)
 }
 
-// A socket the previous run failed to clean up must still be reclaimable,
-// otherwise a crashed worker would poison the endpoint for every retry.
-func TestListenReclaimsAStaleSocket(t *testing.T) {
-	dir := shortTempDir(t)
-	path := filepath.Join(dir, "stale")
+// Nothing of ours outlives the pod at these paths, so both cases below are
+// anomalies rather than something to tidy up -- and they are indistinguishable
+// on disk anyway, which is why the distinction is no longer attempted.
+func TestListenRefusesAnEndpointThatAlreadyExists(t *testing.T) {
+	t.Run("left behind by a dead listener", func(t *testing.T) {
+		path := filepath.Join(shortTempDir(t), "stale")
 
-	// Go unlinks the socket on Close, so the only endpoint left on disk is one
-	// nobody closed. SetUnlinkOnClose reproduces that without crashing a
-	// process: the file stays, the listener does not.
-	stale, err := net.ListenUnix("unix", &net.UnixAddr{Name: path, Net: "unix"})
-	if err != nil {
-		t.Fatal(err)
-	}
-	stale.SetUnlinkOnClose(false)
-	if err := stale.Close(); err != nil {
-		t.Fatal(err)
-	}
+		// Go unlinks the socket on Close, so the only endpoint left on disk is
+		// one nobody closed. SetUnlinkOnClose reproduces that without having to
+		// crash a process: the file stays, the listener does not.
+		stale, err := net.ListenUnix("unix", &net.UnixAddr{Name: path, Net: "unix"})
+		if err != nil {
+			t.Fatal(err)
+		}
+		stale.SetUnlinkOnClose(false)
+		if err := stale.Close(); err != nil {
+			t.Fatal(err)
+		}
+
+		assertListenRefuses(t, path)
+	})
+
+	t.Run("still being served", func(t *testing.T) {
+		path := filepath.Join(shortTempDir(t), "live")
+
+		live, err := net.Listen("unix", path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer func() { _ = live.Close() }()
+
+		assertListenRefuses(t, path)
+	})
+}
+
+func assertListenRefuses(t *testing.T, path string) {
+	t.Helper()
+
 	if _, err := os.Lstat(path); err != nil {
-		t.Fatalf("the endpoint should still be on disk: %v", err)
+		t.Fatalf("the endpoint should be on disk before the call: %v", err)
 	}
-
-	l, err := listen(path)
-	if err != nil {
-		t.Fatalf("listen over a stale socket: %v", err)
-	}
-	_ = l.Close()
-}
-
-// The case above is indistinguishable from this one by mode alone, and taking
-// the path from a peer that is still listening would strand it silently.
-func TestListenRefusesALiveSocket(t *testing.T) {
-	dir := shortTempDir(t)
-	path := filepath.Join(dir, "live")
-
-	live, err := net.Listen("unix", path)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer func() { _ = live.Close() }()
 
 	if l, err := listen(path); err == nil {
 		_ = l.Close()
-		t.Fatal("listen replaced a live socket, want an error")
+		t.Fatal("listen bound over an existing endpoint, want an error")
 	}
 
 	if _, err := os.Lstat(path); err != nil {
-		t.Errorf("the live endpoint was removed anyway: %v", err)
+		t.Errorf("the endpoint was removed anyway: %v", err)
 	}
 }
 
-// Refusing to unlink a live endpoint is not enough on its own: the probe that
-// establishes it is live is itself a connection, and these endpoints serve one.
-// If the probe were mistaken for the peer, the listener it just declined to
-// evict would be handed an empty payload and left with nothing to wait for.
+// The endpoints here serve exactly one connection, and the volume is shared
+// with a scanner image we do not control, so a connect that says nothing must
+// not be mistaken for the peer -- doing so would hand the listener an empty
+// payload and leave the real worker with nothing waiting for it.
 func TestAwaitIgnoresAConnectThatSaysNothing(t *testing.T) {
 	path := filepath.Join(shortTempDir(t), "complete")
 	ctx := testContext(t)
@@ -164,11 +160,10 @@ func TestAwaitIgnoresAConnectThatSaysNothing(t *testing.T) {
 	}
 	defer func() { _ = pipe.Close() }()
 
-	// the listener is already published, so this is queued ahead of the peer --
-	// exactly what listen's staleness probe does to a live endpoint
-	probe, err := net.DialTimeout("unix", path, stalenessProbe)
+	// the listener is already published, so this is queued ahead of the peer
+	probe, err := net.DialTimeout("unix", path, time.Second)
 	if err != nil {
-		t.Fatalf("probing the endpoint: %v", err)
+		t.Fatalf("connecting to the endpoint: %v", err)
 	}
 	if err := probe.Close(); err != nil {
 		t.Fatal(err)
