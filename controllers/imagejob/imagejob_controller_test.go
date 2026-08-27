@@ -154,9 +154,23 @@ func TestCopyAndFillTemplateSpecWindows(t *testing.T) {
 		if c.SecurityContext != nil {
 			t.Errorf("container %q Linux SecurityContext should be cleared on Windows", c.Name)
 		}
-		if len(c.Resources.Requests) != 0 || len(c.Resources.Limits) != 0 {
-			t.Errorf("container %q resources should be cleared on Windows HostProcess", c.Name)
-		}
+	}
+
+	// collector had a 30Mi memory limit (< 256Mi) -> raised to 256Mi; its 25Mi
+	// request is preserved.
+	col := &spec.Containers[0]
+	wantMin := resource.MustParse("256Mi")
+	if got := col.Resources.Limits[corev1.ResourceMemory]; got.Cmp(wantMin) != 0 {
+		t.Errorf("collector memory limit = %s, want 256Mi", got.String())
+	}
+	if got := col.Resources.Requests[corev1.ResourceMemory]; got.Cmp(resource.MustParse("25Mi")) != 0 {
+		t.Errorf("collector memory request = %s, want 25Mi (unchanged)", got.String())
+	}
+
+	// remover had no memory limit -> left unset (no Job Object memory cap).
+	rmv := &spec.Containers[1]
+	if _, ok := rmv.Resources.Limits[corev1.ResourceMemory]; ok {
+		t.Error("remover had no memory limit; it should stay unset on Windows")
 	}
 
 	// The remover's imagelist mount and --imagelist arg must be rewritten to Windows paths.
@@ -176,6 +190,40 @@ func TestCopyAndFillTemplateSpecWindows(t *testing.T) {
 		t.Errorf("remover command = %v, want [%s]", rem.Command, wantCmd)
 	}
 }
+
+func TestRaiseWindowsMemoryLimit(t *testing.T) {
+	cases := []struct {
+		name  string
+		limit *string // nil = unset
+		want  *string // nil = still unset
+	}{
+		{"below min is raised", ptr("30Mi"), ptr("256Mi")},
+		{"at min is unchanged", ptr("256Mi"), ptr("256Mi")},
+		{"above min is unchanged", ptr("512Mi"), ptr("512Mi")},
+		{"unset stays unset", nil, nil},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			c := &corev1.Container{}
+			if tc.limit != nil {
+				c.Resources.Limits = corev1.ResourceList{corev1.ResourceMemory: resource.MustParse(*tc.limit)}
+			}
+			raiseWindowsMemoryLimit(c)
+			got, ok := c.Resources.Limits[corev1.ResourceMemory]
+			if tc.want == nil {
+				if ok {
+					t.Errorf("memory limit = %s, want unset", got.String())
+				}
+				return
+			}
+			if !ok || got.Cmp(resource.MustParse(*tc.want)) != 0 {
+				t.Errorf("memory limit = %v, want %s", got, *tc.want)
+			}
+		})
+	}
+}
+
+func ptr(s string) *string { return &s }
 
 func TestIsWindowsNode(t *testing.T) {
 	cases := []struct {

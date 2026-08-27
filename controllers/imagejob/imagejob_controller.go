@@ -23,6 +23,7 @@ import (
 
 	"golang.org/x/exp/slices"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -60,6 +61,15 @@ const (
 	windowsOS              = "windows"
 	runtimeSockVolumeName  = "runtime-sock-volume"
 	windowsSandboxMountEnv = "%CONTAINER_SANDBOX_MOUNT_POINT%"
+
+	// windowsMinMemoryLimit is the smallest memory limit a Windows HostProcess
+	// worker container is given. On Windows a memory limit is enforced job-wide
+	// via a Job Object, and a limit too small for the Go runtime to start
+	// (e.g. the remover's 30Mi Linux default) makes the process crash during
+	// startup with STATUS_STACK_OVERFLOW (0xC00000FD) before any code runs.
+	// 256Mi was verified to start reliably on Windows Server 2022 /
+	// containerd 1.7; 30Mi does not. Larger configured limits are left as-is.
+	windowsMinMemoryLimit = "256Mi"
 )
 
 var log = logf.Log.WithName("controller").WithValues("process", "imagejob-controller")
@@ -631,11 +641,11 @@ func fillWindowsPodSpec(templateSpec *corev1.PodSpec) {
 		// seccompProfile, readOnlyRootFilesystem) that are invalid on Windows.
 		c.SecurityContext = nil
 
-		// Windows HostProcess containers run directly on the host and do not
-		// support CPU/memory requests or limits; leaving them set makes the
-		// container fail to start ("The system cannot execute the specified
-		// program").
-		c.Resources = corev1.ResourceRequirements{}
+		// A Windows memory limit is enforced job-wide via a Job Object. A limit
+		// too small for the Go runtime to start crashes the container before any
+		// code runs (STATUS_STACK_OVERFLOW). Raise an existing memory limit that
+		// is below the verified-safe minimum; leave an unset limit untouched.
+		raiseWindowsMemoryLimit(c)
 
 		c.Command = []string{windowsSandboxMountEnv + `\` + c.Name + ".exe"}
 
@@ -645,6 +655,20 @@ func fillWindowsPodSpec(templateSpec *corev1.PodSpec) {
 		for j := range c.Args {
 			c.Args[j] = translateEraserArg(c.Args[j])
 		}
+	}
+}
+
+// raiseWindowsMemoryLimit bumps a container's memory limit up to the
+// Windows-safe minimum when a smaller limit is configured. A limit that is not
+// set is left unset (no Job Object memory cap, so no startup crash).
+func raiseWindowsMemoryLimit(c *corev1.Container) {
+	limit, ok := c.Resources.Limits[corev1.ResourceMemory]
+	if !ok {
+		return
+	}
+	minLimit := resource.MustParse(windowsMinMemoryLimit)
+	if limit.Cmp(minLimit) < 0 {
+		c.Resources.Limits[corev1.ResourceMemory] = minLimit
 	}
 }
 
