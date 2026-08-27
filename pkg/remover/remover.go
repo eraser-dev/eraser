@@ -39,11 +39,6 @@ const (
 func main() {
 	flag.Parse()
 
-	// A terminating pod should not leave the worker blocked on a peer that is
-	// never going to arrive. The stop func is discarded rather than deferred
-	// because every exit path here is os.Exit, which would skip it anyway.
-	ctx, _ := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
-
 	if *enableProfile {
 		go func() {
 			server := &http.Server{
@@ -79,7 +74,7 @@ func main() {
 	}
 
 	if *imageListPtr == "" {
-		nonCompliantImages, err := util.ReadImagesPipe(ctx, util.ScanErasePath)
+		nonCompliantImages, err := util.ReadImagesPipe(context.Background(), util.ScanErasePath)
 		if err != nil {
 			log.Error(err, "error reading non-compliant images")
 			os.Exit(generalErr)
@@ -111,9 +106,24 @@ func main() {
 		log.Info("no images to exclude")
 	}
 
+	// Registering the handler suppresses the default SIGTERM exit, so it starts
+	// only here: once the peer publishes its endpoint the read above blocks in a
+	// call no context can interrupt, and covering it would swallow the signal
+	// until SIGKILL. The stop func is discarded rather than deferred because
+	// every exit path below is os.Exit, which would skip it anyway.
+	ctx, _ := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+
 	removed, err := removeImages(ctx, client, imagelist)
 	if err != nil {
 		log.Error(err, "failed to remove images")
+		os.Exit(generalErr)
+	}
+
+	// A signal that landed during removal was consumed rather than killing the
+	// process, and with --imagelist there is no completion write below to report
+	// it, so an interrupted run would otherwise exit 0 having removed nothing.
+	if err := ctx.Err(); err != nil {
+		log.Error(err, "terminating before removal finished", "removed", removed)
 		os.Exit(generalErr)
 	}
 
