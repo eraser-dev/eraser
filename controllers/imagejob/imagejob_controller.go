@@ -62,13 +62,6 @@ const (
 	runtimeSockVolumeName  = "runtime-sock-volume"
 	windowsSandboxMountEnv = "%CONTAINER_SANDBOX_MOUNT_POINT%"
 
-	// windowsMinMemoryLimit is the smallest memory limit a Windows HostProcess
-	// worker container is given. On Windows a memory limit is enforced job-wide
-	// via a Job Object, and a limit too small for the Go runtime to start
-	// (e.g. the remover's 30Mi Linux default) makes the process crash during
-	// startup with STATUS_STACK_OVERFLOW (0xC00000FD) before any code runs.
-	// 256Mi was verified to start reliably on Windows Server 2022 /
-	// containerd 1.7; 30Mi does not. Larger configured limits are left as-is.
 	windowsMinMemoryLimit = "256Mi"
 )
 
@@ -623,11 +616,7 @@ func fillLinuxPodSpec(templateSpec *corev1.PodSpec, runtimeSpec *unversioned.Run
 }
 
 // fillWindowsPodSpec turns the Linux-shaped template into a Windows HostProcess
-// pod. A HostProcess pod runs in the host network namespace and reaches the
-// containerd named pipe directly, so no CRI hostPath volume or mount is added.
-// The Linux-only container security context is dropped in favor of a HostProcess
-// pod-level security context, and eraser.sh paths in mounts, args and commands
-// are rewritten to their Windows form.
+// pod.
 func fillWindowsPodSpec(templateSpec *corev1.PodSpec) {
 	// Declare the pod's OS so the apiserver enforces Windows OS-field
 	// consistency (e.g. rejects leftover Linux-only securityContext fields).
