@@ -94,23 +94,26 @@ func WriteImagesPipe(ctx context.Context, path string, images []unversioned.Imag
 // watcher closes the file to unblock it.
 func writeAndClose(ctx context.Context, file *os.File, payload []byte) error {
 	done := make(chan struct{})
-	defer close(done)
+	closedByWatcher := make(chan bool, 1)
 
 	go func() {
 		select {
 		case <-ctx.Done():
 			_ = file.Close()
+			closedByWatcher <- true
 		case <-done:
+			closedByWatcher <- false
 		}
 	}()
 
 	_, err := file.Write(payload)
 
-	// The watcher may already have closed the file, which is what surfaced as the
-	// write error, so the context is checked before the error is trusted.
-	if ctxErr := ctx.Err(); ctxErr != nil {
-		_ = file.Close()
-		return ctxErr
+	// Joining the watcher before touching the file again is what makes the rest
+	// unambiguous: once it has reported, no cancellation close can still land,
+	// and whoever closed the file is known rather than guessed from the error.
+	close(done)
+	if <-closedByWatcher {
+		return ctx.Err()
 	}
 
 	if closeErr := file.Close(); closeErr != nil && err == nil {

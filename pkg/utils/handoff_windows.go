@@ -32,6 +32,10 @@ import (
 // checked up front.
 const maxSocketPath = 107
 
+// stalenessProbe bounds the connect used to tell a stale endpoint from a live
+// one. Both ends are local, so a listener that exists answers immediately.
+const stalenessProbe = time.Second
+
 // CompletionPipe is an endpoint a peer can observe before anything is read from
 // it. The scanner creates one early precisely so the remover can tell a scanner
 // is present, which means the listener has to outlive its creation.
@@ -101,24 +105,28 @@ func WriteImagesPipe(ctx context.Context, path string, images []unversioned.Imag
 // contract should not differ between the two.
 func sendAndClose(ctx context.Context, conn net.Conn, payload []byte) error {
 	done := make(chan struct{})
-	defer close(done)
+	closedByWatcher := make(chan bool, 1)
 
 	go func() {
 		select {
 		case <-ctx.Done():
 			_ = conn.Close()
+			closedByWatcher <- true
 		case <-done:
+			closedByWatcher <- false
 		}
 	}()
 
 	_, err := conn.Write(payload)
 
-	// The watcher may already have closed the connection, which is what surfaced
-	// as the write error, so the context is checked before the error is trusted.
-	if ctxErr := ctx.Err(); ctxErr != nil {
-		_ = conn.Close()
-		return ctxErr
+	// Joining the watcher before touching the connection again is what makes the
+	// rest unambiguous: once it has reported, no cancellation close can still
+	// land, and whoever closed it is known rather than guessed from the error.
+	close(done)
+	if <-closedByWatcher {
+		return ctx.Err()
 	}
+
 	if err != nil {
 		_ = conn.Close()
 		return err
@@ -204,6 +212,14 @@ func listen(path string) (net.Listener, error) {
 	case fi.Mode()&os.ModeSocket == 0:
 		return nil, fmt.Errorf("refusing to replace %q: it exists and is not a socket", path)
 	default:
+		// The mode says socket, not stale socket -- a live listener looks
+		// identical on disk. Connecting is the only way to tell, and stranding a
+		// peer that is still listening is worse than refusing to start.
+		if conn, err := net.DialTimeout("unix", path, stalenessProbe); err == nil {
+			_ = conn.Close()
+			return nil, fmt.Errorf("refusing to replace %q: something is still listening on it", path)
+		}
+
 		if err := os.Remove(path); err != nil && !errors.Is(err, fs.ErrNotExist) {
 			return nil, err
 		}

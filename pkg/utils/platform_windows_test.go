@@ -107,19 +107,48 @@ func TestListenReclaimsAStaleSocket(t *testing.T) {
 	dir := shortTempDir(t)
 	path := filepath.Join(dir, "stale")
 
-	stale, err := net.Listen("unix", path)
+	// Go unlinks the socket on Close, so the only endpoint left on disk is one
+	// nobody closed. SetUnlinkOnClose reproduces that without crashing a
+	// process: the file stays, the listener does not.
+	stale, err := net.ListenUnix("unix", &net.UnixAddr{Name: path, Net: "unix"})
 	if err != nil {
 		t.Fatal(err)
 	}
-	// leaks the endpoint on purpose: Close would unlink it and remove the case
-	// under test
-	t.Cleanup(func() { _ = stale.Close() })
+	stale.SetUnlinkOnClose(false)
+	if err := stale.Close(); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Lstat(path); err != nil {
+		t.Fatalf("the endpoint should still be on disk: %v", err)
+	}
 
 	l, err := listen(path)
 	if err != nil {
 		t.Fatalf("listen over a stale socket: %v", err)
 	}
 	_ = l.Close()
+}
+
+// The case above is indistinguishable from this one by mode alone, and taking
+// the path from a peer that is still listening would strand it silently.
+func TestListenRefusesALiveSocket(t *testing.T) {
+	dir := shortTempDir(t)
+	path := filepath.Join(dir, "live")
+
+	live, err := net.Listen("unix", path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = live.Close() }()
+
+	if l, err := listen(path); err == nil {
+		_ = l.Close()
+		t.Fatal("listen replaced a live socket, want an error")
+	}
+
+	if _, err := os.Lstat(path); err != nil {
+		t.Errorf("the live endpoint was removed anyway: %v", err)
+	}
 }
 
 func TestMkfifoUnsupported(t *testing.T) {
