@@ -86,3 +86,26 @@ func TestRemoveImages(t *testing.T) {
 		})
 	}
 }
+
+// removeImages builds its deadline from the caller rather than Background, so
+// that a SIGTERM registered process-wide actually reaches the runtime. Nothing
+// above notices if that regresses -- every case passes a context that is never
+// done -- so this pins it: a caller who has already gone must not get images
+// deleted on their behalf.
+func TestRemoveImagesPassesTheCallersContextToTheRuntime(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	client := &testClient{t: t, images: []*v1.Image{{Id: "sha256:aaaa"}}}
+
+	removed, err := removeImages(ctx, client, []string{"sha256:aaaa"})
+	if err != nil {
+		t.Fatalf("removeImages: %v", err)
+	}
+	if removed != 0 {
+		t.Errorf("removed = %d, want 0", removed)
+	}
+	if len(client.images) != 1 {
+		t.Error("the image was deleted for a caller that was already gone")
+	}
+}
