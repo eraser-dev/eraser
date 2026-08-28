@@ -88,28 +88,60 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Registering the handler suppresses the default SIGTERM exit, so it covers
+	// Registering a handler suppresses the default SIGTERM exit, so it covers
 	// exactly the one call that observes ctx. Everything above builds its own
 	// timeouts from Background, and Await below has no context at all; holding
 	// the handler across either would swallow the signal.
-	ctx, stopSignals := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	//
+	// signal.Notify rather than NotifyContext, because deregistering has to stay
+	// distinguishable from receiving a signal, and NotifyContext's stop func
+	// cancels the very context a signal would.
+	sigCh := make(chan os.Signal, 1)
+	signal.Notify(sigCh, os.Interrupt, syscall.SIGTERM)
 
-	if err := util.WriteImagesPipe(ctx, path, finalImages); err != nil {
-		stopSignals()
-		log.Error(err, "failed to send images", "pipeFile", path)
+	ctx, cancel := context.WithCancel(context.Background())
+	signaled := make(chan struct{})
+	watching := make(chan struct{})
+	go func() {
+		defer close(watching)
+		select {
+		case <-sigCh:
+			close(signaled)
+			cancel()
+		case <-ctx.Done():
+		}
+	}()
+
+	writeErr := util.WriteImagesPipe(ctx, path, finalImages)
+
+	// Deregister, then join the watcher. Afterwards a signal has either closed
+	// signaled or is still sitting in the buffer, and there is no third
+	// outcome -- previously one that landed between the check and the stop was
+	// consumed by the handler and lost, leaving the collector in an Await it
+	// could not be interrupted out of.
+	signal.Stop(sigCh)
+	cancel()
+	<-watching
+
+	terminating := false
+	select {
+	case <-signaled:
+		terminating = true
+	default:
+		select {
+		case <-sigCh:
+			terminating = true
+		default:
+		}
+	}
+
+	if writeErr != nil {
+		log.Error(writeErr, "failed to send images", "pipeFile", path)
 		os.Exit(1)
 	}
 
-	// Read before stopping, because stopSignals cancels this context itself:
-	// checked afterwards it would always report Canceled, and the collector
-	// would exit on every successful run instead of waiting for the erase.
-	sigErr := ctx.Err()
-	stopSignals()
-
-	// A signal that landed while the handler was registered was consumed rather
-	// than killing the process, so it has to be acted on here.
-	if sigErr != nil {
-		log.Error(sigErr, "terminating before waiting for completion")
+	if terminating {
+		log.Error(context.Canceled, "terminating before waiting for completion")
 		os.Exit(1)
 	}
 

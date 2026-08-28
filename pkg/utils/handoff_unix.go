@@ -93,7 +93,7 @@ func WriteImagesPipe(ctx context.Context, path string, images []unversioned.Imag
 // buffer fills, a reader that stops draining blocks the write too, so the
 // watcher closes the file to unblock it.
 //
-// That last part is Linux behaviour. Closing a FIFO does not wake a write that
+// That last part is Linux behavior. Closing a FIFO does not wake a write that
 // is already blocked on Darwin, so there cancellation is only observed once the
 // reader drains enough for the write to finish. Eraser's workers run on Linux
 // and Windows nodes, so this file is built for every non-Windows target but
