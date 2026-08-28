@@ -146,11 +146,11 @@ func assertListenRefuses(t *testing.T, path string) {
 	}
 }
 
-// The endpoints here serve exactly one connection, and the volume is shared
-// with a scanner image we do not control, so a connect that says nothing must
-// not be mistaken for the peer -- doing so would hand the listener an empty
-// payload and leave the real worker with nothing waiting for it.
-func TestAwaitIgnoresAConnectThatSaysNothing(t *testing.T) {
+// These endpoints serve exactly one connection and the peer does not reconnect,
+// so a connect that says nothing means the writer died or was canceled before
+// sending. Reporting it beats waiting for a second connection that is never
+// coming.
+func TestAwaitReportsAConnectThatSaysNothing(t *testing.T) {
 	path := filepath.Join(shortTempDir(t), "complete")
 	ctx := testContext(t)
 
@@ -160,17 +160,13 @@ func TestAwaitIgnoresAConnectThatSaysNothing(t *testing.T) {
 	}
 	defer func() { _ = pipe.Close() }()
 
-	// the listener is already published, so this is queued ahead of the peer
-	probe, err := net.DialTimeout("unix", path, time.Second)
+	conn, err := net.DialTimeout("unix", path, time.Second)
 	if err != nil {
 		t.Fatalf("connecting to the endpoint: %v", err)
 	}
-	if err := probe.Close(); err != nil {
+	if err := conn.Close(); err != nil {
 		t.Fatal(err)
 	}
-
-	errCh := make(chan error, 1)
-	go func() { errCh <- WriteCompletionPipe(ctx, path) }()
 
 	type awaited struct {
 		data []byte
@@ -182,21 +178,13 @@ func TestAwaitIgnoresAConnectThatSaysNothing(t *testing.T) {
 		awaitCh <- awaited{data: data, err: err}
 	}()
 
-	var got awaited
 	select {
-	case got = <-awaitCh:
+	case got := <-awaitCh:
+		if !errors.Is(got.err, ErrEmptyHandoff) {
+			t.Errorf("Await = (%q, %v), want ErrEmptyHandoff", string(got.data), got.err)
+		}
 	case <-ctx.Done():
 		t.Fatalf("Await did not return within the deadline: %v", ctx.Err())
-	}
-	if got.err != nil {
-		t.Fatalf("Await: %v", got.err)
-	}
-	if err := <-errCh; err != nil {
-		t.Fatalf("WriteCompletionPipe: %v", err)
-	}
-
-	if string(got.data) != EraseCompleteMessage {
-		t.Errorf("payload = %q, want %q -- the probe was taken for the peer", string(got.data), EraseCompleteMessage)
 	}
 }
 

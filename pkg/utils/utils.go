@@ -38,6 +38,7 @@ var (
 	ErrProtocolNotSupported  = errors.New("protocol not supported")
 	ErrEndpointDeprecated    = errors.New("endpoint is deprecated, please consider using full url format")
 	ErrOnlySupportUnixSocket = errors.New("only support unix socket endpoint")
+	ErrEmptyHandoff          = errors.New("peer connected to the handoff endpoint without sending anything")
 )
 
 func GetConn(ctx context.Context, socketPath string) (conn *grpc.ClientConn, err error) {

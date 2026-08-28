@@ -52,29 +52,25 @@ func CreateCompletionPipe(path string) (*CompletionPipe, error) {
 // Await blocks until a peer signals completion. The payload is returned
 // unvalidated so callers keep their existing handling of unexpected content.
 func (p *CompletionPipe) Await() ([]byte, error) {
-	for {
-		conn, err := p.l.Accept()
-		if err != nil {
-			return nil, err
-		}
-
-		data, err := io.ReadAll(conn)
-		_ = conn.Close()
-		if err != nil {
-			return nil, err
-		}
-
-		// A connect that says nothing is not the peer: listen probes this
-		// endpoint to tell a live socket from a stale one, and the volume is
-		// shared, so the peer is not the only thing that can knock. Accepting
-		// one of those as the signal would strand the worker that meant to send
-		// it.
-		if len(data) == 0 {
-			continue
-		}
-
-		return data, nil
+	conn, err := p.l.Accept()
+	if err != nil {
+		return nil, err
 	}
+
+	data, err := io.ReadAll(conn)
+	_ = conn.Close()
+	if err != nil {
+		return nil, err
+	}
+
+	// The peer sends a fixed message and does not reconnect, so an empty read
+	// means it died or was canceled before writing. Waiting for a second
+	// connection would wait for one that is never coming.
+	if len(data) == 0 {
+		return nil, ErrEmptyHandoff
+	}
+
+	return data, nil
 }
 
 // Close releases the endpoint, which also unpublishes it. Callers both defer
@@ -167,33 +163,32 @@ func ReadImagesPipe(ctx context.Context, path string) ([]unversioned.Image, erro
 		}
 	}()
 
-	for {
-		conn, err := l.Accept()
-		if err != nil {
-			if ctxErr := ctx.Err(); ctxErr != nil {
-				return nil, ctxErr
-			}
-			return nil, err
+	conn, err := l.Accept()
+	if err != nil {
+		if ctxErr := ctx.Err(); ctxErr != nil {
+			return nil, ctxErr
 		}
-
-		data, err := io.ReadAll(conn)
-		_ = conn.Close()
-		if err != nil {
-			return nil, err
-		}
-
-		// see Await: a connect that says nothing is not the writer
-		if len(data) == 0 {
-			continue
-		}
-
-		images := []unversioned.Image{}
-		if err := json.Unmarshal(data, &images); err != nil {
-			return nil, err
-		}
-
-		return images, nil
+		return nil, err
 	}
+
+	data, err := io.ReadAll(conn)
+	_ = conn.Close()
+	if err != nil {
+		return nil, err
+	}
+
+	// see Await: the writer does not reconnect, so an empty read is a failure
+	// rather than something to wait past
+	if len(data) == 0 {
+		return nil, ErrEmptyHandoff
+	}
+
+	images := []unversioned.Image{}
+	if err := json.Unmarshal(data, &images); err != nil {
+		return nil, err
+	}
+
+	return images, nil
 }
 
 // WriteCompletionPipe signals a peer that this stage is done. The returned error
