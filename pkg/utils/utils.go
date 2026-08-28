@@ -35,6 +35,11 @@ const (
 	EraseCompleteScanPath    = LinuxSharedDataPath + "/eraseCompleteScan"
 
 	EnvEraserRuntimeName = "ERASER_RUNTIME_NAME"
+
+	// EnvEraserRuntimeAddress carries the CRI endpoint to Windows workers. The
+	// manager sets it from RuntimeSpec.WindowsAddress because a Windows named
+	// pipe cannot be hostPath-mounted the way a Linux socket is.
+	EnvEraserRuntimeAddress = "ERASER_RUNTIME_ADDRESS"
 )
 
 type ExclusionList struct {

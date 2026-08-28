@@ -34,6 +34,12 @@ type (
 	RuntimeSpec struct {
 		Name    Runtime `json:"name"`
 		Address string  `json:"address"`
+		// WindowsAddress is the CRI endpoint used by workers scheduled on
+		// Windows nodes. Windows containerd is exposed through a named pipe that
+		// cannot be hostPath-mounted like a Linux socket, so the manager
+		// propagates this value to Windows workers via an environment variable
+		// instead of a volume mount. Defaults to the containerd named pipe.
+		WindowsAddress string `json:"windowsAddress,omitempty"`
 	}
 )
 
@@ -46,6 +52,10 @@ const (
 	ContainerdPath = "/run/containerd/containerd.sock"
 	DockerPath     = "/run/dockershim.sock"
 	CrioPath       = "/run/crio/crio.sock"
+
+	// DefaultWindowsRuntimeAddress is the containerd named pipe used by Windows
+	// workers when no WindowsAddress is configured.
+	DefaultWindowsRuntimeAddress = `npipe://./pipe/containerd-containerd`
 )
 
 func ConvertRuntimeToRuntimeSpec(r Runtime) (RuntimeSpec, error) {
@@ -88,8 +98,9 @@ func (td *Duration) MarshalJSON() ([]byte, error) {
 func (r *RuntimeSpec) UnmarshalJSON(b []byte) error {
 	// create temp RuntimeSpec to prevent recursive error into this function when using unmarshall to check validity of provided RuntimeSpec
 	type TempRuntimeSpec struct {
-		Name    string `json:"name"`
-		Address string `json:"address"`
+		Name           string `json:"name"`
+		Address        string `json:"address"`
+		WindowsAddress string `json:"windowsAddress"`
 	}
 	var rs TempRuntimeSpec
 	err := json.Unmarshal(b, &rs)
@@ -115,17 +126,15 @@ func (r *RuntimeSpec) UnmarshalJSON(b []byte) error {
 
 			r.Name = Runtime(rs.Name)
 			r.Address = rs.Address
+		} else {
+			// if RuntimeAddress is not provided, get defaults
+			converted, err := ConvertRuntimeToRuntimeSpec(rt)
+			if err != nil {
+				return err
+			}
 
-			return nil
+			*r = converted
 		}
-
-		// if RuntimeAddress is not provided, get defaults
-		converted, err := ConvertRuntimeToRuntimeSpec(rt)
-		if err != nil {
-			return err
-		}
-
-		*r = converted
 	case RuntimeNotProvided:
 		if rs.Address != "" {
 			return fmt.Errorf("runtime name must be provided with address")
@@ -138,7 +147,35 @@ func (r *RuntimeSpec) UnmarshalJSON(b []byte) error {
 		return fmt.Errorf("invalid runtime: valid names are %s, %s, %s", RuntimeContainerd, RuntimeDockerShim, RuntimeCrio)
 	}
 
+	// resolve the Windows runtime address, defaulting to the containerd named
+	// pipe when it is not explicitly configured.
+	winAddr, err := resolveWindowsRuntimeAddress(rs.WindowsAddress)
+	if err != nil {
+		return err
+	}
+	r.WindowsAddress = winAddr
+
 	return nil
+}
+
+// resolveWindowsRuntimeAddress validates a user-provided Windows runtime
+// address and falls back to the containerd named pipe when none is given.
+func resolveWindowsRuntimeAddress(addr string) (string, error) {
+	if addr == "" {
+		return DefaultWindowsRuntimeAddress, nil
+	}
+
+	u, err := url.Parse(addr)
+	if err != nil {
+		return "", err
+	}
+
+	switch u.Scheme {
+	case "npipe", "tcp":
+		return addr, nil
+	default:
+		return "", fmt.Errorf("invalid windowsAddress scheme: valid schemes for the Windows runtime address are `npipe` and `tcp`")
+	}
 }
 
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!

@@ -79,6 +79,19 @@ func TestSocketPathLimitBoundary(t *testing.T) {
 	}
 }
 
+func TestResolveCRIPath(t *testing.T) {
+	t.Setenv(EnvEraserRuntimeAddress, "")
+	if got := resolveCRIPath(); got != defaultCRIPath {
+		t.Errorf("resolveCRIPath() with unset env = %q, want default %q", got, defaultCRIPath)
+	}
+
+	custom := "npipe://./pipe/custom-containerd"
+	t.Setenv(EnvEraserRuntimeAddress, custom)
+	if got := resolveCRIPath(); got != custom {
+		t.Errorf("resolveCRIPath() = %q, want %q", got, custom)
+	}
+}
+
 func TestMkfifoUnsupported(t *testing.T) {
 	if err := mkfifo("ignored", PipeMode); !errors.Is(err, ErrFifoUnsupported) {
 		t.Errorf("mkfifo on windows = %v, want ErrFifoUnsupported", err)

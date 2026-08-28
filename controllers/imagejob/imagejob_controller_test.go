@@ -55,8 +55,9 @@ func node(name, osLabel string) *corev1.Node {
 
 func runtimeSpec() *unversioned.RuntimeSpec {
 	return &unversioned.RuntimeSpec{
-		Name:    unversioned.RuntimeContainerd,
-		Address: "unix:///run/containerd/containerd.sock",
+		Name:           unversioned.RuntimeContainerd,
+		Address:        "unix:///run/containerd/containerd.sock",
+		WindowsAddress: "npipe://./pipe/custom-containerd",
 	}
 }
 
@@ -73,6 +74,15 @@ func containerMountPath(c *corev1.Container, volumeName string) (string, bool) {
 	for i := range c.VolumeMounts {
 		if c.VolumeMounts[i].Name == volumeName {
 			return c.VolumeMounts[i].MountPath, true
+		}
+	}
+	return "", false
+}
+
+func containerEnv(c *corev1.Container, name string) (string, bool) {
+	for i := range c.Env {
+		if c.Env[i].Name == name {
+			return c.Env[i].Value, true
 		}
 	}
 	return "", false
@@ -154,6 +164,11 @@ func TestCopyAndFillTemplateSpecWindows(t *testing.T) {
 		if c.SecurityContext != nil {
 			t.Errorf("container %q Linux SecurityContext should be cleared on Windows", c.Name)
 		}
+		// The configured Windows runtime address is propagated to every worker
+		// via an env var (a named pipe cannot be hostPath-mounted).
+		if got, ok := containerEnv(c, eraserUtils.EnvEraserRuntimeAddress); !ok || got != "npipe://./pipe/custom-containerd" {
+			t.Errorf("container %q %s env = %q (present=%v), want npipe://./pipe/custom-containerd", c.Name, eraserUtils.EnvEraserRuntimeAddress, got, ok)
+		}
 	}
 
 	// collector had a 30Mi memory limit (< 256Mi) -> raised to 256Mi; its 25Mi
@@ -188,6 +203,22 @@ func TestCopyAndFillTemplateSpecWindows(t *testing.T) {
 	wantCmd := `%CONTAINER_SANDBOX_MOUNT_POINT%\remover.exe`
 	if len(rem.Command) != 1 || rem.Command[0] != wantCmd {
 		t.Errorf("remover command = %v, want [%s]", rem.Command, wantCmd)
+	}
+}
+
+// When no Windows runtime address is configured, no env override is injected;
+// the worker falls back to its default containerd pipe.
+func TestCopyAndFillTemplateSpecWindowsNoRuntimeAddress(t *testing.T) {
+	rs := &unversioned.RuntimeSpec{Name: unversioned.RuntimeContainerd, Address: "unix:///run/containerd/containerd.sock"}
+	spec, err := copyAndFillTemplateSpec(newTemplateSpec(), nil, node("win-node", "windows"), rs)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	for i := range spec.Containers {
+		c := &spec.Containers[i]
+		if v, ok := containerEnv(c, eraserUtils.EnvEraserRuntimeAddress); ok {
+			t.Errorf("container %q should not have %s env when unset, got %q", c.Name, eraserUtils.EnvEraserRuntimeAddress, v)
+		}
 	}
 }
 

@@ -570,7 +570,7 @@ func copyAndFillTemplateSpec(templateSpecTemplate *corev1.PodSpec, env []corev1.
 	}
 
 	if isWindowsNode(node) {
-		fillWindowsPodSpec(templateSpec)
+		fillWindowsPodSpec(templateSpec, runtimeSpec)
 		return templateSpec, nil
 	}
 
@@ -617,18 +617,30 @@ func fillLinuxPodSpec(templateSpec *corev1.PodSpec, runtimeSpec *unversioned.Run
 
 // fillWindowsPodSpec turns the Linux-shaped template into a Windows HostProcess
 // pod.
-func fillWindowsPodSpec(templateSpec *corev1.PodSpec) {
+func fillWindowsPodSpec(templateSpec *corev1.PodSpec, runtimeSpec *unversioned.RuntimeSpec) {
 	// Declare the pod's OS so the apiserver enforces Windows OS-field
 	// consistency (e.g. rejects leftover Linux-only securityContext fields).
 	templateSpec.OS = &corev1.PodOS{Name: corev1.Windows}
 	templateSpec.HostNetwork = true
 	templateSpec.SecurityContext = eraserUtils.WindowsHostProcessPodSecurityContext()
 
+	// A Windows named pipe cannot be hostPath-mounted like a Linux socket, so
+	// the CRI endpoint is propagated to workers via an environment variable.
+	var runtimeAddressEnv []corev1.EnvVar
+	if runtimeSpec != nil && runtimeSpec.WindowsAddress != "" {
+		runtimeAddressEnv = []corev1.EnvVar{{
+			Name:  eraserUtils.EnvEraserRuntimeAddress,
+			Value: runtimeSpec.WindowsAddress,
+		}}
+	}
+
 	for i := range templateSpec.Containers {
 		c := &templateSpec.Containers[i]
 		// SharedSecurityContext sets Linux-only fields (capabilities,
 		// seccompProfile, readOnlyRootFilesystem) that are invalid on Windows.
 		c.SecurityContext = nil
+
+		c.Env = append(c.Env, runtimeAddressEnv...)
 
 		// A Windows memory limit is enforced job-wide via a Job Object. A limit
 		// too small for the Go runtime to start crashes the container before any
