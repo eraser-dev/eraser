@@ -55,20 +55,38 @@ func TestImagesHandoffRoundTrip(t *testing.T) {
 	errCh := make(chan error, 1)
 	go func() { errCh <- WriteImagesPipe(ctx, path, want) }()
 
-	got, err := ReadImagesPipe(ctx, path)
-	if err != nil {
-		t.Fatalf("ReadImagesPipe: %v", err)
+	// The read has to be off the test goroutine for the deadline to mean
+	// anything: once the FIFO opens or the socket accepts, the payload read
+	// stops observing ctx, so a stalled peer would hang here rather than fail.
+	type readResult struct {
+		images []unversioned.Image
+		err    error
+	}
+	readCh := make(chan readResult, 1)
+	go func() {
+		images, err := ReadImagesPipe(ctx, path)
+		readCh <- readResult{images: images, err: err}
+	}()
+
+	var got readResult
+	select {
+	case got = <-readCh:
+	case <-ctx.Done():
+		t.Fatalf("ReadImagesPipe did not return within the deadline: %v", ctx.Err())
+	}
+	if got.err != nil {
+		t.Fatalf("ReadImagesPipe: %v", got.err)
 	}
 	if err := <-errCh; err != nil {
 		t.Fatalf("WriteImagesPipe: %v", err)
 	}
 
-	if len(got) != len(want) {
-		t.Fatalf("got %d images, want %d", len(got), len(want))
+	if len(got.images) != len(want) {
+		t.Fatalf("got %d images, want %d", len(got.images), len(want))
 	}
 	for i := range want {
-		if got[i].ImageID != want[i].ImageID {
-			t.Errorf("image %d = %q, want %q", i, got[i].ImageID, want[i].ImageID)
+		if got.images[i].ImageID != want[i].ImageID {
+			t.Errorf("image %d = %q, want %q", i, got.images[i].ImageID, want[i].ImageID)
 		}
 	}
 }
