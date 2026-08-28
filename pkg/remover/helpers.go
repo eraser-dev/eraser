@@ -76,7 +76,11 @@ func removeImages(ctx context.Context, c cri.Remover, targetImages []string) (in
 
 	// remove target images
 	var prune bool
-	deletedImages := make(map[string]struct{}, len(targetImages))
+	// Keyed by image ID rather than by the alias that reached it. nonRunningImages
+	// holds an entry for the ID, for every tag and for every digest, so one image
+	// is reached several times over -- and since each deletion carries its own
+	// budget, an untracked retry would hand the same image that budget again.
+	handled := make(map[string]struct{}, len(nonRunningImages))
 	for _, imgDigestOrTag := range targetImages {
 		// Without this the loop keeps going once the caller is gone, logging one
 		// instant failure per remaining image and still reporting partial success.
@@ -96,6 +100,11 @@ func removeImages(ctx context.Context, c cri.Remover, targetImages []string) (in
 				continue
 			}
 
+			if _, done := handled[imageID]; done {
+				continue
+			}
+			handled[imageID] = struct{}{}
+
 			err = deleteImage(ctx, c, imageID)
 			if err != nil {
 				// A per-image timeout is that image's problem and the run carries
@@ -111,7 +120,6 @@ func removeImages(ctx context.Context, c cri.Remover, targetImages []string) (in
 				continue
 			}
 
-			deletedImages[imgDigestOrTag] = struct{}{}
 			log.Info("removed image", "given", imgDigestOrTag, "imageID", imageID, "name", idToImageMap[imageID])
 			removed++
 			continue
@@ -134,7 +142,7 @@ func removeImages(ctx context.Context, c cri.Remover, targetImages []string) (in
 				return removed, err
 			}
 
-			if _, deleted := deletedImages[imageID]; deleted {
+			if _, done := handled[imageID]; done {
 				continue
 			}
 
@@ -142,6 +150,7 @@ func removeImages(ctx context.Context, c cri.Remover, targetImages []string) (in
 				log.Info("image is excluded", "imageID", imageID, "name", idToImageMap[imageID])
 				continue
 			}
+			handled[imageID] = struct{}{}
 
 			if err := deleteImage(ctx, c, imageID); err != nil {
 				if ctxErr := ctx.Err(); ctxErr != nil {
@@ -155,7 +164,6 @@ func removeImages(ctx context.Context, c cri.Remover, targetImages []string) (in
 			}
 
 			log.Info("removed image", "digest", imageID)
-			deletedImages[imageID] = struct{}{}
 			removed++
 		}
 		if success {

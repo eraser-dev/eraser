@@ -21,10 +21,11 @@ func TestRemoveImagesSurfacesCancellationDuringTheFinalDeletion(t *testing.T) {
 			{Id: "bbb"},
 		},
 	}
-	client.beforeDelete = func(image string) {
+	client.beforeDelete = func(image string) error {
 		if image == "bbb" {
 			cancel()
 		}
+		return nil
 	}
 
 	removed, err := removeImages(ctx, client, []string{"aaa", "bbb"})
@@ -33,6 +34,37 @@ func TestRemoveImagesSurfacesCancellationDuringTheFinalDeletion(t *testing.T) {
 	}
 	if removed != 1 {
 		t.Errorf("removed = %d, want 1 -- the first deletion did succeed", removed)
+	}
+}
+
+// nonRunningImages holds an entry for the ID, for every tag and for every
+// digest, so a prune reaches one image several times over. A deletion that
+// fails is what exposes it: a successful one is already unreachable a second
+// time, whereas a failure used to be retried per alias, each retry starting
+// the per-image budget again.
+func TestRemoveImagesPrunesAnImageOnceAcrossItsAliases(t *testing.T) {
+	client := &testClient{
+		t: t,
+		images: []*v1.Image{
+			{
+				Id:          "sha256:aaaa",
+				RepoTags:    []string{"repo/one:v1"},
+				RepoDigests: []string{"repo/one@sha256:bbbb"},
+			},
+		},
+	}
+
+	attempts := 0
+	client.beforeDelete = func(string) error {
+		attempts++
+		return errImageNotRemoved
+	}
+
+	if _, err := removeImages(context.Background(), client, []string{"*"}); err != nil {
+		t.Fatalf("removeImages: %v", err)
+	}
+	if attempts != 1 {
+		t.Errorf("DeleteImage attempted %d times for one image, want 1", attempts)
 	}
 }
 

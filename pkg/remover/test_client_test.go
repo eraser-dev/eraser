@@ -20,8 +20,9 @@ type testClient struct {
 	t          testLogger
 
 	// beforeDelete runs at the start of DeleteImage, so a test can make the
-	// caller go away partway through the run.
-	beforeDelete func(image string)
+	// caller go away partway through the run, or fail the call the way a runtime
+	// that ran out of time would.
+	beforeDelete func(image string) error
 }
 
 var (
@@ -95,7 +96,9 @@ func (c *testClient) DeleteImage(ctx context.Context, image string) (err error) 
 	c.logf("DeleteImage: %s", image)
 
 	if c.beforeDelete != nil {
-		c.beforeDelete(image)
+		if err := c.beforeDelete(image); err != nil {
+			return err
+		}
 	}
 
 	// a real CRI client fails the call rather than deleting anyway
