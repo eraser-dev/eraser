@@ -9,6 +9,7 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 	"time"
 
@@ -24,6 +25,12 @@ import (
 // completing in 11ms on Windows, because the OS accepts the whole overlapped
 // send regardless of size.
 func TestWriteImagesPipeHonoursCancellationWhileBlockedOnAStalledReader(t *testing.T) {
+	// Closing a FIFO does not wake an already-blocked write outside Linux, so
+	// elsewhere this would sit here until the deadline rather than fail fast.
+	if runtime.GOOS != "linux" {
+		t.Skipf("closing a blocked FIFO write is only guaranteed to unblock it on linux, not %s", runtime.GOOS)
+	}
+
 	path := filepath.Join(shortTempDir(t), "stalled")
 
 	// well past the 64 KiB pipe buffer, so the write cannot simply complete
