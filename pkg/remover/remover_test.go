@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"testing"
+	"time"
 
 	v1 "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
@@ -21,7 +22,7 @@ func TestRemoveImagesSurfacesCancellationDuringTheFinalDeletion(t *testing.T) {
 			{Id: "bbb"},
 		},
 	}
-	client.beforeDelete = func(image string) error {
+	client.beforeDelete = func(_ context.Context, image string) error {
 		if image == "bbb" {
 			cancel()
 		}
@@ -55,7 +56,7 @@ func TestRemoveImagesPrunesAnImageOnceAcrossItsAliases(t *testing.T) {
 	}
 
 	attempts := 0
-	client.beforeDelete = func(string) error {
+	client.beforeDelete = func(context.Context, string) error {
 		attempts++
 		return errImageNotRemoved
 	}
@@ -65,6 +66,54 @@ func TestRemoveImagesPrunesAnImageOnceAcrossItsAliases(t *testing.T) {
 	}
 	if attempts != 1 {
 		t.Errorf("DeleteImage attempted %d times for one image, want 1", attempts)
+	}
+}
+
+// The point of this PR is that the budget is per deletion rather than per run,
+// and every other test here would still pass if the timeout moved back outside
+// the loops or the parent context were handed straight to the runtime. This one
+// looks at the deadlines themselves.
+func TestRemoveImagesGivesEachDeletionItsOwnDeadline(t *testing.T) {
+	client := &testClient{
+		t: t,
+		images: []*v1.Image{
+			{Id: "aaa"},
+			{Id: "bbb"},
+			{Id: "ccc"},
+		},
+	}
+
+	var deadlines []time.Time
+	client.beforeDelete = func(ctx context.Context, image string) error {
+		d, ok := ctx.Deadline()
+		if !ok {
+			t.Errorf("DeleteImage(%s) got a context with no deadline", image)
+			return nil
+		}
+		deadlines = append(deadlines, d)
+
+		// guarantees the clock moves between deletions, so a shared deadline is
+		// distinguishable from a fresh one rather than merely unlikely
+		time.Sleep(2 * time.Millisecond)
+		return nil
+	}
+
+	// the parent has no deadline of its own, so anything seen above came from
+	// the per-deletion budget
+	if _, err := removeImages(context.Background(), client, []string{"aaa", "bbb", "ccc"}); err != nil {
+		t.Fatalf("removeImages: %v", err)
+	}
+
+	if len(deadlines) != 3 {
+		t.Fatalf("saw %d deletions, want 3", len(deadlines))
+	}
+	for i, d := range deadlines {
+		if until := time.Until(d); until <= 0 || until > deleteTimeout {
+			t.Errorf("deletion %d has %v left, want a fresh budget of at most %v", i, until, deleteTimeout)
+		}
+	}
+	if !deadlines[2].After(deadlines[0]) {
+		t.Error("every deletion shared one deadline, so the budget is per run rather than per image")
 	}
 }
 
