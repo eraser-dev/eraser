@@ -173,6 +173,7 @@ func openStalledPeer(t *testing.T, path string) io.Closer {
 
 	return f
 }
+
 func TestAwaitReportsAWriterThatSaysNothing(t *testing.T) {
 	path := filepath.Join(shortTempDir(t), "complete")
 	ctx := testContext(t)
