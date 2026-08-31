@@ -5,7 +5,6 @@ package utils
 import (
 	"context"
 	"encoding/json"
-	"io"
 	"os"
 	"time"
 
@@ -40,28 +39,16 @@ func CreateCompletionPipe(path string) (*CompletionPipe, error) {
 
 // Await blocks until a peer signals completion. The payload is returned
 // unvalidated so callers keep their existing handling of unexpected content.
-func (p *CompletionPipe) Await() ([]byte, error) {
-	//nolint:gosec // G304: Opening pipe file is intended functionality
-	file, err := os.OpenFile(p.path, os.O_RDONLY, 0)
+// Await blocks until a peer signals completion, or ctx is done. The payload is
+// returned unvalidated so callers keep their existing handling of unexpected
+// content.
+func (p *CompletionPipe) Await(ctx context.Context) ([]byte, error) {
+	file, err := openFifo(ctx, p.path, os.O_RDONLY)
 	if err != nil {
 		return nil, err
 	}
 
-	data, err := io.ReadAll(file)
-	if closeErr := file.Close(); closeErr != nil && err == nil {
-		err = closeErr
-	}
-	if err != nil {
-		return nil, err
-	}
-
-	// see the socket implementation: the peer sends a fixed message, so nothing
-	// legitimate opens the endpoint and writes nothing
-	if len(data) == 0 {
-		return nil, ErrEmptyHandoff
-	}
-
-	return data, nil
+	return readAndClose(ctx, file)
 }
 
 // Close releases this process's hold on the endpoint. The FIFO itself is left
@@ -86,7 +73,7 @@ func WriteImagesPipe(ctx context.Context, path string, images []unversioned.Imag
 		return err
 	}
 
-	file, err := openForWrite(ctx, path)
+	file, err := openFifo(ctx, path, os.O_WRONLY)
 	if err != nil {
 		return err
 	}
@@ -135,12 +122,12 @@ func writeAndClose(ctx context.Context, file *os.File, payload []byte) error {
 	return err
 }
 
-// openForWrite opens a FIFO for writing, which blocks in the kernel until a
-// reader arrives. The open itself is left untouched -- the rendezvous, and the
+// openFifo opens a FIFO, which blocks in the kernel until the other end
+// arrives. The open itself is left untouched -- the rendezvous, and the
 // behavior every existing deployment depends on, is exactly as before. Only
 // the waiting is made interruptible, by doing it on a goroutine that hands the
 // file over if anyone is still listening and closes it if not.
-func openForWrite(ctx context.Context, path string) (*os.File, error) {
+func openFifo(ctx context.Context, path string, flag int) (*os.File, error) {
 	type opened struct {
 		file *os.File
 		err  error
@@ -155,7 +142,7 @@ func openForWrite(ctx context.Context, path string) (*os.File, error) {
 
 	go func() {
 		//nolint:gosec // G304: Opening pipe file is intended functionality
-		file, err := os.OpenFile(path, os.O_WRONLY, 0)
+		file, err := os.OpenFile(path, flag, 0)
 		select {
 		case ch <- opened{file: file, err: err}:
 		case <-abandoned:
@@ -187,8 +174,7 @@ func ReadImagesPipe(ctx context.Context, path string) ([]unversioned.Image, erro
 	for {
 		var err error
 
-		//nolint:gosec // G304: Opening pipe file is intended functionality
-		f, err = os.OpenFile(path, os.O_RDONLY, 0)
+		f, err = openFifo(ctx, path, os.O_RDONLY)
 		if err == nil {
 			break
 		}
@@ -205,17 +191,9 @@ func ReadImagesPipe(ctx context.Context, path string) ([]unversioned.Image, erro
 		}
 	}
 
-	data, err := io.ReadAll(f)
-	if closeErr := f.Close(); closeErr != nil && err == nil {
-		err = closeErr
-	}
+	data, err := readAndClose(ctx, f)
 	if err != nil {
 		return nil, err
-	}
-
-	// a writer that opened and wrote nothing, rather than a malformed list
-	if len(data) == 0 {
-		return nil, ErrEmptyHandoff
 	}
 
 	images := []unversioned.Image{}
@@ -237,7 +215,7 @@ func WriteCompletionPipe(ctx context.Context, path string) error {
 		return err
 	}
 
-	file, err := openForWrite(ctx, path)
+	file, err := openFifo(ctx, path, os.O_WRONLY)
 	if err != nil {
 		return err
 	}

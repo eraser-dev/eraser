@@ -88,64 +88,17 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Registering a handler suppresses the default SIGTERM exit, so it covers
-	// exactly the one call that observes ctx. Everything above builds its own
-	// timeouts from Background, and Await below has no context at all; holding
-	// the handler across either would swallow the signal.
-	//
-	// signal.Notify rather than NotifyContext, because deregistering has to stay
-	// distinguishable from receiving a signal, and NotifyContext's stop func
-	// cancels the very context a signal would.
-	sigCh := make(chan os.Signal, 1)
-	signal.Notify(sigCh, os.Interrupt, syscall.SIGTERM)
+	// Both calls below observe ctx, so the handler can stay registered for the
+	// rest of the process. The stop func is discarded rather than deferred
+	// because every exit path here is os.Exit, which would skip it anyway.
+	ctx, _ := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 
-	ctx, cancel := context.WithCancel(context.Background())
-	signaled := make(chan struct{})
-	watching := make(chan struct{})
-	go func() {
-		defer close(watching)
-		select {
-		case <-sigCh:
-			close(signaled)
-			cancel()
-		case <-ctx.Done():
-		}
-	}()
-
-	writeErr := util.WriteImagesPipe(ctx, path, finalImages)
-
-	// Deregister, then join the watcher. Afterwards a signal has either closed
-	// signaled or is still sitting in the buffer, and there is no third
-	// outcome -- previously one that landed between the check and the stop was
-	// consumed by the handler and lost, leaving the collector in an Await it
-	// could not be interrupted out of.
-	signal.Stop(sigCh)
-	cancel()
-	<-watching
-
-	terminating := false
-	select {
-	case <-signaled:
-		terminating = true
-	default:
-		select {
-		case <-sigCh:
-			terminating = true
-		default:
-		}
-	}
-
-	if writeErr != nil {
-		log.Error(writeErr, "failed to send images", "pipeFile", path)
+	if err := util.WriteImagesPipe(ctx, path, finalImages); err != nil {
+		log.Error(err, "failed to send images", "pipeFile", path)
 		os.Exit(1)
 	}
 
-	if terminating {
-		log.Error(context.Canceled, "terminating before waiting for completion")
-		os.Exit(1)
-	}
-
-	data, err := completion.Await()
+	data, err := completion.Await(ctx)
 	if err != nil {
 		log.Error(err, "failed to read pipe", "pipeFile", util.EraseCompleteCollectPath)
 		os.Exit(1)

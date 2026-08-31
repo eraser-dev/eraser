@@ -182,23 +182,9 @@ func TestAwaitReportsAWriterThatSaysNothing(t *testing.T) {
 		_ = f.Close()
 	}()
 
-	type awaited struct {
-		data []byte
-		err  error
-	}
-	awaitCh := make(chan awaited, 1)
-	go func() {
-		data, err := pipe.Await()
-		awaitCh <- awaited{data: data, err: err}
-	}()
-
-	select {
-	case got := <-awaitCh:
-		if !errors.Is(got.err, ErrEmptyHandoff) {
-			t.Errorf("Await = (%q, %v), want ErrEmptyHandoff", string(got.data), got.err)
-		}
-	case <-ctx.Done():
-		t.Fatalf("Await did not return within the deadline: %v", ctx.Err())
+	data, err := pipe.Await(ctx)
+	if !errors.Is(err, ErrEmptyHandoff) {
+		t.Errorf("Await = (%q, %v), want ErrEmptyHandoff", string(data), err)
 	}
 }
 

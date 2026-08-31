@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net"
 	"net/url"
 	"os"
@@ -32,6 +33,49 @@ const (
 
 type ExclusionList struct {
 	Excluded []string `json:"excluded"`
+}
+
+// readAndClose reads until the peer closes, which is what frames the message.
+// The read does not observe ctx once it has started, so the watcher closes the
+// handle to unblock it -- the same mechanism, and the same Linux caveat, as the
+// write side.
+func readAndClose(ctx context.Context, rc io.ReadCloser) ([]byte, error) {
+	done := make(chan struct{})
+	closedByWatcher := make(chan bool, 1)
+
+	go func() {
+		select {
+		case <-ctx.Done():
+			_ = rc.Close()
+			closedByWatcher <- true
+		case <-done:
+			closedByWatcher <- false
+		}
+	}()
+
+	data, err := io.ReadAll(rc)
+
+	// Joining the watcher first is what makes the rest unambiguous: once it has
+	// reported, no cancellation close can still land.
+	close(done)
+	if <-closedByWatcher {
+		return nil, ctx.Err()
+	}
+
+	if closeErr := rc.Close(); closeErr != nil && err == nil {
+		err = closeErr
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	// The peer sends a fixed message or a JSON list, so nothing legitimate
+	// arrives and says nothing.
+	if len(data) == 0 {
+		return nil, ErrEmptyHandoff
+	}
+
+	return data, nil
 }
 
 var (

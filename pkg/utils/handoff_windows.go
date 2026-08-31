@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"io/fs"
 	"net"
 	"os"
@@ -49,28 +48,41 @@ func CreateCompletionPipe(path string) (*CompletionPipe, error) {
 	return &CompletionPipe{path: path, l: l}, nil
 }
 
-// Await blocks until a peer signals completion. The payload is returned
-// unvalidated so callers keep their existing handling of unexpected content.
-func (p *CompletionPipe) Await() ([]byte, error) {
-	conn, err := p.l.Accept()
+// Await blocks until a peer signals completion, or ctx is done. The payload is
+// returned unvalidated so callers keep their existing handling of unexpected
+// content.
+func (p *CompletionPipe) Await(ctx context.Context) ([]byte, error) {
+	conn, err := acceptOne(ctx, p.l)
 	if err != nil {
 		return nil, err
 	}
 
-	data, err := io.ReadAll(conn)
-	_ = conn.Close()
+	return readAndClose(ctx, conn)
+}
+
+// acceptOne waits for a single peer. Accept has no context form, so closing the
+// listener is what unblocks it.
+func acceptOne(ctx context.Context, l net.Listener) (net.Conn, error) {
+	done := make(chan struct{})
+	defer close(done)
+
+	go func() {
+		select {
+		case <-ctx.Done():
+			_ = l.Close()
+		case <-done:
+		}
+	}()
+
+	conn, err := l.Accept()
 	if err != nil {
+		if ctxErr := ctx.Err(); ctxErr != nil {
+			return nil, ctxErr
+		}
 		return nil, err
 	}
 
-	// The peer sends a fixed message and does not reconnect, so an empty read
-	// means it died or was canceled before writing. Waiting for a second
-	// connection would wait for one that is never coming.
-	if len(data) == 0 {
-		return nil, ErrEmptyHandoff
-	}
-
-	return data, nil
+	return conn, nil
 }
 
 // Close releases the endpoint, which also unpublishes it. Callers both defer
@@ -152,35 +164,14 @@ func ReadImagesPipe(ctx context.Context, path string) ([]unversioned.Image, erro
 	}
 	defer func() { _ = l.Close() }()
 
-	// Accept has no context form; closing the listener is what unblocks it
-	done := make(chan struct{})
-	defer close(done)
-	go func() {
-		select {
-		case <-ctx.Done():
-			_ = l.Close()
-		case <-done:
-		}
-	}()
-
-	conn, err := l.Accept()
-	if err != nil {
-		if ctxErr := ctx.Err(); ctxErr != nil {
-			return nil, ctxErr
-		}
-		return nil, err
-	}
-
-	data, err := io.ReadAll(conn)
-	_ = conn.Close()
+	conn, err := acceptOne(ctx, l)
 	if err != nil {
 		return nil, err
 	}
 
-	// see Await: the writer does not reconnect, so an empty read is a failure
-	// rather than something to wait past
-	if len(data) == 0 {
-		return nil, ErrEmptyHandoff
+	data, err := readAndClose(ctx, conn)
+	if err != nil {
+		return nil, err
 	}
 
 	images := []unversioned.Image{}

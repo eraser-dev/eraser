@@ -109,27 +109,9 @@ func TestCompletionHandoffRoundTrip(t *testing.T) {
 	errCh := make(chan error, 1)
 	go func() { errCh <- WriteCompletionPipe(ctx, path) }()
 
-	type awaited struct {
-		data []byte
-		err  error
-	}
-
-	// Await takes no context, so it cannot be given the deadline directly; the
-	// select is what enforces it.
-	awaitCh := make(chan awaited, 1)
-	go func() {
-		data, err := pipe.Await()
-		awaitCh <- awaited{data: data, err: err}
-	}()
-
-	var got awaited
-	select {
-	case got = <-awaitCh:
-	case <-ctx.Done():
-		t.Fatalf("Await did not return within the deadline: %v", ctx.Err())
-	}
-	if got.err != nil {
-		t.Fatalf("Await: %v", got.err)
+	data, err := pipe.Await(ctx)
+	if err != nil {
+		t.Fatalf("Await: %v", err)
 	}
 	select {
 	case err := <-errCh:
@@ -140,8 +122,8 @@ func TestCompletionHandoffRoundTrip(t *testing.T) {
 		t.Fatalf("WriteCompletionPipe did not return within the deadline: %v", ctx.Err())
 	}
 
-	if string(got.data) != EraseCompleteMessage {
-		t.Errorf("payload = %q, want %q", string(got.data), EraseCompleteMessage)
+	if string(data) != EraseCompleteMessage {
+		t.Errorf("payload = %q, want %q", string(data), EraseCompleteMessage)
 	}
 }
 

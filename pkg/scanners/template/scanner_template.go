@@ -113,7 +113,9 @@ func (cfg *config) SendImages(nonCompliantImages, failedImages []unversioned.Ima
 func (cfg *config) Finish() error {
 	defer func() { _ = cfg.completion.Close() }()
 
-	data, err := cfg.completion.Await()
+	// Finish is called by out-of-tree scanners, so it keeps its signature and
+	// waits indefinitely, the same way WriteScanErasePipe does.
+	data, err := cfg.completion.Await(context.Background())
 	if err != nil {
 		cfg.log.Error(err, "failed to read pipe", "pipeName", util.EraseCompleteScanPath)
 		return err
