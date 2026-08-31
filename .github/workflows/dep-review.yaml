@@ -9,12 +9,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@95d9a5deda9de15063e7595e9719c11c38c90ae2
+        uses: step-security/harden-runner@05e31511f85b41b11d1cf0ef85d0992719546e2c
         with:
           egress-policy: audit
 
       - name: 'Checkout Repository'
-        uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
 
       - name: 'Dependency Review'
         uses: actions/dependency-review-action@0659a74c94536054bfa5aeb92241f70d680cc78e
