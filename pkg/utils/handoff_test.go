@@ -77,8 +77,13 @@ func TestImagesHandoffRoundTrip(t *testing.T) {
 	if got.err != nil {
 		t.Fatalf("ReadImagesPipe: %v", got.err)
 	}
-	if err := <-errCh; err != nil {
-		t.Fatalf("WriteImagesPipe: %v", err)
+	select {
+	case err := <-errCh:
+		if err != nil {
+			t.Fatalf("WriteImagesPipe: %v", err)
+		}
+	case <-ctx.Done():
+		t.Fatalf("WriteImagesPipe did not return within the deadline: %v", ctx.Err())
 	}
 
 	if len(got.images) != len(want) {
@@ -126,8 +131,13 @@ func TestCompletionHandoffRoundTrip(t *testing.T) {
 	if got.err != nil {
 		t.Fatalf("Await: %v", got.err)
 	}
-	if err := <-errCh; err != nil {
-		t.Fatalf("WriteCompletionPipe: %v", err)
+	select {
+	case err := <-errCh:
+		if err != nil {
+			t.Fatalf("WriteCompletionPipe: %v", err)
+		}
+	case <-ctx.Done():
+		t.Fatalf("WriteCompletionPipe did not return within the deadline: %v", ctx.Err())
 	}
 
 	if string(got.data) != EraseCompleteMessage {
