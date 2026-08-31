@@ -19,10 +19,11 @@ type testClient struct {
 	images     []*v1.Image
 	t          testLogger
 
-	// beforeDelete runs at the start of DeleteImage, so a test can make the
-	// caller go away partway through the run, or fail the call the way a runtime
-	// that ran out of time would.
-	beforeDelete func(image string) error
+	// beforeDelete runs at the start of DeleteImage with the context that call
+	// received, so a test can inspect the deadline, make the caller go away
+	// partway through the run, or fail the call the way a runtime that ran out of
+	// time would.
+	beforeDelete func(ctx context.Context, image string) error
 }
 
 var (
@@ -96,7 +97,7 @@ func (c *testClient) DeleteImage(ctx context.Context, image string) (err error) 
 	c.logf("DeleteImage: %s", image)
 
 	if c.beforeDelete != nil {
-		if err := c.beforeDelete(image); err != nil {
+		if err := c.beforeDelete(ctx, image); err != nil {
 			return err
 		}
 	}
