@@ -159,6 +159,49 @@ func TestUnixDialerConnects(t *testing.T) {
 	}
 }
 
+// The socket implementation reports this, so the FIFO one has to as well --
+// otherwise the sentinel is not something a portable caller can match on.
+func TestAwaitReportsAWriterThatSaysNothing(t *testing.T) {
+	path := filepath.Join(shortTempDir(t), "complete")
+	ctx := testContext(t)
+
+	pipe, err := CreateCompletionPipe(path)
+	if err != nil {
+		t.Fatalf("CreateCompletionPipe: %v", err)
+	}
+	defer func() { _ = pipe.Close() }()
+
+	// opening for write completes the rendezvous, so closing without writing is
+	// what a peer that died before sending looks like
+	go func() {
+		//nolint:gosec // G304: opening the pipe under test is the point
+		f, err := os.OpenFile(path, os.O_WRONLY, 0)
+		if err != nil {
+			return
+		}
+		_ = f.Close()
+	}()
+
+	type awaited struct {
+		data []byte
+		err  error
+	}
+	awaitCh := make(chan awaited, 1)
+	go func() {
+		data, err := pipe.Await()
+		awaitCh <- awaited{data: data, err: err}
+	}()
+
+	select {
+	case got := <-awaitCh:
+		if !errors.Is(got.err, ErrEmptyHandoff) {
+			t.Errorf("Await = (%q, %v), want ErrEmptyHandoff", string(got.data), got.err)
+		}
+	case <-ctx.Done():
+		t.Fatalf("Await did not return within the deadline: %v", ctx.Err())
+	}
+}
+
 func TestMkfifoCreatesNamedPipe(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "fifo")
 	if err := mkfifo(path, PipeMode); err != nil {

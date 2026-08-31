@@ -55,6 +55,12 @@ func (p *CompletionPipe) Await() ([]byte, error) {
 		return nil, err
 	}
 
+	// see the socket implementation: the peer sends a fixed message, so nothing
+	// legitimate opens the endpoint and writes nothing
+	if len(data) == 0 {
+		return nil, ErrEmptyHandoff
+	}
+
 	return data, nil
 }
 
@@ -205,6 +211,11 @@ func ReadImagesPipe(ctx context.Context, path string) ([]unversioned.Image, erro
 	}
 	if err != nil {
 		return nil, err
+	}
+
+	// a writer that opened and wrote nothing, rather than a malformed list
+	if len(data) == 0 {
+		return nil, ErrEmptyHandoff
 	}
 
 	images := []unversioned.Image{}
