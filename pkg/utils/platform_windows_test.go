@@ -5,6 +5,7 @@ package utils
 import (
 	"errors"
 	"fmt"
+	"io"
 	"net"
 	"os"
 	"path/filepath"
@@ -144,6 +145,19 @@ func assertListenRefuses(t *testing.T, path string) {
 	if _, err := os.Lstat(path); err != nil {
 		t.Errorf("the endpoint was removed anyway: %v", err)
 	}
+}
+
+// openStalledPeer completes the rendezvous and then says nothing, which is what
+// leaves the reader blocked in the payload read rather than waiting to start.
+func openStalledPeer(t *testing.T, path string) io.Closer {
+	t.Helper()
+
+	conn, err := net.DialTimeout("unix", path, time.Second)
+	if err != nil {
+		t.Fatalf("connecting to the endpoint as a peer: %v", err)
+	}
+
+	return conn
 }
 
 // These endpoints serve exactly one connection and the peer does not reconnect,

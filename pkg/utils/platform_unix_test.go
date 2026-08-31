@@ -6,6 +6,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"net"
 	"os"
 	"path/filepath"
@@ -159,8 +160,19 @@ func TestUnixDialerConnects(t *testing.T) {
 	}
 }
 
-// The socket implementation reports this, so the FIFO one has to as well --
-// otherwise the sentinel is not something a portable caller can match on.
+// openStalledPeer completes the rendezvous and then says nothing, which is what
+// leaves the reader blocked in the payload read rather than waiting to start.
+func openStalledPeer(t *testing.T, path string) io.Closer {
+	t.Helper()
+
+	//nolint:gosec // G304: opening the pipe under test is the point
+	f, err := os.OpenFile(path, os.O_WRONLY, 0)
+	if err != nil {
+		t.Fatalf("opening the endpoint as a peer: %v", err)
+	}
+
+	return f
+}
 func TestAwaitReportsAWriterThatSaysNothing(t *testing.T) {
 	path := filepath.Join(shortTempDir(t), "complete")
 	ctx := testContext(t)

@@ -127,6 +127,43 @@ func TestCompletionHandoffRoundTrip(t *testing.T) {
 	}
 }
 
+// The collector keeps signal notification registered across Await now, so the
+// read has to be interruptible after the peer has arrived, not only while
+// waiting for one. A peer that connects and then goes quiet is what the pod
+// looks like when the manager's deployment is deleted mid-run.
+func TestAwaitHonoursCancellationWhileBlockedOnAStalledPeer(t *testing.T) {
+	path := filepath.Join(shortTempDir(t), "complete")
+
+	pipe, err := CreateCompletionPipe(path)
+	if err != nil {
+		t.Fatalf("CreateCompletionPipe: %v", err)
+	}
+	defer func() { _ = pipe.Close() }()
+
+	ctx, cancel := context.WithCancel(context.Background())
+
+	errCh := make(chan error, 1)
+	go func() {
+		_, err := pipe.Await(ctx)
+		errCh <- err
+	}()
+
+	// rendezvous, then hold the endpoint open without sending anything
+	peer := openStalledPeer(t, path)
+	defer func() { _ = peer.Close() }()
+
+	cancel()
+
+	select {
+	case err := <-errCh:
+		if !errors.Is(err, context.Canceled) {
+			t.Errorf("Await = %v, want context.Canceled", err)
+		}
+	case <-time.After(30 * time.Second):
+		t.Fatal("Await ignored the canceled context while blocked on the payload read")
+	}
+}
+
 // The remover infers "the scanner is disabled" from this error, so it has to
 // keep satisfying os.IsNotExist on both platforms.
 func TestWriteCompletionPipeAbsentPeerIsNotExist(t *testing.T) {
