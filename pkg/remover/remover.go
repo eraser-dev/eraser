@@ -55,6 +55,11 @@ func main() {
 		os.Exit(generalErr)
 	}
 
+	// Every call below that can block observes ctx, so the handler can stay
+	// registered for the rest of the process. The stop func is discarded rather
+	// than deferred because every exit path here is os.Exit, which would skip it.
+	ctx, _ := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+
 	log.Info("remover starting", "imageListPtr", *imageListPtr, "criPath", util.CRIPath)
 
 	client, err := cri.NewRemoverClient(util.CRIPath)
@@ -74,7 +79,7 @@ func main() {
 	}
 
 	if *imageListPtr == "" {
-		nonCompliantImages, err := util.ReadImagesPipe(context.Background(), util.ScanErasePath)
+		nonCompliantImages, err := util.ReadImagesPipe(ctx, util.ScanErasePath)
 		if err != nil {
 			log.Error(err, "error reading non-compliant images")
 			os.Exit(generalErr)
@@ -105,13 +110,6 @@ func main() {
 	if len(excluded) == 0 {
 		log.Info("no images to exclude")
 	}
-
-	// Registering the handler suppresses the default SIGTERM exit, so it starts
-	// only here: once the peer publishes its endpoint the read above blocks in a
-	// call no context can interrupt, and covering it would swallow the signal
-	// until SIGKILL. The stop func is discarded rather than deferred because
-	// every exit path below is os.Exit, which would skip it anyway.
-	ctx, _ := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 
 	removed, err := removeImages(ctx, client, imagelist)
 	if err != nil {
