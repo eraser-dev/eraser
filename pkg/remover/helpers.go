@@ -81,6 +81,10 @@ func removeImages(ctx context.Context, c cri.Remover, targetImages []string) (in
 	// is reached several times over -- and since each deletion carries its own
 	// budget, an untracked retry would hand the same image that budget again.
 	handled := make(map[string]struct{}, len(nonRunningImages))
+	// A prune skips whatever the targeted pass already attempted, so a failure
+	// there has to be carried forward or the prune reports success for an image
+	// that is still on the node.
+	anyFailed := false
 	for _, imgDigestOrTag := range targetImages {
 		// Without this the loop keeps going once the caller is gone, logging one
 		// instant failure per remaining image and still reporting partial success.
@@ -116,6 +120,7 @@ func removeImages(ctx context.Context, c cri.Remover, targetImages []string) (in
 					return removed, ctxErr
 				}
 
+				anyFailed = true
 				log.Error(err, "error removing image", "given", imgDigestOrTag, "imageID", imageID, "name", idToImageMap[imageID])
 				continue
 			}
@@ -135,7 +140,7 @@ func removeImages(ctx context.Context, c cri.Remover, targetImages []string) (in
 	}
 
 	if prune {
-		success := true
+		success := !anyFailed
 		for _, imageID := range nonRunningImages {
 			if err := ctx.Err(); err != nil {
 				log.Error(err, "stopping before the prune was finished", "removed", removed)
