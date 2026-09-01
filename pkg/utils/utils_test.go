@@ -7,6 +7,10 @@ import (
 	"testing"
 )
 
+// testUnixPath is used instead of CRIPath so these cases stay valid on Windows,
+// where CRIPath is a named pipe.
+const testUnixPath = "/run/cri/cri.sock"
+
 func TestParseEndpointWithFallBackProtocol(t *testing.T) {
 	testCases := []struct {
 		endpoint         string
@@ -16,10 +20,33 @@ func TestParseEndpointWithFallBackProtocol(t *testing.T) {
 		errCheck         func(t *testing.T, err error)
 	}{
 		{
-			endpoint:         fmt.Sprintf("unix://%s", CRIPath),
+			endpoint:         fmt.Sprintf("unix://%s", testUnixPath),
 			fallbackProtocol: "unix",
 			protocol:         "unix",
-			addr:             CRIPath,
+			addr:             testUnixPath,
+			errCheck: func(t *testing.T, err error) {
+				if err != nil {
+					t.Error(err)
+				}
+			},
+		},
+		{
+			endpoint:         "./pipe/containerd-containerd",
+			fallbackProtocol: "npipe",
+			protocol:         "npipe",
+			addr:             `\\.\pipe\containerd-containerd`,
+			errCheck: func(t *testing.T, err error) {
+				if err != nil {
+					t.Error(err)
+				}
+			},
+		},
+		{
+			// the form kubelet accepts for --container-runtime-endpoint
+			endpoint:         "npipe:////./pipe/containerd-containerd",
+			fallbackProtocol: "npipe",
+			protocol:         "npipe",
+			addr:             `\\.\pipe\containerd-containerd`,
 			errCheck: func(t *testing.T, err error) {
 				if err != nil {
 					t.Error(err)
@@ -81,9 +108,30 @@ func TestParseEndpoint(t *testing.T) {
 		errCheck func(t *testing.T, err error)
 	}{
 		{
-			endpoint: fmt.Sprintf("unix://%s", CRIPath),
+			endpoint: fmt.Sprintf("unix://%s", testUnixPath),
 			protocol: "unix",
-			addr:     CRIPath,
+			addr:     testUnixPath,
+			errCheck: func(t *testing.T, err error) {
+				if err != nil {
+					t.Error(err)
+				}
+			},
+		},
+		{
+			endpoint: "npipe://./pipe/containerd-containerd",
+			protocol: "npipe",
+			addr:     `\\.\pipe\containerd-containerd`,
+			errCheck: func(t *testing.T, err error) {
+				if err != nil {
+					t.Error(err)
+				}
+			},
+		},
+		{
+			// kubelet spells it with four slashes: empty host, already-UNC path
+			endpoint: "npipe:////./pipe/containerd-containerd",
+			protocol: "npipe",
+			addr:     `\\.\pipe\containerd-containerd`,
 			errCheck: func(t *testing.T, err error) {
 				if err != nil {
 					t.Error(err)
@@ -130,36 +178,5 @@ func TestParseEndpoint(t *testing.T) {
 		}
 
 		tc.errCheck(t, e)
-	}
-}
-
-func TestGetAddressAndDialer(t *testing.T) {
-	testCases := []struct {
-		endpoint string
-		addr     string
-		err      error
-	}{
-		{
-			endpoint: fmt.Sprintf("unix://%s", CRIPath),
-			addr:     CRIPath,
-			err:      nil,
-		},
-		{
-			endpoint: "localhost:8080",
-			addr:     "",
-			err:      ErrProtocolNotSupported,
-		},
-		{
-			endpoint: "tcp://localhost:8080",
-			addr:     "",
-			err:      ErrOnlySupportUnixSocket,
-		},
-	}
-
-	for _, tc := range testCases {
-		a, _, e := getAddressAndDialer(tc.endpoint)
-		if a != tc.addr || !errors.Is(e, tc.err) {
-			t.Errorf("Test fails")
-		}
 	}
 }

@@ -9,7 +9,6 @@ import (
 	"strings"
 	"time"
 
-	trivyTypes "github.com/aquasecurity/trivy/pkg/types"
 	"github.com/eraser-dev/eraser/api/unversioned"
 	"github.com/eraser-dev/eraser/pkg/utils"
 )
@@ -31,7 +30,7 @@ const (
 	trivyTimeoutFlag        = "--timeout"
 	trivyDBRepoFlag         = "--db-repository"
 	trivyIgnoreUnfixedFlag  = "--ignore-unfixed"
-	trivyVulnTypesFlag      = "--vuln-type"
+	trivyPkgTypesFlag       = "--pkg-types"
 	trivySecurityChecksFlag = "--scanners"
 	trivySeveritiesFlag     = "--severity"
 	trivyRuntimeFlag        = "--image-src"
@@ -68,7 +67,37 @@ type (
 		Scan(unversioned.Image) (ScanStatus, error)
 		Timer() *time.Timer
 	}
+
+	trivyReport struct {
+		Metadata trivyMetadata `json:"Metadata"`
+		Results  []trivyResult `json:"Results"`
+	}
+
+	trivyMetadata struct {
+		OS *trivyOS `json:"OS"`
+	}
+
+	trivyOS struct {
+		EOSL bool `json:"EOSL"`
+	}
+
+	trivyResult struct {
+		Vulnerabilities []json.RawMessage `json:"Vulnerabilities"`
+	}
 )
+
+func (r trivyReport) isEndOfLife() bool {
+	return r.Metadata.OS != nil && r.Metadata.OS.EOSL
+}
+
+func (r trivyReport) hasVulnerabilities() bool {
+	for _, result := range r.Results {
+		if len(result.Vulnerabilities) > 0 {
+			return true
+		}
+	}
+	return false
+}
 
 func DefaultConfig() *Config {
 	return &Config{
@@ -127,8 +156,8 @@ func (c *Config) cliArgs(ref string) []string {
 	}
 
 	if len(c.Vulnerabilities.Types) > 0 {
-		allVulnTypes := strings.Join(c.Vulnerabilities.Types, ",")
-		args = append(args, trivyVulnTypesFlag, allVulnTypes)
+		allPkgTypes := strings.Join(c.Vulnerabilities.Types, ",")
+		args = append(args, trivyPkgTypesFlag, allPkgTypes)
 	}
 
 	if len(c.Vulnerabilities.SecurityChecks) > 0 {
@@ -199,23 +228,19 @@ func (s *ImageScanner) Scan(img unversioned.Image) (ScanStatus, error) {
 			continue
 		}
 
-		var report trivyTypes.Report
+		var report trivyReport
 		if err := json.Unmarshal(stdout.Bytes(), &report); err != nil {
 			log.Error(err, "error unmarshaling report", "imageID", img.ImageID, "reference", refs[i], "report", stdout.String(), "stderr", stderr.String())
 			continue
 		}
 
-		if s.config.DeleteEOLImages {
-			if report.Metadata.OS != nil && report.Metadata.OS.Eosl {
-				log.Info("image is end of life", "imageID", img.ImageID, "reference", refs[i])
-				return StatusNonCompliant, nil
-			}
+		if s.config.DeleteEOLImages && report.isEndOfLife() {
+			log.Info("image is end of life", "imageID", img.ImageID, "reference", refs[i])
+			return StatusNonCompliant, nil
 		}
 
-		for j := range report.Results {
-			if len(report.Results[j].Vulnerabilities) > 0 {
-				return StatusNonCompliant, nil
-			}
+		if report.hasVulnerabilities() {
+			return StatusNonCompliant, nil
 		}
 
 		// causes a break from the loop

@@ -57,8 +57,10 @@ import (
 )
 
 const (
-	ownerLabelValue  = "imagecollector"
-	configVolumeName = "eraser-config"
+	ownerLabelValue      = "imagecollector"
+	configVolumeName     = "eraser-config"
+	sharedDataVolumeName = "shared-data"
+	sharedDataMountPath  = "/run/eraser.sh/shared-data"
 )
 
 var (
@@ -328,7 +330,7 @@ func (r *Reconciler) createImageJob(ctx context.Context) (ctrl.Result, error) {
 			Volumes: []corev1.Volume{
 				{
 					// EmptyDir default
-					Name: "shared-data",
+					Name: sharedDataVolumeName,
 				},
 				{
 					Name: configVolumeName,
@@ -351,15 +353,15 @@ func (r *Reconciler) createImageJob(ctx context.Context) (ctrl.Result, error) {
 					ImagePullPolicy: corev1.PullIfNotPresent,
 					Args:            collArgs,
 					VolumeMounts: []corev1.VolumeMount{
-						{MountPath: "/run/eraser.sh/shared-data", Name: "shared-data"},
+						{MountPath: sharedDataMountPath, Name: sharedDataVolumeName},
 					},
 					Resources: corev1.ResourceRequirements{
 						Requests: corev1.ResourceList{
-							"cpu":    collectorCfg.Request.CPU,
-							"memory": collectorCfg.Request.Mem,
+							corev1.ResourceCPU:    collectorCfg.Request.CPU,
+							corev1.ResourceMemory: collectorCfg.Request.Mem,
 						},
 						Limits: corev1.ResourceList{
-							"memory": collectorCfg.Limit.Mem,
+							corev1.ResourceMemory: collectorCfg.Limit.Mem,
 						},
 					},
 				},
@@ -369,15 +371,15 @@ func (r *Reconciler) createImageJob(ctx context.Context) (ctrl.Result, error) {
 					ImagePullPolicy: corev1.PullIfNotPresent,
 					Args:            removerArgs,
 					VolumeMounts: []corev1.VolumeMount{
-						{MountPath: "/run/eraser.sh/shared-data", Name: "shared-data"},
+						{MountPath: sharedDataMountPath, Name: sharedDataVolumeName},
 					},
 					Resources: corev1.ResourceRequirements{
 						Requests: corev1.ResourceList{
-							"cpu":    eraserCfg.Request.CPU,
-							"memory": eraserCfg.Request.Mem,
+							corev1.ResourceCPU:    eraserCfg.Request.CPU,
+							corev1.ResourceMemory: eraserCfg.Request.Mem,
 						},
 						Limits: corev1.ResourceList{
-							"memory": eraserCfg.Limit.Mem,
+							corev1.ResourceMemory: eraserCfg.Limit.Mem,
 						},
 					},
 					SecurityContext: eraserUtils.SharedSecurityContext,
@@ -420,16 +422,16 @@ func (r *Reconciler) createImageJob(ctx context.Context) (ctrl.Result, error) {
 			Image: scannerImg,
 			Args:  scannerArgs,
 			VolumeMounts: []corev1.VolumeMount{
-				{MountPath: "/run/eraser.sh/shared-data", Name: "shared-data"},
+				{MountPath: sharedDataMountPath, Name: sharedDataVolumeName},
 				{MountPath: cfgDirname, Name: configVolumeName},
 			},
 			Resources: corev1.ResourceRequirements{
 				Requests: corev1.ResourceList{
-					"memory": scanCfg.Request.Mem,
-					"cpu":    scanCfg.Request.CPU,
+					corev1.ResourceMemory: scanCfg.Request.Mem,
+					corev1.ResourceCPU:    scanCfg.Request.CPU,
 				},
 				Limits: corev1.ResourceList{
-					"memory": scanCfg.Limit.Mem,
+					corev1.ResourceMemory: scanCfg.Limit.Mem,
 				},
 			},
 			// env vars for exporting metrics

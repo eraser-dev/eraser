@@ -2,14 +2,12 @@ package template
 
 import (
 	"context"
-	"io"
 	"os"
 	"os/signal"
 	"syscall"
 
 	"github.com/eraser-dev/eraser/api/unversioned"
 	"github.com/go-logr/logr"
-	"golang.org/x/sys/unix"
 
 	"github.com/eraser-dev/eraser/pkg/metrics"
 	util "github.com/eraser-dev/eraser/pkg/utils"
@@ -35,6 +33,10 @@ type config struct {
 	deleteScanFailedImages bool
 	deleteEOLImages        bool
 	reportMetrics          bool
+
+	// held from ReceiveImages until Finish: the endpoint must stay published so
+	// the remover can tell a scanner is present
+	completion *util.CompletionPipe
 }
 
 type ConfigFunc func(*config)
@@ -59,7 +61,9 @@ func NewImageProvider(funcs ...ConfigFunc) ImageProvider {
 func (cfg *config) ReceiveImages() ([]unversioned.Image, error) {
 	var err error
 
-	if err := unix.Mkfifo(util.EraseCompleteScanPath, util.PipeMode); err != nil {
+	// published up front so the remover can tell a scanner is present
+	cfg.completion, err = util.CreateCompletionPipe(util.EraseCompleteScanPath)
+	if err != nil {
 		cfg.log.Error(err, "failed to create pipe", "pipeName", util.EraseCompleteScanPath)
 		return nil, err
 	}
@@ -107,20 +111,11 @@ func (cfg *config) SendImages(nonCompliantImages, failedImages []unversioned.Ima
 }
 
 func (cfg *config) Finish() error {
-	file, err := os.OpenFile(util.EraseCompleteScanPath, os.O_RDONLY, 0)
-	if err != nil {
-		cfg.log.Error(err, "failed to open pipe", "pipeName", util.EraseCompleteScanPath)
-		return err
-	}
+	defer func() { _ = cfg.completion.Close() }()
 
-	data, err := io.ReadAll(file)
+	data, err := cfg.completion.Await()
 	if err != nil {
 		cfg.log.Error(err, "failed to read pipe", "pipeName", util.EraseCompleteScanPath)
-		return err
-	}
-
-	if err := file.Close(); err != nil {
-		cfg.log.Error(err, "failed to close pipe", "pipeName", util.EraseCompleteScanPath)
 		return err
 	}
 

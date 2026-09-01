@@ -1,13 +1,15 @@
 # syntax=docker/dockerfile:1.6
 
-# Default Trivy binary image, overwritten by Makefile
-ARG TRIVY_BINARY_IMG="ghcr.io/aquasecurity/trivy:0.67.2"
+ARG GO_IMAGE="golang:1.26.6-bookworm@sha256:116d58cbd88c1297624acc6e967a060012422bacf9930927e23fb719189c6f36"
+# Use the upstream Trivy release image rather than rebuilding its binary with
+# local dependency overrides.
+ARG TRIVY_BINARY_IMG="ghcr.io/aquasecurity/trivy:0.72.0"
 ARG BUILDKIT_SBOM_SCAN_STAGE=builder,manager-build,collector-build,remover-build,trivy-scanner-build
 
 FROM --platform=$TARGETPLATFORM $TRIVY_BINARY_IMG AS trivy-binary
 
 # Build the manager binary
-FROM --platform=$BUILDPLATFORM golang:1.25-bookworm AS builder
+FROM --platform=$BUILDPLATFORM $GO_IMAGE AS builder
 WORKDIR /workspace
 # Copy the Go Modules manifests
 COPY go.mod go.mod
@@ -64,7 +66,7 @@ FROM --platform=$TARGETPLATFORM gcr.io/distroless/static:latest as remover
 COPY --from=remover-build /workspace/out/remover /
 ENTRYPOINT ["/remover"]
 
-FROM --platform=$TARGETPLATFORM gcr.io/distroless/static:latest as trivy-scanner
+FROM --platform=$TARGETPLATFORM gcr.io/distroless/static:latest AS trivy-scanner
 COPY --from=trivy-scanner-build /workspace/out/trivy-scanner /
 COPY --from=trivy-binary /usr/local/bin/trivy /
 WORKDIR /var/lib/trivy

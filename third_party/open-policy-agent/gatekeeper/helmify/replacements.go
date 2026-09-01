@@ -1,5 +1,6 @@
 package main
 
+//nolint:gosec // G101: This map contains Helm placeholder names, not credential values.
 var replacements = map[string]string{
 	`HELMSUBST_DEPLOYMENT_CONTROLLER_MANAGER_CONTAINER_RESOURCES: ""`: `{{- toYaml .Values.deploy.resources | nindent 10 }}`,
 	`HELMSUBST_DEPLOYMENT_CONTROLLER_MANAGER_NODESELECTOR: ""`:        `{{- toYaml .Values.deploy.nodeSelector | nindent 8 }}`,

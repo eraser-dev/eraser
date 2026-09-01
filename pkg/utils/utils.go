@@ -5,14 +5,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"net"
 	"net/url"
 	"os"
 	"strings"
-	"time"
 
-	"golang.org/x/sys/unix"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	v1 "k8s.io/cri-api/pkg/apis/runtime/v1"
@@ -21,16 +18,14 @@ import (
 )
 
 const (
-	// unixProtocol is the network protocol of unix socket.
-	unixProtocol             = "unix"
+	// npipeProtocol is the network protocol of a Windows named pipe.
+	npipeProtocol            = "npipe"
 	PipeMode                 = 0o644
 	ScanErasePath            = "/run/eraser.sh/shared-data/scanErase"
 	CollectScanPath          = "/run/eraser.sh/shared-data/collectScan"
 	EraseCompleteCollectPath = "/run/eraser.sh/shared-data/eraseCompleteCollect"
 	EraseCompleteMessage     = "complete"
 	EraseCompleteScanPath    = "/run/eraser.sh/shared-data/eraseCompleteScan"
-
-	CRIPath = "/run/cri/cri.sock"
 
 	EnvEraserRuntimeName = "ERASER_RUNTIME_NAME"
 )
@@ -63,19 +58,17 @@ func GetConn(ctx context.Context, socketPath string) (conn *grpc.ClientConn, err
 }
 
 func getAddressAndDialer(endpoint string) (string, func(ctx context.Context, addr string) (net.Conn, error), error) {
-	protocol, addr, err := ParseEndpointWithFallbackProtocol(endpoint, unixProtocol)
+	protocol, addr, err := ParseEndpointWithFallbackProtocol(endpoint, defaultProtocol)
 	if err != nil {
 		return "", nil, err
 	}
-	if protocol != unixProtocol {
-		return "", nil, ErrOnlySupportUnixSocket
+
+	dialer, err := criDialer(protocol)
+	if err != nil {
+		return "", nil, err
 	}
 
-	return addr, dial, nil
-}
-
-func dial(ctx context.Context, addr string) (net.Conn, error) {
-	return (&net.Dialer{}).DialContext(ctx, unixProtocol, addr)
+	return addr, dialer, nil
 }
 
 func ParseEndpointWithFallbackProtocol(endpoint string, fallbackProtocol string) (protocol string, addr string, err error) {
@@ -100,6 +93,15 @@ func ParseEndpoint(endpoint string) (string, string, error) {
 		return "tcp", u.Host, nil
 	case "unix":
 		return "unix", u.Path, nil
+	case npipeProtocol:
+		// Two spellings are in the wild. `npipe://./pipe/foo` splits into Host "."
+		// and Path "/pipe/foo", so both halves are needed. The kubelet form
+		// `npipe:////./pipe/foo` has an empty host and an already-UNC path.
+		addr := strings.ReplaceAll(u.Path, "/", `\`)
+		if u.Host != "" {
+			addr = `\\` + u.Host + addr
+		}
+		return npipeProtocol, addr, nil
 	case "":
 		return "", "", fmt.Errorf("using %q as %w", endpoint, ErrEndpointDeprecated)
 	default:
@@ -325,68 +327,16 @@ func readConfigMap(path string) ([]string, error) {
 	return images, nil
 }
 
+// ReadCollectScanPipe is the scanner-facing spelling of ReadImagesPipe, kept
+// because custom scanners may call it directly.
 func ReadCollectScanPipe(ctx context.Context) ([]unversioned.Image, error) {
-	timer := time.NewTimer(time.Second)
-	if !timer.Stop() {
-		<-timer.C
-	}
-	defer timer.Stop()
-
-	var f *os.File
-	for {
-		var err error
-
-		f, err = os.OpenFile(CollectScanPath, os.O_RDONLY, 0)
-		if err == nil {
-			break
-		}
-		if !os.IsNotExist(err) {
-			return nil, err
-		}
-
-		timer.Reset(time.Second)
-		select {
-		case <-ctx.Done():
-			return nil, ctx.Err()
-		case <-timer.C:
-			continue
-		}
-	}
-
-	// json data is list of []eraserv1.Image
-	data, err := io.ReadAll(f)
-	if err != nil {
-		return nil, err
-	}
-
-	allImages := []unversioned.Image{}
-	if err = json.Unmarshal(data, &allImages); err != nil {
-		return nil, err
-	}
-
-	return allImages, nil
+	return ReadImagesPipe(ctx, CollectScanPath)
 }
 
+// WriteScanErasePipe is the scanner-facing spelling of WriteImagesPipe, kept
+// because custom scanners may call it directly.
 func WriteScanErasePipe(vulnerableImages []unversioned.Image) error {
-	data, err := json.Marshal(vulnerableImages)
-	if err != nil {
-		return err
-	}
-
-	if err = unix.Mkfifo(ScanErasePath, PipeMode); err != nil {
-		return err
-	}
-
-	file, err := os.OpenFile(ScanErasePath, os.O_WRONLY, 0)
-	if err != nil {
-		return err
-	}
-
-	if _, err := file.Write(data); err != nil {
-		return err
-	}
-
-	return file.Close()
+	return WriteImagesPipe(ScanErasePath, vulnerableImages)
 }
 
 func ProcessRepoDigests(repoDigests []string) ([]string, []error) {

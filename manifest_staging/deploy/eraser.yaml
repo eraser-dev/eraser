@@ -9,7 +9,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.14.0
+    controller-gen.kubebuilder.io/version: v0.16.4
   name: imagejobs.eraser.sh
 spec:
   group: eraser.sh
@@ -139,7 +139,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.14.0
+    controller-gen.kubebuilder.io/version: v0.16.4
   name: imagelists.eraser.sh
 spec:
   group: eraser.sh
@@ -301,6 +301,7 @@ rules:
   - ""
   resources:
   - configmaps
+  - podtemplates
   verbs:
   - create
   - delete
@@ -318,18 +319,6 @@ rules:
   - delete
   - get
   - list
-  - update
-  - watch
-- apiGroups:
-  - ""
-  resources:
-  - podtemplates
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
   - update
   - watch
 ---
@@ -360,6 +349,7 @@ rules:
   - eraser.sh
   resources:
   - imagejobs/status
+  - imagelists/status
   verbs:
   - get
   - patch
@@ -372,14 +362,6 @@ rules:
   - get
   - list
   - watch
-- apiGroups:
-  - eraser.sh
-  resources:
-  - imagelists/status
-  verbs:
-  - get
-  - patch
-  - update
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding

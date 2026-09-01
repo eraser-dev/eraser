@@ -25,7 +25,7 @@ func KubectlApply(kubeconfigPath, namespace string, args []string) error {
 func HelmInstall(kubeconfigPath, namespace string, args []string) error {
 	args = append([]string{
 		"install",
-		"eraser-e2e-test",
+		KindClusterName,
 		"--wait",
 		"--debug",
 		"--create-namespace",
@@ -41,7 +41,7 @@ func HelmInstall(kubeconfigPath, namespace string, args []string) error {
 func HelmUpgrade(kubeconfigPath, namespace string, args []string) error {
 	args = append([]string{
 		"upgrade",
-		"eraser-e2e-test",
+		KindClusterName,
 		"--wait",
 		"--debug",
 		fmt.Sprintf("--kubeconfig=%s", kubeconfigPath),
@@ -56,7 +56,7 @@ func HelmUpgrade(kubeconfigPath, namespace string, args []string) error {
 func HelmUninstall(kubeconfigPath, namespace string, args []string) error {
 	args = append([]string{
 		"uninstall",
-		"eraser-e2e-test",
+		KindClusterName,
 		fmt.Sprintf("--kubeconfig=%s", kubeconfigPath),
 		fmt.Sprintf("--namespace=%s", namespace),
 	}, args...)
@@ -79,7 +79,7 @@ func KubectlDelete(kubeconfigPath, namespace string, args []string) error {
 
 func KubectlExecCurl(kubeconfigPath, podName string, endpoint, namespace string) (string, error) {
 	args := []string{
-		"exec",
+		execSubcommand,
 		"-i",
 		podName,
 		"-n",
@@ -172,6 +172,7 @@ func KubectlGet(kubeconfigPath string, otherArgs ...string) (string, error) {
 func Kubectl(args []string) (string, error) {
 	klog.Infof("kubectl %s", strings.Join(args, " "))
 
+	//nolint:gosec // G204: This e2e helper intentionally forwards trusted test arguments to kubectl.
 	cmd := exec.Command("kubectl", args...)
 
 	stdoutStderr, err := cmd.CombinedOutput()
@@ -186,6 +187,7 @@ func Kubectl(args []string) (string, error) {
 func KubectlBackground(args []string) error {
 	klog.Infof("kubectl %s", strings.Join(args, " "))
 
+	//nolint:gosec // G204: This e2e helper intentionally forwards trusted test arguments to kubectl.
 	cmd := exec.Command("kubectl", args...)
 
 	if err := cmd.Start(); err != nil {
@@ -198,6 +200,7 @@ func KubectlBackground(args []string) error {
 func Helm(args []string) (string, error) {
 	klog.Infof("helm %s", strings.Join(args, " "))
 
+	//nolint:gosec // G204: This e2e helper intentionally forwards trusted test arguments to helm.
 	cmd := exec.Command("helm", args...)
 
 	stdoutStderr, err := cmd.CombinedOutput()

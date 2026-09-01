@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"strings"
 	"testing"
 
@@ -66,7 +67,7 @@ func TestCLIArgs(t *testing.T) {
 		{
 			desc:     "specify vulnerability types",
 			config:   Config{Vulnerabilities: VulnConfig{Types: []string{"library", "os"}}},
-			expected: []string{"--format=json", "image", "--image-src", ImgSrcContainerd, "--vuln-type", "library,os", ref},
+			expected: []string{"--format=json", "image", "--image-src", ImgSrcContainerd, "--pkg-types", "library,os", ref},
 		},
 		{
 			desc:     "specify security checks / scanners",
@@ -117,7 +118,7 @@ func TestCLIArgs(t *testing.T) {
 			},
 			expected: []string{
 				"--format=json", "image", "--image-src", ImgSrcPodman, "--db-repository", "example.test/db/repo", "--ignore-unfixed",
-				"--vuln-type", "library,os", "--scanners", "license,vuln", "--severity", "LOW,MEDIUM", "--ignore-status", "unknown,fixed", ref,
+				"--pkg-types", "library,os", "--scanners", "license,vuln", "--severity", "LOW,MEDIUM", "--ignore-status", "unknown,fixed", ref,
 			},
 		},
 		{
@@ -140,7 +141,7 @@ func TestCLIArgs(t *testing.T) {
 			},
 			expected: []string{
 				"--format=json", "--cache-dir", "/var/lib/trivy", "--timeout", "1m40s", "image", "--image-src", ImgSrcPodman,
-				"--db-repository", "example.test/db/repo", "--ignore-unfixed", "--vuln-type", "os", "--scanners",
+				"--db-repository", "example.test/db/repo", "--ignore-unfixed", "--pkg-types", "os", "--scanners",
 				"license,vuln", "--severity", "CRITICAL", "--ignore-status", "unknown,fixed", ref,
 			},
 		},
@@ -163,6 +164,46 @@ func TestCLIArgs(t *testing.T) {
 
 			if t.Failed() {
 				t.Logf("expected result `%s`, but got `%s`", strings.Join(tt.expected, " "), strings.Join(actual, " "))
+			}
+		})
+	}
+}
+
+func TestTrivyReportParsing(t *testing.T) {
+	tests := []struct {
+		name                string
+		report              string
+		wantEndOfLife       bool
+		wantVulnerabilities bool
+	}{
+		{
+			name:          "end of life image",
+			report:        `{"Metadata":{"OS":{"EOSL":true}},"Results":[]}`,
+			wantEndOfLife: true,
+		},
+		{
+			name:                "vulnerable image",
+			report:              `{"Metadata":{"OS":{"EOSL":false}},"Results":[{"Vulnerabilities":[{"VulnerabilityID":"CVE-2026-0001"}]}]}`,
+			wantVulnerabilities: true,
+		},
+		{
+			name:   "clean image",
+			report: `{"Metadata":{},"Results":[{"Vulnerabilities":null}]}`,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var report trivyReport
+			if err := json.Unmarshal([]byte(tt.report), &report); err != nil {
+				t.Fatalf("unmarshal report: %v", err)
+			}
+
+			if got := report.isEndOfLife(); got != tt.wantEndOfLife {
+				t.Errorf("isEndOfLife() = %t, want %t", got, tt.wantEndOfLife)
+			}
+			if got := report.hasVulnerabilities(); got != tt.wantVulnerabilities {
+				t.Errorf("hasVulnerabilities() = %t, want %t", got, tt.wantVulnerabilities)
 			}
 		})
 	}
