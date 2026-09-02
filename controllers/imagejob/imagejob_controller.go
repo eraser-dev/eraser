@@ -59,7 +59,6 @@ const (
 	managerLabelKey      = "control-plane"
 
 	windowsOS              = string(corev1.Windows)
-	runtimeSockVolumeName  = "runtime-sock-volume"
 	windowsSandboxMountEnv = "%CONTAINER_SANDBOX_MOUNT_POINT%"
 
 	windowsMinMemoryLimit = "256Mi"
@@ -596,11 +595,11 @@ func fillLinuxPodSpec(templateSpec *corev1.PodSpec, runtimeSpec *unversioned.Run
 	}
 
 	volumes := []corev1.Volume{
-		{Name: runtimeSockVolumeName, VolumeSource: corev1.VolumeSource{HostPath: &corev1.HostPathVolumeSource{Path: u.Path}}},
+		{Name: "runtime-sock-volume", VolumeSource: corev1.VolumeSource{HostPath: &corev1.HostPathVolumeSource{Path: u.Path}}},
 	}
 
 	volumeMounts := []corev1.VolumeMount{
-		{MountPath: controllerUtils.CRIPath, Name: runtimeSockVolumeName},
+		{MountPath: controllerUtils.CRIPath, Name: "runtime-sock-volume"},
 	}
 
 	for i := range templateSpec.Containers {

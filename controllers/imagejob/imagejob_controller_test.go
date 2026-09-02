@@ -16,6 +16,10 @@ import (
 // the pod template before the manager fills it per node.
 const sharedDataMountPath = eraserUtils.LinuxSharedDataPath
 
+// runtimeSockVolumeName is the CRI hostPath volume name the manager sets on
+// Linux pods.
+const runtimeSockVolumeName = "runtime-sock-volume"
+
 func newTemplateSpec() *corev1.PodSpec {
 	return &corev1.PodSpec{
 		Volumes: []corev1.Volume{
