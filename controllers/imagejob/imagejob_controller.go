@@ -546,24 +546,17 @@ func copyAndFillTemplateSpec(templateSpecTemplate *corev1.PodSpec, env []corev1.
 	templateSpec.Tolerations = defaultTolerations
 	templateSpec.NodeName = node.Name
 
-	// Environment injection is OS-independent.
-	eraserImg := &templateSpec.Containers[0]
-	eraserImg.Env = append(eraserImg.Env, env...)
-
-	if len(templateSpec.Containers) > 1 {
-		collectorImg := &templateSpec.Containers[1]
-		collectorImg.Env = append(collectorImg.Env, env...)
-	}
-
-	if len(templateSpec.Containers) > 2 {
-		scannerImg := &templateSpec.Containers[2]
-		scannerImg.Env = append(scannerImg.Env,
-			corev1.EnvVar{
+	// Environment injection is OS-independent: every worker container gets the
+	// shared env; the scanner (index 2) also needs the containerd namespace.
+	for i := range templateSpec.Containers {
+		c := &templateSpec.Containers[i]
+		if i == 2 {
+			c.Env = append(c.Env, corev1.EnvVar{
 				Name:  controllerUtils.EnvVarContainerdNamespaceKey,
 				Value: controllerUtils.EnvVarContainerdNamespaceValue,
-			},
-		)
-		scannerImg.Env = append(scannerImg.Env, env...)
+			})
+		}
+		c.Env = append(c.Env, env...)
 	}
 
 	secrets := os.Getenv("ERASER_PULL_SECRET_NAMES")
