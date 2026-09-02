@@ -50,6 +50,7 @@
     "got": "^11.8.5",
     "js-yaml": "^3.14.2",
     "path-to-regexp": "^1.8.0",
-    "on-headers": "^1.1.0"
+    "on-headers": "^1.1.0",
+    "webpackbar": "7.0.0"
   }
 }
