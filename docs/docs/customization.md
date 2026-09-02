@@ -55,6 +55,32 @@ certain nodes. To do so, the nodes can be given a special label. By default,
 this label is `eraser.sh/cleanup.filter`, but you can configure the behavior with
 the options under `manager.nodeFilter`. The [table](#detailed-options) provides more detail.
 
+`eraser.sh/cleanup.filter` is always applied, whether or not you list it, so a
+custom `selectors` list does not need to repeat it.
+
+#### Windows nodes
+
+`kubernetes.io/os=windows` is in the default `exclude` selectors, so **Eraser
+skips Windows nodes out of the box**. The images Eraser ships are Linux-only, so
+without this a mixed-OS cluster would schedule pods that cannot run.
+
+Skipped nodes are counted in the _ImageJob_ `skipped` status rather than being
+treated as failures, so a mixed-OS cluster reports success while cleaning only
+its Linux nodes.
+
+To take the exclusion off, override `selectors` without it:
+
+```yaml
+manager:
+  nodeFilter:
+    type: exclude
+    selectors: []
+```
+
+Only do that if the images configured under `components` can actually run on
+those nodes. Windows support is still in progress, so for now this is useful
+mainly when supplying your own images.
+
 ### Configuring Components
 
 An _ImageJob_ is made up of various sub-jobs, with one sub-job for each node.
@@ -214,7 +240,7 @@ timeout:
 | manager.priorityClassName | The priority class to use for collector, scanner, and remover containers. | "" |
 | manager.additionalPodLabels | Additional labels for all pods that the controller creates at runtime. | `{}` |
 | manager.nodeFilter.type | The type of node filter to use. Must be either "exclude" or "include". | exclude |
-| manager.nodeFilter.selectors | A list of selectors used to filter nodes. | [] |
+| manager.nodeFilter.selectors | A list of selectors used to filter nodes. `eraser.sh/cleanup.filter` is appended whether or not it is listed. | `["eraser.sh/cleanup.filter", "kubernetes.io/os=windows"]` |
 | components.collector.enabled | Whether to enable the collector component. | true |
 | components.collector.image.repo | The repository containing the collector image. | ghcr.io/eraser-dev/collector |
 | components.collector.image.tag | The tag of the collector image. | v1.0.0 |
