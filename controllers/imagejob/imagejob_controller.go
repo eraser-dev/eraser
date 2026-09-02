@@ -556,7 +556,6 @@ func copyAndFillTemplateSpec(templateSpecTemplate *corev1.PodSpec, env []corev1.
 	templateSpec.Tolerations = defaultTolerations
 	templateSpec.NodeName = nodeName
 
-	// Environment injection is OS-independent.
 	eraserImg := &templateSpec.Containers[0]
 	eraserImg.Env = append(eraserImg.Env, env...)
 
