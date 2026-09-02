@@ -554,18 +554,20 @@ func copyAndFillTemplateSpec(templateSpecTemplate *corev1.PodSpec, env []corev1.
 
 	templateSpec := templateSpecTemplate.DeepCopy()
 	templateSpec.Tolerations = defaultTolerations
-	templateSpec.NodeName = nodeName
 
 	eraserImg := &templateSpec.Containers[0]
+	eraserImg.VolumeMounts = append(eraserImg.VolumeMounts, volumeMounts...)
 	eraserImg.Env = append(eraserImg.Env, env...)
 
 	if len(templateSpec.Containers) > 1 {
 		collectorImg := &templateSpec.Containers[1]
+		collectorImg.VolumeMounts = append(collectorImg.VolumeMounts, volumeMounts...)
 		collectorImg.Env = append(collectorImg.Env, env...)
 	}
 
 	if len(templateSpec.Containers) > 2 {
 		scannerImg := &templateSpec.Containers[2]
+		scannerImg.VolumeMounts = append(scannerImg.VolumeMounts, volumeMounts...)
 		scannerImg.Env = append(scannerImg.Env,
 			corev1.EnvVar{
 				Name:  controllerUtils.EnvVarContainerdNamespaceKey,
@@ -582,21 +584,16 @@ func copyAndFillTemplateSpec(templateSpecTemplate *corev1.PodSpec, env []corev1.
 		}
 	}
 
+	templateSpec.Volumes = append(volumes, templateSpec.Volumes...)
+	templateSpec.NodeName = nodeName
+
 	if isWindowsNode(node) {
 		// TODO(#1236): the Windows worker dials the fixed containerd named pipe
 		// and ignores runtimeSpec.Address. Propagate a configurable Windows
 		// runtime address to the worker (a named pipe can't be hostPath-mounted
 		// like a Linux socket) in a follow-up.
 		fillWindowsPodSpec(templateSpec)
-		return templateSpec, nil
 	}
-
-	// On Linux the host CRI socket is mounted into every worker container.
-	for i := range templateSpec.Containers {
-		templateSpec.Containers[i].VolumeMounts = append(templateSpec.Containers[i].VolumeMounts, volumeMounts...)
-	}
-
-	templateSpec.Volumes = append(volumes, templateSpec.Volumes...)
 
 	return templateSpec, nil
 }
@@ -619,6 +616,16 @@ func fillWindowsPodSpec(templateSpec *corev1.PodSpec) {
 	templateSpec.HostNetwork = true
 	templateSpec.SecurityContext = eraserUtils.WindowsHostProcessPodSecurityContext()
 
+	// A Windows named pipe can't be hostPath-mounted like a Linux socket, so
+	// drop the CRI socket volume added for Linux.
+	keptVolumes := templateSpec.Volumes[:0]
+	for _, v := range templateSpec.Volumes {
+		if v.Name != "runtime-sock-volume" {
+			keptVolumes = append(keptVolumes, v)
+		}
+	}
+	templateSpec.Volumes = keptVolumes
+
 	for i := range templateSpec.Containers {
 		c := &templateSpec.Containers[i]
 		// SharedSecurityContext sets Linux-only fields (capabilities,
@@ -635,9 +642,18 @@ func fillWindowsPodSpec(templateSpec *corev1.PodSpec) {
 		// instead of deriving it here.
 		c.Command = []string{windowsSandboxMountEnv + `\` + c.Name + ".exe"}
 
-		for j := range c.VolumeMounts {
-			c.VolumeMounts[j].MountPath = linuxToWindowsEraserPath(c.VolumeMounts[j].MountPath)
+		// Drop the CRI socket mount and translate the remaining eraser.sh mounts
+		// to their Windows form.
+		keptMounts := c.VolumeMounts[:0]
+		for _, m := range c.VolumeMounts {
+			if m.Name == "runtime-sock-volume" {
+				continue
+			}
+			m.MountPath = linuxToWindowsEraserPath(m.MountPath)
+			keptMounts = append(keptMounts, m)
 		}
+		c.VolumeMounts = keptMounts
+
 		for j := range c.Args {
 			c.Args[j] = translateEraserArg(c.Args[j])
 		}
