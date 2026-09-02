@@ -566,6 +566,10 @@ func copyAndFillTemplateSpec(templateSpecTemplate *corev1.PodSpec, env []corev1.
 	}
 
 	if isWindowsNode(node) {
+		// TODO(#1236): the Windows worker dials the fixed containerd named pipe
+		// and ignores runtimeSpec.Address. Propagate a configurable Windows
+		// runtime address to the worker (a named pipe can't be hostPath-mounted
+		// like a Linux socket) in a follow-up.
 		fillWindowsPodSpec(templateSpec)
 		return templateSpec, nil
 	}
