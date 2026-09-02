@@ -55,9 +55,9 @@ func TestImagesHandoffRoundTrip(t *testing.T) {
 	errCh := make(chan error, 1)
 	go func() { errCh <- WriteImagesPipe(ctx, path, want) }()
 
-	// The read has to be off the test goroutine for the deadline to mean
-	// anything: once the FIFO opens or the socket accepts, the payload read
-	// stops observing ctx, so a stalled peer would hang here rather than fail.
+	// Read off the test goroutine so the deadline holds even if the code under
+	// test stops observing ctx: a regression there would hang the package rather
+	// than fail this test.
 	type readResult struct {
 		images []unversioned.Image
 		err    error

@@ -55,11 +55,6 @@ func main() {
 		os.Exit(generalErr)
 	}
 
-	// Every call below that can block observes ctx, so the handler can stay
-	// registered for the rest of the process. The stop func is discarded rather
-	// than deferred because every exit path here is os.Exit, which would skip it.
-	ctx, _ := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
-
 	log.Info("remover starting", "imageListPtr", *imageListPtr, "criPath", util.CRIPath)
 
 	client, err := cri.NewRemoverClient(util.CRIPath)
@@ -69,6 +64,13 @@ func main() {
 	}
 
 	log.Info("CRI client created successfully")
+
+	// Registered below the CRI dial, which blocks on context.Background and so
+	// cannot be interrupted; covering it would suppress the default SIGTERM exit
+	// and wait for SIGKILL instead. Every blocking call after this point observes
+	// ctx. The stop func is discarded rather than deferred because every exit path
+	// here is os.Exit, which would skip it.
+	ctx, _ := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 
 	var imagelist []string
 
