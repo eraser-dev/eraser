@@ -58,15 +58,11 @@ const (
 	managerLabelValue    = "controller-manager"
 	managerLabelKey      = "control-plane"
 
-	windowsOS              = string(corev1.Windows)
+	windowsOS              = "windows"
 	windowsSandboxMountEnv = "%CONTAINER_SANDBOX_MOUNT_POINT%"
 
 	windowsMinMemoryLimit = "256Mi"
 )
-
-// windowsMinMemoryLimitQty is windowsMinMemoryLimit parsed once for reuse in the
-// reconcile path.
-var windowsMinMemoryLimitQty = resource.MustParse(windowsMinMemoryLimit)
 
 var log = logf.Log.WithName("controller").WithValues("process", "imagejob-controller")
 
@@ -545,17 +541,24 @@ func copyAndFillTemplateSpec(templateSpecTemplate *corev1.PodSpec, env []corev1.
 	templateSpec.Tolerations = defaultTolerations
 	templateSpec.NodeName = node.Name
 
-	// Environment injection is OS-independent: every worker container gets the
-	// shared env; the scanner (index 2) also needs the containerd namespace.
-	for i := range templateSpec.Containers {
-		c := &templateSpec.Containers[i]
-		if i == 2 {
-			c.Env = append(c.Env, corev1.EnvVar{
+	// Environment injection is OS-independent.
+	eraserImg := &templateSpec.Containers[0]
+	eraserImg.Env = append(eraserImg.Env, env...)
+
+	if len(templateSpec.Containers) > 1 {
+		collectorImg := &templateSpec.Containers[1]
+		collectorImg.Env = append(collectorImg.Env, env...)
+	}
+
+	if len(templateSpec.Containers) > 2 {
+		scannerImg := &templateSpec.Containers[2]
+		scannerImg.Env = append(scannerImg.Env,
+			corev1.EnvVar{
 				Name:  controllerUtils.EnvVarContainerdNamespaceKey,
 				Value: controllerUtils.EnvVarContainerdNamespaceValue,
-			})
-		}
-		c.Env = append(c.Env, env...)
+			},
+		)
+		scannerImg.Env = append(scannerImg.Env, env...)
 	}
 
 	secrets := os.Getenv("ERASER_PULL_SECRET_NAMES")
@@ -661,7 +664,7 @@ func raiseWindowsMemoryLimit(c *corev1.Container) {
 	if !ok || limit.IsZero() {
 		return
 	}
-	floor := windowsMinMemoryLimitQty
+	floor := resource.MustParse(windowsMinMemoryLimit)
 	if req, ok := c.Resources.Requests[corev1.ResourceMemory]; ok && req.Cmp(floor) > 0 {
 		floor = req
 	}
@@ -674,7 +677,7 @@ func raiseWindowsMemoryLimit(c *corev1.Container) {
 // shared-data emptyDir mount or the imagelist configmap mount) from its Linux
 // form to the Windows form.
 func linuxToWindowsEraserPath(p string) string {
-	if p == eraserUtils.LinuxEraserPath || strings.HasPrefix(p, eraserUtils.LinuxEraserPath+"/") {
+	if strings.HasPrefix(p, eraserUtils.LinuxEraserPath) {
 		rest := strings.ReplaceAll(strings.TrimPrefix(p, eraserUtils.LinuxEraserPath), "/", `\`)
 		return eraserUtils.WindowsEraserPath + rest
 	}
