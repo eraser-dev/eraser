@@ -19,15 +19,27 @@ import (
 
 const (
 	// npipeProtocol is the network protocol of a Windows named pipe.
-	npipeProtocol            = "npipe"
-	PipeMode                 = 0o644
-	ScanErasePath            = "/run/eraser.sh/shared-data/scanErase"
-	CollectScanPath          = "/run/eraser.sh/shared-data/collectScan"
-	EraseCompleteCollectPath = "/run/eraser.sh/shared-data/eraseCompleteCollect"
+	npipeProtocol = "npipe"
+	PipeMode      = 0o644
+
+	LinuxEraserPath   = "/run/eraser.sh"
+	WindowsEraserPath = `C:\run\eraser.sh`
+
+	LinuxSharedDataPath   = LinuxEraserPath + "/shared-data"
+	WindowsSharedDataPath = WindowsEraserPath + `\shared-data`
+
+	ScanErasePath            = LinuxSharedDataPath + "/scanErase"
+	CollectScanPath          = LinuxSharedDataPath + "/collectScan"
+	EraseCompleteCollectPath = LinuxSharedDataPath + "/eraseCompleteCollect"
 	EraseCompleteMessage     = "complete"
-	EraseCompleteScanPath    = "/run/eraser.sh/shared-data/eraseCompleteScan"
+	EraseCompleteScanPath    = LinuxSharedDataPath + "/eraseCompleteScan"
 
 	EnvEraserRuntimeName = "ERASER_RUNTIME_NAME"
+
+	// EnvEraserRuntimeAddress carries the CRI endpoint to Windows workers. The
+	// manager sets it from RuntimeSpec.WindowsAddress because a Windows named
+	// pipe cannot be hostPath-mounted the way a Linux socket is.
+	EnvEraserRuntimeAddress = "ERASER_RUNTIME_ADDRESS"
 )
 
 type ExclusionList struct {

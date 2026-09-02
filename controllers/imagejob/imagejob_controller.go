@@ -23,6 +23,7 @@ import (
 
 	"golang.org/x/exp/slices"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -56,6 +57,12 @@ const (
 	removerContainer     = "remover"
 	managerLabelValue    = "controller-manager"
 	managerLabelKey      = "control-plane"
+
+	windowsOS              = "windows"
+	runtimeSockVolumeName  = "runtime-sock-volume"
+	windowsSandboxMountEnv = "%CONTAINER_SANDBOX_MOUNT_POINT%"
+
+	windowsMinMemoryLimit = "256Mi"
 )
 
 var log = logf.Log.WithName("controller").WithValues("process", "imagejob-controller")
@@ -531,37 +538,21 @@ nodes:
 }
 
 func copyAndFillTemplateSpec(templateSpecTemplate *corev1.PodSpec, env []corev1.EnvVar, node *corev1.Node, runtimeSpec *unversioned.RuntimeSpec) (*corev1.PodSpec, error) {
-	nodeName := node.Name
-
-	u, err := url.Parse(runtimeSpec.Address)
-	if err != nil {
-		return nil, err
-	}
-
-	volumes := []corev1.Volume{
-		{Name: "runtime-sock-volume", VolumeSource: corev1.VolumeSource{HostPath: &corev1.HostPathVolumeSource{Path: u.Path}}},
-	}
-
-	volumeMounts := []corev1.VolumeMount{
-		{MountPath: controllerUtils.CRIPath, Name: "runtime-sock-volume"},
-	}
-
 	templateSpec := templateSpecTemplate.DeepCopy()
 	templateSpec.Tolerations = defaultTolerations
+	templateSpec.NodeName = node.Name
 
+	// Environment injection is OS-independent.
 	eraserImg := &templateSpec.Containers[0]
-	eraserImg.VolumeMounts = append(eraserImg.VolumeMounts, volumeMounts...)
 	eraserImg.Env = append(eraserImg.Env, env...)
 
 	if len(templateSpec.Containers) > 1 {
 		collectorImg := &templateSpec.Containers[1]
-		collectorImg.VolumeMounts = append(collectorImg.VolumeMounts, volumeMounts...)
 		collectorImg.Env = append(collectorImg.Env, env...)
 	}
 
 	if len(templateSpec.Containers) > 2 {
 		scannerImg := &templateSpec.Containers[2]
-		scannerImg.VolumeMounts = append(scannerImg.VolumeMounts, volumeMounts...)
 		scannerImg.Env = append(scannerImg.Env,
 			corev1.EnvVar{
 				Name:  controllerUtils.EnvVarContainerdNamespaceKey,
@@ -578,8 +569,129 @@ func copyAndFillTemplateSpec(templateSpecTemplate *corev1.PodSpec, env []corev1.
 		}
 	}
 
-	templateSpec.Volumes = append(volumes, templateSpec.Volumes...)
-	templateSpec.NodeName = nodeName
+	if isWindowsNode(node) {
+		fillWindowsPodSpec(templateSpec, runtimeSpec)
+		return templateSpec, nil
+	}
+
+	if err := fillLinuxPodSpec(templateSpec, runtimeSpec); err != nil {
+		return nil, err
+	}
 
 	return templateSpec, nil
+}
+
+// isWindowsNode reports whether the node runs Windows, preferring the
+// kubernetes.io/os label and falling back to the reported node OS.
+func isWindowsNode(node *corev1.Node) bool {
+	if osName, ok := node.Labels[corev1.LabelOSStable]; ok {
+		return strings.EqualFold(osName, windowsOS)
+	}
+	return strings.EqualFold(node.Status.NodeInfo.OperatingSystem, windowsOS)
+}
+
+// fillLinuxPodSpec mounts the host CRI socket into every worker container via a
+// hostPath volume.
+func fillLinuxPodSpec(templateSpec *corev1.PodSpec, runtimeSpec *unversioned.RuntimeSpec) error {
+	u, err := url.Parse(runtimeSpec.Address)
+	if err != nil {
+		return err
+	}
+
+	volumes := []corev1.Volume{
+		{Name: runtimeSockVolumeName, VolumeSource: corev1.VolumeSource{HostPath: &corev1.HostPathVolumeSource{Path: u.Path}}},
+	}
+
+	volumeMounts := []corev1.VolumeMount{
+		{MountPath: controllerUtils.CRIPath, Name: runtimeSockVolumeName},
+	}
+
+	for i := range templateSpec.Containers {
+		templateSpec.Containers[i].VolumeMounts = append(templateSpec.Containers[i].VolumeMounts, volumeMounts...)
+	}
+
+	templateSpec.Volumes = append(volumes, templateSpec.Volumes...)
+
+	return nil
+}
+
+// fillWindowsPodSpec turns the Linux-shaped template into a Windows HostProcess
+// pod.
+func fillWindowsPodSpec(templateSpec *corev1.PodSpec, runtimeSpec *unversioned.RuntimeSpec) {
+	// Declare the pod's OS so the apiserver enforces Windows OS-field
+	// consistency (e.g. rejects leftover Linux-only securityContext fields).
+	templateSpec.OS = &corev1.PodOS{Name: corev1.Windows}
+	templateSpec.HostNetwork = true
+	templateSpec.SecurityContext = eraserUtils.WindowsHostProcessPodSecurityContext()
+
+	// A Windows named pipe cannot be hostPath-mounted like a Linux socket, so
+	// the CRI endpoint is propagated to workers via an environment variable.
+	var runtimeAddressEnv []corev1.EnvVar
+	if runtimeSpec != nil && runtimeSpec.WindowsAddress != "" {
+		runtimeAddressEnv = []corev1.EnvVar{{
+			Name:  eraserUtils.EnvEraserRuntimeAddress,
+			Value: runtimeSpec.WindowsAddress,
+		}}
+	}
+
+	for i := range templateSpec.Containers {
+		c := &templateSpec.Containers[i]
+		// SharedSecurityContext sets Linux-only fields (capabilities,
+		// seccompProfile, readOnlyRootFilesystem) that are invalid on Windows.
+		c.SecurityContext = nil
+
+		c.Env = append(c.Env, runtimeAddressEnv...)
+
+		// A Windows memory limit is enforced job-wide via a Job Object. A limit
+		// too small for the Go runtime to start crashes the container before any
+		// code runs (STATUS_STACK_OVERFLOW). Raise an existing memory limit that
+		// is below the verified-safe minimum; leave an unset limit untouched.
+		raiseWindowsMemoryLimit(c)
+
+		c.Command = []string{windowsSandboxMountEnv + `\` + c.Name + ".exe"}
+
+		for j := range c.VolumeMounts {
+			c.VolumeMounts[j].MountPath = linuxToWindowsEraserPath(c.VolumeMounts[j].MountPath)
+		}
+		for j := range c.Args {
+			c.Args[j] = translateEraserArg(c.Args[j])
+		}
+	}
+}
+
+// raiseWindowsMemoryLimit bumps a container's memory limit up to the
+// Windows-safe minimum when a smaller limit is configured. A limit that is not
+// set or is explicitly zero is left as-is (no Job Object memory cap).
+func raiseWindowsMemoryLimit(c *corev1.Container) {
+	limit, ok := c.Resources.Limits[corev1.ResourceMemory]
+	// An unset or explicit zero limit means no Job Object memory cap, so there
+	// is no startup crash to guard against; leave it as-is.
+	if !ok || limit.IsZero() {
+		return
+	}
+	minLimit := resource.MustParse(windowsMinMemoryLimit)
+	if limit.Cmp(minLimit) < 0 {
+		c.Resources.Limits[corev1.ResourceMemory] = minLimit
+	}
+}
+
+// linuxToWindowsEraserPath rewrites an absolute eraser.sh path (e.g. the
+// shared-data emptyDir mount or the imagelist configmap mount) from its Linux
+// form to the Windows form.
+func linuxToWindowsEraserPath(p string) string {
+	if strings.HasPrefix(p, eraserUtils.LinuxEraserPath) {
+		rest := strings.ReplaceAll(strings.TrimPrefix(p, eraserUtils.LinuxEraserPath), "/", `\`)
+		return eraserUtils.WindowsEraserPath + rest
+	}
+	return p
+}
+
+// translateEraserArg rewrites an eraser.sh path embedded in a container arg or
+// command entry (e.g. "--imagelist=/run/eraser.sh/imagelist/images").
+func translateEraserArg(a string) string {
+	idx := strings.Index(a, eraserUtils.LinuxEraserPath)
+	if idx < 0 {
+		return a
+	}
+	return a[:idx] + linuxToWindowsEraserPath(a[idx:])
 }
