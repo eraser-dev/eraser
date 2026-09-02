@@ -58,7 +58,7 @@ const (
 	managerLabelValue    = "controller-manager"
 	managerLabelKey      = "control-plane"
 
-	windowsOS              = "windows"
+	windowsOS              = string(corev1.Windows)
 	windowsSandboxMountEnv = "%CONTAINER_SANDBOX_MOUNT_POINT%"
 
 	windowsMinMemoryLimit = "256Mi"
