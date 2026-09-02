@@ -636,6 +636,11 @@ func fillWindowsPodSpec(templateSpec *corev1.PodSpec) {
 		// is below the verified-safe minimum; leave an unset limit untouched.
 		raiseWindowsMemoryLimit(c)
 
+		// TODO(#1236): the Windows worker command is derived from the container
+		// name (%CONTAINER_SANDBOX_MOUNT_POINT%\<name>.exe). This forces every
+		// BYO Windows worker image to ship a binary matching the container name.
+		// Make the command (and its args) configurable via the configmap
+		// instead of deriving it here.
 		c.Command = []string{windowsSandboxMountEnv + `\` + c.Name + ".exe"}
 
 		for j := range c.VolumeMounts {
@@ -649,7 +654,9 @@ func fillWindowsPodSpec(templateSpec *corev1.PodSpec) {
 
 // raiseWindowsMemoryLimit bumps a container's memory limit up to the
 // Windows-safe minimum when a smaller limit is configured. A limit that is not
-// set or is explicitly zero is left as-is (no Job Object memory cap).
+// set or is explicitly zero is left as-is (no Job Object memory cap). The floor
+// is max(windowsMinMemoryLimit, memory request) so the resulting limit never
+// drops below the request and produces an invalid request/limit pair.
 func raiseWindowsMemoryLimit(c *corev1.Container) {
 	limit, ok := c.Resources.Limits[corev1.ResourceMemory]
 	// An unset or explicit zero limit means no Job Object memory cap, so there
@@ -657,9 +664,12 @@ func raiseWindowsMemoryLimit(c *corev1.Container) {
 	if !ok || limit.IsZero() {
 		return
 	}
-	minLimit := resource.MustParse(windowsMinMemoryLimit)
-	if limit.Cmp(minLimit) < 0 {
-		c.Resources.Limits[corev1.ResourceMemory] = minLimit
+	floor := resource.MustParse(windowsMinMemoryLimit)
+	if req, ok := c.Resources.Requests[corev1.ResourceMemory]; ok && req.Cmp(floor) > 0 {
+		floor = req
+	}
+	if limit.Cmp(floor) < 0 {
+		c.Resources.Limits[corev1.ResourceMemory] = floor
 	}
 }
 

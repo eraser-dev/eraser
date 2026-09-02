@@ -193,21 +193,27 @@ func TestCopyAndFillTemplateSpecWindows(t *testing.T) {
 
 func TestRaiseWindowsMemoryLimit(t *testing.T) {
 	cases := []struct {
-		name  string
-		limit *string // nil = unset
-		want  *string // nil = still unset
+		name    string
+		limit   *string // nil = unset
+		request *string // nil = unset
+		want    *string // nil = still unset
 	}{
-		{"below min is raised", ptr("30Mi"), ptr("256Mi")},
-		{"at min is unchanged", ptr("256Mi"), ptr("256Mi")},
-		{"above min is unchanged", ptr("512Mi"), ptr("512Mi")},
-		{"explicit zero stays unlimited", ptr("0"), ptr("0")},
-		{"unset stays unset", nil, nil},
+		{"below min is raised", ptr("30Mi"), nil, ptr("256Mi")},
+		{"at min is unchanged", ptr("256Mi"), nil, ptr("256Mi")},
+		{"above min is unchanged", ptr("512Mi"), nil, ptr("512Mi")},
+		{"explicit zero stays unlimited", ptr("0"), nil, ptr("0")},
+		{"unset stays unset", nil, nil, nil},
+		{"floor is at least the request", ptr("30Mi"), ptr("300Mi"), ptr("300Mi")},
+		{"request below min still floors at min", ptr("30Mi"), ptr("100Mi"), ptr("256Mi")},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			c := &corev1.Container{}
 			if tc.limit != nil {
 				c.Resources.Limits = corev1.ResourceList{corev1.ResourceMemory: resource.MustParse(*tc.limit)}
+			}
+			if tc.request != nil {
+				c.Resources.Requests = corev1.ResourceList{corev1.ResourceMemory: resource.MustParse(*tc.request)}
 			}
 			raiseWindowsMemoryLimit(c)
 			got, ok := c.Resources.Limits[corev1.ResourceMemory]

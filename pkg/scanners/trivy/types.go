@@ -23,6 +23,10 @@ const (
 )
 
 const (
+	// TODO(#1236): trivyCommandName and the CacheDir below are hardcoded Linux
+	// paths. To run the scanner as a Windows HostProcess worker, the scanner
+	// executable path (and its arguments) should be passed in from the
+	// configmap rather than hardcoded here.
 	trivyCommandName        = "/trivy"
 	trivyImageArg           = "image"
 	trivyJSONFormatFlag     = "--format=json"
