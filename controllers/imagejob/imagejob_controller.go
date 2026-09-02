@@ -577,28 +577,11 @@ func copyAndFillTemplateSpec(templateSpecTemplate *corev1.PodSpec, env []corev1.
 		return templateSpec, nil
 	}
 
-	if err := fillLinuxPodSpec(templateSpec, runtimeSpec); err != nil {
-		return nil, err
-	}
-
-	return templateSpec, nil
-}
-
-// isWindowsNode reports whether the node runs Windows, preferring the
-// kubernetes.io/os label and falling back to the reported node OS.
-func isWindowsNode(node *corev1.Node) bool {
-	if osName, ok := node.Labels[corev1.LabelOSStable]; ok {
-		return strings.EqualFold(osName, windowsOS)
-	}
-	return strings.EqualFold(node.Status.NodeInfo.OperatingSystem, windowsOS)
-}
-
-// fillLinuxPodSpec mounts the host CRI socket into every worker container via a
-// hostPath volume.
-func fillLinuxPodSpec(templateSpec *corev1.PodSpec, runtimeSpec *unversioned.RuntimeSpec) error {
+	// On Linux the host CRI socket is mounted into every worker container via a
+	// hostPath volume.
 	u, err := url.Parse(runtimeSpec.Address)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	volumes := []corev1.Volume{
@@ -615,7 +598,16 @@ func fillLinuxPodSpec(templateSpec *corev1.PodSpec, runtimeSpec *unversioned.Run
 
 	templateSpec.Volumes = append(volumes, templateSpec.Volumes...)
 
-	return nil
+	return templateSpec, nil
+}
+
+// isWindowsNode reports whether the node runs Windows, preferring the
+// kubernetes.io/os label and falling back to the reported node OS.
+func isWindowsNode(node *corev1.Node) bool {
+	if osName, ok := node.Labels[corev1.LabelOSStable]; ok {
+		return strings.EqualFold(osName, windowsOS)
+	}
+	return strings.EqualFold(node.Status.NodeInfo.OperatingSystem, windowsOS)
 }
 
 // fillWindowsPodSpec turns the Linux-shaped template into a Windows HostProcess
