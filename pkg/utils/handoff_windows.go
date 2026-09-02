@@ -86,7 +86,8 @@ func acceptOne(ctx context.Context, l net.Listener) (net.Conn, error) {
 }
 
 // Close releases the endpoint, which also unpublishes it. Callers both defer
-// this and close explicitly, so repeat calls report success rather than
+// this and close explicitly, and a canceled Await will already have closed the
+// listener to unblock Accept, so repeat calls report success rather than
 // net.ErrClosed.
 func (p *CompletionPipe) Close() error {
 	if p.l == nil {
@@ -94,7 +95,10 @@ func (p *CompletionPipe) Close() error {
 	}
 	l := p.l
 	p.l = nil
-	return l.Close()
+	if err := l.Close(); err != nil && !errors.Is(err, net.ErrClosed) {
+		return err
+	}
+	return nil
 }
 
 // WriteImagesPipe blocks until the reader is listening, then sends the list, or

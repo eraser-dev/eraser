@@ -127,6 +127,12 @@ func writeAndClose(ctx context.Context, file *os.File, payload []byte) error {
 // behavior every existing deployment depends on, is exactly as before. Only
 // the waiting is made interruptible, by doing it on a goroutine that hands the
 // file over if anyone is still listening and closes it if not.
+//
+// Precondition: canceling must lead to process exit. Only the wait is
+// cancellable, not the open(2) beneath it, so the goroutine stays parked until
+// a peer arrives -- and if one does, it takes the rendezvous and gives that
+// peer EOF instead of a payload. Every caller here exits on cancellation, so
+// the process reaps it. See eraser-dev/eraser#1271 to lift this.
 func openFifo(ctx context.Context, path string, flag int) (*os.File, error) {
 	type opened struct {
 		file *os.File

@@ -213,7 +213,7 @@ func (r *Reconciler) handleJobListEvent(ctx context.Context, imageList *eraserv1
 			if err := metrics.RecordMetricsController(ctx, otel.GetMeterProvider(), float64(time.Since(startTime).Seconds()), int64(job.Status.Succeeded), int64(job.Status.Failed)); err != nil {
 				log.Error(err, "error recording metrics")
 			}
-			metrics.ExportMetrics(log, exporter, reader)
+			metrics.ExportMetrics(ctx, log, exporter, reader)
 		}
 
 		return r.handleJobDeletion(ctx, job)

@@ -3,6 +3,7 @@
 package utils
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -185,6 +186,29 @@ func TestAwaitReportsAConnectThatSaysNothing(t *testing.T) {
 	data, err := pipe.Await(ctx)
 	if !errors.Is(err, ErrEmptyHandoff) {
 		t.Errorf("Await = (%q, %v), want ErrEmptyHandoff", string(data), err)
+	}
+}
+
+// A canceled Await closes the listener itself to unblock Accept, so Close has to
+// stay idempotent on that path too -- callers defer it regardless of how Await
+// ended.
+func TestCloseAfterAwaitIsCanceledBeforeAnyPeer(t *testing.T) {
+	path := filepath.Join(shortTempDir(t), "complete")
+
+	pipe, err := CreateCompletionPipe(path)
+	if err != nil {
+		t.Fatalf("CreateCompletionPipe: %v", err)
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	if _, err := pipe.Await(ctx); !errors.Is(err, context.Canceled) {
+		t.Fatalf("Await = %v, want context.Canceled", err)
+	}
+
+	if err := pipe.Close(); err != nil {
+		t.Errorf("Close after a canceled Await = %v, want nil", err)
 	}
 }
 

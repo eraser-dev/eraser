@@ -67,7 +67,7 @@ func main() {
 
 	// Registered below the CRI dial, which blocks on context.Background and so
 	// cannot be interrupted; covering it would suppress the default SIGTERM exit
-	// and wait for SIGKILL instead. Every blocking call after this point observes
+	// and wait for SIGKILL instead. Everything that blocks after this point takes
 	// ctx. The stop func is discarded rather than deferred because every exit path
 	// here is os.Exit, which would skip it.
 	ctx, _ := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
@@ -135,7 +135,7 @@ func main() {
 		if err := metrics.RecordMetricsRemover(ctx, otel.GetMeterProvider(), int64(removed)); err != nil {
 			log.Error(err, "error recording metrics")
 		}
-		metrics.ExportMetrics(log, exporter, reader)
+		metrics.ExportMetrics(ctx, log, exporter, reader)
 	}
 
 	if *imageListPtr == "" {

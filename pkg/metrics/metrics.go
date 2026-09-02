@@ -47,16 +47,14 @@ func ConfigureMetrics(ctx context.Context, log logr.Logger, endpoint string) (sd
 	return exporter, reader, provider
 }
 
-func ExportMetrics(log logr.Logger, exporter sdkmetric.Exporter, reader sdkmetric.Reader) {
-	ctxB := context.Background()
-
+func ExportMetrics(ctx context.Context, log logr.Logger, exporter sdkmetric.Exporter, reader sdkmetric.Reader) {
 	var m metricdata.ResourceMetrics
-	err := reader.Collect(ctxB, &m)
+	err := reader.Collect(ctx, &m)
 	if err != nil {
 		log.Error(err, "failed to collect metrics")
 		return
 	}
-	if err := exporter.Export(ctxB, &m); err != nil {
+	if err := exporter.Export(ctx, &m); err != nil {
 		log.Error(err, "failed to export metrics")
 	}
 }
