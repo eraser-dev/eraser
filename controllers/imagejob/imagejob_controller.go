@@ -537,9 +537,24 @@ nodes:
 }
 
 func copyAndFillTemplateSpec(templateSpecTemplate *corev1.PodSpec, env []corev1.EnvVar, node *corev1.Node, runtimeSpec *unversioned.RuntimeSpec) (*corev1.PodSpec, error) {
+	nodeName := node.Name
+
+	u, err := url.Parse(runtimeSpec.Address)
+	if err != nil {
+		return nil, err
+	}
+
+	volumes := []corev1.Volume{
+		{Name: "runtime-sock-volume", VolumeSource: corev1.VolumeSource{HostPath: &corev1.HostPathVolumeSource{Path: u.Path}}},
+	}
+
+	volumeMounts := []corev1.VolumeMount{
+		{MountPath: controllerUtils.CRIPath, Name: "runtime-sock-volume"},
+	}
+
 	templateSpec := templateSpecTemplate.DeepCopy()
 	templateSpec.Tolerations = defaultTolerations
-	templateSpec.NodeName = node.Name
+	templateSpec.NodeName = nodeName
 
 	// Environment injection is OS-independent.
 	eraserImg := &templateSpec.Containers[0]
@@ -577,21 +592,7 @@ func copyAndFillTemplateSpec(templateSpecTemplate *corev1.PodSpec, env []corev1.
 		return templateSpec, nil
 	}
 
-	// On Linux the host CRI socket is mounted into every worker container via a
-	// hostPath volume.
-	u, err := url.Parse(runtimeSpec.Address)
-	if err != nil {
-		return nil, err
-	}
-
-	volumes := []corev1.Volume{
-		{Name: "runtime-sock-volume", VolumeSource: corev1.VolumeSource{HostPath: &corev1.HostPathVolumeSource{Path: u.Path}}},
-	}
-
-	volumeMounts := []corev1.VolumeMount{
-		{MountPath: controllerUtils.CRIPath, Name: "runtime-sock-volume"},
-	}
-
+	// On Linux the host CRI socket is mounted into every worker container.
 	for i := range templateSpec.Containers {
 		templateSpec.Containers[i].VolumeMounts = append(templateSpec.Containers[i].VolumeMounts, volumeMounts...)
 	}
