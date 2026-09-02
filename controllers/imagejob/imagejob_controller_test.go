@@ -232,6 +232,28 @@ func TestRaiseWindowsMemoryLimit(t *testing.T) {
 
 func ptr(s string) *string { return &s }
 
+func TestLinuxToWindowsEraserPath(t *testing.T) {
+	cases := []struct {
+		in   string
+		want string
+	}{
+		{"/run/eraser.sh", `C:\run\eraser.sh`},
+		{"/run/eraser.sh/shared-data", `C:\run\eraser.sh\shared-data`},
+		{"/run/eraser.sh/imagelist/images", `C:\run\eraser.sh\imagelist\images`},
+		// A sibling path that merely shares the prefix but not the directory
+		// boundary must not be rewritten.
+		{"/run/eraser.sh-foo/bar", "/run/eraser.sh-foo/bar"},
+		{"/var/log", "/var/log"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.in, func(t *testing.T) {
+			if got := linuxToWindowsEraserPath(tc.in); got != tc.want {
+				t.Errorf("linuxToWindowsEraserPath(%q) = %q, want %q", tc.in, got, tc.want)
+			}
+		})
+	}
+}
+
 func TestIsWindowsNode(t *testing.T) {
 	cases := []struct {
 		name string

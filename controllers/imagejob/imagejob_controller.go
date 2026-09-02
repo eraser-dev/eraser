@@ -58,12 +58,16 @@ const (
 	managerLabelValue    = "controller-manager"
 	managerLabelKey      = "control-plane"
 
-	windowsOS              = "windows"
+	windowsOS              = string(corev1.Windows)
 	runtimeSockVolumeName  = "runtime-sock-volume"
 	windowsSandboxMountEnv = "%CONTAINER_SANDBOX_MOUNT_POINT%"
 
 	windowsMinMemoryLimit = "256Mi"
 )
+
+// windowsMinMemoryLimitQty is windowsMinMemoryLimit parsed once for reuse in the
+// reconcile path.
+var windowsMinMemoryLimitQty = resource.MustParse(windowsMinMemoryLimit)
 
 var log = logf.Log.WithName("controller").WithValues("process", "imagejob-controller")
 
@@ -630,10 +634,7 @@ func fillWindowsPodSpec(templateSpec *corev1.PodSpec) {
 		// seccompProfile, readOnlyRootFilesystem) that are invalid on Windows.
 		c.SecurityContext = nil
 
-		// A Windows memory limit is enforced job-wide via a Job Object. A limit
-		// too small for the Go runtime to start crashes the container before any
-		// code runs (STATUS_STACK_OVERFLOW). Raise an existing memory limit that
-		// is below the verified-safe minimum; leave an unset limit untouched.
+		// Ensure the Windows-safe minimum memory limit.
 		raiseWindowsMemoryLimit(c)
 
 		// TODO(#1236): the Windows worker command is derived from the container
@@ -664,7 +665,7 @@ func raiseWindowsMemoryLimit(c *corev1.Container) {
 	if !ok || limit.IsZero() {
 		return
 	}
-	floor := resource.MustParse(windowsMinMemoryLimit)
+	floor := windowsMinMemoryLimitQty
 	if req, ok := c.Resources.Requests[corev1.ResourceMemory]; ok && req.Cmp(floor) > 0 {
 		floor = req
 	}
@@ -677,7 +678,7 @@ func raiseWindowsMemoryLimit(c *corev1.Container) {
 // shared-data emptyDir mount or the imagelist configmap mount) from its Linux
 // form to the Windows form.
 func linuxToWindowsEraserPath(p string) string {
-	if strings.HasPrefix(p, eraserUtils.LinuxEraserPath) {
+	if p == eraserUtils.LinuxEraserPath || strings.HasPrefix(p, eraserUtils.LinuxEraserPath+"/") {
 		rest := strings.ReplaceAll(strings.TrimPrefix(p, eraserUtils.LinuxEraserPath), "/", `\`)
 		return eraserUtils.WindowsEraserPath + rest
 	}
