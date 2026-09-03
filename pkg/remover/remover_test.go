@@ -1,10 +1,147 @@
 package main
 
 import (
+	"context"
+	"errors"
 	"testing"
+	"time"
 
 	v1 "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
+
+// The loop guard runs before each deletion, so on the last one there is no
+// later iteration to notice the caller has gone. Without a check on the error
+// path, that deletion fails and the run still returns success.
+func TestRemoveImagesSurfacesCancellationDuringTheFinalDeletion(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+
+	client := &testClient{
+		t: t,
+		images: []*v1.Image{
+			{Id: "aaa"},
+			{Id: "bbb"},
+		},
+	}
+	client.beforeDelete = func(_ context.Context, image string) error {
+		if image == "bbb" {
+			cancel()
+		}
+		return nil
+	}
+
+	removed, err := removeImages(ctx, client, []string{"aaa", "bbb"})
+	if !errors.Is(err, context.Canceled) {
+		t.Errorf("removeImages = %v, want context.Canceled", err)
+	}
+	if removed != 1 {
+		t.Errorf("removed = %d, want 1 -- the first deletion did succeed", removed)
+	}
+}
+
+// nonRunningImages holds an entry for the ID, for every tag and for every
+// digest, so a prune reaches one image several times over. A deletion that
+// fails is what exposes it: a successful one is already unreachable a second
+// time, whereas a failure used to be retried per alias, each retry starting
+// the per-image budget again.
+func TestRemoveImagesPrunesAnImageOnceAcrossItsAliases(t *testing.T) {
+	client := &testClient{
+		t: t,
+		images: []*v1.Image{
+			{
+				Id:          "sha256:aaaa",
+				RepoTags:    []string{"repo/one:v1"},
+				RepoDigests: []string{"repo/one@sha256:bbbb"},
+			},
+		},
+	}
+
+	attempts := 0
+	client.beforeDelete = func(context.Context, string) error {
+		attempts++
+		return errImageNotRemoved
+	}
+
+	if _, err := removeImages(context.Background(), client, []string{"*"}); err != nil {
+		t.Fatalf("removeImages: %v", err)
+	}
+	if attempts != 1 {
+		t.Errorf("DeleteImage attempted %d times for one image, want 1", attempts)
+	}
+}
+
+// The point of this PR is that the budget is per deletion rather than per run,
+// and every other test here would still pass if the timeout moved back outside
+// the loops or the parent context were handed straight to the runtime. This one
+// looks at the deadlines themselves.
+func TestRemoveImagesGivesEachDeletionItsOwnDeadline(t *testing.T) {
+	client := &testClient{
+		t: t,
+		images: []*v1.Image{
+			{Id: "aaa"},
+			{Id: "bbb"},
+			{Id: "ccc"},
+		},
+	}
+
+	var deadlines []time.Time
+	client.beforeDelete = func(ctx context.Context, image string) error {
+		d, ok := ctx.Deadline()
+		if !ok {
+			t.Errorf("DeleteImage(%s) got a context with no deadline", image)
+			return nil
+		}
+		deadlines = append(deadlines, d)
+
+		// guarantees the clock moves between deletions, so a shared deadline is
+		// distinguishable from a fresh one rather than merely unlikely
+		time.Sleep(2 * time.Millisecond)
+		return nil
+	}
+
+	// the parent has no deadline of its own, so anything seen above came from
+	// the per-deletion budget
+	if _, err := removeImages(context.Background(), client, []string{"aaa", "bbb", "ccc"}); err != nil {
+		t.Fatalf("removeImages: %v", err)
+	}
+
+	if len(deadlines) != 3 {
+		t.Fatalf("saw %d deletions, want 3", len(deadlines))
+	}
+	for i, d := range deadlines {
+		if until := time.Until(d); until <= 0 || until > deleteTimeout {
+			t.Errorf("deletion %d has %v left, want a fresh budget of at most %v", i, until, deleteTimeout)
+		}
+	}
+	if !deadlines[2].After(deadlines[0]) {
+		t.Error("every deletion shared one deadline, so the budget is per run rather than per image")
+	}
+}
+
+// A caller that has gone away should stop the loop, not work through the rest
+// of the list. Previously the shared context expired mid-run and every
+// remaining image logged an instant failure while the run still reported
+// partial success.
+func TestRemoveImagesStopsWhenTheCallerIsGone(t *testing.T) {
+	client := &testClient{
+		t: t,
+		images: []*v1.Image{
+			{Id: "aaa"},
+			{Id: "bbb"},
+			{Id: "ccc"},
+		},
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	removed, err := removeImages(ctx, client, []string{"aaa", "bbb", "ccc"})
+	if !errors.Is(err, context.Canceled) {
+		t.Errorf("removeImages = %v, want context.Canceled", err)
+	}
+	if removed != 0 {
+		t.Errorf("removed = %d, want 0 once the caller is gone", removed)
+	}
+}
 
 func TestRemoveImages(t *testing.T) {
 	type testCase struct {
@@ -50,7 +187,7 @@ func TestRemoveImages(t *testing.T) {
 				}
 			}
 
-			_, err := removeImages(client, tc.remove)
+			_, err := removeImages(context.Background(), client, tc.remove)
 			if tc.shouldErr && err == nil {
 				t.Fatal("expected error, got none")
 			}

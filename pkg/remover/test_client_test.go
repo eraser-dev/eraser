@@ -18,6 +18,12 @@ type testClient struct {
 	containers []*v1.Container
 	images     []*v1.Image
 	t          testLogger
+
+	// beforeDelete runs at the start of DeleteImage with the context that call
+	// received, so a test can inspect the deadline, make the caller go away
+	// partway through the run, or fail the call the way a runtime that ran out of
+	// time would.
+	beforeDelete func(ctx context.Context, image string) error
 }
 
 var (
@@ -87,8 +93,20 @@ func (c *testClient) removeImageFromSlice(index int) {
 	c.images = s
 }
 
-func (c *testClient) DeleteImage(_ context.Context, image string) (err error) {
+func (c *testClient) DeleteImage(ctx context.Context, image string) (err error) {
 	c.logf("DeleteImage: %s", image)
+
+	if c.beforeDelete != nil {
+		if err := c.beforeDelete(ctx, image); err != nil {
+			return err
+		}
+	}
+
+	// a real CRI client fails the call rather than deleting anyway
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+
 	if image == "" {
 		return errImageEmpty
 	}
@@ -305,7 +323,8 @@ func testDeleteImage(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), timeoutTest)
 	defer cancel()
 
-	for i, tc := range testCases {
+	for i := range testCases {
+		tc := &testCases[i]
 		e := tc.imagesInput.DeleteImage(ctx, tc.imageToDelete)
 		if testEqImages(tc.imagesInput.images, tc.imagesOutput) == false || !errors.Is(e, tc.err) {
 			t.Errorf("Test fails: %d", i)

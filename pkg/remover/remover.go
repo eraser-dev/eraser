@@ -26,14 +26,22 @@ var (
 	enableProfile = flag.Bool("enable-pprof", false, "enable pprof profiling")
 	profilePort   = flag.Int("pprof-port", 6060, "port for pprof profiling. defaulted to 6060 if unspecified")
 
-	// Timeout  of connecting to server (default: 5m).
-	timeout  = 5 * time.Minute
 	log      = logf.Log.WithName("remover")
 	excluded map[string]struct{}
 )
 
 const (
 	generalErr = 1
+
+	// listTimeout bounds ListImages and ListContainers together. They are cheap
+	// and near-constant, so they get a tighter budget than a deletion.
+	listTimeout = 2 * time.Minute
+
+	// deleteTimeout bounds a single image. It is per-image rather than per-run
+	// because the total is not knowable in advance: a freshly created AKS
+	// Windows node carried 30 unused images, and deletions there were measured
+	// at 15s to 74s each.
+	deleteTimeout = 5 * time.Minute
 )
 
 func main() {
@@ -106,16 +114,29 @@ func main() {
 		log.Info("no images to exclude")
 	}
 
-	removed, err := removeImages(client, imagelist)
+	// Registering the handler suppresses the default SIGTERM exit, so it starts
+	// only here: once the peer publishes its endpoint the read above blocks in a
+	// call no context can interrupt, and covering it would swallow the signal
+	// until SIGKILL. The stop func is discarded rather than deferred because
+	// every exit path below is os.Exit, which would skip it anyway.
+	ctx, _ := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+
+	removed, err := removeImages(ctx, client, imagelist)
 	if err != nil {
 		log.Error(err, "failed to remove images")
 		os.Exit(generalErr)
 	}
 
+	// A signal that landed during removal was consumed rather than killing the
+	// process, and with --imagelist there is no completion write below to report
+	// it, so an interrupted run would otherwise exit 0 having removed nothing.
+	if err := ctx.Err(); err != nil {
+		log.Error(err, "terminating before removal finished", "removed", removed)
+		os.Exit(generalErr)
+	}
+
 	if os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT") != "" {
 		// record metrics
-		ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
-
 		exporter, reader, provider := metrics.ConfigureMetrics(ctx, log, os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT"))
 		otel.SetMeterProvider(provider)
 
@@ -123,16 +144,15 @@ func main() {
 			log.Error(err, "error recording metrics")
 		}
 		metrics.ExportMetrics(log, exporter, reader)
-		cancel()
 	}
 
 	if *imageListPtr == "" {
-		if err := util.WriteCompletionPipe(util.EraseCompleteCollectPath); err != nil {
+		if err := util.WriteCompletionPipe(ctx, util.EraseCompleteCollectPath); err != nil {
 			log.Error(err, "unable to signal completion", "pipeFile", util.EraseCompleteCollectPath)
 			os.Exit(generalErr)
 		}
 
-		err := util.WriteCompletionPipe(util.EraseCompleteScanPath)
+		err := util.WriteCompletionPipe(ctx, util.EraseCompleteScanPath)
 		// if the scanner is disabled
 		if os.IsNotExist(err) {
 			return

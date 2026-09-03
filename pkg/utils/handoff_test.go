@@ -2,9 +2,11 @@ package utils
 
 import (
 	"context"
+	"errors"
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/eraser-dev/eraser/api/unversioned"
 )
@@ -27,8 +29,23 @@ func shortTempDir(t *testing.T) string {
 	return dir
 }
 
+// testContext bounds the round trips. Both halves of a handoff block until the
+// peer shows up, so on context.Background a rendezvous that never completes
+// hangs until the package-wide test timeout -- ten minutes of nothing, with no
+// indication of which test is stuck. A deadline turns that into a failure in
+// the test that caused it.
+func testContext(t *testing.T) context.Context {
+	t.Helper()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	t.Cleanup(cancel)
+
+	return ctx
+}
+
 func TestImagesHandoffRoundTrip(t *testing.T) {
 	path := filepath.Join(shortTempDir(t), "images")
+	ctx := testContext(t)
 
 	want := []unversioned.Image{
 		{ImageID: "sha256:aaaa", Names: []string{"repo/one:v1"}},
@@ -36,28 +53,52 @@ func TestImagesHandoffRoundTrip(t *testing.T) {
 	}
 
 	errCh := make(chan error, 1)
-	go func() { errCh <- WriteImagesPipe(path, want) }()
+	go func() { errCh <- WriteImagesPipe(ctx, path, want) }()
 
-	got, err := ReadImagesPipe(context.Background(), path)
-	if err != nil {
-		t.Fatalf("ReadImagesPipe: %v", err)
+	// The read has to be off the test goroutine for the deadline to mean
+	// anything: once the FIFO opens or the socket accepts, the payload read
+	// stops observing ctx, so a stalled peer would hang here rather than fail.
+	type readResult struct {
+		images []unversioned.Image
+		err    error
 	}
-	if err := <-errCh; err != nil {
-		t.Fatalf("WriteImagesPipe: %v", err)
+	readCh := make(chan readResult, 1)
+	go func() {
+		images, err := ReadImagesPipe(ctx, path)
+		readCh <- readResult{images: images, err: err}
+	}()
+
+	var got readResult
+	select {
+	case got = <-readCh:
+	case <-ctx.Done():
+		t.Fatalf("ReadImagesPipe did not return within the deadline: %v", ctx.Err())
+	}
+	if got.err != nil {
+		t.Fatalf("ReadImagesPipe: %v", got.err)
+	}
+	select {
+	case err := <-errCh:
+		if err != nil {
+			t.Fatalf("WriteImagesPipe: %v", err)
+		}
+	case <-ctx.Done():
+		t.Fatalf("WriteImagesPipe did not return within the deadline: %v", ctx.Err())
 	}
 
-	if len(got) != len(want) {
-		t.Fatalf("got %d images, want %d", len(got), len(want))
+	if len(got.images) != len(want) {
+		t.Fatalf("got %d images, want %d", len(got.images), len(want))
 	}
 	for i := range want {
-		if got[i].ImageID != want[i].ImageID {
-			t.Errorf("image %d = %q, want %q", i, got[i].ImageID, want[i].ImageID)
+		if got.images[i].ImageID != want[i].ImageID {
+			t.Errorf("image %d = %q, want %q", i, got.images[i].ImageID, want[i].ImageID)
 		}
 	}
 }
 
 func TestCompletionHandoffRoundTrip(t *testing.T) {
 	path := filepath.Join(shortTempDir(t), "complete")
+	ctx := testContext(t)
 
 	pipe, err := CreateCompletionPipe(path)
 	if err != nil {
@@ -66,14 +107,19 @@ func TestCompletionHandoffRoundTrip(t *testing.T) {
 	defer func() { _ = pipe.Close() }()
 
 	errCh := make(chan error, 1)
-	go func() { errCh <- WriteCompletionPipe(path) }()
+	go func() { errCh <- WriteCompletionPipe(ctx, path) }()
 
-	data, err := pipe.Await()
+	data, err := pipe.Await(ctx)
 	if err != nil {
 		t.Fatalf("Await: %v", err)
 	}
-	if err := <-errCh; err != nil {
-		t.Fatalf("WriteCompletionPipe: %v", err)
+	select {
+	case err := <-errCh:
+		if err != nil {
+			t.Fatalf("WriteCompletionPipe: %v", err)
+		}
+	case <-ctx.Done():
+		t.Fatalf("WriteCompletionPipe did not return within the deadline: %v", ctx.Err())
 	}
 
 	if string(data) != EraseCompleteMessage {
@@ -86,12 +132,54 @@ func TestCompletionHandoffRoundTrip(t *testing.T) {
 func TestWriteCompletionPipeAbsentPeerIsNotExist(t *testing.T) {
 	path := filepath.Join(shortTempDir(t), "no-such-peer")
 
-	err := WriteCompletionPipe(path)
+	err := WriteCompletionPipe(context.Background(), path)
 	if err == nil {
 		t.Fatal("expected an error writing to an endpoint nobody published")
 	}
 	if !os.IsNotExist(err) {
 		t.Errorf("os.IsNotExist(%v) = false, want true", err)
+	}
+}
+
+// The pre-open Stat exists so this precedence holds: an endpoint nobody
+// published reports IsNotExist even when the caller is already shutting down.
+// Left to a select, the two would race and "the scanner is disabled" would
+// become indistinguishable from "we are terminating".
+func TestWriteCompletionPipeAbsentPeerBeatsACanceledContext(t *testing.T) {
+	path := filepath.Join(shortTempDir(t), "no-such-peer")
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	err := WriteCompletionPipe(ctx, path)
+	if err == nil {
+		t.Fatal("expected an error writing to an endpoint nobody published")
+	}
+	if !os.IsNotExist(err) {
+		t.Errorf("os.IsNotExist(%v) = false, want true", err)
+	}
+}
+
+// The whole point of taking a context: a worker whose peer never arrives has to
+// be able to give up, on either platform.
+func TestWriteImagesPipeHonoursACanceledContext(t *testing.T) {
+	path := filepath.Join(shortTempDir(t), "never-read")
+
+	ctx, cancel := context.WithCancel(context.Background())
+
+	errCh := make(chan error, 1)
+	go func() { errCh <- WriteImagesPipe(ctx, path, []unversioned.Image{{ImageID: "sha256:aaaa"}}) }()
+
+	// nothing ever reads the endpoint, so the write is still waiting
+	cancel()
+
+	select {
+	case err := <-errCh:
+		if !errors.Is(err, context.Canceled) {
+			t.Errorf("WriteImagesPipe = %v, want context.Canceled", err)
+		}
+	case <-time.After(30 * time.Second):
+		t.Fatal("WriteImagesPipe ignored the canceled context")
 	}
 }
 
