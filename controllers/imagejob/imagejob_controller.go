@@ -60,6 +60,7 @@ const (
 
 	windowsOS              = string(corev1.Windows)
 	windowsSandboxMountEnv = "%CONTAINER_SANDBOX_MOUNT_POINT%"
+	runtimeSockVolumeName  = "runtime-sock-volume"
 
 	windowsMinMemoryLimit = "256Mi"
 )
@@ -545,11 +546,11 @@ func copyAndFillTemplateSpec(templateSpecTemplate *corev1.PodSpec, env []corev1.
 	}
 
 	volumes := []corev1.Volume{
-		{Name: "runtime-sock-volume", VolumeSource: corev1.VolumeSource{HostPath: &corev1.HostPathVolumeSource{Path: u.Path}}},
+		{Name: runtimeSockVolumeName, VolumeSource: corev1.VolumeSource{HostPath: &corev1.HostPathVolumeSource{Path: u.Path}}},
 	}
 
 	volumeMounts := []corev1.VolumeMount{
-		{MountPath: controllerUtils.CRIPath, Name: "runtime-sock-volume"},
+		{MountPath: controllerUtils.CRIPath, Name: runtimeSockVolumeName},
 	}
 
 	templateSpec := templateSpecTemplate.DeepCopy()
@@ -619,9 +620,9 @@ func fillWindowsPodSpec(templateSpec *corev1.PodSpec) {
 	// A Windows named pipe can't be hostPath-mounted like a Linux socket, so
 	// drop the CRI socket volume added for Linux.
 	keptVolumes := templateSpec.Volumes[:0]
-	for _, v := range templateSpec.Volumes {
-		if v.Name != "runtime-sock-volume" {
-			keptVolumes = append(keptVolumes, v)
+	for i := range templateSpec.Volumes {
+		if templateSpec.Volumes[i].Name != runtimeSockVolumeName {
+			keptVolumes = append(keptVolumes, templateSpec.Volumes[i])
 		}
 	}
 	templateSpec.Volumes = keptVolumes
@@ -645,12 +646,12 @@ func fillWindowsPodSpec(templateSpec *corev1.PodSpec) {
 		// Drop the CRI socket mount and translate the remaining eraser.sh mounts
 		// to their Windows form.
 		keptMounts := c.VolumeMounts[:0]
-		for _, m := range c.VolumeMounts {
-			if m.Name == "runtime-sock-volume" {
+		for j := range c.VolumeMounts {
+			if c.VolumeMounts[j].Name == runtimeSockVolumeName {
 				continue
 			}
-			m.MountPath = linuxToWindowsEraserPath(m.MountPath)
-			keptMounts = append(keptMounts, m)
+			c.VolumeMounts[j].MountPath = linuxToWindowsEraserPath(c.VolumeMounts[j].MountPath)
+			keptMounts = append(keptMounts, c.VolumeMounts[j])
 		}
 		c.VolumeMounts = keptMounts
 
