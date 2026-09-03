@@ -279,11 +279,11 @@ func (r *Reconciler) handleRunningJob(ctx context.Context, imageJob *eraserv1.Im
 	managerConfig := eraserConfig.Manager
 	successRatio := managerConfig.ImageJob.SuccessRatio
 
-	if float64(successAndSkipped/imageJob.Status.Desired) < successRatio {
+	if float64(successAndSkipped)/float64(imageJob.Status.Desired) < successRatio {
 		log.Info(
 			"Marking job as failed",
 			"success ratio", successRatio,
-			"actual ratio", success/imageJob.Status.Desired,
+			"actual ratio", float64(success)/float64(imageJob.Status.Desired),
 		)
 		imageJob.Status.Phase = eraserv1.PhaseFailed
 	}
