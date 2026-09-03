@@ -308,6 +308,15 @@ func startConfigWatch(cancel context.CancelFunc, watcher *inotify.Watcher, erase
 				continue
 			}
 
+			// Write the updated configuration back to the mounted file so that
+			// containers (e.g. trivy scanner) reading the config file see the
+			// updated values instead of the stale file on disk.
+			if updatedBytes, err := yaml.Marshal(newConfig); err != nil {
+				setupLog.Error(err, "failed to marshal updated configuration")
+			} else if err = os.WriteFile(filename, updatedBytes, 0644); err != nil {
+				setupLog.Error(err, "failed to write updated configuration to file")
+			}
+
 			// read back the new configuration
 			*newConfig, err = eraserOpts.Read()
 			if err != nil {
