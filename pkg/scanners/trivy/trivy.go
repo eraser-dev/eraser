@@ -67,6 +67,15 @@ func main() {
 	log.Info("trivy version", "trivy version", trivyVersion)
 	log.Info("config", "config", *config)
 
+	if _, err := os.Stat(trivyCommandName); err != nil {
+		if os.IsNotExist(err) {
+			fmt.Fprintf(os.Stderr, "trivy binary not found at %s\n", trivyCommandName)
+			os.Exit(generalErr)
+		}
+		log.Error(err, "unable to stat trivy binary")
+		os.Exit(generalErr)
+	}
+
 	userConfig := *DefaultConfig()
 	if *config != "" {
 		var err error
