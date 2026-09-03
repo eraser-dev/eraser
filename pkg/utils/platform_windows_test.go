@@ -79,6 +79,25 @@ func TestSocketPathLimitBoundary(t *testing.T) {
 	}
 }
 
+// Every endpoint is a Unix domain socket here, so the guard in listen is not the
+// only thing that has to fit in sun_path -- the constants themselves do, and
+// they are the ones a deployment actually uses.
+func TestHandoffEndpointsFitInSunPath(t *testing.T) {
+	for _, path := range []string{
+		ScanErasePath,
+		CollectScanPath,
+		EraseCompleteCollectPath,
+		EraseCompleteScanPath,
+	} {
+		if len(path) > maxSocketPath {
+			t.Errorf("%s is %d bytes, over the %d byte limit", path, len(path), maxSocketPath)
+		}
+		if !strings.HasPrefix(path, `C:\`) {
+			t.Errorf("%s is not an absolute Windows path", path)
+		}
+	}
+}
+
 func TestMkfifoUnsupported(t *testing.T) {
 	if err := mkfifo("ignored", PipeMode); !errors.Is(err, ErrFifoUnsupported) {
 		t.Errorf("mkfifo on windows = %v, want ErrFifoUnsupported", err)
