@@ -15,3 +15,16 @@ var SharedSecurityContext = &corev1.SecurityContext{
 		Type: corev1.SeccompProfileTypeRuntimeDefault,
 	},
 }
+
+const WindowsHostProcessUserName = `NT AUTHORITY\SYSTEM`
+
+func WindowsHostProcessPodSecurityContext() *corev1.PodSecurityContext {
+	hostProcess := true
+	userName := WindowsHostProcessUserName
+	return &corev1.PodSecurityContext{
+		WindowsOptions: &corev1.WindowsSecurityContextOptions{
+			HostProcess:   &hostProcess,
+			RunAsUserName: &userName,
+		},
+	}
+}
