@@ -87,8 +87,12 @@ func (c *testClient) removeImageFromSlice(index int) {
 	c.images = s
 }
 
-func (c *testClient) DeleteImage(_ context.Context, image string) (err error) {
+func (c *testClient) DeleteImage(ctx context.Context, image string) (err error) {
 	c.logf("DeleteImage: %s", image)
+	// a real CRI client fails the call rather than deleting anyway
+	if err := ctx.Err(); err != nil {
+		return err
+	}
 	if image == "" {
 		return errImageEmpty
 	}

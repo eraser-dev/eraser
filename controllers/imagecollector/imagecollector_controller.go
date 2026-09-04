@@ -561,7 +561,7 @@ func (r *Reconciler) handleCompletedImageJob(ctx context.Context, childJob *eras
 			if err := metrics.RecordMetricsController(ctx, otel.GetMeterProvider(), float64(time.Since(startTime).Seconds()), int64(childJob.Status.Succeeded), int64(childJob.Status.Failed)); err != nil {
 				log.Error(err, "error recording metrics")
 			}
-			metrics.ExportMetrics(log, exporter, reader)
+			metrics.ExportMetrics(ctx, log, exporter, reader)
 		}
 
 		timeRemaining = repeatInterval - successDelay
@@ -583,7 +583,7 @@ func (r *Reconciler) handleCompletedImageJob(ctx context.Context, childJob *eras
 			if err := metrics.RecordMetricsController(ctx, otel.GetMeterProvider(), float64(time.Since(startTime).Milliseconds()), int64(childJob.Status.Succeeded), int64(childJob.Status.Failed)); err != nil {
 				log.Error(err, "error recording metrics")
 			}
-			metrics.ExportMetrics(log, exporter, reader)
+			metrics.ExportMetrics(ctx, log, exporter, reader)
 		}
 
 		timeRemaining = repeatInterval - errDelay

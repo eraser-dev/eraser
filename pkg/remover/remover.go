@@ -65,6 +65,13 @@ func main() {
 
 	log.Info("CRI client created successfully")
 
+	// Registered below the CRI dial, which blocks on context.Background and so
+	// cannot be interrupted; covering it would suppress the default SIGTERM exit
+	// and wait for SIGKILL instead. Everything that blocks after this point takes
+	// ctx. The stop func is discarded rather than deferred because every exit path
+	// here is os.Exit, which would skip it.
+	ctx, _ := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+
 	var imagelist []string
 
 	if *imageListPtr == "" {
@@ -74,7 +81,7 @@ func main() {
 	}
 
 	if *imageListPtr == "" {
-		nonCompliantImages, err := util.ReadImagesPipe(context.Background(), util.ScanErasePath)
+		nonCompliantImages, err := util.ReadImagesPipe(ctx, util.ScanErasePath)
 		if err != nil {
 			log.Error(err, "error reading non-compliant images")
 			os.Exit(generalErr)
@@ -106,33 +113,38 @@ func main() {
 		log.Info("no images to exclude")
 	}
 
-	removed, err := removeImages(client, imagelist)
+	removed, err := removeImages(ctx, client, imagelist)
 	if err != nil {
 		log.Error(err, "failed to remove images")
 		os.Exit(generalErr)
 	}
 
+	// A signal that landed during removal was consumed rather than killing the
+	// process, and with --imagelist there is no completion write below to report
+	// it, so an interrupted run would otherwise exit 0 having removed nothing.
+	if err := ctx.Err(); err != nil {
+		log.Error(err, "terminating before removal finished", "removed", removed)
+		os.Exit(generalErr)
+	}
+
 	if os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT") != "" {
 		// record metrics
-		ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
-
 		exporter, reader, provider := metrics.ConfigureMetrics(ctx, log, os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT"))
 		otel.SetMeterProvider(provider)
 
 		if err := metrics.RecordMetricsRemover(ctx, otel.GetMeterProvider(), int64(removed)); err != nil {
 			log.Error(err, "error recording metrics")
 		}
-		metrics.ExportMetrics(log, exporter, reader)
-		cancel()
+		metrics.ExportMetrics(ctx, log, exporter, reader)
 	}
 
 	if *imageListPtr == "" {
-		if err := util.WriteCompletionPipe(util.EraseCompleteCollectPath); err != nil {
+		if err := util.WriteCompletionPipe(ctx, util.EraseCompleteCollectPath); err != nil {
 			log.Error(err, "unable to signal completion", "pipeFile", util.EraseCompleteCollectPath)
 			os.Exit(generalErr)
 		}
 
-		err := util.WriteCompletionPipe(util.EraseCompleteScanPath)
+		err := util.WriteCompletionPipe(ctx, util.EraseCompleteScanPath)
 		// if the scanner is disabled
 		if os.IsNotExist(err) {
 			return
