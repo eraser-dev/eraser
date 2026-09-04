@@ -72,7 +72,7 @@ jobs:
         run: make docker-build-remover \
           CACHE_FROM=type=gha,scope=eraser-node \
           CACHE_TO=type=gha,scope=eraser-node,mode=max \
-          PLATFORM="linux/amd64,linux/arm64" \
+          PLATFORM="linux/amd64,linux/arm64,windows/amd64" \
           OUTPUT_TYPE=type=registry \
           GENERATE_ATTESTATIONS=true \
           REMOVER_IMG=${{ env.REGISTRY }}/${GITHUB_REPOSITORY_OWNER}/remover:${TAG}
@@ -81,7 +81,7 @@ jobs:
         run: make docker-build-collector \
           CACHE_FROM=type=gha,scope=collector \
           CACHE_TO=type=gha,scope=collector,mode=max \
-          PLATFORM="linux/amd64,linux/arm64" \
+          PLATFORM="linux/amd64,linux/arm64,windows/amd64" \
           OUTPUT_TYPE=type=registry \
           GENERATE_ATTESTATIONS=true \
           COLLECTOR_IMG=${{ env.REGISTRY }}/${GITHUB_REPOSITORY_OWNER}/collector:${TAG}

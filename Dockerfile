@@ -4,6 +4,9 @@ ARG GO_IMAGE="golang:1.26.6-bookworm@sha256:116d58cbd88c1297624acc6e967a06001242
 # Use the upstream Trivy release image rather than rebuilding its binary with
 # local dependency overrides.
 ARG TRIVY_BINARY_IMG="ghcr.io/aquasecurity/trivy:0.72.0"
+# HostProcess base image for the Windows workers. It is around 22 kB because a
+# HostProcess container runs directly on the host and ships no OS of its own.
+ARG HPC_BASE_IMG="mcr.microsoft.com/oss/kubernetes/windows-host-process-containers-base-image:v1.0.0"
 ARG BUILDKIT_SBOM_SCAN_STAGE=builder,manager-build,collector-build,remover-build,trivy-scanner-build
 
 FROM --platform=$TARGETPLATFORM $TRIVY_BINARY_IMG AS trivy-binary
@@ -58,13 +61,28 @@ COPY --from=manager-build /workspace/out/manager .
 USER 65532:65532
 ENTRYPOINT ["/manager"]
 
-FROM --platform=$TARGETPLATFORM gcr.io/distroless/static:latest as collector
+FROM --platform=$TARGETPLATFORM gcr.io/distroless/static:latest as collector-linux
 COPY --from=collector-build /workspace/out/collector /
 ENTRYPOINT ["/collector"]
 
-FROM --platform=$TARGETPLATFORM gcr.io/distroless/static:latest as remover
+# A HostProcess container runs on the host, so "/collector" would resolve against
+# the host filesystem. The image's own files are only reachable under the sandbox
+# mount point, and cmd.exe comes from the host.
+FROM --platform=windows/amd64 ${HPC_BASE_IMG} AS collector-windows
+COPY --from=collector-build /workspace/out/collector /collector.exe
+ENTRYPOINT ["cmd", "/c", "%CONTAINER_SANDBOX_MOUNT_POINT%\\collector.exe"]
+
+FROM collector-${TARGETOS} AS collector
+
+FROM --platform=$TARGETPLATFORM gcr.io/distroless/static:latest as remover-linux
 COPY --from=remover-build /workspace/out/remover /
 ENTRYPOINT ["/remover"]
+
+FROM --platform=windows/amd64 ${HPC_BASE_IMG} AS remover-windows
+COPY --from=remover-build /workspace/out/remover /remover.exe
+ENTRYPOINT ["cmd", "/c", "%CONTAINER_SANDBOX_MOUNT_POINT%\\remover.exe"]
+
+FROM remover-${TARGETOS} AS remover
 
 FROM --platform=$TARGETPLATFORM gcr.io/distroless/static:latest AS trivy-scanner
 COPY --from=trivy-scanner-build /workspace/out/trivy-scanner /
