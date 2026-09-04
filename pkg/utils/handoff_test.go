@@ -3,6 +3,7 @@ package utils
 import (
 	"context"
 	"errors"
+	"net"
 	"os"
 	"path/filepath"
 	"testing"
@@ -127,10 +128,10 @@ func TestCompletionHandoffRoundTrip(t *testing.T) {
 	}
 }
 
-// The collector keeps signal notification registered across Await now, so the
-// read has to be interruptible after the peer has arrived, not only while
-// waiting for one. A peer that connects and then goes quiet is what the pod
-// looks like when the manager's deployment is deleted mid-run.
+// A connected but silent peer means Await has to come back, whichever half of
+// the handoff it happens to be parked in. Which half that is depends on timing,
+// so the read path itself is pinned down by
+// TestReadAndCloseHonoursCancellation rather than here.
 func TestAwaitHonoursCancellationWhileBlockedOnAStalledPeer(t *testing.T) {
 	path := filepath.Join(shortTempDir(t), "complete")
 
@@ -161,6 +162,34 @@ func TestAwaitHonoursCancellationWhileBlockedOnAStalledPeer(t *testing.T) {
 		}
 	case <-time.After(30 * time.Second):
 		t.Fatal("Await ignored the canceled context while blocked on the payload read")
+	}
+}
+
+// net.Pipe is unbuffered and in-memory, and the far end is never written to or
+// closed, so io.ReadAll cannot return on its own. Cancellation is the only exit,
+// which makes this the one place the read-side watcher is pinned down without a
+// race against the rendezvous.
+func TestReadAndCloseHonoursCancellation(t *testing.T) {
+	ours, theirs := net.Pipe()
+	defer func() { _ = theirs.Close() }()
+
+	ctx, cancel := context.WithCancel(context.Background())
+
+	errCh := make(chan error, 1)
+	go func() {
+		_, err := readAndClose(ctx, ours)
+		errCh <- err
+	}()
+
+	cancel()
+
+	select {
+	case err := <-errCh:
+		if !errors.Is(err, context.Canceled) {
+			t.Errorf("readAndClose = %v, want context.Canceled", err)
+		}
+	case <-time.After(30 * time.Second):
+		t.Fatal("readAndClose ignored the canceled context")
 	}
 }
 

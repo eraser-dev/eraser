@@ -37,8 +37,6 @@ func CreateCompletionPipe(path string) (*CompletionPipe, error) {
 	return &CompletionPipe{path: path}, nil
 }
 
-// Await blocks until a peer signals completion. The payload is returned
-// unvalidated so callers keep their existing handling of unexpected content.
 // Await blocks until a peer signals completion, or ctx is done. The payload is
 // returned unvalidated so callers keep their existing handling of unexpected
 // content.
