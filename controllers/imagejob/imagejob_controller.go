@@ -307,7 +307,7 @@ func (r *Reconciler) handleNewJob(ctx context.Context, imageJob *eraserv1.ImageJ
 		&template,
 	)
 	if err != nil {
-		return err
+		return client.IgnoreNotFound(err)
 	}
 
 	imageJob.Status = eraserv1.ImageJobStatus{
@@ -362,6 +362,13 @@ func (r *Reconciler) handleNewJob(ctx context.Context, imageJob *eraserv1.ImageJ
 	podSpecTemplate := template.Template.Spec
 	for i := range nodeList {
 		log := log.WithValues("node", nodeList[i].Name)
+
+		// Skip nodes with insufficient resources
+		if insufficientResources(&nodeList[i], &podSpecTemplate) {
+			log.Info("skipping node: insufficient resources for eraser pod")
+			continue
+		}
+
 		podSpec, err := copyAndFillTemplateSpec(&podSpecTemplate, env, &nodeList[i], &eraserConfig.Manager.Runtime)
 		if err != nil {
 			return err
@@ -528,6 +535,28 @@ nodes:
 	}
 
 	return nodeList, skipped, nil
+}
+
+func insufficientResources(node *corev1.Node, podSpec *corev1.PodSpec) bool {
+	allocatable := node.Status.Allocatable
+	requests := podSpec.Containers[0].Resources.Requests
+	limits := podSpec.Containers[0].Resources.Limits
+
+	for name, req := range requests {
+		if available, ok := allocatable[name]; ok {
+			if available.Cmp(req) < 0 {
+				return true
+			}
+		}
+	}
+	for name, limit := range limits {
+		if available, ok := allocatable[name]; ok {
+			if available.Cmp(limit) < 0 {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 func copyAndFillTemplateSpec(templateSpecTemplate *corev1.PodSpec, env []corev1.EnvVar, node *corev1.Node, runtimeSpec *unversioned.RuntimeSpec) (*corev1.PodSpec, error) {
