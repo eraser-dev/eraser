@@ -11,7 +11,7 @@
 
 
 <link rel="search" type="application/opensearchdescription+xml" title="Eraser Docs" href="/eraser/docs/opensearch.xml"><link rel="stylesheet" href="/eraser/docs/assets/css/styles.cbd3333d.css">
-<script src="/eraser/docs/assets/js/runtime~main.91b2a7f8.js" defer="defer"></script>
+<script src="/eraser/docs/assets/js/runtime~main.937b870b.js" defer="defer"></script>
 <script src="/eraser/docs/assets/js/main.03c18206.js" defer="defer"></script>
 </head>
 <body>
@@ -70,6 +70,10 @@ its Linux nodes.</p>
 <p>Only do that if the images configured under <code>components</code> can actually run on
 those nodes. Windows support is still in progress, so for now this is useful
 mainly when supplying your own images.</p>
+<p>Note that when the scanner is enabled, Windows nodes are skipped because the
+default scanner (Trivy) is Linux-only; Windows image removal only runs with the
+scanner disabled or when triggered manually via an
+<em>ImageList</em>.</p>
 <h3 class="anchor anchorTargetStickyNavbar_Vzrq" id="configuring-components">Configuring Components<a href="#configuring-components" class="hash-link" aria-label="Direct link to Configuring Components" title="Direct link to Configuring Components" translate="no">​</a></h3>
 <p>An <em>ImageJob</em> is made up of various sub-jobs, with one sub-job for each node.
 These sub-jobs can be broken down further into three stages.</p>
