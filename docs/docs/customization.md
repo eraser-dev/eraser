@@ -81,6 +81,11 @@ Only do that if the images configured under `components` can actually run on
 those nodes. Windows support is still in progress, so for now this is useful
 mainly when supplying your own images.
 
+Note that when the scanner is enabled, Windows nodes are skipped because the
+default scanner (Trivy) is Linux-only; Windows image removal only runs with the
+scanner disabled or when triggered manually via an
+_ImageList_.
+
 ### Configuring Components
 
 An _ImageJob_ is made up of various sub-jobs, with one sub-job for each node.

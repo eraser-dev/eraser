@@ -23,6 +23,7 @@ import (
 
 	"golang.org/x/exp/slices"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -56,6 +57,12 @@ const (
 	removerContainer     = "remover"
 	managerLabelValue    = "controller-manager"
 	managerLabelKey      = "control-plane"
+
+	windowsOS              = string(corev1.Windows)
+	windowsSandboxMountEnv = "%CONTAINER_SANDBOX_MOUNT_POINT%"
+	runtimeSockVolumeName  = "runtime-sock-volume"
+
+	windowsMinMemoryLimit = "256Mi"
 )
 
 var log = logf.Log.WithName("controller").WithValues("process", "imagejob-controller")
@@ -353,6 +360,9 @@ func (r *Reconciler) handleNewJob(ctx context.Context, imageJob *eraserv1.ImageJ
 		return errors.Errorf("invalid node filter option")
 	}
 
+	scannerEnabled := len(template.Template.Spec.Containers) > 2
+	nodeList, skipped = skipWindowsScannerNodes(nodeList, skipped, scannerEnabled)
+
 	imageJob.Status.Skipped = skipped
 	if err := r.updateJobStatus(ctx, imageJob); err != nil {
 		return err
@@ -461,6 +471,26 @@ func (r *Reconciler) updateJobStatus(ctx context.Context, imageJob *eraserv1.Ima
 	return nil
 }
 
+func skipWindowsScannerNodes(nodeList []corev1.Node, skipped int, scannerEnabled bool) ([]corev1.Node, int) {
+	if !scannerEnabled {
+		return nodeList, skipped
+	}
+
+	kept := make([]corev1.Node, 0, len(nodeList))
+	for i := range nodeList {
+		if isWindowsNode(&nodeList[i]) {
+			log.Info("windows node skipped because image scanning is enabled (scanner is not supported on windows yet)",
+				"nodeName", nodeList[i].Name,
+			)
+			skipped++
+			continue
+		}
+		kept = append(kept, nodeList[i])
+	}
+
+	return kept, skipped
+}
+
 func selectIncludedNodes(nodes *corev1.NodeList, includeNodesSelectors []string) ([]corev1.Node, int, error) {
 	skipped := 0
 	nodeList := make([]corev1.Node, 0, len(nodes.Items))
@@ -539,11 +569,11 @@ func copyAndFillTemplateSpec(templateSpecTemplate *corev1.PodSpec, env []corev1.
 	}
 
 	volumes := []corev1.Volume{
-		{Name: "runtime-sock-volume", VolumeSource: corev1.VolumeSource{HostPath: &corev1.HostPathVolumeSource{Path: u.Path}}},
+		{Name: runtimeSockVolumeName, VolumeSource: corev1.VolumeSource{HostPath: &corev1.HostPathVolumeSource{Path: u.Path}}},
 	}
 
 	volumeMounts := []corev1.VolumeMount{
-		{MountPath: controllerUtils.CRIPath, Name: "runtime-sock-volume"},
+		{MountPath: controllerUtils.CRIPath, Name: runtimeSockVolumeName},
 	}
 
 	templateSpec := templateSpecTemplate.DeepCopy()
@@ -581,5 +611,137 @@ func copyAndFillTemplateSpec(templateSpecTemplate *corev1.PodSpec, env []corev1.
 	templateSpec.Volumes = append(volumes, templateSpec.Volumes...)
 	templateSpec.NodeName = nodeName
 
+	if isWindowsNode(node) {
+		// TODO(#1236): the Windows worker dials the fixed containerd named pipe
+		// and ignores runtimeSpec.Address. Propagate a configurable Windows
+		// runtime address to the worker (a named pipe can't be hostPath-mounted
+		// like a Linux socket) in a follow-up.
+		//
+		// Windows nodes with a scanner enabled are filtered out earlier (see
+		// handleNewJob), so a scanner container is never reached here.
+		fillWindowsPodSpec(templateSpec)
+	}
+
 	return templateSpec, nil
+}
+
+// isWindowsNode reports whether the node runs Windows, preferring the
+// kubernetes.io/os label and falling back to the reported node OS.
+func isWindowsNode(node *corev1.Node) bool {
+	if osName, ok := node.Labels[corev1.LabelOSStable]; ok {
+		return strings.EqualFold(osName, windowsOS)
+	}
+	return strings.EqualFold(node.Status.NodeInfo.OperatingSystem, windowsOS)
+}
+
+// fillWindowsPodSpec turns the Linux-shaped template into a Windows HostProcess
+// pod.
+func fillWindowsPodSpec(templateSpec *corev1.PodSpec) {
+	// Declare the pod's OS so the apiserver enforces Windows OS-field
+	// consistency (e.g. rejects leftover Linux-only securityContext fields).
+	templateSpec.OS = &corev1.PodOS{Name: corev1.Windows}
+	templateSpec.HostNetwork = true
+	templateSpec.SecurityContext = eraserUtils.WindowsHostProcessPodSecurityContext()
+
+	// A Windows named pipe can't be hostPath-mounted like a Linux socket, so
+	// drop the CRI socket volume added for Linux.
+	keptVolumes := templateSpec.Volumes[:0]
+	for i := range templateSpec.Volumes {
+		if templateSpec.Volumes[i].Name != runtimeSockVolumeName {
+			keptVolumes = append(keptVolumes, templateSpec.Volumes[i])
+		}
+	}
+	templateSpec.Volumes = keptVolumes
+
+	for i := range templateSpec.Containers {
+		c := &templateSpec.Containers[i]
+		// SharedSecurityContext sets Linux-only fields (capabilities,
+		// seccompProfile, readOnlyRootFilesystem) that are invalid on Windows.
+		c.SecurityContext = nil
+
+		// Ensure the Windows-safe minimum memory limit.
+		raiseWindowsMemoryLimit(c)
+
+		// TODO(#1236): the Windows worker command is derived from the container
+		// name (%CONTAINER_SANDBOX_MOUNT_POINT%\<name>.exe). This forces every
+		// BYO Windows worker image to ship a binary matching the container name.
+		// Make the command (and its args) configurable via the configmap
+		// instead of deriving it here.
+		c.Command = []string{windowsSandboxMountEnv + `\` + c.Name + ".exe"}
+
+		// Drop the CRI socket mount and translate the remaining eraser.sh mounts
+		// to their Windows form.
+		keptMounts := c.VolumeMounts[:0]
+		for j := range c.VolumeMounts {
+			if c.VolumeMounts[j].Name == runtimeSockVolumeName {
+				continue
+			}
+			c.VolumeMounts[j].MountPath = linuxToWindowsEraserPath(c.VolumeMounts[j].MountPath)
+			keptMounts = append(keptMounts, c.VolumeMounts[j])
+		}
+		c.VolumeMounts = keptMounts
+
+		for j := range c.Args {
+			c.Args[j] = translateEraserArg(c.Args[j])
+		}
+
+		// Windows HostProcess pods can't reach in-cluster telemetry endpoints
+		// (see disableWindowsTelemetry), so drop the OTLP endpoint here.
+		disableWindowsTelemetry(c)
+	}
+}
+
+const otlpEndpointEnvVar = "OTEL_EXPORTER_OTLP_ENDPOINT"
+
+func disableWindowsTelemetry(c *corev1.Container) {
+	for i := range c.Env {
+		if c.Env[i].Name == otlpEndpointEnvVar && c.Env[i].Value != "" {
+			log.Info("telemetry export is not supported on windows yet; clearing the OTLP endpoint on the windows worker (a HostProcess pod uses host DNS and cannot resolve in-cluster service endpoints)",
+				"container", c.Name,
+				"otlpEndpoint", c.Env[i].Value,
+			)
+			c.Env[i].Value = ""
+		}
+	}
+}
+
+// raiseWindowsMemoryLimit ensures a container's memory limit is at least the
+// Windows-safe minimum. An unset or zero limit is left as-is.
+func raiseWindowsMemoryLimit(c *corev1.Container) {
+	limit, ok := c.Resources.Limits[corev1.ResourceMemory]
+	// An unset or zero limit means no cap, so there is nothing to raise.
+	if !ok || limit.IsZero() {
+		return
+	}
+	floor := resource.MustParse(windowsMinMemoryLimit)
+	if req, ok := c.Resources.Requests[corev1.ResourceMemory]; ok && req.Cmp(floor) > 0 {
+		floor = req
+	}
+	if limit.Cmp(floor) < 0 {
+		c.Resources.Limits[corev1.ResourceMemory] = floor
+	}
+}
+
+// linuxToWindowsEraserPath rewrites an absolute eraser.sh path (e.g. the
+// shared-data emptyDir mount or the imagelist configmap mount) from its Linux
+// form to the Windows form.
+func linuxToWindowsEraserPath(p string) string {
+	if p == eraserUtils.LinuxEraserPath {
+		return eraserUtils.WindowsEraserPath
+	}
+	if strings.HasPrefix(p, eraserUtils.LinuxEraserPath+"/") {
+		rest := strings.ReplaceAll(strings.TrimPrefix(p, eraserUtils.LinuxEraserPath), "/", `\`)
+		return eraserUtils.WindowsEraserPath + rest
+	}
+	return p
+}
+
+// translateEraserArg rewrites an eraser.sh path embedded in a container arg or
+// command entry (e.g. "--imagelist=/run/eraser.sh/imagelist/images").
+func translateEraserArg(a string) string {
+	idx := strings.Index(a, eraserUtils.LinuxEraserPath)
+	if idx < 0 {
+		return a
+	}
+	return a[:idx] + linuxToWindowsEraserPath(a[idx:])
 }
