@@ -18,16 +18,18 @@ package imagecollector
 
 import (
 	"context"
-	"errors"
+	stdErrors "errors"
 	"fmt"
 	"os"
 	"os/signal"
 	"path/filepath"
 	"strconv"
+	"sync"
 	"syscall"
 	"time"
 
 	"go.opentelemetry.io/otel"
+	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -38,7 +40,6 @@ import (
 
 	"github.com/eraser-dev/eraser/api/unversioned/config"
 	eraserv1 "github.com/eraser-dev/eraser/api/v1"
-	eraserv1alpha1 "github.com/eraser-dev/eraser/api/v1alpha1"
 	"github.com/eraser-dev/eraser/controllers/util"
 
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -64,12 +65,14 @@ const (
 )
 
 var (
-	log        = logf.Log.WithName("controller").WithValues("process", "imagecollector-controller")
-	startTime  time.Time
-	ownerLabel labels.Selector
-	exporter   sdkmetric.Exporter
-	reader     sdkmetric.Reader
-	provider   *sdkmetric.MeterProvider
+	log                 = logf.Log.WithName("controller").WithValues("process", "imagecollector-controller")
+	startTime           time.Time
+	ownerLabel          labels.Selector
+	exporter            sdkmetric.Exporter
+	reader              sdkmetric.Reader
+	provider            *sdkmetric.MeterProvider
+	firstReconcileMutex sync.Mutex
+	firstReconcileDone  bool
 )
 
 func init() {
@@ -220,18 +223,77 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	defer log.Info("done reconcile")
 
 	imageJobList := &eraserv1.ImageJobList{}
-	if err := r.List(ctx, imageJobList); err != nil {
+	listOpts := []client.ListOption{
+		client.MatchingLabelsSelector{Selector: ownerLabel},
+	}
+	if err := r.List(ctx, imageJobList, listOpts...); err != nil {
 		log.Info("could not list imagejobs")
 		return ctrl.Result{}, err
 	}
 
 	if req.Name == "first-reconcile" {
+		// Prevent concurrent first-reconcile executions
+		if !firstReconcileMutex.TryLock() {
+			log.Info("first-reconcile already in progress, skipping")
+			return ctrl.Result{}, nil
+		}
+		defer firstReconcileMutex.Unlock()
+
+		// Mark as done to prevent subsequent triggers
+		if firstReconcileDone {
+			log.Info("first-reconcile already completed, skipping")
+			return ctrl.Result{}, nil
+		}
+
+		// Check for existing running jobs before cleanup
+		runningJobFound := false
 		for idx := range imageJobList.Items {
-			if err := r.Delete(ctx, &imageJobList.Items[idx]); err != nil {
-				log.Info("error cleaning up previous imagejobs")
-				return ctrl.Result{}, err
+			job := &imageJobList.Items[idx]
+			if job.Status.Phase == eraserv1.PhaseRunning {
+				log.Info("found already running collector job, adopting", "job", job.Name)
+				runningJobFound = true
+				break
 			}
 		}
+
+		if runningJobFound {
+			firstReconcileDone = true
+			return ctrl.Result{}, nil
+		}
+
+		// Clean up any existing non-running jobs
+		for idx := range imageJobList.Items {
+			job := &imageJobList.Items[idx]
+			if job.Status.Phase != eraserv1.PhaseRunning {
+				log.Info("cleaning up existing imagejob during startup", "job", job.Name, "phase", job.Status.Phase)
+				if err := r.Delete(ctx, job); err != nil {
+					if !k8sErrors.IsNotFound(err) {
+						log.Error(err, "error cleaning up previous imagejob", "job", job.Name)
+						return ctrl.Result{}, err
+					}
+				}
+			}
+		}
+
+		// Only create a new job if we don't have any running jobs
+		// Re-list to ensure we have the latest state after cleanup
+		updatedJobList := &eraserv1.ImageJobList{}
+		if err := r.List(ctx, updatedJobList, listOpts...); err != nil {
+			log.Error(err, "could not list imagejobs after cleanup")
+			return ctrl.Result{}, err
+		}
+
+		for _, job := range updatedJobList.Items {
+			if job.Status.Phase == eraserv1.PhaseRunning {
+				log.Info("found running job after cleanup, adopting", "job", job.Name)
+				firstReconcileDone = true
+				return ctrl.Result{}, nil
+			}
+		}
+
+		// No running jobs found, create a new one
+		log.Info("no running collector jobs found, creating new imagejob")
+		firstReconcileDone = true
 		return r.createImageJob(ctx)
 	}
 
@@ -399,7 +461,7 @@ func (r *Reconciler) createImageJob(ctx context.Context) (ctrl.Result, error) {
 		},
 	}
 
-	job := &eraserv1alpha1.ImageJob{
+	job := &eraserv1.ImageJob{
 		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: "imagejob-",
 			Labels: map[string]string{
@@ -546,6 +608,8 @@ func (r *Reconciler) handleCompletedImageJob(ctx context.Context, childJob *eras
 	errDelay := time.Duration(cleanupCfg.DelayOnFailure)
 
 	switch phase := childJob.Status.Phase; phase {
+	case eraserv1.PhaseRunning:
+		return ctrl.Result{}, nil
 	case eraserv1.PhaseCompleted:
 		log.Info("completed phase")
 		if childJob.Status.DeleteAfter == nil {
@@ -591,7 +655,7 @@ func (r *Reconciler) handleCompletedImageJob(ctx context.Context, childJob *eras
 			return res, err
 		}
 	default:
-		err = errors.New("should not reach this point for imagejob")
+		err = stdErrors.New("should not reach this point for imagejob")
 		log.Error(err, "imagejob not in completed or failed phase", "imagejob", childJob)
 	}
 
