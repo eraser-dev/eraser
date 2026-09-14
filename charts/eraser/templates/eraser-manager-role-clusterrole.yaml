@@ -30,6 +30,7 @@ rules:
   - eraser.sh
   resources:
   - imagejobs/status
+  - imagelists/status
   verbs:
   - get
   - patch
@@ -42,11 +43,3 @@ rules:
   - get
   - list
   - watch
-- apiGroups:
-  - eraser.sh
-  resources:
-  - imagelists/status
-  verbs:
-  - get
-  - patch
-  - update
