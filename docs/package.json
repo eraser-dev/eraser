@@ -19,7 +19,7 @@
     "@docusaurus/theme-classic": "^3.9.2",
     "@mdx-js/react": "^3.1.1",
     "clsx": "^2.1.1",
-    "got": "^14.6.5",
+    "got": "^16.0.0",
     "js-yaml": "^4.3.1",
     "on-headers": "^1.1.0",
     "path-to-regexp": "^8.3.0",
