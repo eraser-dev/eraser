@@ -345,6 +345,19 @@ func (r *Reconciler) handleNewJob(ctx context.Context, imageJob *eraserv1.ImageJ
 		filterOpts.Selectors = append(filterOpts.Selectors, defaultFilterLabel)
 	}
 
+	// The shipped defaults exclude windows nodes because the default scanner is
+	// linux-only. Configuring a windows scanner overrides that, otherwise those
+	// nodes are dropped here and never reach the per-OS handling below.
+	windowsScanner := usableWindowsScanner(&eraserConfig.Components.Scanner)
+	if windowsScanner != nil && filterOpts.Type == "exclude" {
+		if kept := withoutWindowsFilterLabel(filterOpts.Selectors); len(kept) != len(filterOpts.Selectors) {
+			log.Info("dropping the windows node filter selector because components.scanner.windows is set",
+				"selector", windowsFilterLabel,
+			)
+			filterOpts.Selectors = kept
+		}
+	}
+
 	switch filterOpts.Type {
 	case "exclude":
 		nodeList, skipped, err = filterOutSkippedNodes(nodes, filterOpts.Selectors)
@@ -360,8 +373,11 @@ func (r *Reconciler) handleNewJob(ctx context.Context, imageJob *eraserv1.ImageJ
 		return errors.Errorf("invalid node filter option")
 	}
 
+	// Derived from this job's template rather than from config: a manual
+	// imagelist job ships only the remover, so Components.Scanner.Enabled would
+	// wrongly mark it as scanning.
 	scannerEnabled := len(template.Template.Spec.Containers) > 2
-	nodeList, skipped = skipWindowsScannerNodes(nodeList, skipped, scannerEnabled)
+	nodeList, skipped = skipWindowsScannerNodes(nodeList, skipped, scannerEnabled, windowsScanner != nil)
 
 	imageJob.Status.Skipped = skipped
 	if err := r.updateJobStatus(ctx, imageJob); err != nil {
@@ -372,7 +388,7 @@ func (r *Reconciler) handleNewJob(ctx context.Context, imageJob *eraserv1.ImageJ
 	podSpecTemplate := template.Template.Spec
 	for i := range nodeList {
 		log := log.WithValues("node", nodeList[i].Name)
-		podSpec, err := copyAndFillTemplateSpec(&podSpecTemplate, env, &nodeList[i], &eraserConfig.Manager.Runtime)
+		podSpec, err := copyAndFillTemplateSpec(&podSpecTemplate, env, &nodeList[i], &eraserConfig.Manager.Runtime, windowsScanner)
 		if err != nil {
 			return err
 		}
@@ -471,8 +487,49 @@ func (r *Reconciler) updateJobStatus(ctx context.Context, imageJob *eraserv1.Ima
 	return nil
 }
 
-func skipWindowsScannerNodes(nodeList []corev1.Node, skipped int, scannerEnabled bool) ([]corev1.Node, int) {
+// usableWindowsScanner returns the override only when it names an image. A
+// zero-valued or resources-only block would otherwise admit Windows nodes and
+// then hand them the image ":", failing every pod instead of the configuration.
+func usableWindowsScanner(cfg *unversioned.ScannerConfig) *unversioned.WindowsScannerConfig {
+	w := cfg.Windows
+	if w == nil {
+		return nil
+	}
+
+	if w.Image.Repo == "" || w.Image.Tag == "" {
+		log.Info("ignoring components.scanner.windows because it does not name an image; windows nodes will be skipped",
+			"repo", w.Image.Repo,
+			"tag", w.Image.Tag,
+		)
+
+		return nil
+	}
+
+	return w
+}
+
+// withoutWindowsFilterLabel copies the selectors minus the windows OS exclusion,
+// leaving the caller's slice (shared with the parsed config) untouched.
+func withoutWindowsFilterLabel(selectors []string) []string {
+	kept := make([]string, 0, len(selectors))
+	for _, s := range selectors {
+		if s == windowsFilterLabel {
+			continue
+		}
+		kept = append(kept, s)
+	}
+
+	return kept
+}
+
+func skipWindowsScannerNodes(nodeList []corev1.Node, skipped int, scannerEnabled, windowsScannerConfigured bool) ([]corev1.Node, int) {
 	if !scannerEnabled {
+		return nodeList, skipped
+	}
+
+	// A configured components.scanner.windows is the opt-in: whoever set it is
+	// asserting that image ships a windows layer.
+	if windowsScannerConfigured {
 		return nodeList, skipped
 	}
 
@@ -560,7 +617,7 @@ nodes:
 	return nodeList, skipped, nil
 }
 
-func copyAndFillTemplateSpec(templateSpecTemplate *corev1.PodSpec, env []corev1.EnvVar, node *corev1.Node, runtimeSpec *unversioned.RuntimeSpec) (*corev1.PodSpec, error) {
+func copyAndFillTemplateSpec(templateSpecTemplate *corev1.PodSpec, env []corev1.EnvVar, node *corev1.Node, runtimeSpec *unversioned.RuntimeSpec, windowsScanner *unversioned.WindowsScannerConfig) (*corev1.PodSpec, error) {
 	nodeName := node.Name
 
 	u, err := url.Parse(runtimeSpec.Address)
@@ -616,10 +673,7 @@ func copyAndFillTemplateSpec(templateSpecTemplate *corev1.PodSpec, env []corev1.
 		// and ignores runtimeSpec.Address. Propagate a configurable Windows
 		// runtime address to the worker (a named pipe can't be hostPath-mounted
 		// like a Linux socket) in a follow-up.
-		//
-		// Windows nodes with a scanner enabled are filtered out earlier (see
-		// handleNewJob), so a scanner container is never reached here.
-		fillWindowsPodSpec(templateSpec)
+		fillWindowsPodSpec(templateSpec, windowsScanner)
 	}
 
 	return templateSpec, nil
@@ -634,9 +688,31 @@ func isWindowsNode(node *corev1.Node) bool {
 	return strings.EqualFold(node.Status.NodeInfo.OperatingSystem, windowsOS)
 }
 
+// scannerContainerIdx is the scanner's position in the collector job template
+// (collector, remover, scanner).
+const scannerContainerIdx = 2
+
+// applyWindowsScannerOverride swaps the scanner container over to the image and
+// resources configured for Windows.
+func applyWindowsScannerOverride(c *corev1.Container, cfg *unversioned.WindowsScannerConfig) {
+	c.Image = fmt.Sprintf("%s:%s", cfg.Image.Repo, cfg.Image.Tag)
+	c.Resources.Requests = corev1.ResourceList{
+		corev1.ResourceMemory: cfg.Request.Mem,
+		corev1.ResourceCPU:    cfg.Request.CPU,
+	}
+	// Memory only, matching every other container eraser creates: no code path
+	// sets a CPU limit, so applying one here would single Windows out for CFS
+	// throttling. A zero quantity means "no cap" rather than "cap at zero", so the
+	// key is omitted instead of pinning the limit below the request.
+	c.Resources.Limits = corev1.ResourceList{}
+	if !cfg.Limit.Mem.IsZero() {
+		c.Resources.Limits[corev1.ResourceMemory] = cfg.Limit.Mem
+	}
+}
+
 // fillWindowsPodSpec turns the Linux-shaped template into a Windows HostProcess
 // pod.
-func fillWindowsPodSpec(templateSpec *corev1.PodSpec) {
+func fillWindowsPodSpec(templateSpec *corev1.PodSpec, windowsScanner *unversioned.WindowsScannerConfig) {
 	// Declare the pod's OS so the apiserver enforces Windows OS-field
 	// consistency (e.g. rejects leftover Linux-only securityContext fields).
 	templateSpec.OS = &corev1.PodOS{Name: corev1.Windows}
@@ -652,6 +728,12 @@ func fillWindowsPodSpec(templateSpec *corev1.PodSpec) {
 		}
 	}
 	templateSpec.Volumes = keptVolumes
+
+	// Applied before the loop so the Windows memory floor below also covers the
+	// overridden limits.
+	if windowsScanner != nil && len(templateSpec.Containers) > scannerContainerIdx {
+		applyWindowsScannerOverride(&templateSpec.Containers[scannerContainerIdx], windowsScanner)
+	}
 
 	for i := range templateSpec.Containers {
 		c := &templateSpec.Containers[i]

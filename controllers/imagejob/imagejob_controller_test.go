@@ -79,7 +79,7 @@ func containerMountPath(c *corev1.Container, volumeName string) (string, bool) {
 }
 
 func TestCopyAndFillTemplateSpecLinux(t *testing.T) {
-	spec, err := copyAndFillTemplateSpec(newTemplateSpec(), nil, node("linux-node", "linux"), runtimeSpec())
+	spec, err := copyAndFillTemplateSpec(newTemplateSpec(), nil, node("linux-node", "linux"), runtimeSpec(), nil)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -114,7 +114,7 @@ func TestCopyAndFillTemplateSpecLinux(t *testing.T) {
 }
 
 func TestCopyAndFillTemplateSpecWindows(t *testing.T) {
-	spec, err := copyAndFillTemplateSpec(newTemplateSpec(), nil, node("win-node", "windows"), runtimeSpec())
+	spec, err := copyAndFillTemplateSpec(newTemplateSpec(), nil, node("win-node", "windows"), runtimeSpec(), nil)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -200,7 +200,7 @@ func TestSkipWindowsScannerNodes(t *testing.T) {
 	}
 
 	t.Run("scanner enabled skips windows node", func(t *testing.T) {
-		kept, skipped := skipWindowsScannerNodes(newNodes(), 0, true)
+		kept, skipped := skipWindowsScannerNodes(newNodes(), 0, true, false)
 		if skipped != 1 {
 			t.Errorf("skipped = %d, want 1 (the windows node)", skipped)
 		}
@@ -214,18 +214,185 @@ func TestSkipWindowsScannerNodes(t *testing.T) {
 	})
 
 	t.Run("scanner enabled preserves prior skipped count", func(t *testing.T) {
-		_, skipped := skipWindowsScannerNodes(newNodes(), 3, true)
+		_, skipped := skipWindowsScannerNodes(newNodes(), 3, true, false)
 		if skipped != 4 {
 			t.Errorf("skipped = %d, want 4 (3 prior + 1 windows)", skipped)
 		}
 	})
 
 	t.Run("scanner disabled keeps all nodes", func(t *testing.T) {
-		kept, skipped := skipWindowsScannerNodes(newNodes(), 0, false)
+		kept, skipped := skipWindowsScannerNodes(newNodes(), 0, false, false)
 		if len(kept) != 2 || skipped != 0 {
 			t.Errorf("got kept=%d skipped=%d, want both nodes kept", len(kept), skipped)
 		}
 	})
+
+	t.Run("windows scanner configured keeps windows node", func(t *testing.T) {
+		kept, skipped := skipWindowsScannerNodes(newNodes(), 0, true, true)
+		if len(kept) != 2 || skipped != 0 {
+			t.Errorf("got kept=%d skipped=%d, want both nodes kept when a windows scanner is configured", len(kept), skipped)
+		}
+	})
+}
+
+// newCollectorTemplateSpec mirrors the collector job template, where the
+// scanner is appended last (index 2).
+func newCollectorTemplateSpec(scannerImage string) *corev1.PodSpec {
+	spec := newTemplateSpec()
+	spec.Containers = append(spec.Containers, corev1.Container{
+		Name:  "trivy-scanner",
+		Image: scannerImage,
+		VolumeMounts: []corev1.VolumeMount{
+			{MountPath: sharedDataMountPath, Name: "shared-data"},
+		},
+		Resources: corev1.ResourceRequirements{
+			Requests: corev1.ResourceList{
+				corev1.ResourceMemory: resource.MustParse("500Mi"),
+				corev1.ResourceCPU:    resource.MustParse("1000m"),
+			},
+			Limits: corev1.ResourceList{corev1.ResourceMemory: resource.MustParse("2Gi")},
+		},
+	})
+	return spec
+}
+
+// A windows block that names no image must not act as the opt-in: it would admit
+// Windows nodes and then hand them the invalid image ":".
+func TestUsableWindowsScannerRejectsBlocksWithoutAnImage(t *testing.T) {
+	rejected := map[string]*unversioned.WindowsScannerConfig{
+		"nil":            nil,
+		"zero value":     {},
+		"resources only": {Request: unversioned.ResourceRequirements{Mem: resource.MustParse("200Mi")}},
+		"repo only":      {Image: unversioned.RepoTag{Repo: "scanner"}},
+		"tag only":       {Image: unversioned.RepoTag{Tag: "v1"}},
+	}
+
+	for name, w := range rejected {
+		t.Run(name, func(t *testing.T) {
+			if got := usableWindowsScanner(&unversioned.ScannerConfig{Windows: w}); got != nil {
+				t.Errorf("usableWindowsScanner = %+v, want nil", got)
+			}
+		})
+	}
+
+	t.Run("complete image is accepted", func(t *testing.T) {
+		want := &unversioned.WindowsScannerConfig{Image: unversioned.RepoTag{Repo: "scanner", Tag: "v1"}}
+		if got := usableWindowsScanner(&unversioned.ScannerConfig{Windows: want}); got != want {
+			t.Errorf("usableWindowsScanner = %+v, want the configured override", got)
+		}
+	})
+}
+
+// One ImageJob template plus one config must yield trivy on Linux and the
+// Windows-capable scanner on Windows.
+func TestPerOSScannerImage(t *testing.T) {
+	const (
+		linuxScanner = "ghcr.io/eraser-dev/eraser-trivy-scanner:v1.5.0-beta.1"
+		winScanner   = "ghcr.io/charleswool/eraser-fake-scanner:v0.2.2"
+	)
+
+	winOverride := &unversioned.WindowsScannerConfig{
+		Image:   unversioned.RepoTag{Repo: "ghcr.io/charleswool/eraser-fake-scanner", Tag: "v0.2.2"},
+		Request: unversioned.ResourceRequirements{Mem: resource.MustParse("200Mi"), CPU: resource.MustParse("500m")},
+		Limit:   unversioned.ResourceRequirements{Mem: resource.MustParse("1Gi")},
+	}
+
+	linuxSpec, err := copyAndFillTemplateSpec(newCollectorTemplateSpec(linuxScanner), nil, node("linux-node", "linux"), runtimeSpec(), winOverride)
+	if err != nil {
+		t.Fatalf("linux node: %v", err)
+	}
+	winSpec, err := copyAndFillTemplateSpec(newCollectorTemplateSpec(linuxScanner), nil, node("win-node", "windows"), runtimeSpec(), winOverride)
+	if err != nil {
+		t.Fatalf("windows node: %v", err)
+	}
+
+	if got := linuxSpec.Containers[scannerContainerIdx].Image; got != linuxScanner {
+		t.Errorf("linux scanner image = %q, want %q", got, linuxScanner)
+	}
+	if got := winSpec.Containers[scannerContainerIdx].Image; got != winScanner {
+		t.Errorf("windows scanner image = %q, want %q", got, winScanner)
+	}
+
+	// Only the scanner may diverge; the other components ship one multi-platform index.
+	for i := 0; i < scannerContainerIdx; i++ {
+		if linuxSpec.Containers[i].Image != winSpec.Containers[i].Image {
+			t.Errorf("container %q image diverged: linux=%q windows=%q",
+				linuxSpec.Containers[i].Name, linuxSpec.Containers[i].Image, winSpec.Containers[i].Image)
+		}
+	}
+
+	if got := winSpec.Containers[scannerContainerIdx].Resources.Requests.Cpu().String(); got != "500m" {
+		t.Errorf("windows scanner cpu request = %q, want 500m from the override", got)
+	}
+	if got := linuxSpec.Containers[scannerContainerIdx].Resources.Requests.Cpu().String(); got != "1" {
+		t.Errorf("linux scanner cpu request = %q, want 1 from the template", got)
+	}
+}
+
+// Without an override the Windows scanner container is left untouched, so the
+// node-skip path remains the only thing keeping a Linux-only scanner off Windows.
+func TestPerOSScannerImageAbsentOverride(t *testing.T) {
+	const linuxScanner = "ghcr.io/eraser-dev/eraser-trivy-scanner:v1.5.0-beta.1"
+
+	winSpec, err := copyAndFillTemplateSpec(newCollectorTemplateSpec(linuxScanner), nil, node("win-node", "windows"), runtimeSpec(), nil)
+	if err != nil {
+		t.Fatalf("windows node: %v", err)
+	}
+	if got := winSpec.Containers[scannerContainerIdx].Image; got != linuxScanner {
+		t.Errorf("scanner image = %q, want it unchanged at %q", got, linuxScanner)
+	}
+}
+
+// A request-only override must not emit limits.memory: 0, which sits below the
+// request and gets the pod rejected.
+func TestPerOSScannerRequestOnlyOverrideOmitsMemoryLimit(t *testing.T) {
+	const linuxScanner = "ghcr.io/eraser-dev/eraser-trivy-scanner:v1.5.0-beta.1"
+
+	winOverride := &unversioned.WindowsScannerConfig{
+		Image:   unversioned.RepoTag{Repo: "example.com/win-scanner", Tag: "v1"},
+		Request: unversioned.ResourceRequirements{Mem: resource.MustParse("200Mi")},
+	}
+
+	winSpec, err := copyAndFillTemplateSpec(newCollectorTemplateSpec(linuxScanner), nil, node("win-node", "windows"), runtimeSpec(), winOverride)
+	if err != nil {
+		t.Fatalf("windows node: %v", err)
+	}
+
+	scanner := winSpec.Containers[scannerContainerIdx]
+	if _, ok := scanner.Resources.Limits[corev1.ResourceMemory]; ok {
+		t.Errorf("memory limit = %q, want no entry when none is configured",
+			scanner.Resources.Limits.Memory().String())
+	}
+	if got := scanner.Resources.Requests.Memory().String(); got != "200Mi" {
+		t.Errorf("memory request = %q, want 200Mi", got)
+	}
+}
+
+// The windows exclusion has to go before node filtering runs, and the selector
+// slice comes straight from the parsed config, so it must not be edited in place.
+func TestWithoutWindowsFilterLabel(t *testing.T) {
+	in := []string{defaultFilterLabel, windowsFilterLabel, "example.com/other"}
+
+	got := withoutWindowsFilterLabel(in)
+	want := []string{defaultFilterLabel, "example.com/other"}
+
+	if len(got) != len(want) {
+		t.Fatalf("selectors = %v, want %v", got, want)
+	}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Fatalf("selectors = %v, want %v", got, want)
+		}
+	}
+
+	if len(in) != 3 || in[1] != windowsFilterLabel {
+		t.Errorf("input slice was mutated: %v", in)
+	}
+
+	// Nothing to drop is not an error, and the default label survives.
+	if got := withoutWindowsFilterLabel([]string{defaultFilterLabel}); len(got) != 1 || got[0] != defaultFilterLabel {
+		t.Errorf("selectors = %v, want [%s]", got, defaultFilterLabel)
+	}
 }
 
 func TestFillWindowsPodSpecDisablesTelemetry(t *testing.T) {
@@ -237,7 +404,7 @@ func TestFillWindowsPodSpecDisablesTelemetry(t *testing.T) {
 		Value: "otel-collector:4318",
 	})
 
-	fillWindowsPodSpec(spec)
+	fillWindowsPodSpec(spec, nil)
 
 	found := false
 	for i := range spec.Containers {

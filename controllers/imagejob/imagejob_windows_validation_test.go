@@ -37,6 +37,14 @@ func startEnvtest(t *testing.T) (client.Client, func()) {
 		t.Fatalf("failed to build client: %v", err)
 	}
 
+	// envtest's apiserver creates the default namespace asynchronously after it
+	// reports ready, so a fast test can race it and see "namespaces not found".
+	ns := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "default"}}
+	if err := cl.Create(context.Background(), ns); err != nil && !apierrors.IsAlreadyExists(err) {
+		_ = testEnv.Stop()
+		t.Fatalf("failed to ensure the default namespace: %v", err)
+	}
+
 	return cl, func() { _ = testEnv.Stop() }
 }
 
@@ -87,7 +95,7 @@ func TestWindowsPodSpecPassesAPIServerValidation(t *testing.T) {
 	cl, stop := startEnvtest(t)
 	defer stop()
 
-	spec, err := copyAndFillTemplateSpec(newTemplateSpec(), nil, node("win-node", "windows"), runtimeSpec())
+	spec, err := copyAndFillTemplateSpec(newTemplateSpec(), nil, node("win-node", "windows"), runtimeSpec(), nil)
 	if err != nil {
 		t.Fatalf("copyAndFillTemplateSpec: %v", err)
 	}
@@ -110,7 +118,7 @@ func TestWindowsPodSpecRejectsLinuxOnlyField(t *testing.T) {
 	cl, stop := startEnvtest(t)
 	defer stop()
 
-	spec, err := copyAndFillTemplateSpec(newTemplateSpec(), nil, node("win-node", "windows"), runtimeSpec())
+	spec, err := copyAndFillTemplateSpec(newTemplateSpec(), nil, node("win-node", "windows"), runtimeSpec(), nil)
 	if err != nil {
 		t.Fatalf("copyAndFillTemplateSpec: %v", err)
 	}
