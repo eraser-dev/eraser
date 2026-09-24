@@ -242,8 +242,11 @@ func newCollectorTemplateSpec(scannerImage string) *corev1.PodSpec {
 	spec.Containers = append(spec.Containers, corev1.Container{
 		Name:  "trivy-scanner",
 		Image: scannerImage,
+		// Mirrors the collector controller, which points the scanner at its config mount.
+		Args: []string{"--config=" + eraserUtils.LinuxScannerConfigPath + "/controller_manager_config.yaml"},
 		VolumeMounts: []corev1.VolumeMount{
 			{MountPath: sharedDataMountPath, Name: "shared-data"},
+			{MountPath: eraserUtils.LinuxScannerConfigPath, Name: "eraser-config"},
 		},
 		Resources: corev1.ResourceRequirements{
 			Requests: corev1.ResourceList{
@@ -326,6 +329,28 @@ func TestPerOSScannerImage(t *testing.T) {
 	}
 	if got := linuxSpec.Containers[scannerContainerIdx].Resources.Requests.Cpu().String(); got != "1" {
 		t.Errorf("linux scanner cpu request = %q, want 1 from the template", got)
+	}
+
+	// The config mount and the --config arg pointing into it must move together,
+	// or the scanner is handed a path that is not where the configmap landed.
+	const linuxCfg = "--config=/config/controller_manager_config.yaml"
+	const winCfg = `--config=C:\run\eraser.sh\config\controller_manager_config.yaml`
+	for _, tc := range []struct {
+		os        string
+		spec      *corev1.PodSpec
+		wantMount string
+		wantArg   string
+	}{
+		{"linux", linuxSpec, eraserUtils.LinuxScannerConfigPath, linuxCfg},
+		{"windows", winSpec, `C:\run\eraser.sh\config`, winCfg},
+	} {
+		scanner := &tc.spec.Containers[scannerContainerIdx]
+		if got, _ := containerMountPath(scanner, "eraser-config"); got != tc.wantMount {
+			t.Errorf("%s scanner config mount = %q, want %q", tc.os, got, tc.wantMount)
+		}
+		if len(scanner.Args) == 0 || scanner.Args[0] != tc.wantArg {
+			t.Errorf("%s scanner args = %q, want first arg %q", tc.os, scanner.Args, tc.wantArg)
+		}
 	}
 }
 
@@ -497,6 +522,9 @@ func TestLinuxToWindowsEraserPath(t *testing.T) {
 		// Sibling paths that only share the textual prefix must be left intact.
 		{"sibling dir suffix", "/run/eraser.sh-old/imagelist", "/run/eraser.sh-old/imagelist"},
 		{"sibling file suffix", "/run/eraser.shx", "/run/eraser.shx"},
+		{"exact config dir", "/config", `C:\run\eraser.sh\config`},
+		{"file under config dir", "/config/controller_manager_config.yaml", `C:\run\eraser.sh\config\controller_manager_config.yaml`},
+		{"config sibling suffix", "/configuration", "/configuration"},
 		{"unrelated path", "/var/lib/foo", "/var/lib/foo"},
 		{"empty", "", ""},
 	}
@@ -522,6 +550,11 @@ func TestTranslateEraserArg(t *testing.T) {
 		// Sibling path embedded in an arg must not be rewritten.
 		{"sibling path in flag", "--imagelist=/run/eraser.sh-old/imagelist", "--imagelist=/run/eraser.sh-old/imagelist"},
 		{"sibling file suffix", "--path=/run/eraser.shx", "--path=/run/eraser.shx"},
+		{"config flag", "--config=/config/controller_manager_config.yaml", `--config=C:\run\eraser.sh\config\controller_manager_config.yaml`},
+		{"bare config path", "/config/controller_manager_config.yaml", `C:\run\eraser.sh\config\controller_manager_config.yaml`},
+		// "/config" is generic, so it only counts at the start of a value.
+		{"config mid-path untouched", "--dir=/opt/config/x", "--dir=/opt/config/x"},
+		{"config sibling in flag", "--path=/configuration", "--path=/configuration"},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {

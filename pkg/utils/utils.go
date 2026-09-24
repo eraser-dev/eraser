@@ -30,6 +30,11 @@ const (
 	LinuxSharedDataPath   = LinuxEraserPath + "/shared-data"
 	WindowsSharedDataPath = WindowsEraserPath + `\shared-data`
 
+	// The scanner's config dir sits outside eraser.sh on Linux. On Windows it is
+	// moved under it rather than relying on "/config" resolving to C:\config.
+	LinuxScannerConfigPath   = "/config"
+	WindowsScannerConfigPath = WindowsEraserPath + `\config`
+
 	EnvEraserRuntimeName = "ERASER_RUNTIME_NAME"
 )
 

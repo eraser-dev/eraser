@@ -804,26 +804,38 @@ func raiseWindowsMemoryLimit(c *corev1.Container) {
 	}
 }
 
-// linuxToWindowsEraserPath rewrites an absolute eraser.sh path (e.g. the
-// shared-data emptyDir mount or the imagelist configmap mount) from its Linux
-// form to the Windows form.
+// windowsPathRoots maps each Linux directory the manager mounts into worker
+// containers onto the Windows path it is mounted at instead.
+var windowsPathRoots = []struct{ linux, windows string }{
+	{eraserUtils.LinuxEraserPath, eraserUtils.WindowsEraserPath},
+	{eraserUtils.LinuxScannerConfigPath, eraserUtils.WindowsScannerConfigPath},
+}
+
+// linuxToWindowsEraserPath rewrites an absolute path under one of the
+// windowsPathRoots (e.g. the shared-data emptyDir mount, the imagelist configmap
+// mount or the scanner config mount) from its Linux form to the Windows form.
 func linuxToWindowsEraserPath(p string) string {
-	if p == eraserUtils.LinuxEraserPath {
-		return eraserUtils.WindowsEraserPath
-	}
-	if strings.HasPrefix(p, eraserUtils.LinuxEraserPath+"/") {
-		rest := strings.ReplaceAll(strings.TrimPrefix(p, eraserUtils.LinuxEraserPath), "/", `\`)
-		return eraserUtils.WindowsEraserPath + rest
+	for _, r := range windowsPathRoots {
+		if p == r.linux {
+			return r.windows
+		}
+		if strings.HasPrefix(p, r.linux+"/") {
+			return r.windows + strings.ReplaceAll(strings.TrimPrefix(p, r.linux), "/", `\`)
+		}
 	}
 	return p
 }
 
-// translateEraserArg rewrites an eraser.sh path embedded in a container arg or
+// translateEraserArg rewrites a mounted path embedded in a container arg or
 // command entry (e.g. "--imagelist=/run/eraser.sh/imagelist/images").
 func translateEraserArg(a string) string {
-	idx := strings.Index(a, eraserUtils.LinuxEraserPath)
-	if idx < 0 {
-		return a
+	if idx := strings.Index(a, eraserUtils.LinuxEraserPath); idx >= 0 {
+		return a[:idx] + linuxToWindowsEraserPath(a[idx:])
 	}
-	return a[:idx] + linuxToWindowsEraserPath(a[idx:])
+	// "/config" is too generic to match mid-path, so only a whole arg or a flag
+	// value is rewritten.
+	if flag, val, ok := strings.Cut(a, "="); ok {
+		return flag + "=" + linuxToWindowsEraserPath(val)
+	}
+	return linuxToWindowsEraserPath(a)
 }

@@ -412,7 +412,7 @@ func (r *Reconciler) createImageJob(ctx context.Context) (ctrl.Result, error) {
 		iCfg := scanCfg.Image
 		scannerImg := fmt.Sprintf("%s:%s", iCfg.Repo, iCfg.Tag)
 
-		cfgDirname := "/config"
+		cfgDirname := eraserUtils.LinuxScannerConfigPath
 		cfgFilename := filepath.Join(cfgDirname, "controller_manager_config.yaml")
 		scannerArgs := []string{fmt.Sprintf("--config=%s", cfgFilename)}
 		scannerArgs = append(scannerArgs, profileArgs...)

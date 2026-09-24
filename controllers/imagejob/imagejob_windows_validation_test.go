@@ -8,10 +8,13 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
+
+	"github.com/eraser-dev/eraser/api/unversioned"
 )
 
 // startEnvtest brings up a real kube-apiserver + etcd so that emitted pod specs
@@ -106,6 +109,31 @@ func TestWindowsPodSpecPassesAPIServerValidation(t *testing.T) {
 	pod := windowsPod(spec)
 	if err := cl.Create(ctx, pod, client.DryRunAll); err != nil {
 		t.Fatalf("apiserver rejected the emitted Windows pod spec: %v", err)
+	}
+}
+
+// The scanner pod only exists on Windows when an override is configured, so the
+// guardrail above never saw it. This covers the overridden image, resources and
+// the translated config mount.
+func TestWindowsScannerPodSpecPassesAPIServerValidation(t *testing.T) {
+	cl, stop := startEnvtest(t)
+	defer stop()
+
+	winOverride := &unversioned.WindowsScannerConfig{
+		Image:   unversioned.RepoTag{Repo: "example.invalid/win-scanner", Tag: "v1"},
+		Request: unversioned.ResourceRequirements{Mem: resource.MustParse("200Mi"), CPU: resource.MustParse("500m")},
+	}
+
+	spec, err := copyAndFillTemplateSpec(newCollectorTemplateSpec("example.invalid/scanner:v1"), nil, node("win-node", "windows"), runtimeSpec(), winOverride)
+	if err != nil {
+		t.Fatalf("copyAndFillTemplateSpec: %v", err)
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	if err := cl.Create(ctx, windowsPod(spec), client.DryRunAll); err != nil {
+		t.Fatalf("apiserver rejected the emitted Windows scanner pod spec: %v", err)
 	}
 }
 

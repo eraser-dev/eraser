@@ -116,8 +116,22 @@ the `kubernetes.io/os=windows` entry in `manager.nodeFilter.selectors` is ignore
 so those nodes are not dropped before the scanner runs. A `windows` block that
 does not name an image is ignored and the default skipping applies.
 
-Only `image`, `request` and `limit.mem` are translated for Windows nodes;
-`components.scanner.config` and `components.scanner.volumes` are not.
+The Windows image must follow the layout eraser runs it with, because the
+scanner runs as a HostProcess container and the image's own `ENTRYPOINT` and
+`CMD` are not used:
+
+- The executable must be `trivy-scanner.exe` at the root of the image
+  filesystem. It is started as
+  `%CONTAINER_SANDBOX_MOUNT_POINT%\trivy-scanner.exe`.
+- It receives the same arguments as the Linux scanner, with mounted paths
+  rewritten for Windows. The configuration is passed as
+  `--config=C:\run\eraser.sh\config\controller_manager_config.yaml`.
+
+Only `image`, `request` and `limit.mem` can be set separately for Windows.
+`components.scanner.config` reaches the Windows scanner unchanged through that
+file, so a Windows scanner must accept the same config format.
+`components.scanner.volumes` is mounted at its `hostPath` unchanged, which is
+only meaningful on Windows if it is a Windows path.
 
 ### Configuring Components
 
