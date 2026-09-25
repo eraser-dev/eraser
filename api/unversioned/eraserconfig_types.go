@@ -182,6 +182,7 @@ type ProfileConfig struct {
 
 type ImageJobConfig struct {
 	SuccessRatio float64               `json:"successRatio,omitempty"`
+	// SuccessRatio measures the job success rate; it uses float division and must stay in [0.0,1.0].
 	Cleanup      ImageJobCleanupConfig `json:"cleanup,omitempty"`
 }
 
