@@ -129,23 +129,25 @@ func Default() *unversioned.EraserConfig {
 					Config: nil,
 				},
 			},
-			Scanner: unversioned.OptionalContainerConfig{
-				Enabled: false,
-				ContainerConfig: unversioned.ContainerConfig{
-					Image: unversioned.RepoTag{
-						Repo: repo("eraser-trivy-scanner"),
-						Tag:  version.BuildVersion,
+			Scanner: unversioned.ScannerConfig{
+				OptionalContainerConfig: unversioned.OptionalContainerConfig{
+					Enabled: false,
+					ContainerConfig: unversioned.ContainerConfig{
+						Image: unversioned.RepoTag{
+							Repo: repo("eraser-trivy-scanner"),
+							Tag:  version.BuildVersion,
+						},
+						Request: unversioned.ResourceRequirements{
+							Mem: resource.MustParse("500Mi"),
+							CPU: resource.MustParse("1000m"),
+						},
+						Limit: unversioned.ResourceRequirements{
+							Mem: resource.MustParse("2Gi"),
+							CPU: resource.MustParse("1500m"),
+						},
+						Config:  &defaultScannerConfig,
+						Volumes: []v1.Volume{},
 					},
-					Request: unversioned.ResourceRequirements{
-						Mem: resource.MustParse("500Mi"),
-						CPU: resource.MustParse("1000m"),
-					},
-					Limit: unversioned.ResourceRequirements{
-						Mem: resource.MustParse("2Gi"),
-						CPU: resource.MustParse("1500m"),
-					},
-					Config:  &defaultScannerConfig,
-					Volumes: []v1.Volume{},
 				},
 			},
 			Remover: unversioned.ContainerConfig{

@@ -81,10 +81,57 @@ Only do that if the images configured under `components` can actually run on
 those nodes. Windows support is still in progress, so for now this is useful
 mainly when supplying your own images.
 
-Note that when the scanner is enabled, Windows nodes are skipped because the
-default scanner (Trivy) is Linux-only; Windows image removal only runs with the
-scanner disabled or when triggered manually via an
-_ImageList_.
+Note that when the scanner is enabled, Windows nodes are skipped by default
+because the default scanner (Trivy) is Linux-only; Windows image removal only
+runs with the scanner disabled, when triggered manually via an _ImageList_, or
+when a Windows scanner image is supplied as described below.
+
+#### Scanning Windows nodes
+
+Windows nodes are excluded twice over by default: `manager.nodeFilter.selectors`
+lists `kubernetes.io/os=windows`, and the scanner stage skips any Windows node
+that survives the filter. Supplying a scanner image that has a Windows variant
+opts those nodes back in:
+
+```yaml
+components:
+  scanner:
+    enabled: true
+    image:
+      repo: ghcr.io/eraser-dev/eraser-trivy-scanner
+      tag: v1.0.0
+    windows:
+      image:
+        repo: myregistry.example.com/my-windows-scanner
+        tag: v1.0.0
+      request:
+        mem: 200Mi
+        cpu: 500m
+      limit:
+        mem: 1Gi
+```
+
+A complete `repo` and `tag` under `windows.image` is the opt-in. When it is set,
+the `kubernetes.io/os=windows` entry in `manager.nodeFilter.selectors` is ignored
+so those nodes are not dropped before the scanner runs. A `windows` block that
+does not name an image is ignored and the default skipping applies.
+
+The Windows image must follow the layout eraser runs it with, because the
+scanner runs as a HostProcess container and the image's own `ENTRYPOINT` and
+`CMD` are not used:
+
+- The executable must be `trivy-scanner.exe` at the root of the image
+  filesystem. It is started as
+  `%CONTAINER_SANDBOX_MOUNT_POINT%\trivy-scanner.exe`.
+- It receives the same arguments as the Linux scanner, with mounted paths
+  rewritten for Windows. The configuration is passed as
+  `--config=C:\run\eraser.sh\config\controller_manager_config.yaml`.
+
+Only `image`, `request` and `limit.mem` can be set separately for Windows.
+`components.scanner.config` reaches the Windows scanner unchanged through that
+file, so a Windows scanner must accept the same config format.
+`components.scanner.volumes` is mounted at its `hostPath` unchanged, which is
+only meaningful on Windows if it is a Windows path.
 
 ### Configuring Components
 
@@ -245,7 +292,7 @@ timeout:
 | manager.priorityClassName | The priority class to use for collector, scanner, and remover containers. | "" |
 | manager.additionalPodLabels | Additional labels for all pods that the controller creates at runtime. | `{}` |
 | manager.nodeFilter.type | The type of node filter to use. Must be either "exclude" or "include". | exclude |
-| manager.nodeFilter.selectors | A list of selectors used to filter nodes. `eraser.sh/cleanup.filter` is appended whether or not it is listed. | `["eraser.sh/cleanup.filter", "kubernetes.io/os=windows"]` |
+| manager.nodeFilter.selectors | A list of selectors used to filter nodes. `eraser.sh/cleanup.filter` is appended whether or not it is listed. `kubernetes.io/os=windows` is ignored when `components.scanner.windows` names an image. | `["eraser.sh/cleanup.filter", "kubernetes.io/os=windows"]` |
 | components.collector.enabled | Whether to enable the collector component. | true |
 | components.collector.image.repo | The repository containing the collector image. | ghcr.io/eraser-dev/collector |
 | components.collector.image.tag | The tag of the collector image. | v1.0.0 |
@@ -262,6 +309,11 @@ timeout:
 | components.scanner.limit.cpu | The maximum amount of CPU the scanner container is allowed to use. | 0 |
 | components.scanner.config | The configuration to pass to the scanner container, as a YAML string. | See YAML below |
 | components.scanner.volumes | Extra volumes for scanner. | `{}` |
+| components.scanner.windows.image.repo | The repository containing the scanner image to use on Windows nodes. Together with `tag` this is the opt-in for scanning Windows nodes. | `""` |
+| components.scanner.windows.image.tag | The tag of the Windows scanner image. | `""` |
+| components.scanner.windows.request.mem | The amount of memory to request for the scanner container on Windows nodes. | `0` |
+| components.scanner.windows.request.cpu | The amount of CPU to request for the scanner container on Windows nodes. | `0` |
+| components.scanner.windows.limit.mem | The maximum amount of memory the scanner container is allowed to use on Windows nodes. Left unset when `0`. | `0` |
 | components.remover.image.repo | The repository containing the remover image. | ghcr.io/eraser-dev/remover |
 | components.remover.image.tag | The tag of the remover image. | v1.0.0 |
 | components.remover.request.mem | The amount of memory to request for the remover container. | 25Mi |

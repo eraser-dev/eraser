@@ -207,8 +207,26 @@ type RepoTag struct {
 
 type Components struct {
 	Collector OptionalContainerConfig `json:"collector,omitempty"`
-	Scanner   OptionalContainerConfig `json:"scanner,omitempty"`
+	Scanner   ScannerConfig           `json:"scanner,omitempty"`
 	Remover   ContainerConfig         `json:"remover,omitempty"`
+}
+
+// WindowsScannerConfig overrides the scanner container on Windows nodes. It is
+// deliberately narrower than ContainerConfig: neither Config nor Volumes is
+// translated for Windows, so exposing them here would accept settings that are
+// silently ignored.
+type WindowsScannerConfig struct {
+	Image   RepoTag              `json:"image,omitempty"`
+	Request ResourceRequirements `json:"request,omitempty"`
+	Limit   ResourceRequirements `json:"limit,omitempty"`
+}
+
+// ScannerConfig configures the scanner component. Windows, when set, replaces
+// the inline config on Windows nodes; when absent those nodes are left out of
+// scanning jobs, which is the pre-existing behavior.
+type ScannerConfig struct {
+	OptionalContainerConfig `json:",inline"`
+	Windows                 *WindowsScannerConfig `json:"windows,omitempty"`
 }
 
 //+kubebuilder:object:root=true

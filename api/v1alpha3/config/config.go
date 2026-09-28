@@ -85,22 +85,24 @@ func Default() *v1alpha3.EraserConfig {
 					Config: nil,
 				},
 			},
-			Scanner: v1alpha3.OptionalContainerConfig{
-				Enabled: false,
-				ContainerConfig: v1alpha3.ContainerConfig{
-					Image: v1alpha3.RepoTag{
-						Repo: repo("eraser-trivy-scanner"),
-						Tag:  version.BuildVersion,
+			Scanner: v1alpha3.ScannerConfig{
+				OptionalContainerConfig: v1alpha3.OptionalContainerConfig{
+					Enabled: false,
+					ContainerConfig: v1alpha3.ContainerConfig{
+						Image: v1alpha3.RepoTag{
+							Repo: repo("eraser-trivy-scanner"),
+							Tag:  version.BuildVersion,
+						},
+						Request: v1alpha3.ResourceRequirements{
+							Mem: resource.MustParse("500Mi"),
+							CPU: resource.MustParse("1000m"),
+						},
+						Limit: v1alpha3.ResourceRequirements{
+							Mem: resource.MustParse("2Gi"),
+							CPU: resource.MustParse("1500m"),
+						},
+						Config: &defaultScannerConfig,
 					},
-					Request: v1alpha3.ResourceRequirements{
-						Mem: resource.MustParse("500Mi"),
-						CPU: resource.MustParse("1000m"),
-					},
-					Limit: v1alpha3.ResourceRequirements{
-						Mem: resource.MustParse("2Gi"),
-						CPU: resource.MustParse("1500m"),
-					},
-					Config: &defaultScannerConfig,
 				},
 			},
 			Remover: v1alpha3.ContainerConfig{

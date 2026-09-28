@@ -8,10 +8,13 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
+
+	"github.com/eraser-dev/eraser/api/unversioned"
 )
 
 // startEnvtest brings up a real kube-apiserver + etcd so that emitted pod specs
@@ -35,6 +38,14 @@ func startEnvtest(t *testing.T) (client.Client, func()) {
 	if err != nil {
 		_ = testEnv.Stop()
 		t.Fatalf("failed to build client: %v", err)
+	}
+
+	// envtest's apiserver creates the default namespace asynchronously after it
+	// reports ready, so a fast test can race it and see "namespaces not found".
+	ns := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "default"}}
+	if err := cl.Create(context.Background(), ns); err != nil && !apierrors.IsAlreadyExists(err) {
+		_ = testEnv.Stop()
+		t.Fatalf("failed to ensure the default namespace: %v", err)
 	}
 
 	return cl, func() { _ = testEnv.Stop() }
@@ -87,7 +98,7 @@ func TestWindowsPodSpecPassesAPIServerValidation(t *testing.T) {
 	cl, stop := startEnvtest(t)
 	defer stop()
 
-	spec, err := copyAndFillTemplateSpec(newTemplateSpec(), nil, node("win-node", "windows"), runtimeSpec())
+	spec, err := copyAndFillTemplateSpec(newTemplateSpec(), nil, node("win-node", "windows"), runtimeSpec(), nil)
 	if err != nil {
 		t.Fatalf("copyAndFillTemplateSpec: %v", err)
 	}
@@ -101,6 +112,31 @@ func TestWindowsPodSpecPassesAPIServerValidation(t *testing.T) {
 	}
 }
 
+// The scanner pod only exists on Windows when an override is configured, so the
+// guardrail above never saw it. This covers the overridden image, resources and
+// the translated config mount.
+func TestWindowsScannerPodSpecPassesAPIServerValidation(t *testing.T) {
+	cl, stop := startEnvtest(t)
+	defer stop()
+
+	winOverride := &unversioned.WindowsScannerConfig{
+		Image:   unversioned.RepoTag{Repo: "example.invalid/win-scanner", Tag: "v1"},
+		Request: unversioned.ResourceRequirements{Mem: resource.MustParse("200Mi"), CPU: resource.MustParse("500m")},
+	}
+
+	spec, err := copyAndFillTemplateSpec(newCollectorTemplateSpec("example.invalid/scanner:v1"), nil, node("win-node", "windows"), runtimeSpec(), winOverride)
+	if err != nil {
+		t.Fatalf("copyAndFillTemplateSpec: %v", err)
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	if err := cl.Create(ctx, windowsPod(spec), client.DryRunAll); err != nil {
+		t.Fatalf("apiserver rejected the emitted Windows scanner pod spec: %v", err)
+	}
+}
+
 // TestWindowsPodSpecRejectsLinuxOnlyField proves the guardrail has teeth: a
 // Windows pod carrying a Linux-only container field (capabilities, exactly what
 // SharedSecurityContext sets) must be rejected by the apiserver. This is what
@@ -110,7 +146,7 @@ func TestWindowsPodSpecRejectsLinuxOnlyField(t *testing.T) {
 	cl, stop := startEnvtest(t)
 	defer stop()
 
-	spec, err := copyAndFillTemplateSpec(newTemplateSpec(), nil, node("win-node", "windows"), runtimeSpec())
+	spec, err := copyAndFillTemplateSpec(newTemplateSpec(), nil, node("win-node", "windows"), runtimeSpec(), nil)
 	if err != nil {
 		t.Fatalf("copyAndFillTemplateSpec: %v", err)
 	}

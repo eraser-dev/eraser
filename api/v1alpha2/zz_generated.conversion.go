@@ -156,8 +156,18 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
+	if err := s.AddConversionFunc((*unversioned.ScannerConfig)(nil), (*OptionalContainerConfig)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_unversioned_ScannerConfig_To_v1alpha2_OptionalContainerConfig(a.(*unversioned.ScannerConfig), b.(*OptionalContainerConfig), scope)
+	}); err != nil {
+		return err
+	}
 	if err := s.AddConversionFunc((*ManagerConfig)(nil), (*unversioned.ManagerConfig)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1alpha2_ManagerConfig_To_unversioned_ManagerConfig(a.(*ManagerConfig), b.(*unversioned.ManagerConfig), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*OptionalContainerConfig)(nil), (*unversioned.ScannerConfig)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha2_OptionalContainerConfig_To_unversioned_ScannerConfig(a.(*OptionalContainerConfig), b.(*unversioned.ScannerConfig), scope)
 	}); err != nil {
 		return err
 	}
@@ -173,7 +183,7 @@ func autoConvert_v1alpha2_Components_To_unversioned_Components(in *Components, o
 	if err := Convert_v1alpha2_OptionalContainerConfig_To_unversioned_OptionalContainerConfig(&in.Collector, &out.Collector, s); err != nil {
 		return err
 	}
-	if err := Convert_v1alpha2_OptionalContainerConfig_To_unversioned_OptionalContainerConfig(&in.Scanner, &out.Scanner, s); err != nil {
+	if err := Convert_v1alpha2_OptionalContainerConfig_To_unversioned_ScannerConfig(&in.Scanner, &out.Scanner, s); err != nil {
 		return err
 	}
 	if err := Convert_v1alpha2_ContainerConfig_To_unversioned_ContainerConfig(&in.Remover, &out.Remover, s); err != nil {
@@ -191,7 +201,7 @@ func autoConvert_unversioned_Components_To_v1alpha2_Components(in *unversioned.C
 	if err := Convert_unversioned_OptionalContainerConfig_To_v1alpha2_OptionalContainerConfig(&in.Collector, &out.Collector, s); err != nil {
 		return err
 	}
-	if err := Convert_unversioned_OptionalContainerConfig_To_v1alpha2_OptionalContainerConfig(&in.Scanner, &out.Scanner, s); err != nil {
+	if err := Convert_unversioned_ScannerConfig_To_v1alpha2_OptionalContainerConfig(&in.Scanner, &out.Scanner, s); err != nil {
 		return err
 	}
 	if err := Convert_unversioned_ContainerConfig_To_v1alpha2_ContainerConfig(&in.Remover, &out.Remover, s); err != nil {

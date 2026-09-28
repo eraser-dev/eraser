@@ -43,3 +43,15 @@ func manualConvert_unversioned_RuntimeSpec_To_v1alpha2_Runtime(in *unversioned.R
 func Convert_unversioned_RuntimeSpec_To_v1alpha2_Runtime(in *unversioned.RuntimeSpec, out *Runtime, s conversion.Scope) error {
 	return manualConvert_unversioned_RuntimeSpec_To_v1alpha2_Runtime(in, out, s)
 }
+
+//nolint:revive
+func Convert_v1alpha2_OptionalContainerConfig_To_unversioned_ScannerConfig(in *OptionalContainerConfig, out *unversioned.ScannerConfig, s conversion.Scope) error {
+	return Convert_v1alpha2_OptionalContainerConfig_To_unversioned_OptionalContainerConfig(in, &out.OptionalContainerConfig, s)
+}
+
+// The per-OS scanner override has no v1alpha2 equivalent, so it is dropped here.
+//
+//nolint:revive
+func Convert_unversioned_ScannerConfig_To_v1alpha2_OptionalContainerConfig(in *unversioned.ScannerConfig, out *OptionalContainerConfig, s conversion.Scope) error {
+	return Convert_unversioned_OptionalContainerConfig_To_v1alpha2_OptionalContainerConfig(&in.OptionalContainerConfig, out, s)
+}
