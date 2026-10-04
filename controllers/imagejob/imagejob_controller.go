@@ -405,7 +405,7 @@ func (r *Reconciler) handleNewJob(ctx context.Context, imageJob *eraserv1.ImageJ
 
 	for _, namespacedName := range namespacedNames {
 		//nolint:staticcheck // SA1019: TODO: Replace with PollUntilContextTimeout in future refactor
-		if err := wait.PollImmediate(time.Nanosecond, time.Minute*5, r.isPodReady(ctx, namespacedName)); err != nil {
+		if err := wait.PollImmediate(time.Second, time.Minute*5, r.isPodReady(ctx, namespacedName)); err != nil {
 			log.Error(err, "timed out waiting for pod to leave pending state", "pod NamespacedName", namespacedName)
 		}
 	}
