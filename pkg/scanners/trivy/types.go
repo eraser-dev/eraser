@@ -201,6 +201,19 @@ type ImageScanner struct {
 	timer  *time.Timer
 }
 
+
+// findTrivyBinary looks up the trivy binary, first at the fixed path then in PATH.
+func findTrivyBinary() (string, error) {
+	if _, err := os.Stat(trivyCommandName); err == nil {
+		return trivyCommandName, nil
+	}
+	path, err := exec.LookPath("trivy")
+	if err != nil {
+		return "", fmt.Errorf("trivy binary not found at %s or in PATH: %w", trivyCommandName, err)
+	}
+	return path, nil
+}
+
 func (s *ImageScanner) Scan(img unversioned.Image) (ScanStatus, error) {
 	refs := make([]string, 0, len(img.Names)+len(img.Digests))
 	refs = append(refs, img.Digests...)
@@ -216,13 +229,17 @@ func (s *ImageScanner) Scan(img unversioned.Image) (ScanStatus, error) {
 
 		cliArgs := s.config.cliArgs(refs[i])
 		//nolint:gosec // G204: Trivy subprocess execution is intended functionality
-		cmd := exec.Command(trivyCommandName, cliArgs...)
+		trivyBin, err := findTrivyBinary()
+		if err != nil {
+			return StatusFailed, err
+		}
+		cmd := exec.Command(trivyBin, cliArgs...)
 		cmd.Stdout = stdout
 		cmd.Stderr = stderr
 		cmd.Env = append(cmd.Env, os.Environ()...)
 		cmd.Env = setRuntimeSocketEnvVars(cmd, s.config.Runtime)
 
-		log.V(1).Info("scanning image ref", "ref", refs[i], "cli_invocation", fmt.Sprintf("%s %s", trivyCommandName, strings.Join(cliArgs, " ")), "env", cmd.Env)
+		log.V(1).Info("scanning image ref", "ref", refs[i], "cli_invocation", fmt.Sprintf("%s %s", trivyBin, strings.Join(cliArgs, " ")), "env", cmd.Env)
 		if err := cmd.Run(); err != nil {
 			log.Error(err, "error scanning image", "imageID", img.ImageID, "reference", refs[i], "stderr", stderr.String())
 			continue
