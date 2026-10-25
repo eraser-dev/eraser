@@ -286,11 +286,11 @@ func (r *Reconciler) handleRunningJob(ctx context.Context, imageJob *eraserv1.Im
 	managerConfig := eraserConfig.Manager
 	successRatio := managerConfig.ImageJob.SuccessRatio
 
-	if float64(successAndSkipped/imageJob.Status.Desired) < successRatio {
+	if float64(successAndSkipped)/float64(imageJob.Status.Desired) < successRatio {
 		log.Info(
 			"Marking job as failed",
 			"success ratio", successRatio,
-			"actual ratio", success/imageJob.Status.Desired,
+			"actual ratio", float64(success)/float64(imageJob.Status.Desired),
 		)
 		imageJob.Status.Phase = eraserv1.PhaseFailed
 	}
@@ -431,7 +431,7 @@ func (r *Reconciler) handleNewJob(ctx context.Context, imageJob *eraserv1.ImageJ
 
 	for _, namespacedName := range namespacedNames {
 		//nolint:staticcheck // SA1019: TODO: Replace with PollUntilContextTimeout in future refactor
-		if err := wait.PollImmediate(time.Nanosecond, time.Minute*5, r.isPodReady(ctx, namespacedName)); err != nil {
+		if err := wait.PollImmediate(time.Second, time.Minute*5, r.isPodReady(ctx, namespacedName)); err != nil {
 			log.Error(err, "timed out waiting for pod to leave pending state", "pod NamespacedName", namespacedName)
 		}
 	}
