@@ -104,6 +104,12 @@ func GetConn(ctx context.Context, socketPath string) (conn *grpc.ClientConn, err
 		addr,
 		//nolint:staticcheck // SA1019: grpc.WithBlock is deprecated but ensures synchronous CRI connection
 		grpc.WithBlock(),
+		// Without this a blocking dial retries every error until ctx ends, which
+		// for the workers is never: a socket that is missing, that nothing is
+		// listening on, or that the worker may not open hangs the pod with
+		// nothing logged. Transient errors are still retried.
+		//nolint:staticcheck // SA1019: grpc.FailOnNonTempDialError is deprecated but only applies to blocking dials
+		grpc.FailOnNonTempDialError(true),
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithContextDialer(dialer),
 	)
