@@ -11,8 +11,11 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"syscall"
 	"testing"
 	"time"
+
+	"google.golang.org/grpc"
 
 	"github.com/eraser-dev/eraser/api/unversioned"
 )
@@ -157,6 +160,90 @@ func TestUnixDialerConnects(t *testing.T) {
 	}
 	if err := conn.Close(); err != nil {
 		t.Errorf("close: %v", err)
+	}
+}
+
+func TestGetConnConnectsToALiveSocket(t *testing.T) {
+	sock := filepath.Join(shortTempDir(t), "s")
+	l, err := net.Listen("unix", sock)
+	if err != nil {
+		t.Fatalf("listen: %v", err)
+	}
+
+	server := grpc.NewServer()
+	go func() { _ = server.Serve(l) }()
+	defer server.Stop()
+
+	conn, err := GetConn(testContext(t), "unix://"+sock)
+	if err != nil {
+		t.Fatalf("GetConn: %v", err)
+	}
+	if err := conn.Close(); err != nil {
+		t.Errorf("close: %v", err)
+	}
+}
+
+// A blocking dial used to retry every error until its context ended, and the
+// workers dial with a context that never does, so these would hang rather than
+// fail.
+func TestGetConnFailsFastWhenTheSocketIsMissing(t *testing.T) {
+	sock := filepath.Join(shortTempDir(t), "s")
+
+	conn, err := GetConn(testContext(t), "unix://"+sock)
+	if err == nil {
+		_ = conn.Close()
+		t.Fatal("GetConn succeeded against a socket that does not exist")
+	}
+	if !errors.Is(err, os.ErrNotExist) {
+		t.Errorf("GetConn = %v, want an error satisfying os.ErrNotExist", err)
+	}
+}
+
+// A socket left behind by a runtime that has stopped refuses connections.
+func TestGetConnFailsFastWhenNothingIsListening(t *testing.T) {
+	sock := filepath.Join(shortTempDir(t), "s")
+	l, err := net.ListenUnix("unix", &net.UnixAddr{Name: sock, Net: "unix"})
+	if err != nil {
+		t.Fatalf("listen: %v", err)
+	}
+	l.SetUnlinkOnClose(false)
+	if err := l.Close(); err != nil {
+		t.Fatalf("close: %v", err)
+	}
+
+	conn, err := GetConn(testContext(t), "unix://"+sock)
+	if err == nil {
+		_ = conn.Close()
+		t.Fatal("GetConn succeeded against a socket nothing is listening on")
+	}
+	if !errors.Is(err, syscall.ECONNREFUSED) {
+		t.Errorf("GetConn = %v, want an error satisfying syscall.ECONNREFUSED", err)
+	}
+}
+
+func TestGetConnFailsFastWhenTheSocketIsNotPermitted(t *testing.T) {
+	if os.Geteuid() == 0 {
+		t.Skip("root is not subject to the socket's permissions")
+	}
+
+	sock := filepath.Join(shortTempDir(t), "s")
+	l, err := net.Listen("unix", sock)
+	if err != nil {
+		t.Fatalf("listen: %v", err)
+	}
+	defer func() { _ = l.Close() }()
+
+	if err := os.Chmod(sock, 0); err != nil {
+		t.Fatalf("chmod: %v", err)
+	}
+
+	conn, err := GetConn(testContext(t), "unix://"+sock)
+	if err == nil {
+		_ = conn.Close()
+		t.Fatal("GetConn succeeded against a socket it may not open")
+	}
+	if !errors.Is(err, os.ErrPermission) {
+		t.Errorf("GetConn = %v, want an error satisfying os.ErrPermission", err)
 	}
 }
 
