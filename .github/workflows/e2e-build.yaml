@@ -14,7 +14,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@05e31511f85b41b11d1cf0ef85d0992719546e2c
+        uses: step-security/harden-runner@dc2769abcc0fcfbadfc1df54081c1608579ef6b2
         with:
           egress-policy: audit
       - name: Set up Go
@@ -23,7 +23,7 @@ jobs:
           go-version: "1.26"
           check-latest: true
       - name: Setup buildx instance
-        uses: docker/setup-buildx-action@37fe631027851001ddb9b187196cc803df7f5f0e # v4.3.0
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
         with:
           use: true
       - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
@@ -45,7 +45,7 @@ jobs:
       - name: Build remover
         run: 'make docker-build-remover OUTPUT_TYPE=type=oci,dest=./${REMOVER_REPO}_${REMOVER_TAG}.tar,name=${REMOVER_REPO}:${REMOVER_TAG}'
       - name: Upload Build Artifacts
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
         with:
           name: ${{ inputs.bucket-id }}-remover
           path: remover_test.tar
@@ -57,7 +57,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@05e31511f85b41b11d1cf0ef85d0992719546e2c
+        uses: step-security/harden-runner@dc2769abcc0fcfbadfc1df54081c1608579ef6b2
         with:
           egress-policy: audit
       - name: Set up Go
@@ -66,7 +66,7 @@ jobs:
           go-version: "1.26"
           check-latest: true
       - name: Setup buildx instance
-        uses: docker/setup-buildx-action@37fe631027851001ddb9b187196cc803df7f5f0e # v4.3.0
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
         with:
           use: true
       - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
@@ -87,7 +87,7 @@ jobs:
       - name: Build trivy-scanner
         run: 'make docker-build-trivy-scanner OUTPUT_TYPE=type=oci,dest=./${TRIVY_SCANNER_REPO}_${TRIVY_SCANNER_TAG}.tar,name=${TRIVY_SCANNER_REPO}:${TRIVY_SCANNER_TAG}'
       - name: Upload Build Artifacts
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
         with:
           name: ${{ inputs.bucket-id }}-scanner
           path: scanner_test.tar
@@ -99,7 +99,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@05e31511f85b41b11d1cf0ef85d0992719546e2c
+        uses: step-security/harden-runner@dc2769abcc0fcfbadfc1df54081c1608579ef6b2
         with:
           egress-policy: audit
       - name: Set up Go
@@ -108,7 +108,7 @@ jobs:
           go-version: "1.26"
           check-latest: true
       - name: Setup buildx instance
-        uses: docker/setup-buildx-action@37fe631027851001ddb9b187196cc803df7f5f0e # v4.3.0
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
         with:
           use: true
       - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
@@ -129,7 +129,7 @@ jobs:
       - name: Build manager
         run: 'make docker-build-manager OUTPUT_TYPE=type=oci,dest=./${MANAGER_REPO}_${MANAGER_TAG}.tar,name=${MANAGER_REPO}:${MANAGER_TAG}'
       - name: Upload Build Artifacts
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
         with:
           name: ${{ inputs.bucket-id }}-manager
           path: manager_test.tar
@@ -141,7 +141,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@05e31511f85b41b11d1cf0ef85d0992719546e2c
+        uses: step-security/harden-runner@dc2769abcc0fcfbadfc1df54081c1608579ef6b2
         with:
           egress-policy: audit
       - name: Set up Go
@@ -150,7 +150,7 @@ jobs:
           go-version: "1.26"
           check-latest: true
       - name: Setup buildx instance
-        uses: docker/setup-buildx-action@37fe631027851001ddb9b187196cc803df7f5f0e # v4.3.0
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
         with:
           use: true
       - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
@@ -171,7 +171,7 @@ jobs:
       - name: Build collector
         run: 'make docker-build-collector OUTPUT_TYPE=type=oci,dest=./${COLLECTOR_REPO}_${COLLECTOR_TAG}.tar,name=${COLLECTOR_REPO}:${COLLECTOR_TAG}'
       - name: Upload Build Artifacts
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
         with:
           name: ${{ inputs.bucket-id }}-collector
           path: collector_test.tar
