@@ -4,6 +4,12 @@ on: [pull_request]
 permissions:
   contents: read
 
+concurrency:
+  # Runs for the same pull request share a group, so a new push cancels the run
+  # for the commit it replaces. Every other event gets a group of its own.
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: true
+
 jobs:
   dependency-review:
     runs-on: ubuntu-latest

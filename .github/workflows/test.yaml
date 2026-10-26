@@ -15,6 +15,12 @@ env:
 
 permissions: read-all
 
+concurrency:
+  # Runs for the same pull request share a group, so a new push cancels the run
+  # for the commit it replaces. Every other event gets a group of its own.
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: true
+
 jobs:
   generate-bucket-id:
     name: "Generate build id for storage"
