@@ -49,7 +49,7 @@ _See [helm install](https://helm.sh/docs/helm/helm_install/) for command documen
 | runtimeConfig.manager.nodeFilter                | Filter for nodes.                                                                                    | `{}`                           |
 | runtimeConfig.components.collector              | Settings for the collector component.                                                                | `{ enabled: true }`           |
 | runtimeConfig.components.scanner                | Settings for the scanner component.                                                                  | `{ enabled: true }`           |
-| runtimeConfig.components.eraser                 | Settings for the eraser component.                                                                   | `{}`                           |
+| runtimeConfig.components.remover                | Settings for the remover component.                                                                  | `{}`                           |
 | deploy.image.repo                               | Repository for the image.                                                                            | `ghcr.io/eraser-dev/eraser-manager` |
 | deploy.image.pullPolicy                         | Policy for pulling the image.                                                                        | `IfNotPresent`                 |
 | deploy.image.tag                                | Overrides the default image tag.                                                                     | `""`                           |
